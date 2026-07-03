@@ -1,0 +1,2375 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>AM Coach — TransfoPhysique</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.5.0/Recharts.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:#F4F4F4;-webkit-font-smoothing:antialiased}
+button,input,textarea{font-family:inherit}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const {
+  useState,
+  useCallback
+} = React;
+const {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer
+} = Recharts;
+const R = "#D52B1E",
+  B = "#0057A8",
+  K = "#1A1A1A",
+  W = "#FFFFFF",
+  G = "#F4F4F4";
+const HABITS = [{
+  id: "sport",
+  icon: "🏋️",
+  label: "Sport",
+  color: R
+}, {
+  id: "nutrition",
+  icon: "🥗",
+  label: "Nutrition",
+  color: "#2E7D32"
+}, {
+  id: "sommeil",
+  icon: "😴",
+  label: "Sommeil",
+  color: B
+}, {
+  id: "complements",
+  icon: "💊",
+  label: "Compléments",
+  color: "#7B1FA2"
+}, {
+  id: "hydratation",
+  icon: "💧",
+  label: "Hydratation",
+  color: "#0097A7"
+}, {
+  id: "famille",
+  icon: "👨‍👩‍👧",
+  label: "Famille",
+  color: "#E65100"
+}, {
+  id: "travail",
+  icon: "💼",
+  label: "Travail",
+  color: "#555555"
+}];
+const DAY_FULL = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+const DAY_SHORT = ["L", "M", "M", "J", "V", "S", "D"];
+const MENTAL_LABELS = ["Super", "Bien", "Moyen", "Dur", "KO"];
+const MENTAL_COLORS = ["#4CAF50", "#8BC34A", "#FFC107", "#FF9800", "#D52B1E"];
+const ENERGIE_LABELS = ["Vidé", "Faible", "Moyen", "Bien", "Top"];
+const ENERGIE_COLORS = ["#D52B1E", "#FF9800", "#FFC107", "#8BC34A", "#4CAF50"];
+const STORE = {};
+function load(k, d) {
+  try {
+    return STORE[k] !== undefined ? JSON.parse(JSON.stringify(STORE[k])) : d;
+  } catch (e) {
+    return d;
+  }
+}
+function save(k, v) {
+  try {
+    STORE[k] = JSON.parse(JSON.stringify(v));
+  } catch (e) {}
+}
+
+// ── Ring ─────────────────────────────────────────────────
+function Ring({
+  pct,
+  color,
+  size = 64
+}) {
+  const r = (size - 8) / 2,
+    c = 2 * Math.PI * r,
+    p = Math.min(Math.max(pct || 0, 0), 1);
+  return /*#__PURE__*/React.createElement("svg", {
+    width: size,
+    height: size,
+    style: {
+      transform: "rotate(-90deg)"
+    }
+  }, /*#__PURE__*/React.createElement("circle", {
+    cx: size / 2,
+    cy: size / 2,
+    r: r,
+    fill: "none",
+    stroke: "#EBEBEB",
+    strokeWidth: 6
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: size / 2,
+    cy: size / 2,
+    r: r,
+    fill: "none",
+    stroke: color,
+    strokeWidth: 6,
+    strokeDasharray: `${c * p} ${c}`,
+    strokeLinecap: "round",
+    style: {
+      transition: "stroke-dasharray .35s"
+    }
+  }));
+}
+
+// ── ScaleRow ─────────────────────────────────────────────
+function ScaleRow({
+  label,
+  emoji,
+  value,
+  onChange
+}) {
+  const cols = ["#4CAF50", "#4CAF50", "#8BC34A", "#CDDC39", "#FFC107", "#FFC107", "#FF9800", "#FF5722", R, "#B71C1C"];
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 20
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 800,
+      fontSize: 12,
+      color: K,
+      marginBottom: 9
+    }
+  }, emoji, " ", label), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 4
+    }
+  }, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => /*#__PURE__*/React.createElement("button", {
+    key: n,
+    onClick: () => onChange(value === n ? null : n),
+    style: {
+      flex: 1,
+      aspectRatio: "1",
+      borderRadius: 7,
+      border: "none",
+      background: value === n ? cols[n - 1] : "#EFEFEF",
+      color: value === n ? W : "#999",
+      fontWeight: 900,
+      fontSize: 12,
+      cursor: "pointer",
+      transform: value === n ? "scale(1.1)" : "scale(1)",
+      transition: "all .12s"
+    }
+  }, n))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      marginTop: 4
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 9,
+      color: "#CCC"
+    }
+  }, "← Facile"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 9,
+      color: "#CCC"
+    }
+  }, "Difficile →")));
+}
+function TextBox({
+  label,
+  value,
+  onChange,
+  placeholder,
+  rows = 2
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 16
+    }
+  }, label && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 800,
+      fontSize: 11,
+      color: K,
+      marginBottom: 6,
+      textTransform: "uppercase"
+    }
+  }, label), /*#__PURE__*/React.createElement("textarea", {
+    value: value,
+    onChange: e => onChange(e.target.value),
+    placeholder: placeholder,
+    rows: rows,
+    style: {
+      width: "100%",
+      padding: "12px 13px",
+      borderRadius: 10,
+      border: "1.5px solid #E0E0E0",
+      fontSize: 14,
+      fontFamily: "inherit",
+      resize: "vertical",
+      outline: "none",
+      background: W,
+      color: K,
+      boxSizing: "border-box",
+      lineHeight: 1.5
+    }
+  }));
+}
+
+// ════════════════════════════════════════════════════════
+// RAPPORT PDF GENERATOR
+// ════════════════════════════════════════════════════════
+function generateRapport(prenom, startDate, allData, period) {
+  const days = period;
+  const label = "J" + days;
+  const dateDebut = new Date(startDate);
+  const dateFin = new Date(dateDebut);
+  dateFin.setDate(dateFin.getDate() + days - 1);
+  const fmt = d => d.toLocaleDateString("fr-FR");
+  const dayData = Array.from({
+    length: days
+  }, (_, i) => {
+    const d = allData[i] || {};
+    const h = d.habits || {};
+    const done = HABITS.filter(hab => h[hab.id]).length;
+    const has = Object.keys(d).length > 0;
+    return {
+      day: i + 1,
+      score: has ? Math.round(done / HABITS.length * 100) : null,
+      poids: d.poids ? parseFloat(d.poids) : null,
+      mental: d.mental != null ? (4 - d.mental) * 25 : null,
+      sport: has ? h.sport ? 1 : 0 : null,
+      nutrition: has ? h.nutrition ? 1 : 0 : null,
+      sommeil: has ? h.sommeil ? 1 : 0 : null,
+      hydra: has ? h.hydratation ? 1 : 0 : null,
+      compl: has ? h.complements ? 1 : 0 : null,
+      famille: has ? h.famille ? 1 : 0 : null,
+      bilan: d.bilan || null
+    };
+  });
+  const filled = dayData.filter(d => d.score !== null);
+  const avgScore = filled.length ? Math.round(filled.reduce((a, b) => a + b.score, 0) / filled.length) : 0;
+  const mVals = dayData.map(d => d.mental).filter(v => v != null);
+  const avgMental = mVals.length ? Math.round(mVals.reduce((a, b) => a + b, 0) / mVals.length) : 0;
+  const pVals = dayData.map(d => d.poids).filter(v => v);
+  const p0 = pVals[0] || null,
+    p1 = pVals[pVals.length - 1] || null;
+  const dp = p0 && p1 ? Math.round((p1 - p0) * 10) / 10 : null;
+  const sc = avgScore >= 80 ? "#4CAF50" : avgScore >= 50 ? "#FF9800" : "#D52B1E";
+  const mc = avgMental >= 75 ? "#4CAF50" : avgMental >= 50 ? "#FF9800" : "#D52B1E";
+  const bilans = dayData.filter(d => d.bilan && (d.bilan.victoire || d.bilan.ressenti || d.bilan.blocage)).slice(0, 4);
+  function spark(vals, color) {
+    const v = vals.filter(x => x != null);
+    if (v.length < 2) return '<p style="color:#CCC;font-size:12px;text-align:center;padding:16px 0">Données insuffisantes</p>';
+    const W = 280,
+      H = 55,
+      mn = Math.min(...v),
+      mx = Math.max(...v),
+      rng = mx - mn || 1;
+    const pts = vals.map((x, i) => {
+      if (x == null) return null;
+      return (i / (vals.length - 1) * W).toFixed(1) + "," + (H - (x - mn) / rng * (H - 8) - 4).toFixed(1);
+    }).filter(Boolean).join(" ");
+    return '<svg width="' + W + '" height="' + H + '" style="display:block;width:100%"><polyline points="' + pts + '" fill="none" stroke="' + color + '" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
+  const habs = [{
+    icon: "🏋️",
+    label: "Sport",
+    val: dayData.filter(d => d.sport === 1).length,
+    color: R
+  }, {
+    icon: "🥗",
+    label: "Nutrition",
+    val: dayData.filter(d => d.nutrition === 1).length,
+    color: "#2E7D32"
+  }, {
+    icon: "😴",
+    label: "Sommeil",
+    val: dayData.filter(d => d.sommeil === 1).length,
+    color: B
+  }, {
+    icon: "💧",
+    label: "Hydratation",
+    val: dayData.filter(d => d.hydra === 1).length,
+    color: "#0097A7"
+  }, {
+    icon: "💊",
+    label: "Compléments",
+    val: dayData.filter(d => d.compl === 1).length,
+    color: "#7B1FA2"
+  }, {
+    icon: "👨‍👩‍👧",
+    label: "Famille",
+    val: dayData.filter(d => d.famille === 1).length,
+    color: "#E65100"
+  }];
+  const css = `*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,"Helvetica Neue",sans-serif;background:#F4F4F4;color:#1A1A1A}.pg{max-width:600px;margin:0 auto;background:#fff}.hdr{background:#1A1A1A;padding:24px 20px 18px}.brand{color:#fff;font-weight:900;font-size:17px;letter-spacing:2px;text-transform:uppercase;display:flex;align-items:center;gap:8px}.sub{color:#666;font-size:11px;margin-top:5px;padding-left:14px}.hero{background:linear-gradient(135deg,#D52B1E,#8B0000);padding:24px 20px;color:#fff}.hname{font-size:26px;font-weight:900;margin-bottom:3px}.hsub{font-size:13px;opacity:.8;margin-bottom:6px}.hdates{font-size:11px;opacity:.6}.kg{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:16px}.kpi{background:#fff;border-radius:12px;padding:14px;box-shadow:0 2px 6px rgba(0,0,0,.07);text-align:center}.kv{font-size:28px;font-weight:900;margin-bottom:3px}.kl{font-size:10px;color:#888;font-weight:700;text-transform:uppercase;letter-spacing:.5px}.ks{font-size:11px;font-weight:700;margin-top:4px}.sec{padding:0 14px 14px}.st{display:flex;align-items:center;gap:8px;margin:14px 0 10px}.sb{width:3px;height:16px;border-radius:2px}.sl{font-weight:900;font-size:12px;text-transform:uppercase;letter-spacing:.8px}.ch{background:#fff;border-radius:12px;padding:12px;margin-bottom:8px;box-shadow:0 2px 6px rgba(0,0,0,.07)}.ct{font-size:10px;font-weight:800;color:#888;letter-spacing:.8px;text-transform:uppercase;margin-bottom:6px}.hg{display:grid;grid-template-columns:1fr 1fr;gap:7px}.hc{background:#fff;border-radius:10px;padding:11px;box-shadow:0 2px 6px rgba(0,0,0,.07);display:flex;align-items:center;gap:8px}.hi{font-size:18px}.hn{font-size:10px;color:#888;font-weight:700}.hv{font-size:15px;font-weight:900}.bc{background:#fff;border-radius:12px;padding:13px;margin-bottom:8px;box-shadow:0 2px 6px rgba(0,0,0,.07);border-left:4px solid #D52B1E}.bw{font-size:10px;color:#D52B1E;font-weight:800;margin-bottom:7px;text-transform:uppercase}.bi{margin-bottom:5px}.bk{font-size:9px;color:#AAA;font-weight:700;text-transform:uppercase;margin-bottom:2px}.bt{font-size:12px;color:#333;line-height:1.5}.ftr{background:#1A1A1A;padding:20px;text-align:center;margin-top:14px}.fm{color:#666;font-size:11px;line-height:1.8}.fs{color:#fff;font-weight:900;font-size:13px;margin-top:8px}@media print{body{background:#fff}}`;
+  let html = '<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Rapport ' + label + ' — ' + prenom + '</title><style>' + css + '</style></head><body><div class="pg">';
+  html += '<div class="hdr"><div class="brand"><div style="width:4px;height:22px;background:#D52B1E;border-radius:2px"></div>AM Coach Genève<div style="width:4px;height:22px;background:#0057A8;border-radius:2px"></div></div><div class="sub">TransfoPhysique · Rapport ' + label + '</div></div>';
+  html += '<div class="hero"><div class="hname">' + prenom + '</div><div class="hsub">' + days + ' jours de transformation</div><div class="hdates">' + fmt(dateDebut) + ' → ' + fmt(dateFin) + '</div></div>';
+  html += '<div class="kg">';
+  html += '<div class="kpi"><div class="kv" style="color:' + sc + '">' + avgScore + '%</div><div class="kl">Score moyen</div></div>';
+  html += '<div class="kpi"><div class="kv" style="color:' + mc + '">' + avgMental + '%</div><div class="kl">Mental moyen</div></div>';
+  html += '<div class="kpi"><div class="kv">' + (p1 || '—') + '<span style="font-size:13px"> kg</span></div><div class="kl">Poids actuel</div>' + (dp != null ? '<div class="ks" style="color:' + (dp <= 0 ? "#4CAF50" : "#D52B1E") + '">' + (dp > 0 ? "+" : "") + dp + ' kg</div>' : '') + '</div>';
+  html += '<div class="kpi"><div class="kv" style="color:#D52B1E">' + filled.length + '<span style="font-size:13px">/' + days + '</span></div><div class="kl">Jours remplis</div></div>';
+  html += '</div>';
+  html += '<div class="sec"><div class="st"><div class="sb" style="background:#D52B1E"></div><span class="sl">Courbes de progression</span></div>';
+  html += '<div class="ch"><div class="ct">Score global</div>' + spark(dayData.map(d => d.score), "#D52B1E") + '</div>';
+  html += '<div class="ch"><div class="ct">Ressenti mental</div>' + spark(dayData.map(d => d.mental), "#0057A8") + '</div>';
+  if (pVals.length >= 2) html += '<div class="ch"><div class="ct">Poids (kg)</div>' + spark(dayData.map(d => d.poids), "#555") + '</div>';
+  html += '</div>';
+  html += '<div class="sec"><div class="st"><div class="sb" style="background:#0057A8"></div><span class="sl">Habitudes sur ' + days + ' jours</span></div><div class="hg">';
+  habs.forEach(h => {
+    html += '<div class="hc"><div class="hi">' + h.icon + '</div><div><div class="hn">' + h.label + '</div><div class="hv" style="color:' + h.color + '">' + h.val + '/' + days + 'j</div></div></div>';
+  });
+  html += '</div></div>';
+  if (bilans.length > 0) {
+    html += '<div class="sec"><div class="st"><div class="sb" style="background:#D52B1E"></div><span class="sl">Bilans du dimanche</span></div>';
+    bilans.forEach(d => {
+      html += '<div class="bc"><div class="bw">Semaine ' + (Math.floor((d.day - 1) / 7) + 1) + ' — Jour ' + d.day + '</div>';
+      if (d.bilan.victoire) html += '<div class="bi"><div class="bk">🏆 Victoire</div><div class="bt">' + d.bilan.victoire + '</div></div>';
+      if (d.bilan.blocage) html += '<div class="bi"><div class="bk">🤛 Difficulté</div><div class="bt">' + d.bilan.blocage + '</div></div>';
+      if (d.bilan.ressenti) html += '<div class="bi"><div class="bk">💬 Ressenti</div><div class="bt">' + d.bilan.ressenti + '</div></div>';
+      if (d.bilan.question) html += '<div class="bi"><div class="bk" style="color:#D52B1E">❓ Question pour Akli</div><div class="bt" style="color:#D52B1E;font-weight:700">' + d.bilan.question + '</div></div>';
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+  html += '<div class="ftr"><div class="fm">Rapport généré automatiquement<br>Programme TransfoPhysique 90 jours · AM Coach Genève</div><div class="fs">Akli — AM Coach Genève</div></div>';
+  html += '</div></body></html>';
+  return html;
+}
+
+// ════════════════════════════════════════════════════════
+// ONBOARDING
+// ════════════════════════════════════════════════════════
+function Onboarding({
+  onDone
+}) {
+  const [name, setName] = useState("");
+  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      minHeight: "100vh",
+      background: K,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 32,
+      textAlign: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      marginBottom: 6
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 4,
+      height: 26,
+      background: R,
+      borderRadius: 2
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: W,
+      fontWeight: 900,
+      fontSize: 22,
+      letterSpacing: 3,
+      textTransform: "uppercase"
+    }
+  }, "AM Coach"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 4,
+      height: 26,
+      background: B,
+      borderRadius: 2
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "#555",
+      fontSize: 13,
+      marginBottom: 44
+    }
+  }, "TransfoPhysique · 90 jours"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: "100%",
+      maxWidth: 340
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: W,
+      fontWeight: 900,
+      fontSize: 17,
+      marginBottom: 12
+    }
+  }, "Ton prénom"), /*#__PURE__*/React.createElement("input", {
+    value: name,
+    onChange: e => setName(e.target.value),
+    placeholder: "Prénom...",
+    style: {
+      width: "100%",
+      padding: "16px 18px",
+      borderRadius: 12,
+      border: "2px solid #2A2A2A",
+      background: "#1A1A1A",
+      color: W,
+      fontSize: 17,
+      fontWeight: 700,
+      outline: "none",
+      boxSizing: "border-box",
+      textAlign: "center",
+      marginBottom: 20
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: W,
+      fontWeight: 900,
+      fontSize: 17,
+      marginBottom: 12
+    }
+  }, "Date de départ"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: date,
+    onChange: e => setDate(e.target.value),
+    style: {
+      width: "100%",
+      padding: "16px 18px",
+      borderRadius: 12,
+      border: "2px solid #2A2A2A",
+      background: "#1A1A1A",
+      color: W,
+      fontSize: 16,
+      outline: "none",
+      boxSizing: "border-box",
+      textAlign: "center",
+      marginBottom: 28
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: () => name.trim() && onDone(name.trim(), date),
+    disabled: !name.trim(),
+    style: {
+      width: "100%",
+      padding: "18px 0",
+      borderRadius: 12,
+      border: "none",
+      background: name.trim() ? R : "#2A2A2A",
+      color: W,
+      fontWeight: 900,
+      fontSize: 16,
+      letterSpacing: 1.5,
+      cursor: name.trim() ? "pointer" : "not-allowed"
+    }
+  }, "Démarrer mes 90 jours →")));
+}
+
+// ════════════════════════════════════════════════════════
+// DAY VIEW
+// ════════════════════════════════════════════════════════
+function DayView({
+  dayIdx,
+  clientSlug,
+  clientName,
+  startDate,
+  allData,
+  onSave,
+  onBack
+}) {
+  const ex = allData[dayIdx] || {};
+  const [habits, setHabits] = useState(ex.habits || {});
+  const [poids, setPoids] = useState(ex.poids || "");
+  const [mental, setMental] = useState(ex.mental ?? null);
+  const [energie, setEnergie] = useState(ex.energie ?? null);
+  const [sommeilH, setSommeilH] = useState(ex.sommeilH || "");
+  const [saved, setSaved] = useState(false);
+  const [showBilan, setShowBilan] = useState(false);
+  const b0 = ex.bilan || {};
+  const [sportDiff, setSportDiff] = useState(b0.sportDiff || null);
+  const [nutritionDiff, setNutritionDiff] = useState(b0.nutritionDiff || null);
+  const [sommeilDiff, setSommeilDiff] = useState(b0.sommeilDiff || null);
+  const [stress, setStress] = useState(b0.stress || null);
+  const [victoire, setVictoire] = useState(b0.victoire || "");
+  const [blocage, setBlocage] = useState(b0.blocage || "");
+  const [ressenti, setRessenti] = useState(b0.ressenti || "");
+  const [question, setQuestion] = useState(b0.question || "");
+  const isSunday = (dayIdx + 1) % 7 === 0;
+  const weekNum = Math.floor(dayIdx / 7) + 1;
+  const dayOfWeek = dayIdx % 7;
+  const today90 = Math.max(0, Math.min(Math.floor((new Date() - new Date(startDate)) / (1000 * 60 * 60 * 24)), 89));
+  const habitsDone = HABITS.filter(h => habits[h.id]).length;
+  const persist = useCallback((h, p, m, e, sh, b) => {
+    const d = {
+      habits: h,
+      poids: p,
+      mental: m,
+      energie: e,
+      sommeilH: sh,
+      bilan: b
+    };
+    onSave(dayIdx, d);
+    const key = "amcoach_" + clientSlug;
+    const stored = JSON.parse(localStorage.getItem(key) || "{}");
+    stored[dayIdx] = d;
+    localStorage.setItem(key, JSON.stringify(stored));
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1500);
+  }, [clientSlug, dayIdx, onSave]);
+  const toggle = id => {
+    const n = {
+      ...habits,
+      [id]: !habits[id]
+    };
+    setHabits(n);
+    persist(n, poids, mental, energie, sommeilH, ex.bilan || null);
+  };
+  const hp = v => {
+    setPoids(v);
+    persist(habits, v, mental, energie, sommeilH, ex.bilan || null);
+  };
+  const hm = v => {
+    const n = mental === v ? null : v;
+    setMental(n);
+    persist(habits, poids, n, energie, sommeilH, ex.bilan || null);
+  };
+  const he = v => {
+    const n = energie === v ? null : v;
+    setEnergie(n);
+    persist(habits, poids, mental, n, sommeilH, ex.bilan || null);
+  };
+  const hsh = v => {
+    setSommeilH(v);
+    persist(habits, poids, mental, energie, v, ex.bilan || null);
+  };
+  const saveBilan = () => {
+    const b = {
+      sportDiff,
+      nutritionDiff,
+      sommeilDiff,
+      stress,
+      victoire,
+      blocage,
+      ressenti,
+      question
+    };
+    persist(habits, poids, mental, energie, sommeilH, b);
+    setShowBilan(false);
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      minHeight: "100vh",
+      background: G,
+      paddingBottom: 60
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: K,
+      padding: "16px 18px 14px",
+      position: "sticky",
+      top: 0,
+      zIndex: 50
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: onBack,
+    style: {
+      background: "none",
+      border: "none",
+      color: "#888",
+      fontSize: 22,
+      cursor: "pointer",
+      padding: 0,
+      lineHeight: 1
+    }
+  }, "←"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: W,
+      fontWeight: 900,
+      fontSize: 15
+    }
+  }, "Jour ", dayIdx + 1, " · ", DAY_FULL[dayOfWeek]), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "#666",
+      fontSize: 12
+    }
+  }, "Semaine ", weekNum, " · ", clientName)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, saved && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "#4CAF50",
+      fontWeight: 700
+    }
+  }, "✓ Sauvé"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative",
+      width: 48,
+      height: 48
+    }
+  }, /*#__PURE__*/React.createElement(Ring, {
+    pct: habitsDone / HABITS.length,
+    color: habitsDone === HABITS.length ? "#4CAF50" : R,
+    size: 48
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      inset: 0,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: W,
+      fontWeight: 900,
+      fontSize: 11
+    }
+  }, habitsDone, "/", HABITS.length)))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "16px 14px 0"
+    }
+  }, dayIdx > today90 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#EEF4FF",
+      border: "2px solid #C5D8F0",
+      borderRadius: 12,
+      padding: "12px 16px",
+      marginBottom: 16,
+      display: "flex",
+      alignItems: "center",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 16
+    }
+  }, "📅"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      color: "#5580AA",
+      fontWeight: 700
+    }
+  }, "Jour futur — tu peux anticiper")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: W,
+      borderRadius: 14,
+      padding: "14px 16px",
+      marginBottom: 10,
+      boxShadow: "0 1px 4px #0001",
+      display: "flex",
+      alignItems: "center",
+      gap: 14
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 24
+    }
+  }, "⚖️"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 800,
+      fontSize: 11,
+      color: "#AAA",
+      letterSpacing: 1,
+      marginBottom: 6
+    }
+  }, "POIDS (KG)"), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    value: poids,
+    onChange: e => hp(e.target.value),
+    placeholder: "ex: 78.5",
+    step: "0.1",
+    style: {
+      width: "100%",
+      padding: "10px 12px",
+      borderRadius: 8,
+      border: "1.5px solid #E8E8E8",
+      fontSize: 18,
+      fontWeight: 900,
+      outline: "none",
+      background: W,
+      color: K,
+      boxSizing: "border-box"
+    }
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: W,
+      borderRadius: 14,
+      padding: "14px 16px",
+      marginBottom: 10,
+      boxShadow: "0 1px 4px #0001",
+      display: "flex",
+      alignItems: "center",
+      gap: 14
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 24
+    }
+  }, "⏱️"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 800,
+      fontSize: 11,
+      color: "#AAA",
+      letterSpacing: 1,
+      marginBottom: 6
+    }
+  }, "HEURES DE SOMMEIL"), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    value: sommeilH,
+    onChange: e => hsh(e.target.value),
+    placeholder: "ex: 7.5",
+    step: "0.5",
+    min: "0",
+    max: "24",
+    style: {
+      width: "100%",
+      padding: "10px 12px",
+      borderRadius: 8,
+      border: "1.5px solid #E8E8E8",
+      fontSize: 18,
+      fontWeight: 900,
+      outline: "none",
+      background: W,
+      color: K,
+      boxSizing: "border-box"
+    }
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: W,
+      borderRadius: 14,
+      padding: "14px 16px",
+      marginBottom: 10,
+      boxShadow: "0 1px 4px #0001"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 800,
+      fontSize: 11,
+      color: "#AAA",
+      letterSpacing: 1,
+      marginBottom: 10
+    }
+  }, "🧠 RESSENTI MENTAL"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6
+    }
+  }, MENTAL_LABELS.map((l, i) => /*#__PURE__*/React.createElement("button", {
+    key: i,
+    onClick: () => hm(i),
+    style: {
+      flex: 1,
+      padding: "11px 0",
+      borderRadius: 10,
+      border: "none",
+      background: mental === i ? MENTAL_COLORS[i] : "#F0F0F0",
+      color: mental === i ? W : "#888",
+      fontWeight: 800,
+      fontSize: 11,
+      cursor: "pointer",
+      transition: "all .12s"
+    }
+  }, l)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: W,
+      borderRadius: 14,
+      padding: "14px 16px",
+      marginBottom: 10,
+      boxShadow: "0 1px 4px #0001"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 800,
+      fontSize: 11,
+      color: "#AAA",
+      letterSpacing: 1,
+      marginBottom: 10
+    }
+  }, "⚡ ÉNERGIE PHYSIQUE"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6
+    }
+  }, ENERGIE_LABELS.map((l, i) => /*#__PURE__*/React.createElement("button", {
+    key: i,
+    onClick: () => he(i),
+    style: {
+      flex: 1,
+      padding: "11px 0",
+      borderRadius: 10,
+      border: "none",
+      background: energie === i ? ENERGIE_COLORS[i] : "#F0F0F0",
+      color: energie === i ? W : "#888",
+      fontWeight: 800,
+      fontSize: 11,
+      cursor: "pointer",
+      transition: "all .12s"
+    }
+  }, l)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 800,
+      fontSize: 11,
+      color: "#AAA",
+      letterSpacing: 1,
+      marginBottom: 10
+    }
+  }, "HABITUDES DU JOUR"), HABITS.map(h => {
+    const checked = !!habits[h.id];
+    return /*#__PURE__*/React.createElement("div", {
+      key: h.id,
+      onClick: () => toggle(h.id),
+      style: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "17px 18px",
+        background: checked ? h.color : W,
+        borderRadius: 14,
+        border: `2px solid ${checked ? h.color : "#E8E8E8"}`,
+        cursor: "pointer",
+        marginBottom: 9,
+        transition: "all .15s",
+        boxShadow: checked ? `0 3px 12px ${h.color}33` : "0 1px 4px #0001",
+        userSelect: "none"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 13
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 26
+      }
+    }, h.icon), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontWeight: 800,
+        fontSize: 15,
+        color: checked ? W : K
+      }
+    }, h.label)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 28,
+        height: 28,
+        borderRadius: "50%",
+        border: `2.5px solid ${checked ? "rgba(255,255,255,.5)" : "#DDD"}`,
+        background: checked ? "rgba(255,255,255,.2)" : "transparent",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center"
+      }
+    }, checked && /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: W,
+        fontSize: 15,
+        fontWeight: 900
+      }
+    }, "✓")));
+  })), isSunday && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowBilan(!showBilan),
+    style: {
+      width: "100%",
+      marginTop: 8,
+      padding: "18px 0",
+      borderRadius: 14,
+      border: "none",
+      background: showBilan ? "#444" : R,
+      color: W,
+      fontWeight: 900,
+      fontSize: 15,
+      letterSpacing: 1.5,
+      cursor: "pointer",
+      textTransform: "uppercase",
+      boxShadow: `0 4px 18px ${R}44`
+    }
+  }, showBilan ? "▲ Fermer" : ex.bilan ? "✏️ Modifier mon bilan" : "📋 Bilan de semaine →"), showBilan && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: W,
+      borderRadius: 16,
+      padding: "18px 16px",
+      marginBottom: 14,
+      boxShadow: "0 1px 6px #0001"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 900,
+      fontSize: 14,
+      color: K,
+      marginBottom: 16,
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 3,
+      height: 18,
+      background: R,
+      borderRadius: 2
+    }
+  }), "Difficulté ressentie — Semaine ", weekNum), /*#__PURE__*/React.createElement(ScaleRow, {
+    label: "SPORT",
+    emoji: "🏋️",
+    value: sportDiff,
+    onChange: setSportDiff
+  }), /*#__PURE__*/React.createElement(ScaleRow, {
+    label: "NUTRITION",
+    emoji: "🥗",
+    value: nutritionDiff,
+    onChange: setNutritionDiff
+  }), /*#__PURE__*/React.createElement(ScaleRow, {
+    label: "SOMMEIL",
+    emoji: "😴",
+    value: sommeilDiff,
+    onChange: setSommeilDiff
+  }), /*#__PURE__*/React.createElement(ScaleRow, {
+    label: "STRESS",
+    emoji: "🧠",
+    value: stress,
+    onChange: setStress
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: W,
+      borderRadius: 16,
+      padding: "18px 16px",
+      marginBottom: 14,
+      boxShadow: "0 1px 6px #0001"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 900,
+      fontSize: 14,
+      color: K,
+      marginBottom: 16,
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 3,
+      height: 18,
+      background: B,
+      borderRadius: 2
+    }
+  }), "Ressenti de la semaine"), /*#__PURE__*/React.createElement(TextBox, {
+    label: "🏆 Victoire",
+    value: victoire,
+    onChange: setVictoire,
+    placeholder: "Ta plus grande réussite...",
+    rows: 2
+  }), /*#__PURE__*/React.createElement(TextBox, {
+    label: "🤛 Difficulté",
+    value: blocage,
+    onChange: setBlocage,
+    placeholder: "Le plus dur...",
+    rows: 2
+  }), /*#__PURE__*/React.createElement(TextBox, {
+    label: "💬 Ressenti général",
+    value: ressenti,
+    onChange: setRessenti,
+    placeholder: "Corps, tête, énergie...",
+    rows: 3
+  }), /*#__PURE__*/React.createElement(TextBox, {
+    label: "❓ Question pour Akli",
+    value: question,
+    onChange: setQuestion,
+    placeholder: "Ce que tu veux me dire...",
+    rows: 2
+  })), /*#__PURE__*/React.createElement("button", {
+    onClick: saveBilan,
+    style: {
+      width: "100%",
+      padding: "18px 0",
+      borderRadius: 12,
+      border: "none",
+      background: R,
+      color: W,
+      fontWeight: 900,
+      fontSize: 15,
+      letterSpacing: 1.5,
+      cursor: "pointer",
+      textTransform: "uppercase",
+      boxShadow: `0 4px 16px ${R}44`
+    }
+  }, "Enregistrer ✓")))));
+}
+
+// ════════════════════════════════════════════════════════
+// CALENDAR
+// ════════════════════════════════════════════════════════
+function CalendarView({
+  clientName,
+  allData,
+  today90,
+  onSelectDay
+}) {
+  const [openMonth, setOpenMonth] = useState(Math.floor(Math.min(today90, 89) / 28));
+  const dotColor = idx => {
+    if (idx > today90) return "#EEF4FF";
+    const d = allData[idx];
+    if (!d || !d.habits) return "#FFCDD2";
+    const done = HABITS.filter(h => d.habits[h.id]).length;
+    if (done === 0) return "#FFCDD2";
+    if (done < HABITS.length * .5) return "#FFD0B0";
+    if (done < HABITS.length) return "#C8E6C9";
+    return "#4CAF50";
+  };
+  const filled = Object.keys(allData).filter(i => parseInt(i) <= today90 && allData[i]).length;
+  const globalPct = Math.round(filled / Math.max(today90 + 1, 1) * 100);
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      paddingBottom: 20
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: K,
+      padding: "20px 18px 16px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 2
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 3,
+      height: 18,
+      background: R,
+      borderRadius: 2
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: W,
+      fontWeight: 900,
+      fontSize: 16,
+      letterSpacing: 2,
+      textTransform: "uppercase"
+    }
+  }, "AM Coach"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 3,
+      height: 18,
+      background: B,
+      borderRadius: 2
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "#888",
+      fontSize: 13,
+      paddingLeft: 11,
+      fontWeight: 700
+    }
+  }, clientName, " · 90 jours")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "16px 14px 0"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: W,
+      borderRadius: 16,
+      padding: "16px 18px",
+      marginBottom: 18,
+      display: "flex",
+      alignItems: "center",
+      gap: 16,
+      boxShadow: "0 1px 6px #0001"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative",
+      width: 64,
+      height: 64
+    }
+  }, /*#__PURE__*/React.createElement(Ring, {
+    pct: globalPct / 100,
+    color: globalPct > 80 ? "#4CAF50" : globalPct > 50 ? "#FF9800" : R,
+    size: 64
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      inset: 0,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 900,
+      fontSize: 15,
+      color: K
+    }
+  }, globalPct, "%"))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 900,
+      fontSize: 17,
+      color: K
+    }
+  }, "Progression"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "#999",
+      marginTop: 3
+    }
+  }, "Jour ", Math.min(today90 + 1, 90), " sur 90"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 8,
+      display: "flex",
+      gap: 8,
+      flexWrap: "wrap"
+    }
+  }, [["#4CAF50", "Complet"], ["#FFD0B0", "Partiel"], ["#FFCDD2", "Manqué"], ["#EEF4FF", "À venir"]].map(([c, l]) => /*#__PURE__*/React.createElement("span", {
+    key: l,
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 4,
+      fontSize: 10,
+      color: "#AAA"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 10,
+      height: 10,
+      borderRadius: 3,
+      background: c,
+      display: "inline-block"
+    }
+  }), l))))), [0, 1, 2].map(mi => {
+    const pastDays = Array.from({
+      length: 28
+    }, (_, i) => mi * 28 + i).filter(i => i < 90 && i <= today90);
+    const filledD = pastDays.filter(i => allData[i]);
+    const mPct = pastDays.length > 0 ? Math.round(filledD.length / pastDays.length * 100) : 0;
+    const isOpen = openMonth === mi;
+    const isCurrent = mi === Math.floor(Math.min(today90, 89) / 28);
+    const weeks = [];
+    for (let w = 0; w < 4; w++) weeks.push([0, 1, 2, 3, 4, 5, 6].map(d => {
+      const idx = mi * 28 + w * 7 + d;
+      return idx < 90 ? idx : null;
+    }));
+    return /*#__PURE__*/React.createElement("div", {
+      key: mi,
+      style: {
+        marginBottom: 10
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => setOpenMonth(isOpen ? -1 : mi),
+      style: {
+        width: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "14px 16px",
+        borderRadius: 12,
+        border: "none",
+        background: isOpen ? K : W,
+        cursor: "pointer",
+        marginBottom: 4,
+        boxShadow: "0 1px 4px #0001"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 10
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 3,
+        height: 16,
+        background: isOpen ? R : "#DDD",
+        borderRadius: 2
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontWeight: 900,
+        fontSize: 15,
+        color: isOpen ? W : K
+      }
+    }, "Mois ", mi + 1), isCurrent && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        background: R,
+        color: W,
+        padding: "2px 8px",
+        borderRadius: 20,
+        fontWeight: 700
+      }
+    }, "EN COURS")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 8
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 60,
+        height: 6,
+        background: "#EEE",
+        borderRadius: 3
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        height: 6,
+        borderRadius: 3,
+        background: mPct > 80 ? "#4CAF50" : mPct > 50 ? "#FF9800" : R,
+        width: `${mPct}%`
+      }
+    })), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        fontWeight: 700,
+        color: isOpen ? "#888" : "#BBB"
+      }
+    }, mPct, "%"))), isOpen && /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: W,
+        borderRadius: 12,
+        padding: "14px 12px",
+        boxShadow: "0 1px 4px #0001"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "repeat(7,1fr)",
+        gap: 4,
+        marginBottom: 8
+      }
+    }, DAY_SHORT.map((d, i) => /*#__PURE__*/React.createElement("div", {
+      key: i,
+      style: {
+        textAlign: "center",
+        fontSize: 9,
+        fontWeight: 700,
+        color: "#CCC"
+      }
+    }, d))), weeks.map((week, wi) => /*#__PURE__*/React.createElement("div", {
+      key: wi,
+      style: {
+        display: "grid",
+        gridTemplateColumns: "repeat(7,1fr)",
+        gap: 4,
+        marginBottom: 4
+      }
+    }, week.map((idx, di) => {
+      if (idx === null) return /*#__PURE__*/React.createElement("div", {
+        key: di
+      });
+      const isToday = idx === today90,
+        future = idx > today90,
+        hasBilan = !!allData[idx]?.bilan;
+      return /*#__PURE__*/React.createElement("button", {
+        key: di,
+        onClick: () => onSelectDay(idx),
+        style: {
+          aspectRatio: "1",
+          borderRadius: 8,
+          border: isToday ? `2.5px solid ${R}` : "2px solid transparent",
+          background: dotColor(idx),
+          cursor: "pointer",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          position: "relative",
+          padding: 0
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 11,
+          fontWeight: isToday ? 900 : 700,
+          color: future ? "#A0B8D8" : K,
+          lineHeight: 1
+        }
+      }, idx + 1), hasBilan && /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 6,
+          position: "absolute",
+          bottom: 1,
+          right: 2
+        }
+      }, "📋"));
+    })))));
+  })));
+}
+
+// ════════════════════════════════════════════════════════
+// STATS
+// ════════════════════════════════════════════════════════
+function StatsView({
+  clientName,
+  allData
+}) {
+  const [filter, setFilter] = useState("all");
+  const days90 = Array.from({
+    length: 90
+  }, (_, i) => {
+    const d = allData[i] || {},
+      h = d.habits || {};
+    const done = HABITS.filter(hab => h[hab.id]).length;
+    const has = Object.keys(d).length > 0;
+    return {
+      day: i + 1,
+      label: `J${i + 1}`,
+      score: has ? Math.round(done / HABITS.length * 100) : null,
+      poids: d.poids ? parseFloat(d.poids) : null,
+      mental: d.mental != null ? (4 - d.mental) * 25 : null,
+      energie: d.energie != null ? d.energie * 25 : null,
+      sommeilH: d.sommeilH ? parseFloat(d.sommeilH) : null,
+      sport: has ? h.sport ? 100 : 0 : null,
+      nutrition: has ? h.nutrition ? 100 : 0 : null,
+      sommeil: has ? h.sommeil ? 100 : 0 : null,
+      hydratation: has ? h.hydratation ? 100 : 0 : null,
+      complements: has ? h.complements ? 100 : 0 : null
+    };
+  });
+  const last = days90.reduce((acc, d, i) => d.score != null ? i : acc, -1);
+  const filtered = filter === "week" ? days90.slice(Math.max(0, last - 6)) : filter === "month" ? days90.slice(Math.max(0, last - 27)) : days90;
+  const avg = key => {
+    const v = days90.map(d => d[key]).filter(v => v != null);
+    return v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length * 10) / 10 : null;
+  };
+  const pv = days90.map(d => d.poids).filter(v => v);
+  const dp = pv.length >= 2 ? Math.round((pv[pv.length - 1] - pv[0]) * 10) / 10 : null;
+  function ChartBlock({
+    title,
+    color,
+    dataKey,
+    unit = "%",
+    domain = [0, 100]
+  }) {
+    const hasAny = filtered.some(d => d[dataKey] != null);
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: W,
+        borderRadius: 16,
+        padding: "16px 14px",
+        marginBottom: 14,
+        boxShadow: "0 1px 6px #0001"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        marginBottom: 12
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 12,
+        height: 12,
+        borderRadius: 3,
+        background: color,
+        flexShrink: 0
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontWeight: 900,
+        fontSize: 14,
+        color: K,
+        flex: 1
+      }
+    }, title), avg(dataKey) != null && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        color: "#AAA"
+      }
+    }, "moy. ", avg(dataKey), unit)), !hasAny ? /*#__PURE__*/React.createElement("div", {
+      style: {
+        height: 80,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "#CCC",
+        fontSize: 13
+      }
+    }, "Aucune donnée encore") : /*#__PURE__*/React.createElement(ResponsiveContainer, {
+      width: "100%",
+      height: 140
+    }, /*#__PURE__*/React.createElement(LineChart, {
+      data: filtered,
+      margin: {
+        top: 4,
+        right: 8,
+        left: -24,
+        bottom: 0
+      }
+    }, /*#__PURE__*/React.createElement(CartesianGrid, {
+      strokeDasharray: "3 3",
+      stroke: "#F0F0F0"
+    }), /*#__PURE__*/React.createElement(XAxis, {
+      dataKey: "label",
+      tick: {
+        fontSize: 9,
+        fill: "#BBB"
+      },
+      interval: Math.max(0, Math.floor(filtered.length / 6) - 1),
+      tickLine: false
+    }), /*#__PURE__*/React.createElement(YAxis, {
+      domain: domain,
+      tick: {
+        fontSize: 9,
+        fill: "#BBB"
+      },
+      tickLine: false,
+      axisLine: false
+    }), /*#__PURE__*/React.createElement(Tooltip, {
+      contentStyle: {
+        background: K,
+        border: "none",
+        borderRadius: 8,
+        color: W,
+        fontSize: 12,
+        padding: "8px 12px"
+      },
+      labelStyle: {
+        color: "#888",
+        fontSize: 11
+      },
+      formatter: v => v != null ? [`${v}${unit}`, title] : ["—", title]
+    }), /*#__PURE__*/React.createElement(Line, {
+      type: "monotone",
+      dataKey: dataKey,
+      stroke: color,
+      strokeWidth: 2.5,
+      dot: false,
+      connectNulls: false,
+      activeDot: {
+        r: 5,
+        fill: color,
+        strokeWidth: 2,
+        stroke: W
+      }
+    }))));
+  }
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      paddingBottom: 20
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: K,
+      padding: "20px 18px 16px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 2
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 3,
+      height: 18,
+      background: R,
+      borderRadius: 2
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: W,
+      fontWeight: 900,
+      fontSize: 16,
+      letterSpacing: 2,
+      textTransform: "uppercase"
+    }
+  }, "Stats"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 3,
+      height: 18,
+      background: B,
+      borderRadius: 2
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "#888",
+      fontSize: 13,
+      paddingLeft: 11,
+      fontWeight: 700
+    }
+  }, clientName, " · Courbes 90 jours")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "16px 14px 0"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      marginBottom: 18
+    }
+  }, [["all", "90 jours"], ["month", "30 jours"], ["week", "7 jours"]].map(([id, label]) => /*#__PURE__*/React.createElement("button", {
+    key: id,
+    onClick: () => setFilter(id),
+    style: {
+      flex: 1,
+      padding: "10px 0",
+      borderRadius: 10,
+      border: "none",
+      background: filter === id ? K : "#EBEBEB",
+      color: filter === id ? W : "#888",
+      fontWeight: 800,
+      fontSize: 12,
+      cursor: "pointer"
+    }
+  }, label))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      marginBottom: 10
+    }
+  }, [["Score moyen", avg("score"), R, "%"], ["Mental", avg("mental"), B, "%"]].map(([l, v, c, u]) => /*#__PURE__*/React.createElement("div", {
+    key: l,
+    style: {
+      flex: 1,
+      background: W,
+      borderRadius: 14,
+      padding: "14px 16px",
+      textAlign: "center",
+      boxShadow: "0 1px 4px #0001"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 22,
+      fontWeight: 900,
+      color: c
+    }
+  }, v != null ? `${v}${u}` : "—"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#AAA",
+      marginTop: 3,
+      fontWeight: 700
+    }
+  }, l)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      marginBottom: 18
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      background: W,
+      borderRadius: 14,
+      padding: "14px 16px",
+      textAlign: "center",
+      boxShadow: "0 1px 4px #0001"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 22,
+      fontWeight: 900,
+      color: K
+    }
+  }, pv[pv.length - 1] || "—", /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 14
+    }
+  }, " kg")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#AAA",
+      marginTop: 3,
+      fontWeight: 700
+    }
+  }, "Poids actuel")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      background: W,
+      borderRadius: 14,
+      padding: "14px 16px",
+      textAlign: "center",
+      boxShadow: "0 1px 4px #0001"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 22,
+      fontWeight: 900,
+      color: dp == null ? "#CCC" : dp <= 0 ? "#4CAF50" : R
+    }
+  }, dp != null ? dp > 0 ? `+${dp}` : dp : "—", /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 14
+    }
+  }, " kg")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#AAA",
+      marginTop: 3,
+      fontWeight: 700
+    }
+  }, "Évolution"))), /*#__PURE__*/React.createElement(ChartBlock, {
+    title: "Score global",
+    color: R,
+    dataKey: "score"
+  }), /*#__PURE__*/React.createElement(ChartBlock, {
+    title: "Ressenti mental",
+    color: B,
+    dataKey: "mental"
+  }), /*#__PURE__*/React.createElement(ChartBlock, {
+    title: "Énergie physique",
+    color: "#FF9800",
+    dataKey: "energie"
+  }), /*#__PURE__*/React.createElement(ChartBlock, {
+    title: "Heures de sommeil",
+    color: "#0097A7",
+    dataKey: "sommeilH",
+    unit: "h",
+    domain: [0, 12]
+  }), /*#__PURE__*/React.createElement(ChartBlock, {
+    title: "Poids (kg)",
+    color: "#555",
+    dataKey: "poids",
+    unit: " kg",
+    domain: ["auto", "auto"]
+  }), /*#__PURE__*/React.createElement(ChartBlock, {
+    title: "Sport",
+    color: R,
+    dataKey: "sport"
+  }), /*#__PURE__*/React.createElement(ChartBlock, {
+    title: "Nutrition",
+    color: "#2E7D32",
+    dataKey: "nutrition"
+  }), /*#__PURE__*/React.createElement(ChartBlock, {
+    title: "Hydratation",
+    color: "#0097A7",
+    dataKey: "hydratation"
+  }), /*#__PURE__*/React.createElement(ChartBlock, {
+    title: "Compléments",
+    color: "#7B1FA2",
+    dataKey: "complements"
+  })));
+}
+
+// ════════════════════════════════════════════════════════
+// RAPPORT VIEW
+// ════════════════════════════════════════════════════════
+function RapportView({
+  clientName,
+  startDate,
+  allData
+}) {
+  const open = period => {
+    const html = generateRapport(clientName, startDate, allData, period);
+    const win = window.open("", "_blank");
+    if (win) {
+      win.document.write(html);
+      win.document.close();
+    }
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      paddingBottom: 20
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: K,
+      padding: "20px 18px 16px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 2
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 3,
+      height: 18,
+      background: R,
+      borderRadius: 2
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: W,
+      fontWeight: 900,
+      fontSize: 16,
+      letterSpacing: 2,
+      textTransform: "uppercase"
+    }
+  }, "Rapport PDF"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 3,
+      height: 18,
+      background: B,
+      borderRadius: 2
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "#888",
+      fontSize: 13,
+      paddingLeft: 11,
+      fontWeight: 700
+    }
+  }, clientName, " · TransfoPhysique")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "20px 16px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: W,
+      borderRadius: 16,
+      padding: "20px 18px",
+      marginBottom: 16,
+      boxShadow: "0 1px 6px #0001"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 900,
+      fontSize: 16,
+      color: K,
+      marginBottom: 8
+    }
+  }, "Génère ton bilan"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: "#888",
+      lineHeight: 1.6,
+      marginBottom: 20
+    }
+  }, "Un rapport complet s'ouvre dans un nouvel onglet.", /*#__PURE__*/React.createElement("br", null), "Appuie sur ", /*#__PURE__*/React.createElement("strong", null, "Partager ↑"), " → ", /*#__PURE__*/React.createElement("strong", null, "Imprimer"), " → ", /*#__PURE__*/React.createElement("strong", null, "Enregistrer en PDF"), "."), [30, 60, 90].map(p => {
+    const n = Object.keys(allData).filter(i => parseInt(i) < p && allData[i]).length;
+    const pct = Math.round(n / p * 100);
+    return /*#__PURE__*/React.createElement("div", {
+      key: p,
+      style: {
+        marginBottom: 14
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => open(p),
+      style: {
+        width: "100%",
+        padding: "18px 0",
+        borderRadius: 14,
+        border: "none",
+        background: n > 0 ? R : "#EEE",
+        color: n > 0 ? W : "#BBB",
+        fontWeight: 900,
+        fontSize: 16,
+        cursor: n > 0 ? "pointer" : "not-allowed",
+        letterSpacing: 1,
+        textTransform: "uppercase",
+        boxShadow: n > 0 ? `0 4px 16px ${R}44` : "none"
+      }
+    }, "📄 Rapport J", p), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: "#AAA",
+        textAlign: "center",
+        marginTop: 5
+      }
+    }, n, "/", p, " jours remplis (", pct, "%)"));
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#FFF8F0",
+      border: "2px solid #FFE0B2",
+      borderRadius: 14,
+      padding: "16px 18px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 800,
+      fontSize: 13,
+      color: "#E65100",
+      marginBottom: 8
+    }
+  }, "💡 Comment enregistrer en PDF ?"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: "#777",
+      lineHeight: 1.8
+    }
+  }, "1. Clique \"Rapport J30\" ci-dessus", /*#__PURE__*/React.createElement("br", null), "2. Le rapport s'ouvre", /*#__PURE__*/React.createElement("br", null), "3. Appuie sur ", /*#__PURE__*/React.createElement("strong", null, "↑ Partager"), " (Safari)", /*#__PURE__*/React.createElement("br", null), "4. Choisis ", /*#__PURE__*/React.createElement("strong", null, "Imprimer"), /*#__PURE__*/React.createElement("br", null), "5. Fais un pinch zoom → ", /*#__PURE__*/React.createElement("strong", null, "Enregistrer en PDF")))));
+}
+
+// ════════════════════════════════════════════════════════
+// APP
+// ════════════════════════════════════════════════════════
+function App() {
+  const params = new URLSearchParams(window.location.search);
+  const clientParam = params.get("client");
+  const isCoach = params.get("coach") === "1";
+  const COACH_PASS = "akli2024";
+  const [coachAuthed, setCoachAuthed] = useState(false);
+  const [coachPass, setCoachPass] = useState("");
+  const [clients, setClients] = useState([]);
+  const [tracking, setTracking] = useState({});
+  const [newName, setNewName] = useState("");
+  const [newSlug, setNewSlug] = useState("");
+  const [newDate, setNewDate] = useState(new Date().toISOString().split("T")[0]);
+  const [showForm, setShowForm] = useState(false);
+  const [copyMsg, setCopyMsg] = useState({});
+  const [prenom, setPrenom] = useState(() => clientParam ? localStorage.getItem(`amcoach_name_${clientParam}`) || "" : "");
+  const [startDate, setStart] = useState(() => clientParam ? localStorage.getItem(`amcoach_start_${clientParam}`) || "" : "");
+  const [allData, setAllData] = useState(() => {
+    if (!clientParam) return {};
+    return JSON.parse(localStorage.getItem(`amcoach_${clientParam}`) || "{}");
+  });
+  const [view, setView] = useState("calendar");
+  const [selDay, setSelDay] = useState(null);
+  const today90 = startDate ? Math.max(0, Math.min(Math.floor((new Date() - new Date(startDate)) / (1000 * 60 * 60 * 24)), 89)) : 0;
+  const handleOnboard = (name, date) => {
+    localStorage.setItem(`amcoach_name_${clientParam}`, name);
+    localStorage.setItem(`amcoach_start_${clientParam}`, date);
+    setPrenom(name);
+    setStart(date);
+  };
+  const handleSave = useCallback((idx, dayData) => {
+    setAllData(prev => ({
+      ...prev,
+      [idx]: dayData
+    }));
+  }, []);
+
+  // ── COACH ──
+  if (isCoach) {
+    if (!coachAuthed) return /*#__PURE__*/React.createElement("div", {
+      style: {
+        minHeight: "100vh",
+        background: K,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 32,
+        textAlign: "center"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        marginBottom: 8
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 4,
+        height: 26,
+        background: R,
+        borderRadius: 2
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: W,
+        fontWeight: 900,
+        fontSize: 22,
+        letterSpacing: 3,
+        textTransform: "uppercase"
+      }
+    }, "AM Coach"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 4,
+        height: 26,
+        background: B,
+        borderRadius: 2
+      }
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        color: "#555",
+        fontSize: 13,
+        marginBottom: 40
+      }
+    }, "Tableau de bord coach"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: "100%",
+        maxWidth: 320
+      }
+    }, /*#__PURE__*/React.createElement("input", {
+      type: "password",
+      value: coachPass,
+      onChange: e => setCoachPass(e.target.value),
+      onKeyDown: e => e.key === "Enter" && coachPass === COACH_PASS && setCoachAuthed(true),
+      placeholder: "Mot de passe",
+      style: {
+        width: "100%",
+        padding: "16px 18px",
+        borderRadius: 12,
+        border: "2px solid #2A2A2A",
+        background: "#1A1A1A",
+        color: W,
+        fontSize: 16,
+        outline: "none",
+        boxSizing: "border-box",
+        textAlign: "center",
+        marginBottom: 16
+      }
+    }), /*#__PURE__*/React.createElement("button", {
+      onClick: () => coachPass === COACH_PASS && setCoachAuthed(true),
+      style: {
+        width: "100%",
+        padding: "16px 0",
+        borderRadius: 12,
+        border: "none",
+        background: R,
+        color: W,
+        fontWeight: 900,
+        fontSize: 16,
+        cursor: "pointer"
+      }
+    }, "Connexion →")));
+
+    // Coach dashboard
+    const copyLink = slug => {
+      const url = window.location.origin + "?client=" + slug;
+      navigator.clipboard.writeText(url).catch(() => {});
+      setCopyMsg(prev => ({
+        ...prev,
+        [slug]: true
+      }));
+      setTimeout(() => setCopyMsg(prev => ({
+        ...prev,
+        [slug]: false
+      })), 2000);
+    };
+    const createClient = () => {
+      if (!newName.trim() || !newSlug.trim()) return;
+      const slug = newSlug.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+      const client = {
+        name: newName.trim(),
+        slug,
+        start_date: newDate,
+        created_at: new Date().toISOString()
+      };
+      const stored = JSON.parse(localStorage.getItem("amcoach_clients") || "[]");
+      stored.unshift(client);
+      localStorage.setItem("amcoach_clients", JSON.stringify(stored));
+      setClients([client, ...clients]);
+      setNewName("");
+      setNewSlug("");
+      setShowForm(false);
+    };
+    const allClients = clients.length > 0 ? clients : JSON.parse(localStorage.getItem("amcoach_clients") || "[]");
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: "'Inter','Helvetica Neue',sans-serif",
+        background: G,
+        minHeight: "100vh",
+        maxWidth: 480,
+        margin: "0 auto",
+        paddingBottom: 40
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: K,
+        padding: "20px 18px 18px"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        marginBottom: 2
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 3,
+        height: 18,
+        background: R,
+        borderRadius: 2
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: W,
+        fontWeight: 900,
+        fontSize: 16,
+        letterSpacing: 2,
+        textTransform: "uppercase"
+      }
+    }, "Coach Dashboard"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 3,
+        height: 18,
+        background: B,
+        borderRadius: 2
+      }
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        color: "#666",
+        fontSize: 12,
+        paddingLeft: 11
+      }
+    }, "AM Coach Genève · TransfoPhysique")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: "16px 14px 0"
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => setShowForm(!showForm),
+      style: {
+        width: "100%",
+        padding: "16px 0",
+        borderRadius: 12,
+        border: "none",
+        background: showForm ? "#444" : R,
+        color: W,
+        fontWeight: 900,
+        fontSize: 14,
+        letterSpacing: 1,
+        cursor: "pointer",
+        marginBottom: 16,
+        textTransform: "uppercase"
+      }
+    }, showForm ? "▲ Annuler" : "+ Nouveau client"), showForm && /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: W,
+        borderRadius: 14,
+        padding: "18px 16px",
+        marginBottom: 16,
+        boxShadow: "0 1px 6px #0001"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontWeight: 900,
+        fontSize: 14,
+        color: K,
+        marginBottom: 16
+      }
+    }, "Nouveau client"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginBottom: 12
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontWeight: 800,
+        fontSize: 11,
+        color: "#AAA",
+        marginBottom: 6
+      }
+    }, "PRÉNOM"), /*#__PURE__*/React.createElement("input", {
+      value: newName,
+      onChange: e => {
+        setNewName(e.target.value);
+        setNewSlug(e.target.value.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""));
+      },
+      placeholder: "ex: Sarah",
+      style: {
+        width: "100%",
+        padding: "12px 14px",
+        borderRadius: 10,
+        border: "1.5px solid #E0E0E0",
+        fontSize: 15,
+        outline: "none",
+        boxSizing: "border-box"
+      }
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginBottom: 12
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontWeight: 800,
+        fontSize: 11,
+        color: "#AAA",
+        marginBottom: 6
+      }
+    }, "LIEN (identifiant)"), /*#__PURE__*/React.createElement("input", {
+      value: newSlug,
+      onChange: e => setNewSlug(e.target.value.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")),
+      placeholder: "ex: sarah",
+      style: {
+        width: "100%",
+        padding: "12px 14px",
+        borderRadius: 10,
+        border: "1.5px solid #E0E0E0",
+        fontSize: 15,
+        outline: "none",
+        boxSizing: "border-box"
+      }
+    }), newSlug && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: "#AAA",
+        marginTop: 4
+      }
+    }, "Lien : ?client=", newSlug)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginBottom: 16
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontWeight: 800,
+        fontSize: 11,
+        color: "#AAA",
+        marginBottom: 6
+      }
+    }, "DATE DE DÉPART"), /*#__PURE__*/React.createElement("input", {
+      type: "date",
+      value: newDate,
+      onChange: e => setNewDate(e.target.value),
+      style: {
+        width: "100%",
+        padding: "12px 14px",
+        borderRadius: 10,
+        border: "1.5px solid #E0E0E0",
+        fontSize: 15,
+        outline: "none",
+        boxSizing: "border-box"
+      }
+    })), /*#__PURE__*/React.createElement("button", {
+      onClick: createClient,
+      style: {
+        width: "100%",
+        padding: "14px 0",
+        borderRadius: 10,
+        border: "none",
+        background: newName.trim() && newSlug.trim() ? R : "#EEE",
+        color: newName.trim() && newSlug.trim() ? W : "#AAA",
+        fontWeight: 900,
+        fontSize: 14,
+        cursor: "pointer"
+      }
+    }, "Créer le lien →")), allClients.length === 0 ? /*#__PURE__*/React.createElement("div", {
+      style: {
+        textAlign: "center",
+        color: "#AAA",
+        padding: 40
+      }
+    }, "Aucun client encore.") : allClients.map(client => {
+      const t90 = Math.max(0, Math.min(Math.floor((new Date() - new Date(client.start_date)) / (1000 * 60 * 60 * 24)), 89));
+      const cd = JSON.parse(localStorage.getItem("amcoach_" + client.slug) || "{}");
+      const filled2 = Object.keys(cd).filter(i => parseInt(i) <= t90 && cd[i]).length;
+      const score = Math.round(filled2 / Math.max(t90 + 1, 1) * 100);
+      const sc2 = score > 80 ? "#4CAF50" : score > 50 ? "#FF9800" : R;
+      return /*#__PURE__*/React.createElement("div", {
+        key: client.slug,
+        style: {
+          background: W,
+          borderRadius: 16,
+          padding: "18px 16px",
+          marginBottom: 12,
+          boxShadow: "0 1px 6px #0001"
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 14,
+          marginBottom: 14
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          position: "relative",
+          width: 56,
+          height: 56,
+          flexShrink: 0
+        }
+      }, /*#__PURE__*/React.createElement(Ring, {
+        pct: score / 100,
+        color: sc2,
+        size: 56
+      }), /*#__PURE__*/React.createElement("div", {
+        style: {
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center"
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontWeight: 900,
+          fontSize: 13,
+          color: K
+        }
+      }, score, "%"))), /*#__PURE__*/React.createElement("div", {
+        style: {
+          flex: 1
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontWeight: 900,
+          fontSize: 18,
+          color: K
+        }
+      }, client.name), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 12,
+          color: "#AAA",
+          marginTop: 2
+        }
+      }, "Jour ", Math.min(t90 + 1, 90), "/90 · départ ", new Date(client.start_date).toLocaleDateString("fr-FR")))), /*#__PURE__*/React.createElement("button", {
+        onClick: () => copyLink(client.slug),
+        style: {
+          width: "100%",
+          padding: "12px 0",
+          borderRadius: 10,
+          border: "none",
+          background: copyMsg[client.slug] ? "#4CAF50" : K,
+          color: W,
+          fontWeight: 800,
+          fontSize: 13,
+          cursor: "pointer",
+          transition: "background .2s"
+        }
+      }, copyMsg[client.slug] ? "✓ Lien copié !" : "📋 Copier lien WhatsApp"));
+    })));
+  }
+
+  // ── CLIENT ──
+  if (!clientParam) return /*#__PURE__*/React.createElement("div", {
+    style: {
+      minHeight: "100vh",
+      background: K,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 32,
+      textAlign: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 4,
+      height: 26,
+      background: R,
+      borderRadius: 2
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: W,
+      fontWeight: 900,
+      fontSize: 22,
+      letterSpacing: 3,
+      textTransform: "uppercase"
+    }
+  }, "AM Coach"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 4,
+      height: 26,
+      background: B,
+      borderRadius: 2
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "#333",
+      fontSize: 13
+    }
+  }, "Lien invalide. Contacte ton coach."));
+  if (!prenom || !startDate) return /*#__PURE__*/React.createElement(Onboarding, {
+    onDone: handleOnboard
+  });
+  if (selDay !== null) return /*#__PURE__*/React.createElement(DayView, {
+    dayIdx: selDay,
+    clientSlug: clientParam,
+    clientName: prenom,
+    startDate: startDate,
+    allData: allData,
+    onSave: handleSave,
+    onBack: () => setSelDay(null)
+  });
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Inter','Helvetica Neue',sans-serif",
+      background: G,
+      minHeight: "100vh",
+      maxWidth: 430,
+      margin: "0 auto",
+      paddingBottom: 80
+    }
+  }, view === "calendar" && /*#__PURE__*/React.createElement(CalendarView, {
+    clientName: prenom,
+    allData: allData,
+    today90: today90,
+    onSelectDay: setSelDay
+  }), view === "stats" && /*#__PURE__*/React.createElement(StatsView, {
+    clientName: prenom,
+    allData: allData
+  }), view === "rapport" && /*#__PURE__*/React.createElement(RapportView, {
+    clientName: prenom,
+    startDate: startDate,
+    allData: allData
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "fixed",
+      bottom: 0,
+      left: "50%",
+      transform: "translateX(-50%)",
+      width: "100%",
+      maxWidth: 430,
+      background: W,
+      borderTop: "1.5px solid #EEE",
+      display: "flex",
+      padding: "10px 0 18px",
+      zIndex: 200
+    }
+  }, [["calendar", "📅", "Agenda"], ["stats", "📈", "Stats"], ["rapport", "📄", "Rapport"]].map(([id, ico, label]) => /*#__PURE__*/React.createElement("button", {
+    key: id,
+    onClick: () => setView(id),
+    style: {
+      flex: 1,
+      border: "none",
+      background: "transparent",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      gap: 3,
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 22
+    }
+  }, ico), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      fontWeight: view === id ? 900 : 600,
+      color: view === id ? R : "#BBB"
+    }
+  }, label)))));
+}
+ReactDOM.createRoot(document.getElementById("root")).render(/*#__PURE__*/React.createElement(App, null));
+</script>
+</body>
+</html>

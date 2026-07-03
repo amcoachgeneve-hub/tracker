@@ -189,14 +189,31 @@ function syncDayToCloud(idx,data){
   if(!CLIENT)return;
   state.syncStatus="sync";
   updateSyncBadge();
-  sbFetch("tracking?on_conflict=client_slug,day_index",{
-    method:"POST",
-    prefer:"resolution=merge-duplicates",
-    body:{client_slug:CLIENT,day_index:idx,data:data,updated_at:new Date().toISOString()}
-  }).then(function(r){
-    state.syncStatus=r.ok?"ok":"err";
-    updateSyncBadge();
-    if(state.syncStatus==="ok")setTimeout(function(){state.syncStatus="";updateSyncBadge();},2000);
+  function pushTracking(){
+    return sbFetch("tracking?on_conflict=client_slug,day_index",{
+      method:"POST",
+      prefer:"resolution=merge-duplicates",
+      body:{client_slug:CLIENT,day_index:idx,data:data,updated_at:new Date().toISOString()}
+    });
+  }
+  pushTracking().then(function(r){
+    if(r.ok){
+      state.syncStatus="ok";updateSyncBadge();
+      setTimeout(function(){state.syncStatus="";updateSyncBadge();},2000);
+      return null;
+    }
+    // Probablement client absent du cloud (FK) : on le crée puis on réessaie
+    var name=lsGetStr("amcoach_name_"+CLIENT)||CLIENT;
+    var start=lsGetStr("amcoach_start_"+CLIENT)||new Date().toISOString().split("T")[0];
+    return sbFetch("clients?on_conflict=slug",{
+      method:"POST",
+      prefer:"resolution=merge-duplicates",
+      body:{slug:CLIENT,name:name,start_date:start}
+    }).then(function(){return pushTracking();}).then(function(r2){
+      state.syncStatus=r2.ok?"ok":"err";
+      updateSyncBadge();
+      if(r2.ok)setTimeout(function(){state.syncStatus="";updateSyncBadge();},2000);
+    });
   }).catch(function(){
     state.syncStatus="err";
     updateSyncBadge();

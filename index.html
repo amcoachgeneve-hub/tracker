@@ -129,6 +129,8 @@ input,textarea{outline:none}
 
 // ═══════════ CONSTANTES ═══════════
 var R="#D52B1E", B="#0057A8", K="#1A1A1A";
+var SB_URL="https://tyehkvjfhneeeyprfean.supabase.co";
+var SB_KEY="sb_publishable_wE67pm12QC-yqcHqitwOsg_OT6Io63p";
 var HABITS=[
   {id:"sport",icon:"🏋️",label:"Sport",color:"#D52B1E"},
   {id:"nutrition",icon:"🥗",label:"Nutrition",color:"#2E7D32"},
@@ -155,20 +157,98 @@ var state={
   filter:"all",
   showBilan:false,
   coachAuthed:false,
-  showForm:false
+  showForm:false,
+  syncStatus:"" // "", "sync", "ok", "err"
 };
 
-// ═══════════ STORAGE ═══════════
+// ═══════════ STORAGE LOCAL ═══════════
 function lsGet(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}}
 function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
 function lsGetStr(k){try{return localStorage.getItem(k)||"";}catch(e){return "";}}
 function lsSetStr(k,v){try{localStorage.setItem(k,v);}catch(e){}}
 
 function getAllData(){return lsGet("amcoach_"+CLIENT,{});}
+
+// ═══════════ SUPABASE SYNC ═══════════
+function sbFetch(path,opts){
+  opts=opts||{};
+  var headers={
+    "apikey":SB_KEY,
+    "Authorization":"Bearer "+SB_KEY,
+    "Content-Type":"application/json"
+  };
+  if(opts.prefer)headers["Prefer"]=opts.prefer;
+  return fetch(SB_URL+"/rest/v1/"+path,{
+    method:opts.method||"GET",
+    headers:headers,
+    body:opts.body?JSON.stringify(opts.body):undefined
+  });
+}
+
+function syncDayToCloud(idx,data){
+  if(!CLIENT)return;
+  state.syncStatus="sync";
+  updateSyncBadge();
+  sbFetch("tracking?on_conflict=client_slug,day_index",{
+    method:"POST",
+    prefer:"resolution=merge-duplicates",
+    body:{client_slug:CLIENT,day_index:idx,data:data,updated_at:new Date().toISOString()}
+  }).then(function(r){
+    state.syncStatus=r.ok?"ok":"err";
+    updateSyncBadge();
+    if(state.syncStatus==="ok")setTimeout(function(){state.syncStatus="";updateSyncBadge();},2000);
+  }).catch(function(){
+    state.syncStatus="err";
+    updateSyncBadge();
+  });
+}
+
+function updateSyncBadge(){
+  var el=document.getElementById("sync-badge");
+  if(!el)return;
+  if(state.syncStatus==="sync"){el.textContent="☁️ ...";el.style.color="#FF9800";}
+  else if(state.syncStatus==="ok"){el.textContent="☁️ ✓";el.style.color="#4CAF50";}
+  else if(state.syncStatus==="err"){el.textContent="☁️ hors-ligne";el.style.color="#D52B1E";}
+  else{el.textContent="";}
+}
+
+function ensureClientInCloud(name,startDate){
+  if(!CLIENT)return;
+  sbFetch("clients?on_conflict=slug",{
+    method:"POST",
+    prefer:"resolution=merge-duplicates",
+    body:{slug:CLIENT,name:name,start_date:startDate}
+  }).catch(function(){});
+}
+
+function loadFromCloud(cb){
+  if(!CLIENT){cb();return;}
+  // Load client info + tracking data from Supabase
+  Promise.all([
+    sbFetch("clients?slug=eq."+encodeURIComponent(CLIENT)+"&select=*").then(function(r){return r.json();}),
+    sbFetch("tracking?client_slug=eq."+encodeURIComponent(CLIENT)+"&select=day_index,data").then(function(r){return r.json();})
+  ]).then(function(results){
+    var clients=results[0]||[], rows=results[1]||[];
+    if(clients.length>0){
+      lsSetStr("amcoach_name_"+CLIENT,clients[0].name);
+      lsSetStr("amcoach_start_"+CLIENT,clients[0].start_date);
+    }
+    if(rows.length>0){
+      var all=getAllData();
+      for(var i=0;i<rows.length;i++){
+        all[rows[i].day_index]=rows[i].data;
+      }
+      lsSet("amcoach_"+CLIENT,all);
+    }
+    cb();
+  }).catch(function(){cb();});
+}
+
 function saveDay(idx,data){
   var all=getAllData();
   all[idx]=data;
   lsSet("amcoach_"+CLIENT,all);
+  syncDayToCloud(idx,data);
 }
 
 function getToday90(startDate){
@@ -213,7 +293,7 @@ function avgOf(series,key){
   return Math.round(s/v.length*10)/10;
 }
 
-// ═══════════ SVG CHART (fait main, zéro lib) ═══════════
+// ═══════════ SVG CHART ═══════════
 function svgLineChart(values,color,opts){
   opts=opts||{};
   var W=opts.width||340, H=opts.height||140, pad={t:8,r:8,b:22,l:34};
@@ -229,7 +309,6 @@ function svgLineChart(values,color,opts){
   function px(i){return pad.l+(i/(n-1))*iw;}
   function py(v){return pad.t+ih-((v-min)/range)*ih;}
 
-  // grid lines (4)
   var grid="";
   for(var g=0;g<=3;g++){
     var gy=pad.t+ih*(g/3);
@@ -237,13 +316,11 @@ function svgLineChart(values,color,opts){
     grid+='<line x1="'+pad.l+'" y1="'+gy.toFixed(1)+'" x2="'+(W-pad.r)+'" y2="'+gy.toFixed(1)+'" stroke="#F0F0F0" stroke-width="1"/>';
     grid+='<text x="'+(pad.l-6)+'" y="'+(gy+3).toFixed(1)+'" font-size="9" fill="#BBB" text-anchor="end">'+(Math.round(gv*10)/10)+'</text>';
   }
-  // x labels (max 6)
   var step=Math.max(1,Math.ceil(n/6));
   var xlabels="";
   for(var x=0;x<n;x+=step){
     xlabels+='<text x="'+px(x).toFixed(1)+'" y="'+(H-6)+'" font-size="9" fill="#BBB" text-anchor="middle">J'+(x+1)+'</text>';
   }
-  // path (connect only non-null runs)
   var path="", started=false;
   for(var i2=0;i2<n;i2++){
     var v2=values[i2];
@@ -252,7 +329,6 @@ function svgLineChart(values,color,opts){
     path+=(started?"L":"M")+X+","+Y;
     started=true;
   }
-  // last point dot
   var lastIdx=-1;
   for(var i3=n-1;i3>=0;i3--){if(values[i3]!=null){lastIdx=i3;break;}}
   var dot=lastIdx>=0?'<circle cx="'+px(lastIdx).toFixed(1)+'" cy="'+py(values[lastIdx]).toFixed(1)+'" r="4" fill="'+color+'" stroke="#fff" stroke-width="2"/>':"";
@@ -319,6 +395,7 @@ function bindOnboarding(){
     if(!n.value.trim())return;
     lsSetStr("amcoach_name_"+CLIENT,n.value.trim());
     lsSetStr("amcoach_start_"+CLIENT,d.value);
+    ensureClientInCloud(n.value.trim(),d.value);
     render();
   });
 }
@@ -346,7 +423,7 @@ function viewCalendar(name,start){
 
   var h='<div class="hdr"><div class="hdr-brand"><div class="bar bar-r"></div>'+
     '<span class="hdr-title">AM Coach</span><div class="bar bar-b"></div></div>'+
-    '<div class="hdr-sub">'+esc(name)+' · 90 jours</div></div>'+
+    '<div class="hdr-sub">'+esc(name)+' · 90 jours <span id="sync-badge" style="font-size:11px"></span></div></div>'+
     '<div style="padding:16px 14px 0">';
 
   // progress card
@@ -432,7 +509,7 @@ function viewDay(name,start){
     '<button id="day-back" class="day-back">←</button>'+
     '<div style="flex:1"><div style="color:#fff;font-weight:900;font-size:15px">Jour '+(idx+1)+' · '+DAY_FULL[dow]+'</div>'+
     '<div style="color:#666;font-size:12px">Semaine '+weekNum+' · '+esc(name)+'</div></div>'+
-    '<span id="saved-badge" class="saved-badge" style="display:none">✓ Sauvé</span>'+
+    '<span id="sync-badge" style="font-size:11px"></span><span id="saved-badge" class="saved-badge" style="display:none">✓ Sauvé</span>'+
     '<div class="ring-wrap" id="day-ring">'+svgRing(done/HABITS.length,done===HABITS.length?"#4CAF50":R,48)+
     '<div class="ring-txt" style="font-size:11px;color:#fff" id="day-ring-txt">'+done+'/'+HABITS.length+'</div></div>'+
     '</div></div><div style="padding:16px 14px 0">';
@@ -784,10 +861,28 @@ function viewCoachDash(){
   return h+'</div></div>';
 }
 
+function loadCoachDataFromCloud(){
+  Promise.all([
+    sbFetch("clients?select=*&order=created_at.desc").then(function(r){return r.json();}),
+    sbFetch("tracking?select=client_slug,day_index,data").then(function(r){return r.json();})
+  ]).then(function(results){
+    var clients=results[0]||[], rows=results[1]||[];
+    if(clients.length)lsSet("amcoach_clients",clients);
+    var bySlug={};
+    for(var i=0;i<rows.length;i++){
+      var r=rows[i];
+      if(!bySlug[r.client_slug])bySlug[r.client_slug]={};
+      bySlug[r.client_slug][r.day_index]=r.data;
+    }
+    for(var slug in bySlug){lsSet("amcoach_"+slug,bySlug[slug]);}
+    render();
+  }).catch(function(){});
+}
+
 function bindCoach(){
   var cp=document.getElementById("coach-pass"), cg=document.getElementById("coach-go");
   if(cp&&cg){
-    function tryLogin(){if(cp.value===COACH_PASS){state.coachAuthed=true;render();}}
+    function tryLogin(){if(cp.value===COACH_PASS){state.coachAuthed=true;loadCoachDataFromCloud();render();}}
     cg.addEventListener("click",tryLogin);
     cp.addEventListener("keydown",function(e){if(e.key==="Enter")tryLogin();});
     return;
@@ -803,8 +898,10 @@ function bindCoach(){
       var name=ncName.value.trim(), slug=ncSlug.value.trim();
       if(!name||!slug)return;
       var clients=lsGet("amcoach_clients",[]);
-      clients.unshift({name:name,slug:slug,start_date:document.getElementById("nc-date").value,created_at:new Date().toISOString()});
+      var startDate=document.getElementById("nc-date").value;
+      clients.unshift({name:name,slug:slug,start_date:startDate,created_at:new Date().toISOString()});
       lsSet("amcoach_clients",clients);
+      sbFetch("clients?on_conflict=slug",{method:"POST",prefer:"resolution=merge-duplicates",body:{slug:slug,name:name,start_date:startDate}}).catch(function(){});
       state.showForm=false;
       render();
     });
@@ -860,10 +957,14 @@ function bindMain(name,start){
 
 // ═══════════ BOOT ═══════════
 (function(){
-  var name=CLIENT?lsGetStr("amcoach_name_"+CLIENT):"";
-  var start=CLIENT?lsGetStr("amcoach_start_"+CLIENT):"";
-  if(start)state.openMonth=Math.floor(Math.min(getToday90(start),89)/28);
-  render();
+  render(); // instant render with local data
+  if(CLIENT){
+    loadFromCloud(function(){
+      var start=lsGetStr("amcoach_start_"+CLIENT);
+      if(start)state.openMonth=Math.floor(Math.min(getToday90(start),89)/28);
+      render(); // re-render with cloud data
+    });
+  }
 })();
 </script>
 </body>

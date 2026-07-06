@@ -159,6 +159,7 @@ var state={
   coachAuthed:false,
   showForm:false,
   showGoalForm:false,
+  coachDetail:null,
   syncStatus:"" // "", "sync", "ok", "err"
 };
 
@@ -377,6 +378,58 @@ function avgOf(series,key){
   return Math.round(s/v.length*10)/10;
 }
 
+// ═══════════ DIPLÔME ═══════════
+function generateDiplome(name,startDate,allData){
+  var d0=new Date(startDate), d1=new Date(d0); d1.setDate(d1.getDate()+89);
+  var fmt=function(dt){return dt.toLocaleDateString("fr-FR");};
+  var series=computeSeries(allData,90);
+  var pv=series.map(function(s){return s.poids;}).filter(function(v){return v!=null;});
+  var dp=pv.length>=2?Math.round((pv[pv.length-1]-pv[0])*10)/10:null;
+  var filled=series.filter(function(s){return s.score!=null;}).length;
+
+  var html='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>'+
+  '<title>Diplôme — '+esc(name)+'</title><style>'+
+  '*{box-sizing:border-box;margin:0;padding:0}body{font-family:Georgia,"Times New Roman",serif;background:#F4F4F4;padding:20px}'+
+  '.dip{max-width:620px;margin:0 auto;background:#fff;border:3px double #C9A227;padding:8px}'+
+  '.inner{border:1.5px solid #C9A227;padding:44px 32px;text-align:center}'+
+  '.brand{font-family:-apple-system,sans-serif;font-weight:900;font-size:14px;letter-spacing:4px;text-transform:uppercase;color:#1A1A1A;display:flex;align-items:center;justify-content:center;gap:10px}'+
+  '.b{width:4px;height:20px;border-radius:2px;display:inline-block}'+
+  '.sub{font-family:-apple-system,sans-serif;font-size:10px;color:#999;letter-spacing:2px;text-transform:uppercase;margin-top:6px}'+
+  '.title{font-size:34px;color:#C9A227;margin:36px 0 6px;font-weight:700}'+
+  '.subtitle{font-size:15px;color:#666;font-style:italic;margin-bottom:34px}'+
+  '.decerne{font-family:-apple-system,sans-serif;font-size:11px;color:#999;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px}'+
+  '.name{font-size:32px;color:#1A1A1A;font-weight:700;border-bottom:1.5px solid #C9A227;display:inline-block;padding:0 24px 8px;margin-bottom:30px}'+
+  '.txt{font-size:14px;color:#444;line-height:2;max-width:440px;margin:0 auto 28px}'+
+  '.stats{display:flex;justify-content:center;gap:28px;margin-bottom:32px;font-family:-apple-system,sans-serif}'+
+  '.st{text-align:center}.sv{font-size:22px;font-weight:900;color:#D52B1E}.sl{font-size:9px;color:#999;letter-spacing:1px;text-transform:uppercase;margin-top:2px}'+
+  '.msg{font-size:15px;color:#1A1A1A;font-style:italic;line-height:1.9;max-width:460px;margin:0 auto 34px}'+
+  '.sig{font-family:-apple-system,sans-serif}'+
+  '.sig-name{font-size:16px;font-weight:900;color:#1A1A1A}'+
+  '.sig-role{font-size:10px;color:#999;letter-spacing:1.5px;text-transform:uppercase;margin-top:3px}'+
+  '.dates{font-family:-apple-system,sans-serif;font-size:10px;color:#BBB;margin-top:24px;letter-spacing:1px}'+
+  '.medal{font-size:44px;margin-bottom:8px}'+
+  '@media print{body{background:#fff;padding:0}}'+
+  '</style></head><body><div class="dip"><div class="inner">'+
+  '<div class="brand"><span class="b" style="background:#D52B1E"></span>AM COACH GENÈVE<span class="b" style="background:#0057A8"></span></div>'+
+  '<div class="sub">TransfoPhysique · Méthode Balance-360</div>'+
+  '<div class="medal">🎓</div>'+
+  '<div class="title">DIPLÔME AM TRANSFO</div>'+
+  '<div class="subtitle">« Nouvelle version de toi-même »</div>'+
+  '<div class="decerne">Décerné à</div>'+
+  '<div class="name">'+esc(name)+'</div>'+
+  '<div class="txt">Pour avoir accompli avec courage et discipline le programme complet de transformation physique de <strong>90 jours</strong> — nutrition, sport, sommeil et mental.</div>'+
+  '<div class="stats">'+
+  '<div class="st"><div class="sv">90</div><div class="sl">Jours</div></div>'+
+  (dp!=null?'<div class="st"><div class="sv">'+(dp>0?"+":"")+dp+' kg</div><div class="sl">Évolution</div></div>':'')+
+  '<div class="st"><div class="sv">'+filled+'</div><div class="sl">Jours suivis</div></div>'+
+  '</div>'+
+  '<div class="msg">« Félicitations. Ce n\'est que le début — tu viens de te prouver que tu es capable de bien plus que tu ne le pensais. Je suis fier de toi. Bravo. »</div>'+
+  '<div class="sig"><div class="sig-name">Akli</div><div class="sig-role">Coach & Fondateur — AM Coach Genève</div></div>'+
+  '<div class="dates">'+fmt(d0)+' — '+fmt(d1)+'</div>'+
+  '</div></div></body></html>';
+  return html;
+}
+
 // ═══════════ SVG CHART ═══════════
 function svgLineChart(values,color,opts){
   opts=opts||{};
@@ -435,7 +488,7 @@ function svgRing(pct,color,size){
 // ═══════════ RENDER ROOT ═══════════
 function render(){
   var root=document.getElementById("root");
-  if(IS_COACH){root.innerHTML=state.coachAuthed?viewCoachDash():viewCoachLogin();bindCoach();return;}
+  if(IS_COACH){root.innerHTML=state.coachAuthed?(state.coachDetail?viewCoachDetail():viewCoachDash()):viewCoachLogin();bindCoach();return;}
   if(!CLIENT){root.innerHTML=viewNoClient();return;}
   var name=lsGetStr("amcoach_name_"+CLIENT);
   var start=lsGetStr("amcoach_start_"+CLIENT);
@@ -557,6 +610,14 @@ function viewCalendar(name,start){
       '<div style="font-weight:800;font-size:11px;color:#AAA;margin-bottom:6px">🎁 MA RÉCOMPENSE SI JE RÉUSSIS</div>'+
       '<input id="goal-reward" class="num-input" value="'+esc(g0.reward||"")+'" placeholder="ex: restaurant japonais, week-end spa..." style="font-weight:400;font-size:15px;margin-bottom:14px"/>'+
       '<button id="goal-save" style="width:100%;padding:14px 0;border-radius:12px;background:'+R+';color:#fff;font-weight:900;font-size:14px">Enregistrer mon engagement ✓</button></div>';
+  }
+
+  // DIPLÔME (fin de programme)
+  if(today90>=89){
+    h+='<button id="diplome-btn" class="card" style="width:calc(100% - 28px);margin-bottom:18px;background:linear-gradient(135deg,#C9A227,#E8C547);border:none;text-align:center;padding:18px;cursor:pointer">'+
+      '<div style="font-size:26px;margin-bottom:4px">🎓</div>'+
+      '<div style="font-weight:900;font-size:15px;color:#fff;letter-spacing:1px;text-transform:uppercase">Mon Diplôme AM Transfo</div>'+
+      '<div style="font-size:11px;color:rgba(255,255,255,.85);margin-top:3px;font-weight:700">90 jours accomplis — Nouvelle version de toi-même</div></button>';
   }
 
   // ALERTE COACH
@@ -943,6 +1004,84 @@ function viewCoachLogin(){
     '<button id="coach-go" class="btn-primary">Connexion →</button></div></div>';
 }
 
+// ═══════════ COACH DETAIL ═══════════
+function viewCoachDetail(){
+  var clients=lsGet("amcoach_clients",[]);
+  var c=null;
+  for(var i=0;i<clients.length;i++){if(clients[i].slug===state.coachDetail){c=clients[i];break;}}
+  if(!c){state.coachDetail=null;return viewCoachDash();}
+  var allData=lsGet("amcoach_"+c.slug,{});
+  var t90=getToday90(c.start_date);
+  var series=computeSeries(allData,90);
+  var streak=computeStreak(allData,t90);
+  var avgScore=avgOf(series,"score"), avgMental=avgOf(series,"mental");
+  var pv=series.map(function(s){return s.poids;}).filter(function(v){return v!=null;});
+  var dp=pv.length>=2?Math.round((pv[pv.length-1]-pv[0])*10)/10:null;
+  var alert=computeAlert(allData,t90);
+  var month=currentMonth(t90);
+  var goal=getGoal(allData,month);
+
+  var h='<div class="app" style="max-width:480px">'+
+    '<div class="hdr"><div style="display:flex;align-items:center;gap:12px">'+
+    '<button id="cd-back" class="day-back">←</button>'+
+    '<div style="flex:1"><div style="color:#fff;font-weight:900;font-size:16px">'+esc(c.name)+'</div>'+
+    '<div style="color:#666;font-size:12px">Jour '+Math.min(t90+1,90)+'/90 · départ '+new Date(c.start_date).toLocaleDateString("fr-FR")+' · 🔥 '+streak+'j</div></div></div></div>'+
+    '<div style="padding:16px 14px 0">';
+
+  // KPIs
+  h+='<div class="kpi-row">'+
+    '<div class="kpi-card"><div class="kpi-val" style="color:'+R+'">'+(avgScore!=null?avgScore+"%":"—")+'</div><div class="kpi-lbl">Score moyen</div></div>'+
+    '<div class="kpi-card"><div class="kpi-val" style="color:'+B+'">'+(avgMental!=null?avgMental+"%":"—")+'</div><div class="kpi-lbl">Mental</div></div></div>'+
+    '<div class="kpi-row" style="margin-bottom:14px">'+
+    '<div class="kpi-card"><div class="kpi-val">'+(pv.length?pv[pv.length-1]:"—")+'<span style="font-size:14px"> kg</span></div><div class="kpi-lbl">Poids actuel</div></div>'+
+    '<div class="kpi-card"><div class="kpi-val" style="color:'+(dp==null?"#CCC":dp<=0?"#4CAF50":R)+'">'+(dp!=null?(dp>0?"+"+dp:dp):"—")+'<span style="font-size:14px"> kg</span></div><div class="kpi-lbl">Évolution</div></div></div>';
+
+  // Objectif du mois
+  if(goal){
+    h+='<div class="card" style="border-left:4px solid '+R+'"><div style="font-weight:800;font-size:11px;color:#AAA;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">🎯 Objectif mois '+month+'</div>'+
+      '<div style="font-weight:900;font-size:15px">'+goal.target+' kg — 🎁 '+esc(goal.reward||"—")+'</div></div>';
+  }
+
+  // Alerte en cours
+  if(alert){
+    h+='<div class="card" style="background:#FFF8F0;border:2px solid #FFE0B2"><div style="font-weight:800;font-size:11px;color:#E65100;text-transform:uppercase;margin-bottom:4px">⚠️ Alerte active</div>'+
+      '<div style="font-size:12px;color:#7A4A00;line-height:1.6">'+alert.msg+'</div></div>';
+  }
+
+  // Courbes
+  function chart(title,color,key,min,max){
+    var vals=series.slice(0,Math.max(t90+1,7)).map(function(s){return s[key];});
+    return '<div class="chart-card"><div class="chart-hdr"><div class="chart-dot" style="background:'+color+'"></div>'+
+      '<span class="chart-title">'+title+'</span></div>'+svgLineChart(vals,color,{min:min,max:max})+'</div>';
+  }
+  h+=chart("Score global",R,"score",0,100);
+  h+=chart("Poids (kg)","#555","poids",null,null);
+  h+=chart("Mental",B,"mental",0,100);
+
+  // Bilans dimanche avec questions
+  var bilans=series.filter(function(s){return s.bilan&&(s.bilan.victoire||s.bilan.ressenti||s.bilan.blocage||s.bilan.question);});
+  if(bilans.length){
+    h+='<div style="display:flex;align-items:center;gap:8px;margin:16px 0 10px"><div class="bar bar-r"></div><span style="font-weight:900;font-size:14px;text-transform:uppercase;letter-spacing:1px">Bilans dimanche</span></div>';
+    for(var b=bilans.length-1;b>=0;b--){
+      var bl=bilans[b];
+      h+='<div class="card" style="border-left:4px solid '+R+'">'+
+        '<div style="font-weight:800;font-size:10px;color:'+R+';text-transform:uppercase;margin-bottom:8px">Semaine '+(Math.floor((bl.day-1)/7)+1)+' — Jour '+bl.day+'</div>';
+      if(bl.bilan.question)h+='<div style="margin-bottom:6px"><div style="font-size:9px;color:'+R+';font-weight:800;text-transform:uppercase">❓ Question</div><div style="font-size:13px;color:'+R+';font-weight:700;line-height:1.5">'+esc(bl.bilan.question)+'</div></div>';
+      if(bl.bilan.victoire)h+='<div style="margin-bottom:6px"><div style="font-size:9px;color:#AAA;font-weight:800;text-transform:uppercase">🏆 Victoire</div><div style="font-size:12px;color:#333;line-height:1.5">'+esc(bl.bilan.victoire)+'</div></div>';
+      if(bl.bilan.blocage)h+='<div style="margin-bottom:6px"><div style="font-size:9px;color:#AAA;font-weight:800;text-transform:uppercase">🤛 Difficulté</div><div style="font-size:12px;color:#333;line-height:1.5">'+esc(bl.bilan.blocage)+'</div></div>';
+      if(bl.bilan.ressenti)h+='<div><div style="font-size:9px;color:#AAA;font-weight:800;text-transform:uppercase">💬 Ressenti</div><div style="font-size:12px;color:#333;line-height:1.5">'+esc(bl.bilan.ressenti)+'</div></div>';
+      h+='</div>';
+    }
+  }
+
+  // Zone danger : suppression
+  h+='<div style="margin-top:24px;padding-top:16px;border-top:1.5px solid #EEE">'+
+    '<button id="cd-delete" style="width:100%;padding:13px 0;border-radius:12px;background:#fff;border:2px solid #FFCDD2;color:'+R+';font-weight:800;font-size:13px">🗑️ Supprimer ce client</button>'+
+    '<div style="font-size:11px;color:#BBB;text-align:center;margin-top:6px">Supprime définitivement toutes ses données</div></div>';
+
+  return h+'</div></div>';
+}
+
 // ═══════════ COACH DASH ═══════════
 function viewCoachDash(){
   var clients=lsGet("amcoach_clients",[]);
@@ -984,7 +1123,7 @@ function viewCoachDash(){
       var score=Math.round(filled/Math.max(t90+1,1)*100);
       var scol=score>80?"#4CAF50":score>50?"#FF9800":R;
       h+='<div class="card" style="padding:18px 16px;margin-bottom:12px">'+
-        '<div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">'+
+        '<div class="cd-open" data-detail="'+esc(c.slug)+'" style="display:flex;align-items:center;gap:14px;margin-bottom:14px;cursor:pointer">'+
         '<div class="ring-wrap">'+svgRing(score/100,scol,56)+
         '<div class="ring-txt" style="font-size:13px">'+score+'%</div></div>'+
         '<div style="flex:1"><div style="font-weight:900;font-size:18px">'+esc(c.name)+'</div>'+
@@ -1050,6 +1189,25 @@ function bindCoach(){
       if(s2){s2.focus();s2.setSelectionRange(pos,pos);}
     });
   }
+  var opens=document.querySelectorAll(".cd-open");
+  for(var o=0;o<opens.length;o++){
+    opens[o].addEventListener("click",function(){state.coachDetail=this.getAttribute("data-detail");render();});
+  }
+  var cdBack=document.getElementById("cd-back");
+  if(cdBack)cdBack.addEventListener("click",function(){state.coachDetail=null;render();});
+  var cdDel=document.getElementById("cd-delete");
+  if(cdDel)cdDel.addEventListener("click",function(){
+    var slug=state.coachDetail;
+    var clients=lsGet("amcoach_clients",[]);
+    var c=null;for(var i=0;i<clients.length;i++){if(clients[i].slug===slug){c=clients[i];break;}}
+    if(!confirm("Supprimer définitivement "+(c?c.name:slug)+" et toutes ses données ?"))return;
+    clients=clients.filter(function(x){return x.slug!==slug;});
+    lsSet("amcoach_clients",clients);
+    try{localStorage.removeItem("amcoach_"+slug);localStorage.removeItem("amcoach_name_"+slug);localStorage.removeItem("amcoach_start_"+slug);}catch(e){}
+    sbFetch("clients?slug=eq."+encodeURIComponent(slug),{method:"DELETE"}).catch(function(){});
+    state.coachDetail=null;
+    render();
+  });
   var copies=document.querySelectorAll(".copy-link");
   for(var i=0;i<copies.length;i++){
     copies[i].addEventListener("click",function(){
@@ -1069,6 +1227,12 @@ function bindMain(name,start){
   var allData=getAllData();
   var today90=getToday90(start);
   var month=currentMonth(today90);
+  var dip=document.getElementById("diplome-btn");
+  if(dip)dip.addEventListener("click",function(){
+    var html=generateDiplome(name,start,getAllData());
+    var win=window.open("","_blank");
+    if(win){win.document.write(html);win.document.close();}
+  });
   var gs=document.getElementById("goal-set");
   if(gs)gs.addEventListener("click",function(){state.showGoalForm=true;render();});
   var ge=document.getElementById("goal-edit");

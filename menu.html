@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>AM Coach — Menus Transfo</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Helvetica Neue',sans-serif;background:#F4F4F4;-webkit-font-smoothing:antialiased;color:#1A1A1A}
+button,input,textarea,select{font-family:inherit;font-size:inherit}
+button{cursor:pointer;border:none;background:none}
+input,textarea,select{outline:none}
+.app{max-width:430px;margin:0 auto;min-height:100vh;padding-bottom:40px}
+
+.hdr{background:#1A1A1A;padding:20px 18px 16px;position:sticky;top:0;z-index:50}
+.hdr-brand{display:flex;align-items:center;gap:8px;margin-bottom:2px}
+.bar{width:3px;height:18px;border-radius:2px}
+.bar-r{background:#D52B1E}.bar-b{background:#0057A8}
+.hdr-title{color:#fff;font-weight:900;font-size:16px;letter-spacing:2px;text-transform:uppercase}
+.hdr-sub{color:#888;font-size:13px;padding-left:11px;font-weight:700}
+
+.banner{background:#1A1A1A;margin:16px 14px;border-radius:16px;padding:20px 18px;text-align:center}
+.banner-line{color:#fff;font-weight:900;font-size:15px;margin-bottom:4px}
+.banner-line.s2{font-size:13px;opacity:.85}
+.banner-line.s3{font-size:12px;opacity:.7}
+.banner-keys{background:#D52B1E;color:#fff;font-weight:900;font-size:11px;padding:10px 12px;border-radius:10px;margin-top:14px;letter-spacing:.5px;line-height:1.6}
+
+.dark-screen{min-height:100vh;background:#1A1A1A;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center}
+.dark-brand{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.dark-brand .bar{height:26px;width:4px}
+.dark-brand span{color:#fff;font-weight:900;font-size:22px;letter-spacing:3px;text-transform:uppercase}
+.dark-sub{color:#555;font-size:13px;margin-bottom:44px}
+.dark-input{width:100%;max-width:340px;padding:16px 18px;border-radius:12px;border:2px solid #2A2A2A;background:#111;color:#fff;font-size:17px;font-weight:700;text-align:center;margin-bottom:20px;display:block;margin-left:auto;margin-right:auto}
+.btn-primary{width:100%;max-width:340px;padding:18px 0;border-radius:12px;background:#D52B1E;color:#fff;font-weight:900;font-size:16px;letter-spacing:1.5px;display:block;margin:0 auto}
+.menu-pick{width:100%;max-width:340px;padding:20px 18px;border-radius:14px;background:#111;border:2px solid #2A2A2A;color:#fff;margin-bottom:14px;text-align:left;display:block;margin-left:auto;margin-right:auto}
+.menu-pick .mp-num{font-size:11px;color:#D52B1E;font-weight:900;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px}
+.menu-pick .mp-name{font-size:18px;font-weight:900}
+.menu-pick .mp-desc{font-size:12px;color:#888;margin-top:4px;line-height:1.5}
+
+.tabs{display:flex;gap:6px;padding:0 14px;margin-bottom:14px}
+.tab{flex:1;padding:11px 0;border-radius:10px;background:#EBEBEB;color:#888;font-weight:800;font-size:12px;text-align:center}
+.tab.active{background:#1A1A1A;color:#fff}
+
+.card{background:#fff;border-radius:14px;padding:16px;margin:0 14px 10px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+
+.day-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;padding:0 14px;margin-bottom:16px}
+.day-cell{aspect-ratio:1;border-radius:10px;background:#fff;border:2px solid transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;font-size:14px;box-shadow:0 1px 3px rgba(0,0,0,.05);position:relative}
+.day-cell.sel{border-color:#D52B1E}
+.day-cell .dc-tag{font-size:7px;font-weight:900;margin-top:2px;letter-spacing:.5px}
+.day-cell.sg{background:#E8F5E9}
+.day-cell.gb{background:#FFF8E1}
+.day-cell .dc-dot{position:absolute;top:4px;right:5px;width:6px;height:6px;border-radius:50%;background:#4CAF50}
+
+.meal-card{background:#fff;border-radius:16px;margin:0 14px 12px;box-shadow:0 1px 6px rgba(0,0,0,.06);overflow:hidden}
+.meal-hdr{padding:14px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #F5F5F5}
+.meal-ico{font-size:22px}
+.meal-name{font-weight:900;font-size:13px;text-transform:uppercase;letter-spacing:1px;flex:1}
+.meal-rule{font-size:10px;font-weight:800;padding:4px 10px;border-radius:20px;color:#fff}
+.meal-body{padding:16px}
+.meal-title{font-weight:900;font-size:17px;margin-bottom:6px}
+.meal-time{font-size:12px;color:#999;margin-bottom:12px}
+.video-btn{display:block;width:100%;padding:14px 0;border-radius:12px;background:#D52B1E;color:#fff;font-weight:900;font-size:14px;text-align:center;text-decoration:none;margin-bottom:14px;letter-spacing:.5px}
+.meal-sec{font-weight:800;font-size:11px;color:#AAA;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;margin-top:12px}
+.meal-txt{font-size:14px;color:#333;line-height:1.7;white-space:pre-line}
+.meal-empty{padding:24px 16px;text-align:center;color:#BBB;font-size:13px}
+
+.food-col{margin-bottom:16px}
+.food-col-hdr{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.food-col-name{font-weight:900;font-size:14px;text-transform:uppercase;letter-spacing:1px}
+.food-tag{font-size:11px;font-weight:800;padding:3px 10px;border-radius:20px;color:#fff}
+.food-list{font-size:13px;color:#444;line-height:1.9}
+.food-note{background:#FFF8F0;border:2px solid #FFE0B2;border-radius:12px;padding:12px 14px;font-size:12px;color:#B45309;font-weight:700;line-height:1.6;margin:0 14px 16px}
+
+.plate{display:flex;gap:6px;margin-bottom:14px}
+.plate-part{flex:1;border-radius:10px;padding:10px 6px;text-align:center;color:#fff;font-weight:900;font-size:10px;letter-spacing:.5px}
+
+.admin-field{margin-bottom:14px}
+.admin-label{font-weight:800;font-size:11px;color:#AAA;letter-spacing:1px;margin-bottom:6px;text-transform:uppercase}
+.admin-input{width:100%;padding:12px 14px;border-radius:10px;border:1.5px solid #E0E0E0;font-size:15px;background:#fff}
+.admin-ta{width:100%;padding:12px 14px;border-radius:10px;border:1.5px solid #E0E0E0;font-size:14px;background:#fff;min-height:80px;resize:vertical;line-height:1.5}
+.big-btn{width:100%;padding:17px 0;border-radius:14px;background:#D52B1E;color:#fff;font-weight:900;font-size:15px;letter-spacing:1.5px;text-transform:uppercase;box-shadow:0 4px 18px rgba(213,43,30,.27)}
+.big-btn.gray{background:#444;box-shadow:none}
+.sync-note{text-align:center;font-size:12px;font-weight:700;margin-top:10px;min-height:16px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+"use strict";
+
+// ═══════════ CONFIG ═══════════
+var R="#D52B1E", B="#0057A8", K="#1A1A1A";
+var SB_URL="https://tyehkvjfhneeeyprfean.supabase.co";
+var SB_KEY="sb_publishable_wE67pm12QC-yqcHqitwOsg_OT6Io63p";
+var ADMIN_PASS="akli2024";
+
+var MENUS={
+  equilibre:{num:"Phase 1",name:"Équilibre — Les Fondations",desc:"Rééquilibrage : assiette 1/3 glucides · 1/3 protéines · 1/3 fibres, midi et soir (dîner en glucides bas)."},
+  acceleration:{num:"Phase 2",name:"Accélération",desc:"Le midi : glucides + protéines + fibres. Le soir : protéines + fibres uniquement."},
+  cyclage:{num:"Phase 3",name:"Cyclage",desc:"Jours entiers SANS glucides (SG) et jours GLUCIDES BAS (GB) selon le calendrier."}
+};
+
+var MEALS=[
+  {id:"pdej",  icon:"🌅", name:"Petit-déjeuner"},
+  {id:"dej",   icon:"☀️", name:"Déjeuner"},
+  {id:"diner", icon:"🌙", name:"Dîner"}
+];
+
+// Règle affichée par repas, selon le menu (et le jour pour cyclage)
+function mealRule(menu,mealId,dayTag){
+  if(menu==="equilibre"){
+    if(mealId==="pdej") return {txt:"PROTÉINE",color:"#7B1FA2"};
+    if(mealId==="dej")  return {txt:"G + P + F",color:"#2E7D32"};
+    return {txt:"GB + P + F",color:"#F59E0B"};
+  }
+  if(menu==="acceleration"){
+    if(mealId==="pdej") return {txt:"PROTÉINE",color:"#7B1FA2"};
+    if(mealId==="dej")  return {txt:"G + P + F",color:"#2E7D32"};
+    return {txt:"P + F",color:B};
+  }
+  // cyclage : SG = P + F uniquement / GB = GB + P + F
+  if(mealId==="pdej") return {txt:"PROTÉINE",color:"#7B1FA2"};
+  if(dayTag==="SG")   return {txt:"P + F",color:"#2E7D32"};
+  return {txt:"GB + P + F",color:"#F59E0B"};
+}
+
+// Calendrier Cyclage — pattern fixe 4 semaines (L→D), depuis le calendrier d'Akli
+var CYCLAGE=[
+  ["SG","GB","SG","GB","SG","GB","SG"],
+  ["GB","SG","SG","GB","SG","SG","GB"],
+  ["SG","SG","SG","GB","SG","SG","SG"],
+  ["GB","SG","SG","SG","SG","SG","SG"]
+];
+function cyclageTag(dayIdx){ // dayIdx 0-29 → semaine 0-3 bouclée
+  var w=Math.floor(dayIdx/7)%4, d=dayIdx%7;
+  return CYCLAGE[w][d];
+}
+
+// ═══════════ LISTES ALIMENTS (triées A→Z, corrigées) ═══════════
+var PROTEINES=["Agneau maigre","Boulettes végé","Cabillaud","Calamar","Cheval","Crevettes","Crustacés (homard, crabe, langouste)","Cuisse de grenouille","Dinde","Edamame","Faisan","Filet de porc","Filet mignon de porc","Filet végétarien","Foie de veau","Haddock","Hampe de bœuf","Lapin","Langoustine","Magret de canard dégraissé","Maquereau","Marcassin","Morue salée","Moule","Noix de St-Jacques","Œuf, blanc d'œuf","Perdreau","Pétoncles","Pigeon","Poulet (blanc)","Poulpe","Protéine de pois / riz (poudre)","Roastbeef de bœuf","Rôti de chevreuil","Rouelle de porc dégraissée","Rumsteak","Sardines","Saumon","Seiche","Soja","Steak de bœuf","Steak haché 5% / 15%","Tempeh","Thon au naturel","Thon frais","Tofu","Tournedos","Tous les poissons","Truite","Veau"];
+
+var GLUCIDES_RA=["Artichaut","Carottes","Châtaignes","Flageolets","Fruits","Galettes végétariennes","Graine de chia","Haricots blancs / rouges","Igname","Lait d'amande","Lait de soja","Lentilles jaunes / marron","Maïs","Navet","Nouilles sans blé","Panais","Patate douce","Petits pois","Pois cassés","Pois chiches","Pomme de terre (jaune, rouge, douce)","Potimarron","Quinoa","Riz","Salsifis","Tomates","+ Cacahuètes (1 poignée)","+ Noix de cajou (1 poignée)","+ Pistaches (1 poignée)"];
+
+var GLUCIDES_GB_OK=["Artichauts","Betteraves","Carottes","Courges","Flageolets","Fruits","Haricots blancs / rouges / noirs","Lentilles vertes / marron / jaunes","Maïs","Navet","Petits pois","Pois cassés","Pois chiches","Pommes de terre (jaune, rouge, douce)","Salsifis","Tomates","+ Cacahuètes (1 poignée)","+ Noix de cajou (1 poignée)","+ Pistaches (1 poignée)"];
+var GLUCIDES_GB_ACCEPT=["Lait amande / coco / soja","Plats végétariens si < 35 g de glucides / 100 g et sans blé"];
+var GLUCIDES_GB_NON=["Blé","Fromage blanc 0%","Galettes végétariennes","Gnocchis","Graine de chia","Maïzena","Nouilles","Pâtes (blé)","Pané végétarien","Polenta","Quinoa","Riz","Sauce nems","Sushis","Tapioca","Yaourt grec"];
+
+var FIBRES=["Algues (nori, wakamé)","Amandes (1 poignée)","Asperge","Aubergine","Avocats","Blette","Brocoli","Câpres","Céleri branche","Céleri-rave","Champignons","Chicorée","Chou-fleur","Choucroute","Choux","Choux de Bruxelles","Cœur de palmier","Concombre","Cornichons","Courgette","Cresson","Endives","Épinards","Fenouil","Haricot","Haricots verts","Kale","Konjac","Noisettes (1 poignée)","Noix (1 poignée)","Oignons, ail","Pak choï","Pois mange-tout","Poireaux","Poivrons, radis","Pousses de bambou","Radis noir","Roquette","Salade (laitue, scarole, frisée, mâche...)"];
+
+// ═══════════ ÉTAT ═══════════
+var params=new URLSearchParams(window.location.search);
+var MENU=params.get("menu");
+var IS_ADMIN=params.get("admin")==="1";
+if(MENU&&!MENUS[MENU])MENU=null;
+var state={
+  tab:"menu",       // menu | aliments
+  selDay:0,
+  adminAuthed:false,
+  recipes:{},        // {"equilibre|3|dej":{title,video,prep,ingredients,steps}}
+  loaded:false,
+  saveMsg:""
+};
+
+// ═══════════ SUPABASE ═══════════
+function sbFetch(path,opts){
+  opts=opts||{};
+  var headers={"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY,"Content-Type":"application/json"};
+  if(opts.prefer)headers["Prefer"]=opts.prefer;
+  return fetch(SB_URL+"/rest/v1/"+path,{
+    method:opts.method||"GET",
+    headers:headers,
+    body:opts.body?JSON.stringify(opts.body):undefined
+  });
+}
+function keyOf(menu,day,meal){return menu+"|"+day+"|"+meal;}
+
+function loadRecipes(menu,cb){
+  sbFetch("recipes?menu=eq."+encodeURIComponent(menu)+"&select=*").then(function(r){
+    if(!r.ok)throw 0;
+    return r.json();
+  }).then(function(rows){
+    for(var i=0;i<rows.length;i++){
+      var rw=rows[i];
+      state.recipes[keyOf(rw.menu,rw.day,rw.meal)]=rw;
+    }
+    state.loaded=true;
+    cb();
+  }).catch(function(){state.loaded=true;cb();});
+}
+
+function saveRecipe(rec,cb){
+  sbFetch("recipes?on_conflict=menu,day,meal",{
+    method:"POST",
+    prefer:"resolution=merge-duplicates",
+    body:rec
+  }).then(function(r){cb(r.ok);}).catch(function(){cb(false);});
+}
+
+// ═══════════ HELPERS ═══════════
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");}
+function ytEmbed(url){
+  if(!url)return null;
+  var m=url.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/);
+  return m?("https://www.youtube.com/watch?v="+m[1]):url;
+}
+</script>
+<script>
+"use strict";
+
+// ═══════════ RENDER ═══════════
+function render(){
+  var root=document.getElementById("root");
+  if(!MENU){root.innerHTML=viewPicker();bindPicker();return;}
+  if(IS_ADMIN&&!state.adminAuthed){root.innerHTML=viewAdminLogin();bindAdminLogin();return;}
+  var h='<div class="app">'+viewHeader();
+  if(IS_ADMIN)h+=viewAdmin();
+  else{
+    h+=viewBanner()+viewTabs();
+    if(state.tab==="menu")h+=viewCalendar()+viewDayMeals();
+    else h+=viewAliments();
+  }
+  h+='</div>';
+  root.innerHTML=h;
+  if(IS_ADMIN)bindAdmin();else bindMain();
+}
+
+function viewHeader(){
+  var m=MENUS[MENU];
+  return '<div class="hdr"><div style="display:flex;align-items:center;gap:10px">'+
+    '<button id="go-home" style="color:#888;font-size:22px;padding:0;line-height:1">←</button>'+
+    '<div style="flex:1"><div class="hdr-brand"><div class="bar bar-r"></div>'+
+    '<span class="hdr-title" style="font-size:14px">'+esc(m.name)+'</span><div class="bar bar-b"></div></div>'+
+    '<div class="hdr-sub">'+esc(m.num)+' · 4 semaines'+(IS_ADMIN?' · ADMIN':'')+'</div></div></div></div>';
+}
+
+// ═══════════ PICKER (pas de ?menu=) ═══════════
+function viewPicker(){
+  var h='<div class="dark-screen">'+
+    '<div class="dark-brand"><div class="bar bar-r"></div><span>AM Coach</span><div class="bar bar-b"></div></div>'+
+    '<div class="dark-sub">Menus TransfoPhysique · sans blé · sans laitages</div>';
+  var keys=["equilibre","acceleration","cyclage"];
+  for(var i=0;i<keys.length;i++){
+    var m=MENUS[keys[i]];
+    h+='<button class="menu-pick" data-menu="'+keys[i]+'">'+
+      '<div class="mp-num">'+esc(m.num)+'</div>'+
+      '<div class="mp-name">'+esc(m.name)+'</div>'+
+      '<div class="mp-desc">'+esc(m.desc)+'</div></button>';
+  }
+  return h+'</div>';
+}
+function bindPicker(){
+  var btns=document.querySelectorAll("[data-menu]");
+  for(var i=0;i<btns.length;i++){
+    btns[i].addEventListener("click",function(){
+      window.location.search="?menu="+this.getAttribute("data-menu")+(IS_ADMIN?"&admin=1":"");
+    });
+  }
+}
+
+// ═══════════ BANNIÈRE ═══════════
+function viewBanner(){
+  return '<div class="banner">'+
+    '<div class="banner-line">FAIRE 100% POUR OBTENIR 100%</div>'+
+    '<div class="banner-line s2">FAIRE 90% POUR OBTENIR 50%</div>'+
+    '<div class="banner-line s3">FAIRE 50% POUR OBTENIR 0%</div>'+
+    '<div class="banner-keys">NUTRITION · SPORT · SOMMEIL · MÉDITATION<br>SERONT LES CLÉS DE VOTRE RÉUSSITE</div></div>';
+}
+
+function viewTabs(){
+  return '<div class="tabs">'+
+    '<button class="tab'+(state.tab==="menu"?" active":"")+'" data-tab="menu">📅 Menu 30 jours</button>'+
+    '<button class="tab'+(state.tab==="aliments"?" active":"")+'" data-tab="aliments">🥗 Aliments</button></div>';
+}
+
+// ═══════════ CALENDRIER 30 JOURS ═══════════
+function viewCalendar(){
+  var DAYN=["L","M","M","J","V","S","D"];
+  var h='<div style="padding:0 14px;margin-bottom:16px">';
+  for(var w=0;w<4;w++){
+    h+='<div style="font-weight:900;font-size:11px;color:#AAA;letter-spacing:1px;margin:10px 0 6px;text-transform:uppercase">Semaine '+(w+1)+'</div>';
+    h+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:2px">';
+    for(var dn=0;dn<7;dn++)h+='<div style="text-align:center;font-size:9px;font-weight:700;color:#CCC">'+DAYN[dn]+'</div>';
+    h+='</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px">';
+    for(var d=0;d<7;d++){
+      var i=w*7+d;
+      var cls="day-cell"+(state.selDay===i?" sel":"");
+      var tag="";
+      if(MENU==="cyclage"){
+        var t=cyclageTag(i);
+        cls+=t==="SG"?" sg":" gb";
+        tag='<span class="dc-tag" style="color:'+(t==="SG"?"#2E7D32":"#B45309")+'">'+t+'</span>';
+      }
+      var hasRecipe=state.recipes[keyOf(MENU,i,"dej")]||state.recipes[keyOf(MENU,i,"pdej")]||state.recipes[keyOf(MENU,i,"diner")];
+      h+='<button class="'+cls+'" data-day="'+i+'">'+(i+1)+tag+(hasRecipe?'<span class="dc-dot"></span>':'')+'</button>';
+    }
+    h+='</div>';
+  }
+  return h+'</div>';
+}
+
+// ═══════════ REPAS DU JOUR ═══════════
+function viewDayMeals(){
+  var day=state.selDay;
+  var dayTag=MENU==="cyclage"?cyclageTag(day):null;
+  var h='<div style="padding:0 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px">'+
+    '<div class="bar bar-r"></div><span style="font-weight:900;font-size:16px">Jour '+(day+1)+'</span>'+
+    (dayTag?'<span class="meal-rule" style="background:'+(dayTag==="SG"?"#2E7D32":"#F59E0B")+'">'+
+      (dayTag==="SG"?"JOUR SANS GLUCIDES":"JOUR GLUCIDES BAS")+'</span>':'')+'</div>';
+
+  if(!state.loaded)h+='<div class="meal-empty">Chargement…</div>';
+
+  for(var i=0;i<MEALS.length;i++){
+    var meal=MEALS[i];
+    var rule=mealRule(MENU,meal.id,dayTag);
+    var rec=state.recipes[keyOf(MENU,day,meal.id)];
+    h+='<div class="meal-card"><div class="meal-hdr">'+
+      '<span class="meal-ico">'+meal.icon+'</span>'+
+      '<span class="meal-name">'+meal.name+'</span>'+
+      '<span class="meal-rule" style="background:'+rule.color+'">'+rule.txt+'</span></div>';
+    if(rec&&rec.title){
+      h+='<div class="meal-body"><div class="meal-title">'+esc(rec.title)+'</div>';
+      if(rec.prep)h+='<div class="meal-time">⏱️ '+esc(rec.prep)+'</div>';
+      if(meal.id!=="pdej"&&MENU!=="cyclage"){
+        // assiette visuelle pour dej/diner
+        var parts=rule.txt.split(" + ");
+        if(parts.length>=2){
+          h+='<div class="plate">';
+          var cols={G:"#2E7D32",GB:"#F59E0B",P:"#7B1FA2",F:"#0097A7"};
+          for(var p=0;p<parts.length;p++){
+            var lab=parts[p].trim();
+            var full=lab==="G"?"GLUCIDES":lab==="GB"?"GLUCIDES BAS":lab==="P"?"PROTÉINES":"FIBRES";
+            h+='<div class="plate-part" style="background:'+(cols[lab]||"#555")+'">1/'+parts.length+'<br>'+full+'</div>';
+          }
+          h+='</div>';
+        }
+      }
+      if(rec.video)h+='<a class="video-btn" href="'+esc(ytEmbed(rec.video))+'" target="_blank">▶️ VOIR LA VIDÉO</a>';
+      if(rec.ingredients)h+='<div class="meal-sec">🛒 Ingrédients</div><div class="meal-txt">'+esc(rec.ingredients)+'</div>';
+      if(rec.steps)h+='<div class="meal-sec">👨‍🍳 Préparation</div><div class="meal-txt">'+esc(rec.steps)+'</div>';
+      h+='</div>';
+    }else{
+      h+='<div class="meal-empty">Recette à venir 🔜</div>';
+    }
+    h+='</div>';
+  }
+  return h;
+}
+
+// ═══════════ LISTES ALIMENTS ═══════════
+function viewAliments(){
+  function col(name,tagTxt,tagColor,items){
+    return '<div class="food-col"><div class="food-col-hdr">'+
+      '<span class="food-tag" style="background:'+tagColor+'">'+tagTxt+'</span>'+
+      '<span class="food-col-name">'+name+'</span></div>'+
+      '<div class="food-list">'+items.map(esc).join("<br>")+'</div></div>';
+  }
+  var h='<div class="food-note">⚠️ Diète TransfoPhysique : SANS BLÉ · SANS PRODUITS LAITIERS pendant 90 jours.<br>Noix / cajou / pistaches / cacahuètes / noisettes / amandes : 1 poignée, 1× par semaine maximum.</div>';
+  h+='<div class="card">'+col("Protéines","P","#7B1FA2",PROTEINES)+'</div>';
+  if(MENU!=="cyclage"){
+    h+='<div class="card"><div style="font-weight:900;font-size:15px;margin-bottom:14px;color:#2E7D32">🍚 RÉÉQUILIBRAGE ALIMENTAIRE (RA) — le midi</div>'+
+      col("Glucides autorisés","G","#2E7D32",GLUCIDES_RA)+'</div>';
+  }
+  if(MENU!=="acceleration"){
+    var gbTitle=MENU==="cyclage"?"🔥 GLUCIDES BAS (GB) — jours GB":"🔥 GLUCIDES BAS (GB) — le soir";
+    h+='<div class="card"><div style="font-weight:900;font-size:15px;margin-bottom:14px;color:#B45309">'+gbTitle+'</div>'+
+      col("Autorisés","GB","#F59E0B",GLUCIDES_GB_OK)+
+      col("Acceptés","≈","#999",GLUCIDES_GB_ACCEPT)+
+      col("Interdits","✕","#D52B1E",GLUCIDES_GB_NON)+'</div>';
+  }
+  h+='<div class="card">'+col("Fibres","F","#0097A7",FIBRES)+'</div>';
+  return h;
+}
+
+// ═══════════ ADMIN ═══════════
+function viewAdminLogin(){
+  return '<div class="dark-screen">'+
+    '<div class="dark-brand"><div class="bar bar-r"></div><span>AM Coach</span><div class="bar bar-b"></div></div>'+
+    '<div class="dark-sub">Admin — ajout de recettes</div>'+
+    '<div style="width:100%;max-width:320px">'+
+    '<input id="ad-pass" type="password" class="dark-input" placeholder="Mot de passe"/>'+
+    '<button id="ad-go" class="btn-primary">Connexion →</button></div></div>';
+}
+function bindAdminLogin(){
+  var p=document.getElementById("ad-pass"),g=document.getElementById("ad-go");
+  function go(){if(p.value===ADMIN_PASS){state.adminAuthed=true;render();}}
+  g.addEventListener("click",go);
+  p.addEventListener("keydown",function(e){if(e.key==="Enter")go();});
+}
+
+function viewAdmin(){
+  var day=state.selDay;
+  var h='<div style="padding:14px">'+
+    '<div class="admin-field"><div class="admin-label">Jour (1–30)</div>'+
+    '<select id="ad-day" class="admin-input">';
+  for(var i=0;i<28;i++)h+='<option value="'+i+'"'+(i===day?' selected':'')+'>Jour '+(i+1)+(MENU==="cyclage"?" — "+cyclageTag(i):"")+'</option>';
+  h+='</select></div>'+
+    '<div class="admin-field"><div class="admin-label">Repas</div>'+
+    '<select id="ad-meal" class="admin-input">'+
+    '<option value="pdej">🌅 Petit-déjeuner</option>'+
+    '<option value="dej">☀️ Déjeuner</option>'+
+    '<option value="diner">🌙 Dîner</option></select></div>'+
+    '<div class="admin-field"><div class="admin-label">Titre de la recette</div>'+
+    '<input id="ad-title" class="admin-input" placeholder="ex: Poulet grillé, riz & brocolis"/></div>'+
+    '<div class="admin-field"><div class="admin-label">Lien vidéo YouTube</div>'+
+    '<input id="ad-video" class="admin-input" placeholder="https://youtube.com/..."/></div>'+
+    '<div class="admin-field"><div class="admin-label">Temps de préparation</div>'+
+    '<input id="ad-prep" class="admin-input" placeholder="ex: 20 min"/></div>'+
+    '<div class="admin-field"><div class="admin-label">Ingrédients (un par ligne)</div>'+
+    '<textarea id="ad-ing" class="admin-ta" placeholder="150g de riz&#10;200g de poulet&#10;..."></textarea></div>'+
+    '<div class="admin-field"><div class="admin-label">Préparation (étapes)</div>'+
+    '<textarea id="ad-steps" class="admin-ta" placeholder="1. Cuire le riz&#10;2. ..."></textarea></div>'+
+    '<button id="ad-save" class="big-btn">Enregistrer la recette ☁️</button>'+
+    '<div id="ad-msg" class="sync-note"></div>'+
+    '<button id="ad-load" class="big-btn gray" style="margin-top:10px;font-size:12px;padding:13px 0">Charger la recette existante de ce jour/repas</button>'+
+    '</div>';
+  return h;
+}
+function bindAdmin(){
+  var home=document.getElementById("go-home");
+  if(home)home.addEventListener("click",function(){window.location.search="?admin=1";});
+  function fill(){
+    var d=parseInt(document.getElementById("ad-day").value);
+    var m=document.getElementById("ad-meal").value;
+    var rec=state.recipes[keyOf(MENU,d,m)];
+    if(rec){
+      document.getElementById("ad-title").value=rec.title||"";
+      document.getElementById("ad-video").value=rec.video||"";
+      document.getElementById("ad-prep").value=rec.prep||"";
+      document.getElementById("ad-ing").value=rec.ingredients||"";
+      document.getElementById("ad-steps").value=rec.steps||"";
+    }else{
+      document.getElementById("ad-title").value="";
+      document.getElementById("ad-video").value="";
+      document.getElementById("ad-prep").value="";
+      document.getElementById("ad-ing").value="";
+      document.getElementById("ad-steps").value="";
+    }
+  }
+  document.getElementById("ad-load").addEventListener("click",fill);
+  document.getElementById("ad-day").addEventListener("change",fill);
+  document.getElementById("ad-meal").addEventListener("change",fill);
+  document.getElementById("ad-save").addEventListener("click",function(){
+    var rec={
+      menu:MENU,
+      day:parseInt(document.getElementById("ad-day").value),
+      meal:document.getElementById("ad-meal").value,
+      title:document.getElementById("ad-title").value.trim(),
+      video:document.getElementById("ad-video").value.trim(),
+      prep:document.getElementById("ad-prep").value.trim(),
+      ingredients:document.getElementById("ad-ing").value.trim(),
+      steps:document.getElementById("ad-steps").value.trim()
+    };
+    if(!rec.title){document.getElementById("ad-msg").textContent="⚠️ Titre requis";document.getElementById("ad-msg").style.color="#D52B1E";return;}
+    var msg=document.getElementById("ad-msg");
+    msg.textContent="☁️ Enregistrement...";msg.style.color="#FF9800";
+    saveRecipe(rec,function(ok){
+      if(ok){
+        state.recipes[keyOf(MENU,rec.day,rec.meal)]=rec;
+        msg.textContent="✅ Recette enregistrée — Jour "+(rec.day+1);
+        msg.style.color="#4CAF50";
+      }else{
+        msg.textContent="❌ Erreur — vérifie ta connexion";
+        msg.style.color="#D52B1E";
+      }
+    });
+  });
+}
+
+// ═══════════ BINDINGS CLIENT ═══════════
+function bindMain(){
+  var home=document.getElementById("go-home");
+  if(home)home.addEventListener("click",function(){window.location.search="";});
+  var tabs=document.querySelectorAll("[data-tab]");
+  for(var i=0;i<tabs.length;i++){
+    tabs[i].addEventListener("click",function(){state.tab=this.getAttribute("data-tab");render();});
+  }
+  var days=document.querySelectorAll("[data-day]");
+  for(var d=0;d<days.length;d++){
+    days[d].addEventListener("click",function(){state.selDay=parseInt(this.getAttribute("data-day"));render();});
+  }
+}
+
+// ═══════════ BOOT ═══════════
+(function(){
+  render();
+  if(MENU){
+    loadRecipes(MENU,function(){render();});
+  }
+})();
+</script>
+</body>
+</html>

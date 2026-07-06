@@ -226,8 +226,8 @@ function render(){
 
 function viewHeader(){
   var m=MENUS[MENU];
-  return '<div class="hdr"><div style="display:flex;align-items:center;gap:10px">'+
-    '<button id="go-home" style="color:#888;font-size:22px;padding:0;line-height:1">←</button>'+
+  var back=IS_ADMIN?'<button id="go-home" style="color:#888;font-size:22px;padding:0;line-height:1">←</button>':'';
+  return '<div class="hdr"><div style="display:flex;align-items:center;gap:10px">'+back+
     '<div style="flex:1"><div class="hdr-brand"><div class="bar bar-r"></div>'+
     '<span class="hdr-title" style="font-size:14px">'+esc(m.name)+'</span><div class="bar bar-b"></div></div>'+
     '<div class="hdr-sub">'+esc(m.num)+' · 4 semaines'+(IS_ADMIN?' · ADMIN':'')+'</div></div></div></div>';

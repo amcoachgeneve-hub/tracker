@@ -274,6 +274,18 @@ function getToday90(startDate){
   return Math.max(0,Math.min(diff,89));
 }
 
+function computeStreak(allData,today90){
+  // Jours consécutifs remplis, en remontant depuis aujourd'hui
+  // (aujourd'hui pas encore rempli ne casse pas la série)
+  var start=allData[today90]?today90:today90-1;
+  var streak=0;
+  for(var i=start;i>=0;i--){
+    if(allData[i]&&Object.keys(allData[i]).length>0)streak++;
+    else break;
+  }
+  return streak;
+}
+
 // ═══════════ HELPERS ═══════════
 function esc(s){
   return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
@@ -437,6 +449,7 @@ function viewCalendar(name,start){
   for(var i=0;i<=today90;i++){if(allData[i])filled++;}
   var pct=Math.round(filled/Math.max(today90+1,1)*100);
   var pctColor=pct>80?"#4CAF50":pct>50?"#FF9800":R;
+  var streak=computeStreak(allData,today90);
 
   var h='<div class="hdr"><div class="hdr-brand"><div class="bar bar-r"></div>'+
     '<span class="hdr-title">AM Coach</span><div class="bar bar-b"></div></div>'+
@@ -449,6 +462,7 @@ function viewCalendar(name,start){
     '<div class="ring-txt" style="font-size:15px;color:'+K+'">'+pct+'%</div></div>'+
     '<div><div style="font-weight:900;font-size:17px">Progression</div>'+
     '<div style="font-size:12px;color:#999;margin-top:3px">Jour '+Math.min(today90+1,90)+' sur 90</div>'+
+    '<div style="font-size:13px;font-weight:900;margin-top:5px;color:'+(streak>=3?"#E65100":"#BBB")+'">\ud83d\udd25 '+streak+' jour'+(streak>1?'s':'')+' d\u2019affil\u00e9e</div>'+
     '<div class="legend">'+
     '<span><i style="background:#4CAF50"></i>Complet</span>'+
     '<span><i style="background:#FFD0B0"></i>Partiel</span>'+

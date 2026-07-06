@@ -869,11 +869,16 @@ function viewCoachDash(){
       '<button id="nc-create" class="big-btn" style="padding:14px 0;font-size:14px;margin-bottom:0">Créer le lien →</button></div>';
   }
 
+  h+='<input id="client-search" class="num-input" placeholder="\ud83d\udd0d Rechercher un client..." value="'+esc(state.searchQ||"")+'" style="font-size:15px;font-weight:400;margin-bottom:14px"/>';
+  var q=(state.searchQ||"").toLowerCase();
+  var shown=q?clients.filter(function(c){return c.name.toLowerCase().indexOf(q)>=0||c.slug.toLowerCase().indexOf(q)>=0;}):clients;
   if(!clients.length){
     h+='<div style="text-align:center;color:#AAA;padding:40px">Aucun client encore.</div>';
+  }else if(!shown.length){
+    h+='<div style="text-align:center;color:#AAA;padding:40px">Aucun r\u00e9sultat pour \u00ab '+esc(state.searchQ)+' \u00bb</div>';
   }else{
-    for(var i=0;i<clients.length;i++){
-      var c=clients[i];
+    for(var i=0;i<shown.length;i++){
+      var c=shown[i];
       var t90=getToday90(c.start_date);
       var cd=lsGet("amcoach_"+c.slug,{});
       var filled=0;
@@ -935,6 +940,16 @@ function bindCoach(){
       sbFetch("clients?on_conflict=slug",{method:"POST",prefer:"resolution=merge-duplicates",body:{slug:slug,name:name,start_date:startDate}}).catch(function(){});
       state.showForm=false;
       render();
+    });
+  }
+  var search=document.getElementById("client-search");
+  if(search){
+    search.addEventListener("input",function(){
+      state.searchQ=this.value;
+      var pos=this.selectionStart;
+      render();
+      var s2=document.getElementById("client-search");
+      if(s2){s2.focus();s2.setSelectionRange(pos,pos);}
     });
   }
   var copies=document.querySelectorAll(".copy-link");

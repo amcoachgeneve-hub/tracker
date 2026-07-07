@@ -277,7 +277,9 @@ function viewCalendar(){
   var DAYN=["L","M","M","J","V","S","D"];
   var h='<div style="padding:0 14px;margin-bottom:16px">';
   for(var w=0;w<4;w++){
-    h+='<div style="font-weight:900;font-size:11px;color:#AAA;letter-spacing:1px;margin:10px 0 6px;text-transform:uppercase">Semaine '+(w+1)+'</div>';
+    h+='<div style="display:flex;align-items:center;justify-content:space-between;margin:10px 0 6px">'+
+      '<span style="font-weight:900;font-size:11px;color:#AAA;letter-spacing:1px;text-transform:uppercase">Semaine '+(w+1)+'</span>'+
+      '<button class="week-courses" data-week="'+w+'" style="font-size:11px;font-weight:800;color:'+R+';padding:4px 10px;border:1.5px solid '+R+';border-radius:20px;background:#fff">🛒 Liste de courses</button></div>';
     h+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:2px">';
     for(var dn=0;dn<7;dn++)h+='<div style="text-align:center;font-size:9px;font-weight:700;color:#CCC">'+DAYN[dn]+'</div>';
     h+='</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px">';
@@ -466,6 +468,76 @@ function bindAdmin(){
   });
 }
 
+// ═══════════ LISTE DE COURSES ═══════════
+function generateCourses(week){
+  // Collecte tous les ingrédients des 7 jours × 3 repas de la semaine
+  var lines=[];
+  var recipesFound=0;
+  for(var d=0;d<7;d++){
+    var dayIdx=week*7+d;
+    for(var m=0;m<MEALS.length;m++){
+      var rec=state.recipes[keyOf(MENU,dayIdx,MEALS[m].id)];
+      if(rec&&rec.ingredients){
+        recipesFound++;
+        var ing=rec.ingredients.split("\n");
+        for(var i=0;i<ing.length;i++){
+          var l=ing[i].trim();
+          if(l)lines.push(l);
+        }
+      }
+    }
+  }
+  if(!recipesFound){
+    alert("Aucune recette avec ingrédients pour la semaine "+(week+1)+" pour l'instant.");
+    return;
+  }
+  // Regroupement : même ingrédient (insensible casse) → compté ×N
+  var grouped={},order=[];
+  for(var j=0;j<lines.length;j++){
+    var key=lines[j].toLowerCase();
+    if(grouped[key]){grouped[key].count++;}
+    else{grouped[key]={txt:lines[j],count:1};order.push(key);}
+  }
+  order.sort(function(a,b){return grouped[a].txt.localeCompare(grouped[b].txt,"fr");});
+
+  var m0=MENUS[MENU];
+  var items="";
+  for(var k=0;k<order.length;k++){
+    var g=grouped[order[k]];
+    items+='<label class="it"><input type="checkbox"/><span>'+esc(g.txt)+(g.count>1?' <em>×'+g.count+'</em>':'')+'</span></label>';
+  }
+
+  var html='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>'+
+  '<title>Courses S'+(week+1)+' — '+esc(m0.name)+'</title><style>'+
+  '*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,"Helvetica Neue",sans-serif;background:#F4F4F4;color:#1A1A1A}'+
+  '.pg{max-width:560px;margin:0 auto;background:#fff;min-height:100vh}'+
+  '.hd{background:#1A1A1A;padding:24px 20px}'+
+  '.br{color:#fff;font-weight:900;font-size:16px;letter-spacing:2px;text-transform:uppercase;display:flex;align-items:center;gap:8px}'+
+  '.b{width:4px;height:20px;border-radius:2px;display:inline-block}'+
+  '.sb{color:#888;font-size:12px;margin-top:5px;font-weight:700}'+
+  '.tt{padding:20px 20px 8px;font-weight:900;font-size:20px}'+
+  '.ss{padding:0 20px 16px;font-size:12px;color:#999}'+
+  '.list{padding:0 20px 30px}'+
+  '.it{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid #F2F2F2;font-size:15px;cursor:pointer}'+
+  '.it input{width:22px;height:22px;accent-color:#D52B1E;flex-shrink:0}'+
+  '.it input:checked+span{text-decoration:line-through;color:#BBB}'+
+  '.it em{color:#D52B1E;font-style:normal;font-weight:800;font-size:12px}'+
+  '.ft{background:#1A1A1A;padding:18px;text-align:center;color:#666;font-size:11px;line-height:1.7}'+
+  '.ft b{color:#fff}'+
+  '@media print{body{background:#fff}.it input{accent-color:#000}}'+
+  '</style></head><body><div class="pg">'+
+  '<div class="hd"><div class="br"><span class="b" style="background:#D52B1E"></span>AM COACH<span class="b" style="background:#0057A8"></span></div>'+
+  '<div class="sb">'+esc(m0.name)+' · Semaine '+(week+1)+'</div></div>'+
+  '<div class="tt">🛒 Liste de courses</div>'+
+  '<div class="ss">'+order.length+' ingrédients · '+recipesFound+' recettes · coche au fur et à mesure</div>'+
+  '<div class="list">'+items+'</div>'+
+  '<div class="ft">Diète TransfoPhysique · <b>sans blé · sans laitages</b><br>AM Coach Genève</div>'+
+  '</div></body></html>';
+
+  var win=window.open("","_blank");
+  if(win){win.document.write(html);win.document.close();}
+}
+
 // ═══════════ BINDINGS CLIENT ═══════════
 function bindMain(){
   var home=document.getElementById("go-home");
@@ -477,6 +549,13 @@ function bindMain(){
   var days=document.querySelectorAll("[data-day]");
   for(var d=0;d<days.length;d++){
     days[d].addEventListener("click",function(){state.selDay=parseInt(this.getAttribute("data-day"));render();});
+  }
+  var wc=document.querySelectorAll(".week-courses");
+  for(var w2=0;w2<wc.length;w2++){
+    wc[w2].addEventListener("click",function(e){
+      e.stopPropagation();
+      generateCourses(parseInt(this.getAttribute("data-week")));
+    });
   }
 }
 

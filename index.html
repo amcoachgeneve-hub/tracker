@@ -160,6 +160,9 @@ var state={
   showForm:false,
   showGoalForm:false,
   coachDetail:null,
+  otForm:false,
+  otCountdown:false,
+  otChrono:null,
   syncStatus:"" // "", "sync", "ok", "err"
 };
 
@@ -311,6 +314,139 @@ function computeAlert(allData,today90){
     if(rate<0.5&&rate<worstRate){worstRate=rate;worst=id;}
   }
   return worst?{habit:worst,msg:HABIT_ALERTS[worst]}:null;
+}
+
+var PENSEES=[
+"Le guerrier de la lumière ne remet pas à demain la décision qui peut être prise aujourd'hui. — Paulo Coelho",
+"🐸 La grenouille sourde : toutes les grenouilles criaient qu'elle n'atteindrait jamais le sommet. Elle y est arrivée — parce qu'elle n'entendait pas. Morale : deviens sourd aux bruits qui te limitent.",
+"Nous ne pouvons pas diriger le vent, mais nous pouvons ajuster les voiles. — Proverbe marin",
+"Ce n'est pas la montagne que nous conquérons, mais nous-mêmes. — Edmund Hillary",
+"🎋 Le bambou chinois : 5 ans sous terre sans rien montrer. Puis 20 mètres en 6 semaines. Tes efforts invisibles construisent tes racines. Continue.",
+"Le corps suit la tête. La tête suit les habitudes. — Balance-360",
+"L'homme qui déplace une montagne commence par déplacer les petites pierres. — Confucius",
+"Tombe sept fois, relève-toi huit. — Proverbe japonais",
+"🐺 Les deux loups : en toi se battent un loup de peur et un loup de courage. Lequel gagne ? Celui que tu nourris chaque jour.",
+"La discipline est le pont entre les objectifs et les résultats. — Jim Rohn",
+"Un guerrier de la lumière n'a pas peur des déceptions, car il connaît la force de son épée et la puissance de son amour. — Paulo Coelho",
+"Ce qui ne me tue pas me rend plus fort. — Nietzsche",
+"☕ La carotte, l'œuf et le café : l'eau bouillante ramollit la carotte, durcit l'œuf — mais le café transforme l'eau. Sois le café : transforme l'épreuve.",
+"Tu ne t'élèves pas au niveau de tes objectifs. Tu tombes au niveau de tes systèmes. — James Clear",
+"La souffrance est temporaire. L'abandon est définitif. — Lance Armstrong",
+"Chaque matin, tu as deux choix : continuer à dormir avec tes rêves, ou te lever et les poursuivre.",
+"🌾 Le vieux fermier : son cheval s'enfuit — 'quelle malchance !' disent les voisins. 'Qui sait ?' répond-il. Le cheval revient avec dix chevaux sauvages. Ne juge jamais un jour avant sa fin.",
+"Le succès, c'est tomber sept fois et se relever la huitième avec le sourire.",
+"Il n'y a qu'une seule façon d'échouer : abandonner avant d'avoir réussi. — Georges Clemenceau",
+"Ton corps peut presque tout supporter. C'est ta tête qu'il faut convaincre.",
+"Le guerrier de la lumière sait qu'il a des défauts. Mais il sait aussi qu'il ne peut pas les utiliser comme excuse. — Paulo Coelho",
+"La motivation te fait démarrer. L'habitude te fait continuer. — Jim Ryun",
+"🏹 L'archer zen rate sa cible : il ne blâme ni le vent, ni l'arc. Il ajuste sa posture. Quand tu rates, ajuste — n'accuse pas.",
+"Rien ne pousse dans la zone de confort.",
+"Sois plus fort que ta meilleure excuse.",
+"La différence entre qui tu es et qui tu veux être ? Ce que tu fais. — Balance-360",
+"Un océan commence par une goutte. Une transformation commence par un jour.",
+"🐢 La tortue n'avance que lorsqu'elle sort la tête de sa carapace. Prendre un risque, c'est la seule façon d'avancer.",
+"Ne compte pas les jours. Fais que les jours comptent. — Muhammad Ali",
+"Quand tu traverses l'enfer, continue d'avancer. — Winston Churchill",
+"Le guerrier de la lumière parie parfois. Mais il ne renonce jamais. — Paulo Coelho",
+"Ta seule compétition, c'est la personne que tu étais hier.",
+"🪨 Le tailleur de pierre frappe cent fois sans fissure. Au cent-unième coup, la pierre se fend. Ce n'est pas le dernier coup qui a réussi — ce sont les cent d'avant.",
+"L'excellence n'est pas un acte, mais une habitude. — Aristote",
+"Le meilleur moment pour planter un arbre était il y a 20 ans. Le deuxième meilleur moment, c'est maintenant.",
+"Ce soir, ton corps te remercie pour chaque bon choix d'aujourd'hui.",
+"La douleur de la discipline pèse des grammes. La douleur du regret pèse des tonnes. — Jim Rohn",
+"🦅 L'aigle ne fuit pas la tempête : il l'utilise pour monter plus haut. Fais de tes épreuves des courants ascendants.",
+"Impossible n'est pas un fait. C'est une opinion. — Muhammad Ali",
+"Personne ne vient te sauver. Et c'est une excellente nouvelle : tu as déjà tout ce qu'il faut.",
+"Le guerrier de la lumière contemple les deux colonnes à côté de la porte : la Rigueur et la Miséricorde. — Paulo Coelho",
+"Un jour tu raconteras cette période comme le moment où tout a changé.",
+"⚒️ Le forgeron sait : le métal ne devient lame que dans le feu et sous le marteau. Tu es dans la forge. Tu en sortiras affûté.",
+"Fais-le avec passion ou ne le fais pas du tout.",
+"Le sommeil est le meilleur des médicaments — et ce soir, tu le mérites.",
+"On ne subit pas l'avenir, on le fait. — Georges Bernanos",
+"La constance bat le talent quand le talent n'est pas constant.",
+"🐜 La fourmi ne se demande pas si la charge est trop lourde. Elle porte, pas à pas. Cent fois son poids. Et toi, tu portes quoi aujourd'hui ? Moins que ça.",
+"Ton futur toi te regarde. Rends-le fier.",
+"Le courage n'est pas l'absence de peur, c'est agir malgré elle. — Nelson Mandela",
+"Le guerrier de la lumière écoute la voix de son cœur, même quand elle semble folle. — Paulo Coelho",
+"Chaque repas est un vote pour la personne que tu veux devenir.",
+"🌊 La vague qui recule prépare celle qui va frapper. Tes reculs préparent tes percées.",
+"Ce n'est pas parce que c'est difficile qu'on n'ose pas. C'est parce qu'on n'ose pas que c'est difficile. — Sénèque",
+"90 jours. C'est court dans une vie. C'est assez pour la changer.",
+"Le champion est celui qui se relève quand il ne peut pas. — Jack Dempsey",
+"Sois patient. Tout arrive à qui sait transpirer en attendant. — Balance-360",
+"🎯 L'archer débutant vise la cible. Le maître devient la flèche. Ne pense plus au résultat — deviens le geste.",
+"Les gens ne remarquent pas tes efforts. Puis un jour, ils te demandent ton secret.",
+"Le corps accomplit ce que l'esprit croit.",
+"Un guerrier de la lumière n'abandonne jamais ce qu'il aime. — Paulo Coelho",
+"Ta transformation dérange ? C'est qu'elle est réelle.",
+"🐛 La chenille croyait mourir. Elle devenait papillon. Ce que tu prends pour une fin est une métamorphose.",
+"La faim d'un soir construit le corps d'une vie.",
+"Discipline aujourd'hui. Liberté demain.",
+"Le doute tue plus de rêves que l'échec. — Suzy Kassem",
+"Tu n'es plus la personne du jour 1. Regarde le chemin, pas seulement le sommet.",
+"⛰️ Deux moines portent le même sac : l'un se plaint, l'autre chante. Le poids est le même. Le choix est dans la tête.",
+"La force ne vient pas de la victoire. Elle vient des combats. — Arnold Schwarzenegger",
+"Ce que tu fais en secret finit toujours par se voir en public.",
+"Le guerrier de la lumière fait confiance. Parce qu'il croit en ses miracles, les miracles commencent à croire en lui. — Paulo Coelho",
+"Ton assiette d'aujourd'hui est ton énergie de demain.",
+"🔥 Le phénix ne renaît que de ses cendres. Il faut parfois tout brûler — les vieilles habitudes — pour renaître.",
+"Personne n'a jamais regretté un entraînement terminé.",
+"Les résultats se construisent dans le silence et se révèlent dans la lumière.",
+"Sois l'exemple que tu aurais voulu avoir.",
+"La vraie noblesse, c'est d'être supérieur à celui qu'on était hier. — Hemingway",
+"🕯️ Une bougie ne perd rien à en allumer une autre. Partage ta force — elle grandira.",
+"Semaine après semaine, tu deviens la preuve que c'est possible.",
+"Le plus grand adversaire est dans le miroir. Le plus grand allié aussi.",
+"Un guerrier de la lumière sait que certains moments se répètent : il apprend de chaque combat. — Paulo Coelho",
+"Tu as survécu à 100% de tes pires journées. Celle-ci aussi.",
+"🏔️ Le sherpa ne regarde jamais le sommet en marchant. Il regarde le pas suivant. Fais le pas suivant.",
+"La graisse pleure quand tu transpires.",
+"Dernier droit. C'est maintenant que les champions se révèlent.",
+"Ce que tu as construit en 12 semaines, personne ne peut te le prendre.",
+"L'homme discipliné est libre partout. L'indiscipliné est esclave même en vacances.",
+"🦁 Le lion ne perd pas le sommeil sur l'opinion des moutons. Avance, tête haute.",
+"Demain, tu termines quelque chose que 95% des gens n'osent même pas commencer.",
+"Tu n'es pas arrivé au bout de 90 jours. Tu es arrivé au début de ta nouvelle vie. — AM Coach Genève"
+];
+
+// ═══════════ ONE THING — CONQUÊTE ═══════════
+// Missions stockées en day_index 200+dayIdx : {task,hour,status:"pending|done|half|lost",xp,iso}
+var GRADES=[
+  {min:0,name:"Recrue",icon:"🪖"},
+  {min:500,name:"Soldat",icon:"⚔️"},
+  {min:1200,name:"Lieutenant",icon:"🎖️"},
+  {min:2500,name:"Capitaine",icon:"🏅"},
+  {min:4500,name:"Commandant",icon:"⭐"},
+  {min:7000,name:"Général",icon:"🌟"},
+  {min:10000,name:"Conquérant",icon:"👑"}
+];
+function getMission(allData,dayIdx){return allData[200+dayIdx]||null;}
+function totalXP(allData){
+  var xp=0;
+  for(var i=0;i<90;i++){
+    var m=allData[200+i];
+    if(m&&m.xp)xp+=m.xp;
+  }
+  return xp;
+}
+function currentGrade(xp){
+  var g=GRADES[0];
+  for(var i=0;i<GRADES.length;i++){if(xp>=GRADES[i].min)g=GRADES[i];}
+  return g;
+}
+function nextGrade(xp){
+  for(var i=0;i<GRADES.length;i++){if(xp<GRADES[i].min)return GRADES[i];}
+  return null;
+}
+function gcalLink(task,dateStr,hour){
+  // dateStr YYYY-MM-DD, hour "14:00" → Google Calendar template link
+  var h=(hour||"09:00").split(":");
+  var d=dateStr.replace(/-/g,"");
+  var hh=("0"+h[0]).slice(-2), mm=("0"+(h[1]||"00")).slice(-2);
+  var start=d+"T"+hh+mm+"00";
+  var endH=("0"+((parseInt(h[0])+1)%24)).slice(-2);
+  var end=d+"T"+endH+mm+"00";
+  return "https://calendar.google.com/calendar/render?action=TEMPLATE&text="+encodeURIComponent("⚡ ONE THING : "+task)+"&dates="+start+"/"+end+"&details="+encodeURIComponent("Ma mission de conquête du jour — AM Coach TransfoPhysique. 5-4-3-2-1 GO !");
 }
 
 function getGoal(allData,month){
@@ -618,6 +754,111 @@ function viewCalendar(name,start){
       '<div style="font-size:26px;margin-bottom:4px">🎓</div>'+
       '<div style="font-weight:900;font-size:15px;color:#fff;letter-spacing:1px;text-transform:uppercase">Mon Diplôme AM Transfo</div>'+
       '<div style="font-size:11px;color:rgba(255,255,255,.85);margin-top:3px;font-weight:700">90 jours accomplis — Nouvelle version de toi-même</div></button>';
+  }
+
+  // ⚡ ONE THING — MISSION DU JOUR
+  var mission=getMission(allData,today90);
+  var xp=totalXP(allData);
+  var grade=currentGrade(xp);
+  var nxt=nextGrade(xp);
+
+  h+='<div class="card" style="margin-bottom:18px;background:'+K+';padding:16px 18px">';
+  // grade bar
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'+
+    '<span style="color:#fff;font-weight:900;font-size:13px">'+grade.icon+' '+grade.name+'</span>'+
+    '<span style="color:#C9A227;font-weight:900;font-size:13px">'+xp+' XP</span></div>';
+  if(nxt){
+    var prev=grade.min, span=nxt.min-prev, prog=Math.round((xp-prev)/span*100);
+    h+='<div style="height:5px;background:#333;border-radius:3px;margin-bottom:12px"><div style="height:5px;border-radius:3px;background:#C9A227;width:'+prog+'%"></div></div>'+
+      '<div style="font-size:10px;color:#666;margin-bottom:12px">'+nxt.icon+' '+nxt.name+' à '+nxt.min+' XP</div>';
+  }
+  if(!mission){
+    h+='<button id="ot-new" style="width:100%;padding:14px 0;border-radius:12px;background:'+R+';color:#fff;font-weight:900;font-size:13px;letter-spacing:1px;text-transform:uppercase">⚡ Définir ma mission du jour</button>';
+  }else if(mission.status==="pending"){
+    h+='<div style="color:#888;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">⚡ Ta mission du jour — '+esc(mission.hour||"")+'</div>'+
+      '<div style="color:#fff;font-weight:900;font-size:16px;margin-bottom:12px">'+esc(mission.task)+'</div>'+
+      '<button id="ot-go" style="width:100%;padding:15px 0;border-radius:12px;background:'+R+';color:#fff;font-weight:900;font-size:15px;letter-spacing:2px">🚀 5-4-3-2-1 GO</button>'+
+      '<a href="'+gcalLink(mission.task,new Date().toISOString().split("T")[0],mission.hour)+'" target="_blank" style="display:block;text-align:center;color:#888;font-size:11px;font-weight:700;margin-top:10px;text-decoration:none">📅 Ajouter à Google Agenda</a>';
+  }else{
+    var stMap={done:["🟢 ZONE SÉCURISÉE","+"+(mission.xp||0)+" XP","#4CAF50"],half:["🟡 ZONE CONTESTÉE","+"+(mission.xp||0)+" XP","#F59E0B"],lost:["⚪ ZONE PERDUE","0 XP","#888"]};
+    var st=stMap[mission.status]||stMap.lost;
+    h+='<div style="color:#888;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">⚡ Mission du jour</div>'+
+      '<div style="color:#fff;font-weight:800;font-size:14px;margin-bottom:8px">'+esc(mission.task)+'</div>'+
+      '<div style="font-weight:900;font-size:13px;color:'+st[2]+'">'+st[0]+' · '+st[1]+(mission.iso?" · 🧘 +25":"")+'</div>';
+    if(mission.status!=="lost"){
+      h+='<button id="ot-share" style="width:100%;margin-top:12px;padding:12px 0;border-radius:10px;background:#2A2A2A;color:#fff;font-weight:800;font-size:12px">📤 Partager ma victoire</button>';
+    }
+  }
+  // mission de demain (préparée la veille)
+  if(today90<89){
+    var tomorrow=getMission(allData,today90+1);
+    if(tomorrow&&tomorrow.status==="pending"){
+      h+='<div style="margin-top:12px;padding-top:12px;border-top:1px solid #2A2A2A;font-size:11px;color:#888">🌙 Demain : <span style="color:#CCC;font-weight:700">'+esc(tomorrow.task)+'</span> à '+esc(tomorrow.hour||"")+'</div>';
+    }else if(mission&&mission.status!=="pending"){
+      h+='<button id="ot-tomorrow" style="width:100%;margin-top:12px;padding:12px 0;border-radius:10px;background:#2A2A2A;color:#C9A227;font-weight:800;font-size:12px">🌙 Préparer ma conquête de demain</button>';
+    }
+  }
+  h+='</div>';
+
+  // FORM mission (aujourd'hui ou demain)
+  if(state.otForm){
+    var isT=state.otForm==="tomorrow";
+    h+='<div class="card" style="margin-bottom:18px;padding:18px 16px">'+
+      '<div style="font-weight:900;font-size:14px;margin-bottom:6px">⚡ '+(isT?"Ma conquête de demain":"Ma mission du jour")+'</div>'+
+      '<div style="font-size:12px;color:#999;line-height:1.6;margin-bottom:14px">La tâche que tu redoutes le plus. 5-10 minutes. Zéro négociation.</div>'+
+      '<div style="font-weight:800;font-size:11px;color:#AAA;margin-bottom:6px">LA FRICTION À CONQUÉRIR</div>'+
+      '<input id="ot-task" class="num-input" style="font-weight:400;font-size:15px;margin-bottom:12px" placeholder="ex: passer la porte de la salle et donner 1 conseil"/>'+
+      '<div style="font-weight:800;font-size:11px;color:#AAA;margin-bottom:6px">HEURE D\'ENGAGEMENT</div>'+
+      '<input id="ot-hour" type="time" class="num-input" style="margin-bottom:14px" value="09:00"/>'+
+      '<button id="ot-save" style="width:100%;padding:14px 0;border-radius:12px;background:'+R+';color:#fff;font-weight:900;font-size:14px">Verrouiller la mission 🔒</button></div>';
+  }
+
+  // COUNTDOWN overlay + CHRONO handled in bind via dynamic overlay
+
+  // 🌙 PENSÉE DU SOIR
+  var pensee=PENSEES[today90%PENSEES.length];
+  h+='<div class="card" style="margin-bottom:18px;background:linear-gradient(135deg,#1a1a2e,#16213e);padding:18px;border:none">'+
+    '<div style="color:#C9A227;font-weight:800;font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">🌙 La pensée du soir — Jour '+(today90+1)+'</div>'+
+    '<div style="color:#E8E8E8;font-size:14px;line-height:1.8;font-style:italic">'+esc(pensee)+'</div></div>';
+
+  // ⚔️ BILAN DE BATAILLE (le dimanche)
+  if((today90+1)%7===0&&today90>0){
+    var wStart=today90-6;
+    var wXP=0,wDone=0,wHalf=0,wLost=0,wFilled=0;
+    var habCount={};
+    for(var hb2=0;hb2<HABITS.length;hb2++)habCount[HABITS[hb2].id]=0;
+    for(var wd=wStart;wd<=today90;wd++){
+      var mm=allData[200+wd];
+      if(mm){if(mm.xp)wXP+=mm.xp;if(mm.status==="done")wDone++;else if(mm.status==="half")wHalf++;else if(mm.status==="lost")wLost++;}
+      var dd2=allData[wd];
+      if(dd2&&dd2.habits){wFilled++;for(var hb3=0;hb3<HABITS.length;hb3++){if(dd2.habits[HABITS[hb3].id])habCount[HABITS[hb3].id]++;}}
+    }
+    var wPv=[];
+    for(var wp=wStart;wp<=today90;wp++){if(allData[wp]&&allData[wp].poids)wPv.push(parseFloat(allData[wp].poids));}
+    var wDp=wPv.length>=2?Math.round((wPv[wPv.length-1]-wPv[0])*10)/10:null;
+    h+='<div class="card" style="margin-bottom:18px;border:2px solid '+K+';padding:16px 18px">'+
+      '<div style="font-weight:900;font-size:14px;margin-bottom:12px;display:flex;align-items:center;gap:8px"><div class="bar bar-r"></div>⚔️ BILAN DE BATAILLE — Semaine '+Math.floor(today90/7+1)+'</div>'+
+      '<div style="display:flex;gap:8px;margin-bottom:12px;text-align:center">'+
+      '<div style="flex:1"><div style="font-weight:900;font-size:20px;color:#C9A227">'+wXP+'</div><div style="font-size:9px;color:#AAA;font-weight:700;text-transform:uppercase">XP</div></div>'+
+      '<div style="flex:1"><div style="font-weight:900;font-size:20px;color:#4CAF50">'+wDone+'</div><div style="font-size:9px;color:#AAA;font-weight:700;text-transform:uppercase">🟢 Sécurisées</div></div>'+
+      '<div style="flex:1"><div style="font-weight:900;font-size:20px;color:#F59E0B">'+wHalf+'</div><div style="font-size:9px;color:#AAA;font-weight:700;text-transform:uppercase">🟡 Contestées</div></div>'+
+      '<div style="flex:1"><div style="font-weight:900;font-size:20px;color:'+(wDp!=null&&wDp<=0?"#4CAF50":K)+'">'+(wDp!=null?(wDp>0?"+"+wDp:wDp):"—")+'</div><div style="font-size:9px;color:#AAA;font-weight:700;text-transform:uppercase">kg</div></div></div>';
+    // ⚠️ améliorations semaine prochaine
+    var warns=[];
+    if(wFilled>=3){
+      for(var hb4=0;hb4<HABITS.length;hb4++){
+        var hid=HABITS[hb4];
+        if(habCount[hid.id]/wFilled<0.5)warns.push(hid.icon+" "+hid.label+" "+habCount[hid.id]+"/"+wFilled);
+      }
+    }
+    if(warns.length){
+      h+='<div style="background:#FFF8F0;border:1.5px solid #FFE0B2;border-radius:10px;padding:10px 12px">'+
+        '<div style="font-weight:800;font-size:10px;color:#E65100;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">⚠️ Priorités semaine prochaine</div>'+
+        '<div style="font-size:12px;color:#7A4A00;font-weight:700;line-height:1.8">'+warns.join("<br>")+'</div></div>';
+    }else if(wFilled>=3){
+      h+='<div style="font-size:12px;color:#4CAF50;font-weight:800">✅ Toutes les lignes tenues. Semaine de guerrier.</div>';
+    }
+    h+='</div>';
   }
 
   // ALERTE COACH
@@ -1227,6 +1468,118 @@ function bindMain(name,start){
   var allData=getAllData();
   var today90=getToday90(start);
   var month=currentMonth(today90);
+  // ⚡ ONE THING
+  var otNew=document.getElementById("ot-new");
+  if(otNew)otNew.addEventListener("click",function(){state.otForm="today";render();});
+  var otTom=document.getElementById("ot-tomorrow");
+  if(otTom)otTom.addEventListener("click",function(){state.otForm="tomorrow";render();});
+  var otSave=document.getElementById("ot-save");
+  if(otSave)otSave.addEventListener("click",function(){
+    var task=document.getElementById("ot-task").value.trim();
+    var hour=document.getElementById("ot-hour").value;
+    if(!task)return;
+    var idx=state.otForm==="tomorrow"?today90+1:today90;
+    saveDay(200+idx,{task:task,hour:hour,status:"pending",xp:0,iso:false});
+    state.otForm=false;
+    render();
+  });
+  var otGo=document.getElementById("ot-go");
+  if(otGo)otGo.addEventListener("click",function(){
+    // Overlay countdown 5→1 puis chrono
+    var ov=document.createElement("div");
+    ov.id="ot-overlay";
+    ov.style.cssText="position:fixed;inset:0;background:#1A1A1A;z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px";
+    document.body.appendChild(ov);
+    var count=5;
+    function showCount(){
+      if(count>0){
+        ov.innerHTML='<div style="color:#888;font-size:13px;font-weight:800;letter-spacing:2px;text-transform:uppercase;margin-bottom:20px">Zéro négociation</div>'+
+          '<div style="color:#D52B1E;font-size:120px;font-weight:900;line-height:1">'+count+'</div>';
+        count--;
+        setTimeout(showCount,1000);
+      }else{
+        startChrono();
+      }
+    }
+    function startChrono(){
+      var sec=0;
+      var mission=getAllData()[200+today90];
+      ov.innerHTML='<div style="color:#4CAF50;font-size:56px;font-weight:900;margin-bottom:10px">GO 🚀</div>'+
+        '<div style="color:#fff;font-size:16px;font-weight:800;margin-bottom:30px;max-width:300px">'+esc(mission.task)+'</div>'+
+        '<div id="ot-timer" style="color:#fff;font-size:64px;font-weight:900;font-variant-numeric:tabular-nums">00:00</div>'+
+        '<div style="color:#666;font-size:12px;margin:10px 0 40px">Objectif : 5 à 10 minutes</div>'+
+        '<button id="ot-finish" style="width:100%;max-width:300px;padding:18px 0;border-radius:14px;background:#D52B1E;color:#fff;font-weight:900;font-size:15px;letter-spacing:1px">MISSION TERMINÉE ✓</button>';
+      var tm=setInterval(function(){
+        sec++;
+        var el=document.getElementById("ot-timer");
+        if(el)el.textContent=("0"+Math.floor(sec/60)).slice(-2)+":"+("0"+sec%60).slice(-2);
+      },1000);
+      document.getElementById("ot-finish").addEventListener("click",function(){
+        clearInterval(tm);
+        showBilan(sec);
+      });
+    }
+    function showBilan(sec){
+      ov.innerHTML='<div style="color:#fff;font-size:20px;font-weight:900;margin-bottom:6px">Bilan de conquête</div>'+
+        '<div style="color:#888;font-size:13px;margin-bottom:30px">'+Math.floor(sec/60)+' min '+(sec%60)+' s de combat</div>'+
+        '<button class="ot-result" data-r="done" style="width:100%;max-width:320px;padding:16px;border-radius:14px;background:#4CAF50;color:#fff;font-weight:900;font-size:14px;margin-bottom:10px;text-align:left">🟢 ZONE SÉCURISÉE — j\'ai tout donné<span style="float:right">+100 XP</span></button>'+
+        '<button class="ot-result" data-r="half" style="width:100%;max-width:320px;padding:16px;border-radius:14px;background:#F59E0B;color:#fff;font-weight:900;font-size:14px;margin-bottom:10px;text-align:left">🟡 ZONE CONTESTÉE — fait à moitié<span style="float:right">+50 XP</span></button>'+
+        '<button class="ot-result" data-r="lost" style="width:100%;max-width:320px;padding:16px;border-radius:14px;background:#444;color:#ccc;font-weight:900;font-size:14px;margin-bottom:24px;text-align:left">⚪ ZONE PERDUE — pas réussi<span style="float:right">0 XP</span></button>'+
+        '<label style="display:flex;align-items:center;gap:10px;color:#888;font-size:12px;max-width:320px;margin:0 auto"><input type="checkbox" id="ot-iso" style="width:20px;height:20px;accent-color:#C9A227"/> Je m\'engage : 30 min sans écran ni sucre après cet effort (+25 XP)</label>';
+      var btns=ov.querySelectorAll(".ot-result");
+      for(var b=0;b<btns.length;b++){
+        btns[b].addEventListener("click",function(){
+          var r=this.getAttribute("data-r");
+          var xpMap={done:100,half:50,lost:0};
+          var iso=document.getElementById("ot-iso").checked;
+          var xpVal=xpMap[r]+(iso&&r!=="lost"?25:0);
+          var mission=getAllData()[200+today90];
+          mission.status=r;mission.xp=xpVal;mission.iso=iso&&r!=="lost";
+          saveDay(200+today90,mission);
+          document.body.removeChild(ov);
+          render();
+        });
+      }
+    }
+    showCount();
+  });
+  var otShare=document.getElementById("ot-share");
+  if(otShare)otShare.addEventListener("click",function(){
+    var allD=getAllData();
+    var mission=allD[200+today90];
+    var xp2=totalXP(allD);
+    var grade2=currentGrade(xp2);
+    var streak2=computeStreak(allD,today90);
+    var stTxt=mission.status==="done"?"🟢 ZONE SÉCURISÉE":"🟡 ZONE CONTESTÉE";
+    var html='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Ma victoire</title><style>'+
+      'body{margin:0;font-family:-apple-system,sans-serif;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;box-sizing:border-box}'+
+      '.card{width:100%;max-width:380px;aspect-ratio:4/5;background:linear-gradient(160deg,#1A1A1A 0%,#2d1010 100%);border-radius:24px;padding:36px 28px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between;border:1px solid #333}'+
+      '.brand{display:flex;align-items:center;gap:8px}'+
+      '.b{width:4px;height:20px;border-radius:2px}'+
+      '.bn{color:#fff;font-weight:900;font-size:14px;letter-spacing:2px}'+
+      '.mid{text-align:center}'+
+      '.gi{font-size:56px;margin-bottom:8px}'+
+      '.gn{color:#C9A227;font-weight:900;font-size:26px;letter-spacing:1px;text-transform:uppercase}'+
+      '.xp{color:#fff;font-weight:900;font-size:17px;margin-top:6px}'+
+      '.st{color:#4CAF50;font-weight:900;font-size:13px;margin-top:14px;letter-spacing:1px}'+
+      '.day{color:#888;font-size:12px;margin-top:4px;font-weight:700}'+
+      '.bot{text-align:center}'+
+      '.tag{color:#fff;font-weight:900;font-size:13px;letter-spacing:1px}'+
+      '.sub2{color:#666;font-size:10px;margin-top:4px;letter-spacing:1px;text-transform:uppercase}'+
+      '.hint{color:#666;font-size:12px;text-align:center;margin-top:18px;line-height:1.6}'+
+      '</style></head><body>'+
+      '<div class="card">'+
+      '<div class="brand"><div class="b" style="background:#D52B1E"></div><span class="bn">AM COACH GENÈVE</span><div class="b" style="background:#0057A8"></div></div>'+
+      '<div class="mid"><div class="gi">'+grade2.icon+'</div><div class="gn">'+grade2.name+'</div><div class="xp">'+xp2+' XP</div>'+
+      '<div class="st">'+stTxt+'</div>'+
+      '<div class="day">Jour '+(today90+1)+'/90 · 🔥 '+streak2+' jours d\'affilée</div></div>'+
+      '<div class="bot"><div class="tag">TRANSFO\'PHYSIQUE</div><div class="sub2">@amcoachgeneve · 90 jours</div></div>'+
+      '</div>'+
+      '<div class="hint">📸 Fais une capture d\'écran de cette carte<br>et poste-la en story 💪</div>'+
+      '</body></html>';
+    var win=window.open("","_blank");
+    if(win){win.document.write(html);win.document.close();}
+  });
   var dip=document.getElementById("diplome-btn");
   if(dip)dip.addEventListener("click",function(){
     var html=generateDiplome(name,start,getAllData());

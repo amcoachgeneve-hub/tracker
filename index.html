@@ -149,6 +149,10 @@ var SCALE_COLORS=["#4CAF50","#4CAF50","#8BC34A","#CDDC39","#FFC107","#FFC107","#
 // ═══════════ ÉTAT GLOBAL ═══════════
 var params=new URLSearchParams(window.location.search);
 var CLIENT=params.get("client");
+var IS_QG=params.get("qg")==="1";
+var BLOC=CLIENT?parseInt(localStorage.getItem("amcoach_bloc_"+CLIENT)||"1"):1;
+if(BLOC>1&&CLIENT)CLIENT=CLIENT+"-b"+BLOC;
+var BASE_CLIENT=CLIENT?CLIENT.replace(/-b\d+$/,""):null;
 var IS_COACH=params.get("coach")==="1";
 var state={
   view:"calendar",
@@ -161,6 +165,7 @@ var state={
   showGoalForm:false,
   coachDetail:null,
   otForm:false,
+  qgForm:false,
   otCountdown:false,
   otChrono:null,
   syncStatus:"" // "", "sync", "ok", "err"
@@ -411,6 +416,34 @@ var PENSEES=[
 
 // ═══════════ ONE THING — CONQUÊTE ═══════════
 // Missions stockées en day_index 200+dayIdx : {task,hour,status:"pending|done|half|lost",xp,iso}
+// ═══════════ FORTERESSE (QG coach) ═══════════
+var QG_LEVELS=[
+  {min:0,icon:"🏚️",name:"L'Invisible",radius:8},
+  {min:8,icon:"🛖",name:"Le Départ",radius:18},
+  {min:20,icon:"🏘️",name:"En Construction",radius:30},
+  {min:40,icon:"🏰",name:"Reconnu des Proches",radius:44},
+  {min:70,icon:"🏯",name:"La Référence",radius:58},
+  {min:110,icon:"👑",name:"",radius:72} // = identité du client
+];
+function qgConfig(allData){return allData[502]||null;}
+function qgRes(allData,today90){
+  var p=0,e=0;
+  for(var i=0;i<=today90;i++){
+    var q=allData[400+i];
+    if(q){if(q.p)p++;if(q.e)e++;}
+  }
+  return {p:p,e:e,total:p+e};
+}
+function qgLevel(total){
+  var l=QG_LEVELS[0];
+  for(var i=0;i<QG_LEVELS.length;i++){if(total>=QG_LEVELS[i].min)l=QG_LEVELS[i];}
+  return l;
+}
+function qgNext(total){
+  for(var i=0;i<QG_LEVELS.length;i++){if(total<QG_LEVELS[i].min)return QG_LEVELS[i];}
+  return null;
+}
+
 var GRADES=[
   {min:0,name:"Recrue",icon:"🪖"},
   {min:500,name:"Soldat",icon:"⚔️"},
@@ -633,6 +666,7 @@ function render(){
   var html='<div class="app">';
   if(state.view==="calendar")html+=viewCalendar(name,start);
   else if(state.view==="stats")html+=viewStats(name);
+  else if(state.view==="dream")html+=viewDream(name);
   else html+=viewRapport(name,start);
   html+=navBar();
   html+='</div>';
@@ -673,9 +707,31 @@ function bindOnboarding(){
   });
 }
 
+// ═══════════ DREAM BOARD ═══════════
+function viewDream(name){
+  var allData=getAllData();
+  var db=allData[501]||{};
+  return '<div class="hdr"><div class="hdr-brand"><div class="bar bar-r"></div>'+
+    '<span class="hdr-title">Dream Board</span><div class="bar bar-b"></div></div>'+
+    '<div class="hdr-sub">'+esc(name)+' · Vision & cap</div></div>'+
+    '<div style="padding:16px 14px">'+
+    '<div class="card" style="padding:16px 18px;margin-bottom:14px;border-left:4px solid #C9A227">'+
+    '<div style="font-size:12px;color:#666;line-height:1.8">Ton cerveau ne peut pas atteindre une cible qu\'il ne voit pas. Ce que tu écris ici n\'est pas un rêve — c\'est <strong>une commande passée à ton subconscient</strong>. Les études le montrent : écrire ses objectifs augmente de 42% les chances de les atteindre. Décris ta semaine idéale et ta vie idéale avec précision, <strong>comme si tu y étais déjà</strong>. Puis relis cette page chaque dimanche : ton cerveau travaillera toute la semaine à combler l\'écart entre ta vie actuelle et cette vision. Ce que tu vois clairement, tu finis par le vivre.</div></div>'+
+    '<div class="card" style="padding:18px 16px;background:linear-gradient(160deg,#1a1a2e,#16213e);border:none;margin-bottom:14px">'+
+    '<div style="color:#C9A227;font-weight:800;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">🌟 Ma semaine idéale</div>'+
+    '<div style="color:#889;font-size:11px;margin-bottom:10px">À quoi ressemble une semaine parfaite pour toi ?</div>'+
+    '<textarea id="db-semaine" class="txt-area" rows="6" style="background:#0f0f1e;border-color:#333;color:#E8E8E8;margin-bottom:0">'+esc(db.semaine||"")+'</textarea></div>'+
+    '<div class="card" style="padding:18px 16px;background:linear-gradient(160deg,#1a1a2e,#16213e);border:none;margin-bottom:14px">'+
+    '<div style="color:#C9A227;font-weight:800;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">🚀 Ma vie idéale</div>'+
+    '<div style="color:#889;font-size:11px;margin-bottom:10px">Ce que tu veux réaliser. Ta destination. Relis-le chaque semaine.</div>'+
+    '<textarea id="db-vie" class="txt-area" rows="8" style="background:#0f0f1e;border-color:#333;color:#E8E8E8;margin-bottom:0">'+esc(db.vie||"")+'</textarea></div>'+
+    '<div style="font-size:11px;color:#AAA;text-align:center;line-height:1.7">📖 Relis ta vision chaque dimanche après ton bilan.<br>💾 Sauvegarde automatique <span id="db-saved" style="color:#4CAF50;font-weight:700"></span></div>'+
+    '</div>';
+}
+
 // ═══════════ NAV ═══════════
 function navBar(){
-  var tabs=[["calendar","📅","Agenda"],["stats","📈","Stats"],["rapport","📄","Rapport"]];
+  var tabs=[["calendar","📅","Agenda"],["stats","📈","Stats"],["dream","🌟","Dream"],["rapport","📄","Rapport"]];
   var h='<div class="nav">';
   for(var i=0;i<tabs.length;i++){
     var t=tabs[i];
@@ -700,7 +756,7 @@ function viewCalendar(name,start){
 
   var h='<div class="hdr"><div class="hdr-brand"><div class="bar bar-r"></div>'+
     '<span class="hdr-title">AM Coach</span><div class="bar bar-b"></div></div>'+
-    '<div class="hdr-sub">'+esc(name)+' · 90 jours <span id="sync-badge" style="font-size:11px"></span></div></div>'+
+    '<div class="hdr-sub">'+esc(name)+' · 90 jours'+(BLOC>1?' · Bloc '+BLOC+'/4':'')+' <span id="sync-badge" style="font-size:11px"></span></div></div>'+
     '<div style="padding:16px 14px 0">';
 
   // progress card
@@ -754,6 +810,11 @@ function viewCalendar(name,start){
       '<div style="font-size:26px;margin-bottom:4px">🎓</div>'+
       '<div style="font-weight:900;font-size:15px;color:#fff;letter-spacing:1px;text-transform:uppercase">Mon Diplôme AM Transfo</div>'+
       '<div style="font-size:11px;color:rgba(255,255,255,.85);margin-top:3px;font-weight:700">90 jours accomplis — Nouvelle version de toi-même</div></button>';
+    if(BLOC<4){
+      h+='<button id="next-bloc" class="card" style="width:calc(100% - 28px);margin-bottom:18px;background:'+K+';border:none;text-align:center;padding:16px;cursor:pointer">'+
+        '<div style="font-weight:900;font-size:14px;color:#fff">🔄 Démarrer le Bloc '+(BLOC+1)+'/4 — 90 jours de plus</div>'+
+        '<div style="font-size:11px;color:#888;margin-top:3px">Nouveau départ, historique conservé</div></button>';
+    }
   }
 
   // ⚡ ONE THING — MISSION DU JOUR
@@ -815,6 +876,45 @@ function viewCalendar(name,start){
   }
 
   // COUNTDOWN overlay + CHRONO handled in bind via dynamic overlay
+
+  // 🏰 FORTERESSE D'IDENTITÉ (personnalisée par client)
+  var qgc=qgConfig(allData);
+  if(!qgc){
+    h+='<button id="qg-setup" class="card" style="width:calc(100% - 28px);margin-bottom:18px;border:2px dashed #A5C99A;background:#F4FAF2;text-align:center;padding:16px;cursor:pointer;font-weight:800;font-size:14px;color:#4A7A3A">🏰 Définir mon identité cible →</button>';
+  }else{
+    var res=qgRes(allData,today90);
+    var lvl=qgLevel(res.total);
+    var nxtL=qgNext(res.total);
+    var lvlName=lvl.min>=110?qgc.identity:lvl.name;
+    var qToday=allData[400+today90]||{};
+    h+='<div class="card" style="margin-bottom:18px;background:linear-gradient(160deg,#0d1b0d,#1a2e1a);padding:18px;border:none">'+
+      '<div style="color:#8BC34A;font-weight:800;font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-bottom:2px">🏰 Mon identité en construction</div>'+
+      '<div style="color:#fff;font-weight:900;font-size:13px;margin-bottom:10px">🎯 '+esc(qgc.identity)+'</div>'+
+      '<div style="text-align:center;position:relative;height:110px;margin-bottom:10px">'+
+      '<svg width="150" height="110" style="position:absolute;left:50%;transform:translateX(-50%)">'+
+      '<circle cx="75" cy="60" r="'+lvl.radius+'" fill="rgba(139,195,74,.12)" stroke="#8BC34A" stroke-width="1.5" stroke-dasharray="4 4"/></svg>'+
+      '<div style="position:absolute;left:50%;top:38px;transform:translateX(-50%);font-size:40px">'+lvl.icon+'</div></div>'+
+      '<div style="text-align:center;color:#fff;font-weight:900;font-size:15px">'+esc(lvlName)+'</div>'+
+      '<div style="text-align:center;color:#8BC34A;font-size:11px;font-weight:700;margin:4px 0 12px">🧱 '+res.total+' brique'+(res.total>1?'s':'')+' posée'+(res.total>1?'s':'')+(nxtL?' · prochain niveau à '+nxtL.min+' briques':' · SOMMET ATTEINT')+'</div>'+
+      '<button id="qg-terrain" '+(qToday.p?'disabled':'')+' style="width:100%;padding:13px 0;border-radius:11px;background:'+(qToday.p?"#2A3A2A":"#5D4037")+';color:'+(qToday.p?"#6A8A6A":"#fff")+';font-weight:900;font-size:13px;margin-bottom:8px">'+(qToday.p?"✓ Brique posée aujourd\'hui":"🧱 "+esc(qgc.v1))+'</button>'+
+      '<button id="qg-digital" '+(qToday.e?'disabled':'')+' style="width:100%;padding:13px 0;border-radius:11px;background:'+(qToday.e?"#2A3A2A":"#0057A8")+';color:'+(qToday.e?"#6A8A6A":"#fff")+';font-weight:900;font-size:13px">'+(qToday.e?"✓ Brique posée aujourd\'hui":"🧱 "+esc(qgc.v2))+'</button>'+
+      '<button id="qg-edit" style="width:100%;margin-top:8px;font-size:10px;color:#5A7A5A;padding:4px 0">✏️ modifier mon identité</button></div>';
+  }
+  if(state.qgForm){
+    var q0=qgc||{};
+    h+='<div class="card" style="margin-bottom:18px;padding:18px 16px">'+
+      '<div style="font-weight:900;font-size:14px;margin-bottom:6px">🎯 Qui veux-tu devenir ?</div>'+
+      '<div style="font-size:12px;color:#666;line-height:1.75;margin-bottom:8px">Tu ne changes pas en te fixant des objectifs. Tu changes en <strong>devenant quelqu\'un d\'autre</strong>.</div>'+
+      '<div style="font-size:12px;color:#666;line-height:1.75;margin-bottom:8px">La preuve : à qui on propose une cigarette, deux réponses possibles. <em>« Non merci, j\'essaie d\'arrêter »</em> — cette personne se voit encore comme un fumeur qui lutte. <em>« Non merci, je ne fume pas »</em> — celle-là a changé d\'identité. Elle ne résiste plus : elle EST autre chose. Pareil pour le sport : « j\'essaie de m\'y mettre » contre « je suis sportif ». Le premier lutte, le second vit.</div>'+
+      '<div style="font-size:12px;color:#666;line-height:1.75;margin-bottom:14px">Comment on bascule ? <strong>Par les briques.</strong> Chaque action quotidienne pose une brique de ta nouvelle identité : chaque séance faite est une brique « je suis sportif », chaque repas préparé une brique « je prends soin de moi ». Une brique seule ne fait rien — mais l\'accumulation construit la forteresse. <strong>Deviens la personne, et les résultats suivront.</strong> <span style="color:#AAA">(James Clear, Atomic Habits)</span></div>'+
+      '<div style="font-weight:800;font-size:11px;color:#AAA;margin-bottom:6px">MON IDENTITÉ CIBLE</div>'+
+      '<input id="qg-identity" class="num-input" style="font-weight:400;font-size:15px;margin-bottom:12px" placeholder="ex: Père en pleine santé, Athlète discipliné..." value="'+esc(q0.identity||"")+'"/>'+
+      '<div style="font-weight:800;font-size:11px;color:#AAA;margin-bottom:6px">VOTE QUOTIDIEN N°1 (action terrain)</div>'+
+      '<input id="qg-v1" class="num-input" style="font-weight:400;font-size:14px;margin-bottom:12px" placeholder="ex: Faire ma séance de sport" value="'+esc(q0.v1||"")+'"/>'+
+      '<div style="font-weight:800;font-size:11px;color:#AAA;margin-bottom:6px">VOTE QUOTIDIEN N°2 (action clé)</div>'+
+      '<input id="qg-v2" class="num-input" style="font-weight:400;font-size:14px;margin-bottom:14px" placeholder="ex: Préparer mes repas de demain" value="'+esc(q0.v2||"")+'"/>'+
+      '<button id="qg-save" style="width:100%;padding:14px 0;border-radius:12px;background:'+R+';color:#fff;font-weight:900;font-size:14px">Verrouiller mon identité 🔒</button></div>';
+  }
 
   // 🌙 PENSÉE DU SOIR
   var pensee=PENSEES[today90%PENSEES.length];
@@ -1454,7 +1554,8 @@ function viewCoachDash(){
         '<div class="ring-txt" style="font-size:13px">'+score+'%</div></div>'+
         '<div style="flex:1"><div style="font-weight:900;font-size:18px">'+esc(c.name)+'</div>'+
         '<div style="font-size:12px;color:#AAA;margin-top:2px">Jour '+Math.min(t90+1,90)+'/90 · départ '+new Date(c.start_date).toLocaleDateString("fr-FR")+'</div></div></div>'+
-        '<button class="copy-link big-btn" data-slug="'+esc(c.slug)+'" style="padding:12px 0;font-size:13px;background:'+K+';box-shadow:none;margin-bottom:0">📋 Copier lien WhatsApp</button></div>';
+        '<button class="copy-link big-btn" data-slug="'+esc(c.slug)+'" style="padding:12px 0;font-size:13px;background:'+K+';box-shadow:none;margin-bottom:8px">📋 Copier lien TRACKER</button>'+
+        '<button class="copy-menu big-btn" data-slug="'+esc(c.slug)+'" style="padding:12px 0;font-size:13px;background:#2E7D32;box-shadow:none;margin-bottom:0">🍽️ Copier lien MENU</button></div>';
     }
   }
   return h+'</div></div>';
@@ -1534,6 +1635,17 @@ function bindCoach(){
     state.coachDetail=null;
     render();
   });
+  var copiesM=document.querySelectorAll(".copy-menu");
+  for(var cm=0;cm<copiesM.length;cm++){
+    copiesM[cm].addEventListener("click",function(){
+      var slug=this.getAttribute("data-slug");
+      var url=window.location.origin+"/menu.html?client="+slug;
+      var btn=this;
+      function ok(){btn.textContent="✓ Lien menu copié !";btn.style.background="#4CAF50";setTimeout(function(){btn.textContent="🍽️ Copier lien MENU";btn.style.background="#2E7D32";},2000);}
+      if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(url).then(ok,function(){prompt("Copie ce lien :",url);});}
+      else{prompt("Copie ce lien :",url);}
+    });
+  }
   var copies=document.querySelectorAll(".copy-link");
   for(var i=0;i<copies.length;i++){
     copies[i].addEventListener("click",function(){
@@ -1691,6 +1803,56 @@ function bindMain(name,start){
       '</body></html>';
     var win=window.open("","_blank");
     if(win){win.document.write(html);win.document.close();}
+  });
+  // QG setup/edit
+  var qgSetup=document.getElementById("qg-setup");
+  if(qgSetup)qgSetup.addEventListener("click",function(){state.qgForm=true;render();});
+  var qgEdit=document.getElementById("qg-edit");
+  if(qgEdit)qgEdit.addEventListener("click",function(){state.qgForm=true;render();});
+  var qgSave=document.getElementById("qg-save");
+  if(qgSave)qgSave.addEventListener("click",function(){
+    var idn=document.getElementById("qg-identity").value.trim();
+    var v1=document.getElementById("qg-v1").value.trim();
+    var v2=document.getElementById("qg-v2").value.trim();
+    if(!idn||!v1||!v2)return;
+    saveDay(502,{identity:idn,v1:v1,v2:v2});
+    state.qgForm=false;
+    render();
+  });
+  // QG buttons
+  var qgT=document.getElementById("qg-terrain");
+  if(qgT)qgT.addEventListener("click",function(){
+    var q=getAllData()[400+today90]||{};
+    q.p=true;saveDay(400+today90,q);render();
+  });
+  var qgD=document.getElementById("qg-digital");
+  if(qgD)qgD.addEventListener("click",function(){
+    var q=getAllData()[400+today90]||{};
+    q.e=true;saveDay(400+today90,q);render();
+  });
+  // Dream autosave
+  var dbS=document.getElementById("db-semaine"), dbV=document.getElementById("db-vie");
+  if(dbS&&dbV){
+    function saveDream(){
+      saveDay(501,{semaine:dbS.value,vie:dbV.value});
+      var sv=document.getElementById("db-saved");
+      if(sv){sv.textContent="✓ Sauvegardé";setTimeout(function(){if(sv)sv.textContent="";},1500);}
+    }
+    dbS.addEventListener("input",saveDream);
+    dbV.addEventListener("input",saveDream);
+  }
+  // Bloc suivant
+  var nb=document.getElementById("next-bloc");
+  if(nb)nb.addEventListener("click",function(){
+    if(!confirm("Démarrer le Bloc "+(BLOC+1)+"/4 ? Nouveau cycle de 90 jours dès aujourd'hui."))return;
+    var newBloc=BLOC+1;
+    var eff=BASE_CLIENT+"-b"+newBloc;
+    localStorage.setItem("amcoach_bloc_"+BASE_CLIENT,String(newBloc));
+    var today=new Date().toISOString().split("T")[0];
+    localStorage.setItem("amcoach_name_"+eff,name);
+    localStorage.setItem("amcoach_start_"+eff,today);
+    sbFetch("clients?on_conflict=slug",{method:"POST",prefer:"resolution=merge-duplicates",body:{slug:eff,name:name,start_date:today}}).catch(function(){});
+    window.location.reload();
   });
   var dip=document.getElementById("diplome-btn");
   if(dip)dip.addEventListener("click",function(){

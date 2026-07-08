@@ -426,11 +426,17 @@ var QG_LEVELS=[
   {min:110,icon:"👑",name:"",radius:72} // = identité du client
 ];
 function qgConfig(allData){return allData[502]||null;}
+var QUESTS={
+  finances:{icon:"💰",name:"Le Coffre-Fort",hack:"10€ de côté ou 1 achat impulsif refusé"},
+  relations:{icon:"🍻",name:"La Taverne",hack:"1 message de gratitude ou 1 vraie question à un proche"},
+  addictions:{icon:"🛡️",name:"Le Bouclier",hack:"Quota respecté (cigarettes, cafés, écrans...)"},
+  lecture:{icon:"📖",name:"Le Grimoire",hack:"2 pages de lecture minimum"}
+};
 function qgRes(allData,today90){
   var p=0,e=0;
   for(var i=0;i<=today90;i++){
     var q=allData[400+i];
-    if(q){if(q.p)p++;if(q.e)e++;}
+    if(q){if(q.p)p++;if(q.e)e++;if(q.s1)p++;if(q.s2)p++;}
   }
   return {p:p,e:e,total:p+e};
 }
@@ -898,6 +904,18 @@ function viewCalendar(name,start){
       '<div style="text-align:center;color:#8BC34A;font-size:11px;font-weight:700;margin:4px 0 12px">🧱 '+res.total+' brique'+(res.total>1?'s':'')+' posée'+(res.total>1?'s':'')+(nxtL?' · prochain niveau à '+nxtL.min+' briques':' · SOMMET ATTEINT')+'</div>'+
       '<button id="qg-terrain" '+(qToday.p?'disabled':'')+' style="width:100%;padding:13px 0;border-radius:11px;background:'+(qToday.p?"#2A3A2A":"#5D4037")+';color:'+(qToday.p?"#6A8A6A":"#fff")+';font-weight:900;font-size:13px;margin-bottom:8px">'+(qToday.p?"✓ Brique posée aujourd\'hui":"🧱 "+esc(qgc.v1))+'</button>'+
       '<button id="qg-digital" '+(qToday.e?'disabled':'')+' style="width:100%;padding:13px 0;border-radius:11px;background:'+(qToday.e?"#2A3A2A":"#0057A8")+';color:'+(qToday.e?"#6A8A6A":"#fff")+';font-weight:900;font-size:13px">'+(qToday.e?"✓ Brique posée aujourd\'hui":"🧱 "+esc(qgc.v2))+'</button>'+
+      (function(){
+        var qh="";
+        var qs=[qgc.q1,qgc.q2];
+        for(var qi=0;qi<2;qi++){
+          var qk=qs[qi];
+          if(!qk||!QUESTS[qk])continue;
+          var Q=QUESTS[qk];
+          var done=qi===0?qToday.s1:qToday.s2;
+          qh+='<button class="qg-quest" data-q="'+(qi+1)+'" '+(done?'disabled':'')+' style="width:100%;margin-top:8px;padding:13px 0;border-radius:11px;background:'+(done?"#2A3A2A":"#3E2723")+';color:'+(done?"#6A8A6A":"#E8C547")+';font-weight:900;font-size:13px">'+(done?"✓ "+Q.icon+" "+Q.name+" validé":Q.icon+" "+Q.name+" — "+esc(Q.hack))+'</button>';
+        }
+        return qh;
+      })()+
       '<button id="qg-edit" style="width:100%;margin-top:8px;font-size:10px;color:#5A7A5A;padding:4px 0">✏️ modifier mon identité</button></div>';
   }
   if(state.qgForm){
@@ -913,6 +931,17 @@ function viewCalendar(name,start){
       '<input id="qg-v1" class="num-input" style="font-weight:400;font-size:14px;margin-bottom:12px" placeholder="ex: Faire ma séance de sport" value="'+esc(q0.v1||"")+'"/>'+
       '<div style="font-weight:800;font-size:11px;color:#AAA;margin-bottom:6px">VOTE QUOTIDIEN N°2 (action clé)</div>'+
       '<input id="qg-v2" class="num-input" style="font-weight:400;font-size:14px;margin-bottom:14px" placeholder="ex: Préparer mes repas de demain" value="'+esc(q0.v2||"")+'"/>'+
+      '<div style="font-weight:800;font-size:11px;color:#AAA;margin-bottom:8px">⚔️ MA QUÊTE SECONDAIRE DU BLOC (1 seule — cible ta plus grande faiblesse)</div>'+
+      (function(){
+        var qh="";
+        for(var qk in QUESTS){
+          var Q=QUESTS[qk];
+          var checked=q0.q1===qk||q0.q2===qk;
+          qh+='<label style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid #F2F2F2;cursor:pointer"><input type="radio" name="qg-quest" class="qg-quest-cb" value="'+qk+'" '+(checked?'checked':'')+' style="width:20px;height:20px;accent-color:'+R+';flex-shrink:0;margin-top:2px"/><span><strong style="font-size:13px">'+Q.icon+' '+Q.name+'</strong><br><span style="font-size:11px;color:#999">'+Q.hack+'</span></span></label>';
+        }
+        return qh;
+      })()+
+      '<div style="height:14px"></div>'+
       '<button id="qg-save" style="width:100%;padding:14px 0;border-radius:12px;background:'+R+';color:#fff;font-weight:900;font-size:14px">Verrouiller mon identité 🔒</button></div>';
   }
 
@@ -1815,7 +1844,8 @@ function bindMain(name,start){
     var v1=document.getElementById("qg-v1").value.trim();
     var v2=document.getElementById("qg-v2").value.trim();
     if(!idn||!v1||!v2)return;
-    saveDay(502,{identity:idn,v1:v1,v2:v2});
+    var cb=document.querySelector(".qg-quest-cb:checked");
+    saveDay(502,{identity:idn,v1:v1,v2:v2,q1:cb?cb.value:null,q2:null});
     state.qgForm=false;
     render();
   });
@@ -1825,6 +1855,15 @@ function bindMain(name,start){
     var q=getAllData()[400+today90]||{};
     q.p=true;saveDay(400+today90,q);render();
   });
+  var qQuests=document.querySelectorAll(".qg-quest");
+  for(var qq=0;qq<qQuests.length;qq++){
+    qQuests[qq].addEventListener("click",function(){
+      var n=this.getAttribute("data-q");
+      var q=getAllData()[400+today90]||{};
+      if(n==="1")q.s1=true;else q.s2=true;
+      saveDay(400+today90,q);render();
+    });
+  }
   var qgD=document.getElementById("qg-digital");
   if(qgD)qgD.addEventListener("click",function(){
     var q=getAllData()[400+today90]||{};

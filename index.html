@@ -984,6 +984,18 @@ function viewDay(name,start){
   }
   h+='</div>';
 
+  // 🧠 MINDSET DU JOUR
+  var ms=d.mindset||{};
+  h+='<div style="margin-top:16px"><div class="card-label">🧠 MINDSET DU JOUR — 3 questions, 3 minutes</div>'+
+    '<div class="card" style="padding:16px">'+
+    '<div class="txt-label">🥇 Une chose dont tu es fier(ère) aujourd\'hui</div>'+
+    '<textarea id="ms-fier" class="txt-area" placeholder="J\'ai tenu ma séance malgré la fatigue...">'+esc(ms.fier||"")+'</textarea>'+
+    '<div class="txt-label">🌟 Une chose positive — la chance que tu as d\'avoir ça</div>'+
+    '<textarea id="ms-positif" class="txt-area" placeholder="Ma santé, ma famille, ce repas...">'+esc(ms.positif||"")+'</textarea>'+
+    '<div class="txt-label">🌧️ Une chose négative — ce que tu n\'as pas aimé aujourd\'hui</div>'+
+    '<textarea id="ms-negatif" class="txt-area" style="margin-bottom:0" placeholder="Le stress du bureau, le grignotage de 16h...">'+esc(ms.negatif||"")+'</textarea>'+
+    '</div></div>';
+
   // bilan dimanche
   if(isSunday){
     var b=d.bilan||{};
@@ -1059,6 +1071,18 @@ function bindDay(name,start){
       render();
     });
   }
+  function saveMindset(){
+    var d=cur();
+    var m=d.mindset||{};
+    m.fier=document.getElementById("ms-fier").value;
+    m.positif=document.getElementById("ms-positif").value;
+    m.negatif=document.getElementById("ms-negatif").value;
+    persist({mindset:m});
+  }
+  ["ms-fier","ms-positif","ms-negatif"].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el)el.addEventListener("input",saveMindset);
+  });
   var bt=document.getElementById("bilan-toggle");
   if(bt)bt.addEventListener("click",function(){state.showBilan=!state.showBilan;render();});
 
@@ -1211,6 +1235,31 @@ function openRapport(name,start,period){
     html+="<div class='hc'><div class='hi'>"+hh.icon+"</div><div><div class='hnm'>"+hh.label+"</div><div class='hv' style='color:"+hh.color+"'>"+hh.val+"/"+period+"j</div></div></div>";
   }
   html+="</div></div>";
+  // MINDSET RÉCAP
+  var fiers=[],positifs=[],negatifs=[];
+  for(var mi2=0;mi2<period;mi2++){
+    var dm=allData[mi2];
+    if(dm&&dm.mindset){
+      if(dm.mindset.fier)fiers.push({d:mi2+1,t:dm.mindset.fier});
+      if(dm.mindset.positif)positifs.push({d:mi2+1,t:dm.mindset.positif});
+      if(dm.mindset.negatif)negatifs.push({d:mi2+1,t:dm.mindset.negatif});
+    }
+  }
+  if(fiers.length||positifs.length||negatifs.length){
+    html+="<div class='sec'><div class='st'><div class='sb' style='background:#7B1FA2'></div><span class='sl'>🧠 Mindset — ce qui revient</span></div>";
+    function msBlock(title,color,items){
+      if(!items.length)return "";
+      var o="<div class='ch'><div class='ct' style='color:"+color+"'>"+title+" ("+items.length+")</div><div style='font-size:12px;color:#333;line-height:1.9'>";
+      for(var x=0;x<items.length;x++){o+="<strong style='color:#BBB'>J"+items[x].d+"</strong> · "+esc(items[x].t)+"<br>";}
+      return o+"</div></div>";
+    }
+    html+=msBlock("🥇 Fiertés","#B45309",fiers);
+    html+=msBlock("🌟 Gratitudes","#2E7D32",positifs);
+    html+=msBlock("🌧️ Points négatifs — à corriger","#D52B1E",negatifs);
+    html+="<div class='ch' style='background:#FFF8F0'><div style='font-size:11px;color:#B45309;font-weight:700;line-height:1.7'>💡 Relis la colonne négative : ce qui revient 3 fois ou plus est un pattern. C\'est là qu\'on agit le mois prochain.</div></div>";
+    html+="</div>";
+  }
+
   if(bilans.length){
     html+="<div class='sec'><div class='st'><div class='sb' style='background:#D52B1E'></div><span class='sl'>Bilans du dimanche</span></div>";
     for(var bi2=0;bi2<bilans.length;bi2++){
@@ -1311,6 +1360,27 @@ function viewCoachDetail(){
       if(bl.bilan.victoire)h+='<div style="margin-bottom:6px"><div style="font-size:9px;color:#AAA;font-weight:800;text-transform:uppercase">🏆 Victoire</div><div style="font-size:12px;color:#333;line-height:1.5">'+esc(bl.bilan.victoire)+'</div></div>';
       if(bl.bilan.blocage)h+='<div style="margin-bottom:6px"><div style="font-size:9px;color:#AAA;font-weight:800;text-transform:uppercase">🤛 Difficulté</div><div style="font-size:12px;color:#333;line-height:1.5">'+esc(bl.bilan.blocage)+'</div></div>';
       if(bl.bilan.ressenti)h+='<div><div style="font-size:9px;color:#AAA;font-weight:800;text-transform:uppercase">💬 Ressenti</div><div style="font-size:12px;color:#333;line-height:1.5">'+esc(bl.bilan.ressenti)+'</div></div>';
+      h+='</div>';
+    }
+  }
+
+  // Mindset récent (14 derniers jours avec réponses, plus récent en premier)
+  var msEntries=[];
+  for(var mi3=t90;mi3>=0&&msEntries.length<14;mi3--){
+    var dmd=allData[mi3];
+    if(dmd&&dmd.mindset&&(dmd.mindset.fier||dmd.mindset.positif||dmd.mindset.negatif)){
+      msEntries.push({day:mi3+1,m:dmd.mindset});
+    }
+  }
+  if(msEntries.length){
+    h+='<div style="display:flex;align-items:center;gap:8px;margin:16px 0 10px"><div class="bar" style="background:#7B1FA2"></div><span style="font-weight:900;font-size:14px;text-transform:uppercase;letter-spacing:1px">🧠 Mindset récent</span></div>';
+    for(var me=0;me<msEntries.length;me++){
+      var en=msEntries[me];
+      h+='<div class="card" style="border-left:4px solid #7B1FA2;padding:13px 15px">'+
+        '<div style="font-weight:800;font-size:10px;color:#7B1FA2;text-transform:uppercase;margin-bottom:7px">Jour '+en.day+'</div>';
+      if(en.m.fier)h+='<div style="font-size:12px;color:#333;line-height:1.6;margin-bottom:4px">🥇 '+esc(en.m.fier)+'</div>';
+      if(en.m.positif)h+='<div style="font-size:12px;color:#333;line-height:1.6;margin-bottom:4px">🌟 '+esc(en.m.positif)+'</div>';
+      if(en.m.negatif)h+='<div style="font-size:12px;color:'+R+';line-height:1.6;font-weight:700">🌧️ '+esc(en.m.negatif)+'</div>';
       h+='</div>';
     }
   }

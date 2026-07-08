@@ -150,10 +150,17 @@ var FIBRES=["Algues (nori, wakamé)","Amandes (1 poignée)","Asperge","Aubergine
 // ═══════════ ÉTAT ═══════════
 var params=new URLSearchParams(window.location.search);
 var MENU=params.get("menu");
+var CLIENT=params.get("client");
 var IS_ADMIN=params.get("admin")==="1";
 if(MENU&&!MENUS[MENU])MENU=null;
+var PHASE_ORDER=["equilibre","acceleration","cyclage"];
+// Déblocage anticipé : phase 2 au jour 25 (idx 24), phase 3 au jour 53 (idx 52)
+var UNLOCK_AT=[0,24,52];
 var state={
-  tab:"menu",       // menu | aliments
+  tab:"menu",
+  clientName:"",
+  clientStart:"",
+  clientLoaded:false,       // menu | aliments
   selDay:0,
   adminAuthed:false,
   recipes:{},        // {"equilibre|3|dej":{title,video,prep,ingredients,steps}}
@@ -173,6 +180,41 @@ function sbFetch(path,opts){
   });
 }
 function keyOf(menu,day,meal){return menu+"|"+day+"|"+meal;}
+
+function lsGetStr(k){try{return localStorage.getItem(k)||"";}catch(e){return "";}}
+function lsSetStr(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+
+function loadClient(cb){
+  // 1. localStorage (partagé avec le tracker, même domaine)
+  var n=lsGetStr("amcoach_name_"+CLIENT), s=lsGetStr("amcoach_start_"+CLIENT);
+  if(n&&s){state.clientName=n;state.clientStart=s;state.clientLoaded=true;cb();return;}
+  // 2. Supabase clients (table partagée avec le tracker)
+  sbFetch("clients?slug=eq."+encodeURIComponent(CLIENT)+"&select=*").then(function(r){return r.json();}).then(function(rows){
+    if(rows&&rows.length){
+      state.clientName=rows[0].name;
+      state.clientStart=rows[0].start_date;
+      lsSetStr("amcoach_name_"+CLIENT,state.clientName);
+      lsSetStr("amcoach_start_"+CLIENT,state.clientStart);
+    }
+    state.clientLoaded=true;
+    cb();
+  }).catch(function(){state.clientLoaded=true;cb();});
+}
+
+function saveClient(name,start){
+  lsSetStr("amcoach_name_"+CLIENT,name);
+  lsSetStr("amcoach_start_"+CLIENT,start);
+  state.clientName=name;state.clientStart=start;
+  sbFetch("clients?on_conflict=slug",{method:"POST",prefer:"resolution=merge-duplicates",body:{slug:CLIENT,name:name,start_date:start}}).catch(function(){});
+}
+
+function dayGlobal(){
+  if(!state.clientStart)return 0;
+  var diff=Math.floor((Date.now()-new Date(state.clientStart).getTime())/86400000);
+  return Math.max(0,Math.min(diff,89));
+}
+function phaseUnlocked(pi){return dayGlobal()>=UNLOCK_AT[pi];}
+function currentPhaseIdx(){return Math.min(Math.floor(dayGlobal()/28),2);}
 
 function loadRecipes(menu,cb){
   sbFetch("recipes?menu=eq."+encodeURIComponent(menu)+"&select=*").then(function(r){
@@ -210,6 +252,22 @@ function ytEmbed(url){
 // ═══════════ RENDER ═══════════
 function render(){
   var root=document.getElementById("root");
+  if(CLIENT&&!IS_ADMIN){
+    if(!state.clientLoaded){root.innerHTML='<div class="dark-screen"><div class="dark-sub">Chargement...</div></div>';return;}
+    if(!state.clientName||!state.clientStart){root.innerHTML=viewClientOnboard();bindClientOnboard();return;}
+    if(!MENU){
+      // Menu auto = phase courante si non choisi
+      MENU=PHASE_ORDER[currentPhaseIdx()];
+      loadRecipes(MENU,function(){render();});
+    }
+    var hh='<div class="app">'+viewClientHeader()+viewBanner()+viewPhaseNav()+viewTabs();
+    if(state.tab==="menu")hh+=viewCalendar()+viewDayMeals();
+    else hh+=viewAliments();
+    hh+='</div>';
+    root.innerHTML=hh;
+    bindMain();bindPhaseNav();
+    return;
+  }
   if(!MENU){root.innerHTML=viewPicker();bindPicker();return;}
   if(IS_ADMIN&&!state.adminAuthed){root.innerHTML=viewAdminLogin();bindAdminLogin();return;}
   var h='<div class="app">'+viewHeader();
@@ -231,6 +289,64 @@ function viewHeader(){
     '<div style="flex:1"><div class="hdr-brand"><div class="bar bar-r"></div>'+
     '<span class="hdr-title" style="font-size:14px">'+esc(m.name)+'</span><div class="bar bar-b"></div></div>'+
     '<div class="hdr-sub">'+esc(m.num)+' · 4 semaines'+(IS_ADMIN?' · ADMIN':'')+'</div></div></div></div>';
+}
+
+// ═══════════ CLIENT MODE ═══════════
+function viewClientOnboard(){
+  var today=new Date().toISOString().split("T")[0];
+  return '<div class="dark-screen">'+
+    '<div class="dark-brand"><div class="bar bar-r"></div><span>AM Coach</span><div class="bar bar-b"></div></div>'+
+    '<div class="dark-sub">Menus TransfoPhysique · 90 jours</div>'+
+    '<div style="width:100%;max-width:340px">'+
+    '<div style="color:#fff;font-weight:900;font-size:17px;margin-bottom:12px">Ton prénom</div>'+
+    '<input id="co-name" class="dark-input" placeholder="Prénom..."/>'+
+    '<div style="color:#fff;font-weight:900;font-size:17px;margin-bottom:12px">Date de départ</div>'+
+    '<input id="co-date" type="date" class="dark-input" value="'+today+'"/>'+
+    '<button id="co-go" class="btn-primary">Démarrer →</button></div></div>';
+}
+function bindClientOnboard(){
+  document.getElementById("co-go").addEventListener("click",function(){
+    var n=document.getElementById("co-name").value.trim();
+    var d=document.getElementById("co-date").value;
+    if(!n)return;
+    saveClient(n,d);
+    render();
+  });
+}
+
+function viewClientHeader(){
+  var m=MENUS[MENU];
+  return '<div class="hdr"><div class="hdr-brand"><div class="bar bar-r"></div>'+
+    '<span class="hdr-title" style="font-size:14px">'+esc(m.name)+'</span><div class="bar bar-b"></div></div>'+
+    '<div class="hdr-sub">'+esc(state.clientName)+' · Jour '+(dayGlobal()+1)+'/90</div></div>';
+}
+
+function viewPhaseNav(){
+  var h='<div style="display:flex;gap:6px;padding:0 14px;margin-bottom:10px">';
+  for(var i=0;i<3;i++){
+    var key=PHASE_ORDER[i];
+    var unlocked=phaseUnlocked(i);
+    var active=MENU===key;
+    if(unlocked){
+      h+='<button class="phase-btn" data-phase="'+key+'" style="flex:1;padding:10px 4px;border-radius:10px;border:none;cursor:pointer;font-weight:800;font-size:11px;background:'+(active?K:"#fff")+';color:'+(active?"#fff":"#888")+';box-shadow:0 1px 3px rgba(0,0,0,.06)">Phase '+(i+1)+'<br><span style="font-size:9px;font-weight:700;opacity:.7">'+esc(MENUS[key].name.split(" — ")[0])+'</span></button>';
+    }else{
+      h+='<div style="flex:1;padding:10px 4px;border-radius:10px;font-weight:800;font-size:11px;background:#EEE;color:#BBB;text-align:center">🔒 Phase '+(i+1)+'<br><span style="font-size:9px;font-weight:700">jour '+(UNLOCK_AT[i]+1)+'</span></div>';
+    }
+  }
+  return h+'</div>';
+}
+function bindPhaseNav(){
+  var btns=document.querySelectorAll(".phase-btn");
+  for(var i=0;i<btns.length;i++){
+    btns[i].addEventListener("click",function(){
+      var key=this.getAttribute("data-phase");
+      if(key===MENU)return;
+      MENU=key;
+      state.selDay=0;
+      loadRecipes(MENU,function(){render();});
+      render();
+    });
+  }
 }
 
 // ═══════════ PICKER (pas de ?menu=) ═══════════
@@ -293,7 +409,10 @@ function viewCalendar(){
         tag='<span class="dc-tag" style="color:'+(t==="SG"?"#2E7D32":"#B45309")+'">'+t+'</span>';
       }
       var hasRecipe=state.recipes[keyOf(MENU,i,"dej")]||state.recipes[keyOf(MENU,i,"pdej")]||state.recipes[keyOf(MENU,i,"diner")];
-      h+='<button class="'+cls+'" data-day="'+i+'">'+(i+1)+tag+(hasRecipe?'<span class="dc-dot"></span>':'')+'</button>';
+      var phIdx=PHASE_ORDER.indexOf(MENU);
+      var isToday=CLIENT&&state.clientStart&&Math.floor(dayGlobal()/28)===phIdx&&(dayGlobal()%28)===i;
+      var todayStyle=isToday?'border-color:#D52B1E;border-width:2.5px;font-weight:900':'';
+      h+='<button class="'+cls+'" data-day="'+i+'" style="'+todayStyle+'">'+(i+1)+tag+(hasRecipe?'<span class="dc-dot"></span>':'')+'</button>';
     }
     h+='</div>';
   }
@@ -561,6 +680,17 @@ function bindMain(){
 
 // ═══════════ BOOT ═══════════
 (function(){
+  if(CLIENT&&!IS_ADMIN){
+    render();
+    loadClient(function(){
+      if(state.clientStart&&!MENU){
+        MENU=PHASE_ORDER[currentPhaseIdx()];
+      }
+      if(MENU)loadRecipes(MENU,function(){render();});
+      render();
+    });
+    return;
+  }
   render();
   if(MENU){
     loadRecipes(MENU,function(){render();});

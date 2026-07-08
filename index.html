@@ -869,8 +869,16 @@ function viewCalendar(name,start){
       '<div style="font-size:13px;color:#7A4A00;line-height:1.7;font-weight:600">'+alert.msg+'</div></div>';
   }
 
-  // 3 months
+  // 3 months (mois 2 et 3 verrouillés tant que le précédent n'est pas terminé)
   for(var mi=0;mi<3;mi++){
+    var locked=mi*28>today90;
+    if(locked){
+      h+='<div style="margin-bottom:10px"><div class="month-hdr" style="opacity:.55;cursor:default">'+
+        '<div class="mh-left"><div class="bar" style="background:#DDD"></div>'+
+        '<span class="mh-name" style="color:#999">🔒 Mois '+(mi+1)+'</span></div>'+
+        '<span style="font-size:11px;color:#BBB;font-weight:700">Se débloque au jour '+(mi*28+1)+'</span></div></div>';
+      continue;
+    }
     var pastDays=[],fd=0;
     for(var x=mi*28;x<Math.min((mi+1)*28,90);x++){
       if(x<=today90){pastDays.push(x);if(allData[x])fd++;}

@@ -477,15 +477,6 @@ function nextGrade(xp){
   for(var i=0;i<GRADES.length;i++){if(xp<GRADES[i].min)return GRADES[i];}
   return null;
 }
-function bdayGcal(name,bday){
-  var m=parseInt(bday.slice(5,7),10), d=parseInt(bday.slice(8,10),10);
-  var now=new Date(); var y=now.getFullYear();
-  var t0=new Date(now.getFullYear(),now.getMonth(),now.getDate());
-  if(new Date(y,m-1,d)<t0)y++;
-  function fmt(dt){return dt.getFullYear()+("0"+(dt.getMonth()+1)).slice(-2)+("0"+dt.getDate()).slice(-2);}
-  var ds=fmt(new Date(y,m-1,d)), de=fmt(new Date(y,m-1,d+1));
-  return "https://calendar.google.com/calendar/render?action=TEMPLATE&text="+encodeURIComponent("🎂 Anniversaire "+name)+"&dates="+ds+"/"+de+"&recur="+encodeURIComponent("RRULE:FREQ=YEARLY")+"&details="+encodeURIComponent("Client AM Coach Genève — message + attention 🎁");
-}
 function gcalLink(task,dateStr,hour){
   // dateStr YYYY-MM-DD, hour "14:00" → Google Calendar template link
   var h=(hour||"09:00").split(":");
@@ -514,6 +505,23 @@ function latestWeight(allData,today90){
   return null;
 }
 
+function bestStreak(allData,today90){
+  var best=0,cur=0;
+  for(var i=0;i<=today90;i++){
+    if(allData[i]&&Object.keys(allData[i]).length>0){cur++;if(cur>best)best=cur;}
+    else cur=0;
+  }
+  return best;
+}
+var STREAK_TIERS=[
+  {min:90,e:"🏆",c:"#C9A227"},{min:60,e:"👑",c:"#C9A227"},{min:45,e:"🦾",c:"#7B1FA2"},
+  {min:30,e:"🛡️",c:"#0057A8"},{min:21,e:"🦁",c:"#B45309"},{min:14,e:"⚡",c:"#F59E0B"},
+  {min:7,e:"💪",c:"#2E7D32"},{min:4,e:"❤️",c:"#D52B1E"},{min:1,e:"🔥",c:"#E65100"}
+];
+function streakBadge(s){
+  for(var i=0;i<STREAK_TIERS.length;i++){if(s>=STREAK_TIERS[i].min)return STREAK_TIERS[i];}
+  return {e:"🔥",c:"#BBB"};
+}
 function computeStreak(allData,today90){
   // Jours consécutifs remplis, en remontant depuis aujourd'hui
   // (aujourd'hui pas encore rempli ne casse pas la série)
@@ -780,7 +788,7 @@ function viewCalendar(name,start){
     '<div class="ring-txt" style="font-size:15px;color:'+K+'">'+pct+'%</div></div>'+
     '<div><div style="font-weight:900;font-size:17px">Progression</div>'+
     '<div style="font-size:12px;color:#999;margin-top:3px">Jour '+Math.min(today90+1,90)+' sur 90</div>'+
-    '<div style="font-size:13px;font-weight:900;margin-top:5px;color:'+(streak>=3?"#E65100":"#BBB")+'">\ud83d\udd25 '+streak+' jour'+(streak>1?'s':'')+' d\u2019affil\u00e9e</div>'+
+    '<div style="font-size:13px;font-weight:900;margin-top:5px;color:'+(streak>=1?streakBadge(streak).c:"#BBB")+'">'+streakBadge(streak).e+' '+streak+' jour'+(streak>1?'s':'')+' d\'affilée</div>'+
     '<div class="legend">'+
     '<span><i style="background:#4CAF50"></i>Complet</span>'+
     '<span><i style="background:#FFD0B0"></i>Partiel</span>'+
@@ -832,6 +840,21 @@ function viewCalendar(name,start){
     }
   }
 
+  // 🎂 ANNIVERSAIRE
+  var bd=allData[503]&&allData[503].bday?allData[503].bday:null;
+  var nowD=new Date();
+  var todayMD=("0"+(nowD.getMonth()+1)).slice(-2)+"-"+("0"+nowD.getDate()).slice(-2);
+  if(bd&&bd===todayMD){
+    h+='<div class="card" style="margin-bottom:18px;background:linear-gradient(135deg,#D52B1E,#F59E0B);border:none;text-align:center;padding:20px">'+
+      '<div style="font-size:34px">🎂</div>'+
+      '<div style="color:#fff;font-weight:900;font-size:17px;margin-top:4px">JOYEUX ANNIVERSAIRE '+esc(name).toUpperCase()+' !</div>'+
+      '<div style="color:rgba(255,255,255,.9);font-size:12px;font-weight:700;margin-top:5px">Le plus beau cadeau : la version de toi que tu construis. 💪</div></div>';
+  }else if(bd){
+    h+='<div style="text-align:right;padding:0 14px;margin:-8px 0 10px"><button id="bday-edit" style="font-size:11px;color:#BBB">🎂 '+bd.split("-")[1]+'/'+bd.split("-")[0]+'</button></div>';
+  }else{
+    h+='<div style="text-align:right;padding:0 14px;margin:-8px 0 10px"><button id="bday-edit" style="font-size:11px;color:#BBB">🎂 Ajouter mon anniversaire</button></div>';
+  }
+
   // ⚡ ONE THING — MISSION DU JOUR
   var mission=getMission(allData,today90);
   var xp=totalXP(allData);
@@ -851,17 +874,17 @@ function viewCalendar(name,start){
   if(!mission){
     h+='<button id="ot-new" style="width:100%;padding:14px 0;border-radius:12px;background:'+R+';color:#fff;font-weight:900;font-size:13px;letter-spacing:1px;text-transform:uppercase">⚡ Définir ma mission du jour</button>';
   }else if(mission.status==="pending"){
-    h+='<div style="text-align:center;color:#888;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">⚡ Ta mission du jour — '+esc(mission.hour||"")+'</div>'+
-      '<div style="text-align:center;color:#fff;font-weight:900;font-size:24px;line-height:1.3;margin-bottom:14px">'+esc(mission.task)+'</div>'+
+    h+='<div style="color:#888;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">⚡ Ta mission du jour — '+esc(mission.hour||"")+'</div>'+
+      '<div style="color:#fff;font-weight:900;font-size:16px;margin-bottom:12px">'+esc(mission.task)+'</div>'+
       '<button id="ot-go" style="width:100%;padding:15px 0;border-radius:12px;background:'+R+';color:#fff;font-weight:900;font-size:15px;letter-spacing:2px">🚀 5-4-3-2-1 GO</button>'+
       '<button id="ot-quick" style="width:100%;margin-top:8px;padding:11px 0;border-radius:10px;background:#2A2A2A;color:#4CAF50;font-weight:800;font-size:12px">✓ Déjà accomplie — valider</button>'+
       '<a href="'+gcalLink(mission.task,new Date().toISOString().split("T")[0],mission.hour)+'" target="_blank" style="display:block;text-align:center;color:#888;font-size:11px;font-weight:700;margin-top:10px;text-decoration:none">📅 Ajouter à Google Agenda</a>';
   }else{
     var stMap={done:["🟢 ZONE SÉCURISÉE","+"+(mission.xp||0)+" XP","#4CAF50"],half:["🟡 ZONE CONTESTÉE","+"+(mission.xp||0)+" XP","#F59E0B"],lost:["⚪ ZONE PERDUE","0 XP","#888"]};
     var st=stMap[mission.status]||stMap.lost;
-    h+='<div style="text-align:center;color:#888;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">⚡ Mission du jour</div>'+
-      '<div style="text-align:center;color:#fff;font-weight:900;font-size:22px;line-height:1.3;margin-bottom:10px">'+esc(mission.task)+'</div>'+
-      '<div style="text-align:center;font-weight:900;font-size:14px;color:'+st[2]+'">'+st[0]+' · '+st[1]+(mission.iso?" · 🧘 +25":"")+'</div>';
+    h+='<div style="color:#888;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">⚡ Mission du jour</div>'+
+      '<div style="color:#fff;font-weight:800;font-size:14px;margin-bottom:8px">'+esc(mission.task)+'</div>'+
+      '<div style="font-weight:900;font-size:13px;color:'+st[2]+'">'+st[0]+' · '+st[1]+(mission.iso?" · 🧘 +25":"")+'</div>';
     if(mission.status!=="lost"){
       h+='<button id="ot-share" style="width:100%;margin-top:12px;padding:12px 0;border-radius:10px;background:#2A2A2A;color:#fff;font-weight:800;font-size:12px">📤 Partager ma victoire</button>';
     }
@@ -901,21 +924,18 @@ function viewCalendar(name,start){
     var lvl=qgLevel(res.total);
     var nxtL=qgNext(res.total);
     var lvlName=lvl.min>=110?qgc.identity:lvl.name;
-    var lvlIdx=QG_LEVELS.indexOf(lvl);
-    var idSize=[15,19,23,27,32,38][lvlIdx]||15;
-    var idGlow=lvlIdx>=3?'text-shadow:0 0 14px rgba(139,195,74,.5);':'';
     var qToday=allData[400+today90]||{};
     h+='<div class="card" style="margin-bottom:18px;background:linear-gradient(160deg,#0d1b0d,#1a2e1a);padding:18px;border:none">'+
-      '<div style="text-align:center;color:#8BC34A;font-weight:800;font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-bottom:2px">🏰 Mon identité en construction</div>'+
-      '<div style="text-align:center;color:#fff;font-weight:900;font-size:'+idSize+'px;line-height:1.25;margin:6px 0 12px;'+idGlow+'">🎯 '+esc(qgc.identity)+'</div>'+
+      '<div style="color:#8BC34A;font-weight:800;font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-bottom:2px">🏰 Mon identité en construction</div>'+
+      '<div style="color:#fff;font-weight:900;font-size:13px;margin-bottom:10px">🎯 '+esc(qgc.identity)+'</div>'+
       '<div style="text-align:center;position:relative;height:110px;margin-bottom:10px">'+
       '<svg width="150" height="110" style="position:absolute;left:50%;transform:translateX(-50%)">'+
       '<circle cx="75" cy="60" r="'+lvl.radius+'" fill="rgba(139,195,74,.12)" stroke="#8BC34A" stroke-width="1.5" stroke-dasharray="4 4"/></svg>'+
       '<div style="position:absolute;left:50%;top:38px;transform:translateX(-50%);font-size:40px">'+lvl.icon+'</div></div>'+
-      '<div style="text-align:center;color:#fff;font-weight:900;font-size:'+([17,16,15,14,13,0][lvlIdx]||15)+'px;opacity:'+([1,.9,.8,.7,.6,0][lvlIdx]||1)+'">'+(lvlIdx>=5?'':esc(lvlName))+'</div>'+
+      '<div style="text-align:center;color:#fff;font-weight:900;font-size:15px">'+esc(lvlName)+'</div>'+
       '<div style="text-align:center;color:#8BC34A;font-size:11px;font-weight:700;margin:4px 0 12px">🧱 '+res.total+' brique'+(res.total>1?'s':'')+' posée'+(res.total>1?'s':'')+(nxtL?' · prochain niveau à '+nxtL.min+' briques':' · SOMMET ATTEINT')+'</div>'+
-      '<button id="qg-terrain"  style="width:100%;padding:13px 0;border-radius:11px;background:'+(qToday.p?"#2A3A2A":"#5D4037")+';color:'+(qToday.p?"#6A8A6A":"#fff")+';font-weight:900;font-size:13px;margin-bottom:8px">'+(qToday.p?"✓ Brique posée · toucher pour annuler":"🧱 "+esc(qgc.v1))+'</button>'+
-      '<button id="qg-digital"  style="width:100%;padding:13px 0;border-radius:11px;background:'+(qToday.e?"#2A3A2A":"#0057A8")+';color:'+(qToday.e?"#6A8A6A":"#fff")+';font-weight:900;font-size:13px">'+(qToday.e?"✓ Brique posée · toucher pour annuler":"🧱 "+esc(qgc.v2))+'</button>'+
+      '<button id="qg-terrain" '+(qToday.p?'disabled':'')+' style="width:100%;padding:13px 0;border-radius:11px;background:'+(qToday.p?"#2A3A2A":"#5D4037")+';color:'+(qToday.p?"#6A8A6A":"#fff")+';font-weight:900;font-size:13px;margin-bottom:8px">'+(qToday.p?"✓ Brique posée aujourd\'hui":"🧱 "+esc(qgc.v1))+'</button>'+
+      '<button id="qg-digital" '+(qToday.e?'disabled':'')+' style="width:100%;padding:13px 0;border-radius:11px;background:'+(qToday.e?"#2A3A2A":"#0057A8")+';color:'+(qToday.e?"#6A8A6A":"#fff")+';font-weight:900;font-size:13px">'+(qToday.e?"✓ Brique posée aujourd\'hui":"🧱 "+esc(qgc.v2))+'</button>'+
       (function(){
         var qh="";
         var qs=[qgc.q1,qgc.q2];
@@ -924,7 +944,7 @@ function viewCalendar(name,start){
           if(!qk||!QUESTS[qk])continue;
           var Q=QUESTS[qk];
           var done=qi===0?qToday.s1:qToday.s2;
-          qh+='<button class="qg-quest" data-q="'+(qi+1)+'"  style="width:100%;margin-top:8px;padding:13px 0;border-radius:11px;background:'+(done?"#2A3A2A":"#3E2723")+';color:'+(done?"#6A8A6A":"#E8C547")+';font-weight:900;font-size:13px">'+(done?"✓ "+Q.icon+" "+Q.name+" · toucher pour annuler":Q.icon+" "+Q.name+" — "+esc(Q.hack))+'</button>';
+          qh+='<button class="qg-quest" data-q="'+(qi+1)+'" '+(done?'disabled':'')+' style="width:100%;margin-top:8px;padding:13px 0;border-radius:11px;background:'+(done?"#2A3A2A":"#3E2723")+';color:'+(done?"#6A8A6A":"#E8C547")+';font-weight:900;font-size:13px">'+(done?"✓ "+Q.icon+" "+Q.name+" validé":Q.icon+" "+Q.name+" — "+esc(Q.hack))+'</button>';
         }
         return qh;
       })()+
@@ -1310,6 +1330,36 @@ function viewStats(name){
     '<div class="kpi-card"><div class="kpi-val">'+(pv.length?pv[pv.length-1]:"—")+'<span style="font-size:14px"> kg</span></div><div class="kpi-lbl">Poids actuel</div></div>'+
     '<div class="kpi-card"><div class="kpi-val" style="color:'+(dp==null?"#CCC":dp<=0?"#4CAF50":R)+'">'+(dp!=null?(dp>0?"+"+dp:dp):"—")+'<span style="font-size:14px"> kg</span></div><div class="kpi-lbl">Évolution</div></div></div>';
 
+  // 🏆 SALLE DES TROPHÉES
+  (function(){
+    var allD=getAllData();
+    var bs=bestStreak(allD,89);
+    var res=qgRes(allD,89);
+    var filledT=0;for(var f2=0;f2<90;f2++){if(allD[f2]&&Object.keys(allD[f2]).length>0)filledT++;}
+    var wins=0;for(var w2=0;w2<90;w2++){var m2=allD[200+w2];if(m2&&m2.status==="done")wins++;}
+    var TROPHIES=[
+      {icon:"🔥",name:"Semaine de Fer",cond:bs>=7,desc:"7 jours d'affilée"},
+      {icon:"⚔️",name:"Régularité d'Acier",cond:bs>=21,desc:"21 jours d'affilée"},
+      {icon:"🦾",name:"Machine de Guerre",cond:bs>=45,desc:"45 jours d'affilée"},
+      {icon:"🧱",name:"Premier Mur",cond:res.total>=8,desc:"8 briques posées"},
+      {icon:"🏗️",name:"Bâtisseur",cond:res.total>=40,desc:"40 briques posées"},
+      {icon:"👑",name:"Citadelle",cond:res.total>=110,desc:"110 briques posées"},
+      {icon:"🟢",name:"Conquérant",cond:wins>=10,desc:"10 zones sécurisées"},
+      {icon:"🏴",name:"Seigneur de Guerre",cond:wins>=30,desc:"30 zones sécurisées"},
+      {icon:"📅",name:"Premier Mois",cond:filledT>=28,desc:"28 jours remplis"},
+      {icon:"🎓",name:"Transformation",cond:filledT>=84,desc:"84 jours remplis"}
+    ];
+    h+='<div style="display:flex;align-items:center;gap:8px;margin:18px 0 12px"><div style="width:3px;height:18px;background:#C9A227;border-radius:2px"></div><span style="font-weight:900;font-size:14px;text-transform:uppercase;letter-spacing:1px">🏆 Salle des Trophées</span></div>';
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px">';
+    for(var tr=0;tr<TROPHIES.length;tr++){
+      var T=TROPHIES[tr];
+      h+='<div style="background:'+(T.cond?"#fff":"#F0F0F0")+';border-radius:12px;padding:12px;text-align:center;box-shadow:0 1px 4px #0001;'+(T.cond?"border:2px solid #C9A227":"opacity:.5")+'">'+
+        '<div style="font-size:24px;'+(T.cond?"":"filter:grayscale(1)")+'">'+T.icon+'</div>'+
+        '<div style="font-weight:900;font-size:11px;margin-top:4px;color:'+(T.cond?"#1A1A1A":"#AAA")+'">'+T.name+'</div>'+
+        '<div style="font-size:9px;color:#BBB;margin-top:2px">'+(T.cond?"✓ DÉBLOQUÉ":T.desc)+'</div></div>';
+    }
+    h+='</div>';
+  })();
   h+=chart("Score global",R,"score","%",0,100);
   h+=chart("Ressenti mental",B,"mental","%",0,100);
   h+=chart("Énergie physique","#FF9800","energie","%",0,100);
@@ -1474,14 +1524,6 @@ function viewCoachDetail(){
     '<div style="color:#666;font-size:12px">Jour '+Math.min(t90+1,90)+'/90 · départ '+new Date(c.start_date).toLocaleDateString("fr-FR")+' · 🔥 '+streak+'j</div></div></div></div>'+
     '<div style="padding:16px 14px 0">';
 
-  // 🎂 Anniversaire client
-  h+='<div class="card" style="padding:14px 16px;margin-bottom:14px">'+
-    '<div style="font-weight:800;font-size:11px;color:#AAA;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">🎂 Anniversaire</div>'+
-    '<div style="display:flex;gap:8px">'+
-    '<input id="cd-bday" type="date" class="num-input" style="font-size:14px;font-weight:400;margin-bottom:0;flex:1" value="'+esc(c.birthday||"")+'"/>'+
-    '<button id="cd-bday-save" style="padding:0 16px;border-radius:10px;background:#1A1A1A;color:#fff;font-weight:800;font-size:12px">OK</button></div>'+
-    (c.birthday?'<a href="'+bdayGcal(c.name,c.birthday)+'" target="_blank" style="display:block;text-align:center;text-decoration:none;color:#fff;padding:11px 0;font-size:12px;font-weight:800;background:#C9A227;border-radius:10px;margin-top:10px">📅 Ajouter à Google Agenda (chaque année)</a>':'')+'</div>';
-
   // KPIs
   h+='<div class="kpi-row">'+
     '<div class="kpi-card"><div class="kpi-val" style="color:'+R+'">'+(avgScore!=null?avgScore+"%":"—")+'</div><div class="kpi-lbl">Score moyen</div></div>'+
@@ -1578,8 +1620,6 @@ function viewCoachDash(){
       '<div id="nc-preview" style="font-size:11px;color:#AAA;margin-bottom:12px"></div>'+
       '<div class="card-label">DATE DE DÉPART</div>'+
       '<input id="nc-date" type="date" class="num-input" style="font-size:15px;font-weight:400;margin-bottom:16px" value="'+new Date().toISOString().split("T")[0]+'"/>'+
-      '<div class="card-label">🎂 ANNIVERSAIRE (optionnel)</div>'+
-      '<input id="nc-birthday" type="date" class="num-input" style="font-size:15px;font-weight:400;margin-bottom:16px"/>'+
       '<button id="nc-create" class="big-btn" style="padding:14px 0;font-size:14px;margin-bottom:0">Créer le lien →</button></div>';
   }
 
@@ -1606,8 +1646,7 @@ function viewCoachDash(){
         '<div style="flex:1"><div style="font-weight:900;font-size:18px">'+esc(c.name)+'</div>'+
         '<div style="font-size:12px;color:#AAA;margin-top:2px">Jour '+Math.min(t90+1,90)+'/90 · départ '+new Date(c.start_date).toLocaleDateString("fr-FR")+'</div></div></div>'+
         '<button class="copy-link big-btn" data-slug="'+esc(c.slug)+'" style="padding:12px 0;font-size:13px;background:'+K+';box-shadow:none;margin-bottom:8px">📋 Copier lien TRACKER</button>'+
-        '<button class="copy-menu big-btn" data-slug="'+esc(c.slug)+'" style="padding:12px 0;font-size:13px;background:#2E7D32;box-shadow:none;margin-bottom:0">🍽️ Copier lien MENU</button>'+
-        (c.birthday?'<a href="'+bdayGcal(c.name,c.birthday)+'" target="_blank" class="big-btn" style="display:block;text-align:center;text-decoration:none;color:#fff;padding:12px 0;font-size:13px;background:#C9A227;box-shadow:none;margin-top:8px">🎂 '+new Date(c.birthday).toLocaleDateString("fr-FR",{day:"numeric",month:"long"})+' — Ajouter à Google Agenda</a>':'')+'</div>';
+        '<button class="copy-menu big-btn" data-slug="'+esc(c.slug)+'" style="padding:12px 0;font-size:13px;background:#2E7D32;box-shadow:none;margin-bottom:0">🍽️ Copier lien MENU</button></div>';
     }
   }
   return h+'</div></div>';
@@ -1651,12 +1690,9 @@ function bindCoach(){
       if(!name||!slug)return;
       var clients=lsGet("amcoach_clients",[]);
       var startDate=document.getElementById("nc-date").value;
-      var bday=(document.getElementById("nc-birthday")||{}).value||null;
-      clients.unshift({name:name,slug:slug,start_date:startDate,birthday:bday,created_at:new Date().toISOString()});
+      clients.unshift({name:name,slug:slug,start_date:startDate,created_at:new Date().toISOString()});
       lsSet("amcoach_clients",clients);
-      sbFetch("clients?on_conflict=slug",{method:"POST",prefer:"resolution=merge-duplicates",body:{slug:slug,name:name,start_date:startDate}}).then(function(){
-        if(bday)sbFetch("clients?slug=eq."+encodeURIComponent(slug),{method:"PATCH",body:{birthday:bday}}).catch(function(){});
-      }).catch(function(){});
+      sbFetch("clients?on_conflict=slug",{method:"POST",prefer:"resolution=merge-duplicates",body:{slug:slug,name:name,start_date:startDate}}).catch(function(){});
       state.showForm=false;
       render();
     });
@@ -1677,16 +1713,6 @@ function bindCoach(){
   }
   var cdBack=document.getElementById("cd-back");
   if(cdBack)cdBack.addEventListener("click",function(){state.coachDetail=null;render();});
-  var cdBd=document.getElementById("cd-bday-save");
-  if(cdBd)cdBd.addEventListener("click",function(){
-    var v=document.getElementById("cd-bday").value||null;
-    var slug=state.coachDetail;
-    var clients=lsGet("amcoach_clients",[]);
-    for(var i=0;i<clients.length;i++){if(clients[i].slug===slug){clients[i].birthday=v;break;}}
-    lsSet("amcoach_clients",clients);
-    sbFetch("clients?slug=eq."+encodeURIComponent(slug),{method:"PATCH",body:{birthday:v}}).catch(function(){});
-    render();
-  });
   var cdDel=document.getElementById("cd-delete");
   if(cdDel)cdDel.addEventListener("click",function(){
     var slug=state.coachDetail;
@@ -1767,8 +1793,13 @@ function bindMain(name,start){
         var mission=getAllData()[200+today90];
         mission.status=r;mission.xp=xpVal;mission.iso=iso&&r!=="lost";
         saveDay(200+today90,mission);
-        document.body.removeChild(ov);
-        render();
+        if(r!=="lost"){
+          ov.innerHTML='<div style="font-size:72px;margin-bottom:14px">🔨</div>'+
+            '<div style="color:#4CAF50;font-size:24px;font-weight:900;margin-bottom:10px">VICTOIRE DU JOUR VALIDÉE !</div>'+
+            '<div style="color:#fff;font-size:16px;font-weight:800">+'+xpVal+' XP ajoutés à ta conquête</div>'+
+            '<div style="color:#888;font-size:12px;margin-top:14px">Une brique de plus vers ton identité 🧱</div>';
+          setTimeout(function(){document.body.removeChild(ov);render();},1800);
+        }else{document.body.removeChild(ov);render();}
       });
     }
   });
@@ -1825,8 +1856,13 @@ function bindMain(name,start){
           var mission=getAllData()[200+today90];
           mission.status=r;mission.xp=xpVal;mission.iso=iso&&r!=="lost";
           saveDay(200+today90,mission);
-          document.body.removeChild(ov);
-          render();
+        if(r!=="lost"){
+          ov.innerHTML='<div style="font-size:72px;margin-bottom:14px">🔨</div>'+
+            '<div style="color:#4CAF50;font-size:24px;font-weight:900;margin-bottom:10px">VICTOIRE DU JOUR VALIDÉE !</div>'+
+            '<div style="color:#fff;font-size:16px;font-weight:800">+'+xpVal+' XP ajoutés à ta conquête</div>'+
+            '<div style="color:#888;font-size:12px;margin-top:14px">Une brique de plus vers ton identité 🧱</div>';
+          setTimeout(function(){document.body.removeChild(ov);render();},1800);
+        }else{document.body.removeChild(ov);render();}
         });
       }
     }
@@ -1889,21 +1925,21 @@ function bindMain(name,start){
   var qgT=document.getElementById("qg-terrain");
   if(qgT)qgT.addEventListener("click",function(){
     var q=getAllData()[400+today90]||{};
-    q.p=!q.p;saveDay(400+today90,q);render();
+    q.p=true;saveDay(400+today90,q);render();
   });
   var qQuests=document.querySelectorAll(".qg-quest");
   for(var qq=0;qq<qQuests.length;qq++){
     qQuests[qq].addEventListener("click",function(){
       var n=this.getAttribute("data-q");
       var q=getAllData()[400+today90]||{};
-      if(n==="1")q.s1=!q.s1;else q.s2=!q.s2;
+      if(n==="1")q.s1=true;else q.s2=true;
       saveDay(400+today90,q);render();
     });
   }
   var qgD=document.getElementById("qg-digital");
   if(qgD)qgD.addEventListener("click",function(){
     var q=getAllData()[400+today90]||{};
-    q.e=!q.e;saveDay(400+today90,q);render();
+    q.e=true;saveDay(400+today90,q);render();
   });
   // Dream autosave
   var dbS=document.getElementById("db-semaine"), dbV=document.getElementById("db-vie");
@@ -1934,6 +1970,16 @@ function bindMain(name,start){
     var html=generateDiplome(name,start,getAllData());
     var win=window.open("","_blank");
     if(win){win.document.write(html);win.document.close();}
+  });
+  var bde=document.getElementById("bday-edit");
+  if(bde)bde.addEventListener("click",function(){
+    var v=prompt("Ta date d'anniversaire (JJ/MM) :","");
+    if(!v)return;
+    var mm=v.match(/^(\d{1,2})[\/\-.](\d{1,2})$/);
+    if(!mm){alert("Format attendu : JJ/MM (ex: 24/09)");return;}
+    var bday=("0"+mm[2]).slice(-2)+"-"+("0"+mm[1]).slice(-2);
+    saveDay(503,{bday:bday});
+    render();
   });
   var gs=document.getElementById("goal-set");
   if(gs)gs.addEventListener("click",function(){state.showGoalForm=true;render();});

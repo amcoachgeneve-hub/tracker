@@ -522,6 +522,14 @@ function streakBadge(s){
   for(var i=0;i<STREAK_TIERS.length;i++){if(s>=STREAK_TIERS[i].min)return STREAK_TIERS[i];}
   return {e:"🔥",c:"#BBB"};
 }
+function comboStreak(allData,today90,check){
+  var start=check(allData,today90)?today90:today90-1;
+  var s=0;
+  for(var i=start;i>=0;i--){if(check(allData,i))s++;else break;}
+  return s;
+}
+function hasBrique(allData,i){var q=allData[400+i];return !!(q&&(q.p||q.e||q.s1||q.s2));}
+function missionWon(allData,i){var m=allData[200+i];return !!(m&&(m.status==="done"||m.status==="half"));}
 function computeStreak(allData,today90){
   // Jours consécutifs remplis, en remontant depuis aujourd'hui
   // (aujourd'hui pas encore rempli ne casse pas la série)
@@ -865,7 +873,8 @@ function viewCalendar(name,start){
   // grade bar
   h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'+
     '<span style="color:#fff;font-weight:900;font-size:13px">'+grade.icon+' '+grade.name+'</span>'+
-    '<span style="color:#C9A227;font-weight:900;font-size:13px">'+xp+' XP</span></div>';
+    '<span style="color:#C9A227;font-weight:900;font-size:13px">'+xp+' XP</span></div>'+
+  (function(){var os=comboStreak(allData,today90,missionWon);return os>0?'<div style="font-size:11px;font-weight:900;margin:-6px 0 10px;color:'+streakBadge(os).c+'">COMBO '+streakBadge(os).e+' '+os+' mission'+(os>1?'s':'')+' d\'affilée</div>':'';})();
   if(nxt){
     var prev=grade.min, span=nxt.min-prev, prog=Math.round((xp-prev)/span*100);
     h+='<div style="height:5px;background:#333;border-radius:3px;margin-bottom:12px"><div style="height:5px;border-radius:3px;background:#C9A227;width:'+prog+'%"></div></div>'+
@@ -934,6 +943,7 @@ function viewCalendar(name,start){
       '<div style="position:absolute;left:50%;top:38px;transform:translateX(-50%);font-size:40px">'+lvl.icon+'</div></div>'+
       '<div style="text-align:center;color:#fff;font-weight:900;font-size:15px">'+esc(lvlName)+'</div>'+
       '<div style="text-align:center;color:#8BC34A;font-size:11px;font-weight:700;margin:4px 0 12px">🧱 '+res.total+' brique'+(res.total>1?'s':'')+' posée'+(res.total>1?'s':'')+(nxtL?' · prochain niveau à '+nxtL.min+' briques':' · SOMMET ATTEINT')+'</div>'+
+      (function(){var bs2=comboStreak(allData,today90,hasBrique);return bs2>0?'<div style="text-align:center;font-size:12px;font-weight:900;margin:-6px 0 12px;color:'+streakBadge(bs2).c+'">COMBO '+streakBadge(bs2).e+' '+bs2+' jour'+(bs2>1?'s':'')+' de briques</div>':'';})()+
       '<button id="qg-terrain" '+(qToday.p?'disabled':'')+' style="width:100%;padding:13px 0;border-radius:11px;background:'+(qToday.p?"#2A3A2A":"#5D4037")+';color:'+(qToday.p?"#6A8A6A":"#fff")+';font-weight:900;font-size:13px;margin-bottom:8px">'+(qToday.p?"✓ Brique posée aujourd\'hui":"🧱 "+esc(qgc.v1))+'</button>'+
       '<button id="qg-digital" '+(qToday.e?'disabled':'')+' style="width:100%;padding:13px 0;border-radius:11px;background:'+(qToday.e?"#2A3A2A":"#0057A8")+';color:'+(qToday.e?"#6A8A6A":"#fff")+';font-weight:900;font-size:13px">'+(qToday.e?"✓ Brique posée aujourd\'hui":"🧱 "+esc(qgc.v2))+'</button>'+
       (function(){

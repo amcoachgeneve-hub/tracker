@@ -1581,10 +1581,24 @@ function viewCoachDetail(){
   }
 
   // 🎂 Anniversaire
-  var bday=allData[503]&&allData[503].bday?allData[503].bday:null;
-  h+='<div class="card" style="border-left:4px solid #F59E0B;padding:13px 15px;display:flex;align-items:center;justify-content:space-between">'+
-    '<span style="font-weight:800;font-size:13px">🎂 Anniversaire : '+(bday?'<strong>'+bday.split("-")[1]+'/'+bday.split("-")[0]+'</strong>':'<span style="color:#BBB">non renseigné</span>')+'</span>'+
-    '<button id="cd-bday" style="font-size:12px;font-weight:800;color:#D52B1E;padding:6px 12px;border:1.5px solid #D52B1E;border-radius:18px;background:#fff">'+(bday?'✏️ Modifier':'+ Ajouter')+'</button></div>';
+  var bd3=allData[503]||{};
+  var bday=bd3.bday||null;
+  var bdTxt="";
+  if(bday){
+    bdTxt='<strong>'+bday.split("-")[1]+'/'+bday.split("-")[0]+(bd3.year?'/'+bd3.year:'')+'</strong>';
+    if(bd3.year){var age=new Date().getFullYear()-parseInt(bd3.year);bdTxt+=' <span style="color:#999">('+age+' ans)</span>';}
+  }
+  h+='<div class="card" style="border-left:4px solid #F59E0B;padding:13px 15px">'+
+    '<div style="display:flex;align-items:center;justify-content:space-between">'+
+    '<span style="font-weight:800;font-size:13px">🎂 Anniversaire : '+(bday?bdTxt:'<span style="color:#BBB">non renseigné</span>')+'</span>'+
+    '<button id="cd-bday" style="font-size:12px;font-weight:800;color:#D52B1E;padding:6px 12px;border:1.5px solid #D52B1E;border-radius:18px;background:#fff">'+(bday?'✏️':'+ Ajouter')+'</button></div>'+
+    (bday?(function(){
+      var now=new Date();var y=now.getFullYear();
+      var next=new Date(y,parseInt(bday.split("-")[0])-1,parseInt(bday.split("-")[1]));
+      if(next<now)next.setFullYear(y+1);
+      var ds=next.getFullYear()+("0"+(next.getMonth()+1)).slice(-2)+("0"+next.getDate()).slice(-2);
+      return '<a href="https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent("🎂 Anniversaire "+c.name+" — AM Coach")+'&dates='+ds+'/'+ds+'&recur=RRULE:FREQ%3DYEARLY&details='+encodeURIComponent("Envoyer un message d\'anniversaire à ton client 🎉")+'" target="_blank" style="display:block;text-align:center;margin-top:10px;font-size:12px;font-weight:800;color:#0057A8;text-decoration:none">📅 Ajouter à mon Google Agenda (rappel annuel)</a>';
+    })():'')+'</div>';
 
   // Mindset récent (14 derniers jours avec réponses, plus récent en premier)
   var msEntries=[];
@@ -1731,16 +1745,16 @@ function bindCoach(){
   if(cdBack)cdBack.addEventListener("click",function(){state.coachDetail=null;render();});
   var cdBday=document.getElementById("cd-bday");
   if(cdBday)cdBday.addEventListener("click",function(){
-    var v=prompt("Date d'anniversaire du client (JJ/MM) :","");
+    var v=prompt("Date d'anniversaire du client (JJ/MM ou JJ/MM/AAAA) :","");
     if(!v)return;
-    var mm=v.match(/^(\d{1,2})[\/\-.](\d{1,2})$/);
-    if(!mm){alert("Format attendu : JJ/MM (ex: 24/09)");return;}
+    var mm=v.match(/^(\d{1,2})[\/\-.](\d{1,2})(?:[\/\-.](\d{4}))?$/);
+    if(!mm){alert("Format : JJ/MM ou JJ/MM/AAAA");return;}
     var bday=("0"+mm[2]).slice(-2)+"-"+("0"+mm[1]).slice(-2);
     var slug=state.coachDetail;
     var all=lsGet("amcoach_"+slug,{});
-    all[503]={bday:bday};
+    all[503]={bday:bday,year:mm[3]||null};
     lsSet("amcoach_"+slug,all);
-    sbFetch("tracking?on_conflict=client_slug,day_index",{method:"POST",prefer:"resolution=merge-duplicates",body:{client_slug:slug,day_index:503,data:{bday:bday}}}).catch(function(){});
+    sbFetch("tracking?on_conflict=client_slug,day_index",{method:"POST",prefer:"resolution=merge-duplicates",body:{client_slug:slug,day_index:503,data:all[503]}}).catch(function(){});
     render();
   });
   var cdDel=document.getElementById("cd-delete");
@@ -2003,12 +2017,12 @@ function bindMain(name,start){
   });
   var bde=document.getElementById("bday-edit");
   if(bde)bde.addEventListener("click",function(){
-    var v=prompt("Ta date d'anniversaire (JJ/MM) :","");
+    var v=prompt("Ta date d'anniversaire (JJ/MM ou JJ/MM/AAAA) :","");
     if(!v)return;
-    var mm=v.match(/^(\d{1,2})[\/\-.](\d{1,2})$/);
-    if(!mm){alert("Format attendu : JJ/MM (ex: 24/09)");return;}
+    var mm=v.match(/^(\d{1,2})[\/\-.](\d{1,2})(?:[\/\-.](\d{4}))?$/);
+    if(!mm){alert("Format : JJ/MM ou JJ/MM/AAAA (ex: 24/09/1985)");return;}
     var bday=("0"+mm[2]).slice(-2)+"-"+("0"+mm[1]).slice(-2);
-    saveDay(503,{bday:bday});
+    saveDay(503,{bday:bday,year:mm[3]||null});
     render();
   });
   var gs=document.getElementById("goal-set");

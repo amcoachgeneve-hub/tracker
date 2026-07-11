@@ -301,6 +301,8 @@ var HABIT_ALERTS={
   hydratation:"💧 Ton hydratation est en baisse. Ton corps ne peut pas transformer sans eau. Objectif : ta bouteille remplie dès maintenant.",
   complements:"💊 Tes compléments sont souvent oubliés. Mets-les à côté de ta brosse à dents — plus jamais un oubli.",
   famille:"👨‍👩‍👧 Le temps famille a manqué. L'équilibre fait partie de la transformation — un moment de qualité aujourd'hui.",
+  identite:"🧱 Ta forteresse n'a pas reçu de brique ces derniers jours. Ton identité cible attend ses votes — une action de 2 minutes suffit. Pose ta brique aujourd'hui, la citadelle ne se construit pas toute seule.",
+  onething:"⚡ Tes missions du jour sont perdues ou oubliées cette semaine. Une seule conquête de 5 minutes par jour — prépare-la ce soir, exécute demain. 5-4-3-2-1 GO.",
   travail:"💼 L'équilibre travail vacille. Structure ta journée — ta transformation a besoin de stabilité."
 };
 
@@ -317,6 +319,17 @@ function computeAlert(allData,today90){
     for(var d=0;d<days.length;d++){if(days[d][id])done++;}
     var rate=done/days.length;
     if(rate<0.5&&rate<worstRate){worstRate=rate;worst=id;}
+  }
+  var span=Math.min(7,today90+1);
+  if(span>=4&&allData[502]){
+    var bDone=0;for(var b3=today90-span+1;b3<=today90;b3++){if(hasBrique(allData,b3))bDone++;}
+    var bRate=bDone/span;
+    if(bRate<0.5&&bRate<worstRate){worstRate=bRate;worst="identite";}
+  }
+  if(span>=4){
+    var mWon=0;for(var m3=today90-span+1;m3<=today90;m3++){if(missionWon(allData,m3))mWon++;}
+    var mRate=mWon/span;
+    if(mRate<0.5&&mRate<worstRate){worstRate=mRate;worst="onething";}
   }
   return worst?{habit:worst,msg:HABIT_ALERTS[worst]}:null;
 }
@@ -1029,6 +1042,23 @@ function viewCalendar(name,start){
         '<div style="font-size:12px;color:#7A4A00;font-weight:700;line-height:1.8">'+warns.join("<br>")+'</div></div>';
     }else if(wFilled>=3){
       h+='<div style="font-size:12px;color:#4CAF50;font-weight:800">✅ Toutes les lignes tenues. Semaine de guerrier.</div>';
+    }
+    var wF=[],wP=[],wN=[];
+    for(var mw=wStart;mw<=today90;mw++){
+      var dmw=allData[mw];
+      if(dmw&&dmw.mindset){
+        if(dmw.mindset.fier)wF.push(dmw.mindset.fier);
+        if(dmw.mindset.positif)wP.push(dmw.mindset.positif);
+        if(dmw.mindset.negatif)wN.push(dmw.mindset.negatif);
+      }
+    }
+    if(wF.length||wP.length||wN.length){
+      h+='<div style="margin-top:12px;padding-top:12px;border-top:1.5px solid #EEE">'+
+        '<div style="font-weight:900;font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">🧠 Ta semaine dans ta tête</div>';
+      if(wF.length)h+='<div style="font-size:12px;line-height:1.7;margin-bottom:6px"><strong style="color:#B45309">🥇 Tes fiertés :</strong> '+wF.map(esc).join(" · ")+'</div>';
+      if(wP.length)h+='<div style="font-size:12px;line-height:1.7;margin-bottom:6px"><strong style="color:#2E7D32">🌟 Tes gratitudes :</strong> '+wP.map(esc).join(" · ")+'</div>';
+      if(wN.length)h+='<div style="font-size:12px;line-height:1.7;margin-bottom:8px"><strong style="color:#D52B1E">🌧️ Ce qui a pesé :</strong> '+wN.map(esc).join(" · ")+'</div>';
+      h+='<div style="background:#F4FAF2;border-radius:10px;padding:10px 12px;font-size:11px;color:#4A7A3A;line-height:1.7;font-weight:600">💡 Relis la ligne rouge : ce qui revient 2 fois ou plus est un pattern, pas un hasard. Choisis-en UN et fais-en ta mission One Thing de la semaine prochaine. On ne corrige pas tout — on corrige le levier.</div></div>';
     }
     h+='</div>';
   }

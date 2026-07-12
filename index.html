@@ -120,6 +120,10 @@ input,textarea{outline:none}
 .legend span{display:flex;align-items:center;gap:4px;font-size:10px;color:#AAA}
 .legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
 .day-back{background:none;color:#888;font-size:22px;padding:0;line-height:1}
+@keyframes qg-shake{0%,100%{transform:translateX(-50%) rotate(0)}20%{transform:translateX(-50%) rotate(-6deg) scale(1.15)}40%{transform:translateX(-50%) rotate(5deg) scale(1.1)}60%{transform:translateX(-50%) rotate(-3deg)}80%{transform:translateX(-50%) rotate(2deg)}}
+.qg-shake{animation:qg-shake .55s ease}
+@keyframes xp-glow{0%,100%{box-shadow:0 0 2px rgba(201,162,39,.3)}50%{box-shadow:0 0 14px rgba(201,162,39,.95)}}
+.xp-glow{animation:xp-glow 1.6s ease-in-out infinite}
 </style>
 </head>
 <body>
@@ -890,7 +894,7 @@ function viewCalendar(name,start){
   (function(){var os=comboStreak(allData,today90,missionWon);return os>0?'<div style="font-size:11px;font-weight:900;margin:-6px 0 10px;color:'+streakBadge(os).c+'">COMBO '+streakBadge(os).e+' '+os+' mission'+(os>1?'s':'')+' d\'affilée</div>':'';})();
   if(nxt){
     var prev=grade.min, span=nxt.min-prev, prog=Math.round((xp-prev)/span*100);
-    h+='<div style="height:5px;background:#333;border-radius:3px;margin-bottom:12px"><div style="height:5px;border-radius:3px;background:#C9A227;width:'+prog+'%"></div></div>'+
+    h+='<div style="height:5px;background:#333;border-radius:3px;margin-bottom:12px"><div class="'+(mission&&(mission.status==="done"||mission.status==="half")?"xp-glow":"")+'" style="height:5px;border-radius:3px;background:#C9A227;width:'+prog+'%"></div></div>'+
       '<div style="font-size:10px;color:#666;margin-bottom:12px">'+nxt.icon+' '+nxt.name+' à '+nxt.min+' XP</div>';
   }
   if(!mission){
@@ -953,7 +957,7 @@ function viewCalendar(name,start){
       '<div style="text-align:center;position:relative;height:110px;margin-bottom:10px">'+
       '<svg width="150" height="110" style="position:absolute;left:50%;transform:translateX(-50%)">'+
       '<circle cx="75" cy="60" r="'+lvl.radius+'" fill="rgba(139,195,74,.12)" stroke="#8BC34A" stroke-width="1.5" stroke-dasharray="4 4"/></svg>'+
-      '<div style="position:absolute;left:50%;top:38px;transform:translateX(-50%);font-size:40px">'+lvl.icon+'</div></div>'+
+      '<div id="qg-house" style="position:absolute;left:50%;top:38px;transform:translateX(-50%);font-size:40px">'+lvl.icon+'</div></div>'+
       '<div style="text-align:center;color:#fff;font-weight:900;font-size:15px">'+esc(lvlName)+'</div>'+
       '<div style="text-align:center;color:#8BC34A;font-size:11px;font-weight:700;margin:4px 0 12px">🧱 '+res.total+' brique'+(res.total>1?'s':'')+' posée'+(res.total>1?'s':'')+(nxtL?' · prochain niveau à '+nxtL.min+' briques':' · SOMMET ATTEINT')+'</div>'+
       (function(){var bs2=comboStreak(allData,today90,hasBrique);return bs2>0?'<div style="text-align:center;font-size:12px;font-weight:900;margin:-6px 0 12px;color:'+streakBadge(bs2).c+'">COMBO '+streakBadge(bs2).e+' '+bs2+' jour'+(bs2>1?'s':'')+' de briques</div>':'';})()+
@@ -2000,6 +2004,7 @@ function bindMain(name,start){
   if(qgT)qgT.addEventListener("click",function(){
     var q=getAllData()[400+today90]||{};
     q.p=true;saveDay(400+today90,q);render();
+    var hp=document.getElementById("qg-house");if(hp)hp.classList.add("qg-shake");
   });
   var qQuests=document.querySelectorAll(".qg-quest");
   for(var qq=0;qq<qQuests.length;qq++){
@@ -2008,12 +2013,14 @@ function bindMain(name,start){
       var q=getAllData()[400+today90]||{};
       if(n==="1")q.s1=true;else q.s2=true;
       saveDay(400+today90,q);render();
+      var hq=document.getElementById("qg-house");if(hq)hq.classList.add("qg-shake");
     });
   }
   var qgD=document.getElementById("qg-digital");
   if(qgD)qgD.addEventListener("click",function(){
     var q=getAllData()[400+today90]||{};
     q.e=true;saveDay(400+today90,q);render();
+    var he=document.getElementById("qg-house");if(he)he.classList.add("qg-shake");
   });
   // Dream autosave
   var dbS=document.getElementById("db-semaine"), dbV=document.getElementById("db-vie");

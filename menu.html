@@ -160,7 +160,8 @@ var state={
   tab:"menu",
   clientName:"",
   clientStart:"",
-  clientLoaded:false,       // menu | aliments
+  clientLoaded:false,
+  accessDenied:false,       // menu | aliments
   selDay:0,
   adminAuthed:false,
   recipes:{},        // {"equilibre|3|dej":{title,video,prep,ingredients,steps}}
@@ -184,6 +185,16 @@ function keyOf(menu,day,meal){return menu+"|"+day+"|"+meal;}
 function lsGetStr(k){try{return localStorage.getItem(k)||"";}catch(e){return "";}}
 function lsSetStr(k,v){try{localStorage.setItem(k,v);}catch(e){}}
 
+function checkAccess(cb){
+  sbFetch("tracking?client_slug=eq."+encodeURIComponent(CLIENT)+"&day_index=eq.504&select=data").then(function(r){return r.json();}).then(function(rows){
+    if(rows&&rows.length){
+      var a=rows[0].data||{};
+      var today=new Date().toISOString().split("T")[0];
+      if(a.off||(a.end&&today>a.end)){state.accessDenied=true;}
+    }
+    cb();
+  }).catch(function(){cb();});
+}
 function loadClient(cb){
   // 1. localStorage (partagé avec le tracker, même domaine)
   var n=lsGetStr("amcoach_name_"+CLIENT), s=lsGetStr("amcoach_start_"+CLIENT);
@@ -254,6 +265,14 @@ function render(){
   var root=document.getElementById("root");
   if(CLIENT&&!IS_ADMIN){
     if(!state.clientLoaded){root.innerHTML='<div class="dark-screen"><div class="dark-sub">Chargement...</div></div>';return;}
+    if(state.accessDenied){
+      root.innerHTML='<div class="dark-screen">'+
+        '<div class="dark-brand"><div class="bar bar-r"></div><span>AM Coach</span><div class="bar bar-b"></div></div>'+
+        '<div style="font-size:44px;margin:20px 0 8px">⏸️</div>'+
+        '<div style="color:#fff;font-weight:900;font-size:19px;margin-bottom:10px">Ton accès est terminé</div>'+
+        '<div style="color:#AAA;font-size:13px;line-height:1.8;max-width:300px;text-align:center">Contacte ton coach pour continuer<br>ta transformation 💪</div></div>';
+      return;
+    }
     if(!state.clientName||!state.clientStart){root.innerHTML=viewClientOnboard();bindClientOnboard();return;}
     if(!MENU){
       // Menu auto = phase courante si non choisi
@@ -683,6 +702,7 @@ function bindMain(){
   if(CLIENT&&!IS_ADMIN){
     render();
     loadClient(function(){
+      checkAccess(function(){render();});
       if(state.clientStart&&!MENU){
         MENU=PHASE_ORDER[currentPhaseIdx()];
       }

@@ -710,6 +710,20 @@ function render(){
   var name=lsGetStr("amcoach_name_"+CLIENT);
   var start=lsGetStr("amcoach_start_"+CLIENT);
   if(!name||!start){root.innerHTML=viewOnboarding();bindOnboarding();return;}
+  // 🔑 Contrôle d'accès (slot 504)
+  var acc=getAllData()[504];
+  if(acc&&(acc.off||(acc.end&&new Date().toISOString().split("T")[0]>acc.end))){
+    var aD=getAllData(),aT=getToday90(start);
+    var aPv=[];for(var ai=0;ai<=aT;ai++){if(aD[ai]&&aD[ai].poids)aPv.push(parseFloat(aD[ai].poids));}
+    var aDp=aPv.length>=2?Math.round((aPv[aPv.length-1]-aPv[0])*10)/10:null;
+    root.innerHTML='<div class="dark-screen">'+
+      '<div class="dark-brand"><div class="bar bar-r"></div><span>AM Coach</span><div class="bar bar-b"></div></div>'+
+      '<div style="font-size:44px;margin:20px 0 8px">⏸️</div>'+
+      '<div style="color:#fff;font-weight:900;font-size:19px;margin-bottom:10px">Ton accès est terminé</div>'+
+      '<div style="color:#AAA;font-size:13px;line-height:1.8;max-width:300px;text-align:center;margin-bottom:20px">Regarde ce que tu as construit'+(aDp!=null?' : <strong style=\'color:#4CAF50\'>'+aDp+' kg</strong>':'')+' en '+(aT+1)+' jours.<br>Imagine 90 jours.</div>'+
+      '<div style="color:#fff;font-size:14px;font-weight:800;text-align:center">Contacte ton coach pour continuer<br>ta transformation 💪</div></div>';
+    return;
+  }
   if(state.selDay!==null){root.innerHTML=viewDay(name,start);bindDay(name,start);return;}
   var html='<div class="app">';
   if(state.view==="calendar")html+=viewCalendar(name,start);
@@ -1614,6 +1628,18 @@ function viewCoachDetail(){
     }
   }
 
+  // 🔑 Contrôle d'accès
+  var acc2=allData[504]||{};
+  var isOff=!!acc2.off;
+  var isExpired=acc2.end&&new Date().toISOString().split("T")[0]>acc2.end;
+  var accStatus=isOff?'<span style="color:#D52B1E">⛔ COUPÉ</span>':isExpired?'<span style="color:#E65100">⏸️ EXPIRÉ ('+acc2.end+')</span>':'<span style="color:#4CAF50">✅ ACTIF'+(acc2.end?' → '+acc2.end:' · illimité')+'</span>';
+  h+='<div class="card" style="border-left:4px solid '+(isOff||isExpired?"#D52B1E":"#4CAF50")+';padding:13px 15px">'+
+    '<div style="font-weight:800;font-size:13px;margin-bottom:10px">🔑 Accès : '+accStatus+'</div>'+
+    '<div style="display:flex;gap:8px">'+
+    '<button id="acc-end" style="flex:1;font-size:11px;font-weight:800;padding:9px 0;border:1.5px solid #999;border-radius:10px;background:#fff;color:#555">📅 Date de fin</button>'+
+    '<button id="acc-inf" style="flex:1;font-size:11px;font-weight:800;padding:9px 0;border:1.5px solid #999;border-radius:10px;background:#fff;color:#555">♾️ Illimité</button>'+
+    '<button id="acc-toggle" style="flex:1;font-size:11px;font-weight:800;padding:9px 0;border:1.5px solid '+(isOff?"#4CAF50":"#D52B1E")+';border-radius:10px;background:#fff;color:'+(isOff?"#4CAF50":"#D52B1E")+'">'+(isOff?"✅ Réactiver":"⛔ Couper")+'</button></div></div>';
+
   // 🎂 Anniversaire
   var bd3=allData[503]||{};
   var bday=bd3.bday||null;
@@ -1777,6 +1803,34 @@ function bindCoach(){
   }
   var cdBack=document.getElementById("cd-back");
   if(cdBack)cdBack.addEventListener("click",function(){state.coachDetail=null;render();});
+  function saveAcc(acc){
+    var slug=state.coachDetail;
+    var all=lsGet("amcoach_"+slug,{});
+    all[504]=acc;
+    lsSet("amcoach_"+slug,all);
+    sbFetch("tracking?on_conflict=client_slug,day_index",{method:"POST",prefer:"resolution=merge-duplicates",body:{client_slug:slug,day_index:504,data:acc}}).catch(function(){});
+    render();
+  }
+  var accEnd=document.getElementById("acc-end");
+  if(accEnd)accEnd.addEventListener("click",function(){
+    var v=prompt("Date de fin d'accès (JJ/MM/AAAA) :","");
+    if(!v)return;
+    var mm=v.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+    if(!mm){alert("Format : JJ/MM/AAAA");return;}
+    var acc=lsGet("amcoach_"+state.coachDetail,{})[504]||{};
+    acc.end=mm[3]+"-"+("0"+mm[2]).slice(-2)+"-"+("0"+mm[1]).slice(-2);
+    saveAcc(acc);
+  });
+  var accInf=document.getElementById("acc-inf");
+  if(accInf)accInf.addEventListener("click",function(){
+    var acc=lsGet("amcoach_"+state.coachDetail,{})[504]||{};
+    acc.end=null;saveAcc(acc);
+  });
+  var accT=document.getElementById("acc-toggle");
+  if(accT)accT.addEventListener("click",function(){
+    var acc=lsGet("amcoach_"+state.coachDetail,{})[504]||{};
+    acc.off=!acc.off;saveAcc(acc);
+  });
   var cdBday=document.getElementById("cd-bday");
   if(cdBday)cdBday.addEventListener("click",function(){
     var v=prompt("Date d'anniversaire du client (JJ/MM ou JJ/MM/AAAA) :","");

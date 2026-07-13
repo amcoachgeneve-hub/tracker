@@ -151,6 +151,7 @@ var FIBRES=["Algues (nori, wakamé)","Amandes (1 poignée)","Asperge","Aubergine
 var params=new URLSearchParams(window.location.search);
 var MENU=params.get("menu");
 var CLIENT=params.get("client");
+var FORCED=!!(CLIENT&&params.get("menu"));
 var IS_ADMIN=params.get("admin")==="1";
 if(MENU&&!MENUS[MENU])MENU=null;
 var PHASE_ORDER=["equilibre","acceleration","cyclage"];
@@ -341,6 +342,9 @@ function viewClientHeader(){
 }
 
 function viewPhaseNav(){
+  if(FORCED){
+    return '<div style="padding:0 14px;margin-bottom:10px"><div style="padding:10px;border-radius:10px;background:#1A1A1A;color:#fff;font-weight:800;font-size:12px;text-align:center">Programme dédié · '+esc(MENUS[MENU].name)+'</div></div>';
+  }
   var h='<div style="display:flex;gap:6px;padding:0 14px;margin-bottom:10px">';
   for(var i=0;i<3;i++){
     var key=PHASE_ORDER[i];
@@ -429,7 +433,7 @@ function viewCalendar(){
       }
       var hasRecipe=state.recipes[keyOf(MENU,i,"dej")]||state.recipes[keyOf(MENU,i,"pdej")]||state.recipes[keyOf(MENU,i,"diner")];
       var phIdx=PHASE_ORDER.indexOf(MENU);
-      var isToday=CLIENT&&state.clientStart&&Math.floor(dayGlobal()/28)===phIdx&&(dayGlobal()%28)===i;
+      var isToday=CLIENT&&state.clientStart&&(FORCED?(dayGlobal()%28)===i:(Math.floor(dayGlobal()/28)===phIdx&&(dayGlobal()%28)===i));
       var todayStyle=isToday?'border-color:#D52B1E;border-width:2.5px;font-weight:900':'';
       h+='<button class="'+cls+'" data-day="'+i+'" style="'+todayStyle+'">'+(i+1)+tag+(hasRecipe?'<span class="dc-dot"></span>':'')+'</button>';
     }
@@ -663,7 +667,7 @@ function generateCourses(week){
   '.ft{background:#1A1A1A;padding:18px;text-align:center;color:#666;font-size:11px;line-height:1.7}'+
   '.ft b{color:#fff}'+
   '@media print{body{background:#fff}.it input{accent-color:#000}}'+
-  '</style></head><body><div class="pg">'+
+  '</style></head><body><button onclick=\'window.close();setTimeout(function(){if(history.length>1)history.back();},250)\' style=\'position:fixed;top:12px;right:12px;z-index:999;background:#1A1A1A;color:#fff;border:0;border-radius:20px;padding:9px 16px;font-weight:800;font-size:13px\'>✕ Fermer</button><div class="pg">'+
   '<div class="hd"><div class="br"><span class="b" style="background:#D52B1E"></span>AM COACH<span class="b" style="background:#0057A8"></span></div>'+
   '<div class="sb">'+esc(m0.name)+' · Semaine '+(week+1)+'</div></div>'+
   '<div class="tt">🛒 Liste de courses</div>'+

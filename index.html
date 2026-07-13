@@ -547,6 +547,7 @@ function comboStreak(allData,today90,check){
 }
 function hasBrique(allData,i){var q=allData[400+i];return !!(q&&(q.p||q.e||q.s1||q.s2));}
 function missionWon(allData,i){var m=allData[200+i];return !!(m&&(m.status==="done"||m.status==="half"));}
+function mindsetFull(allData,i){var m=allData[i]&&allData[i].mindset;return !!(m&&m.fier&&m.positif&&m.negatif);}
 function computeStreak(allData,today90){
   // Jours consécutifs remplis, en remontant depuis aujourd'hui
   // (aujourd'hui pas encore rempli ne casse pas la série)
@@ -626,7 +627,7 @@ function generateDiplome(name,startDate,allData){
   '.dates{font-family:-apple-system,sans-serif;font-size:10px;color:#BBB;margin-top:24px;letter-spacing:1px}'+
   '.medal{font-size:44px;margin-bottom:8px}'+
   '@media print{body{background:#fff;padding:0}}'+
-  '</style></head><body><div class="dip"><div class="inner">'+
+  '</style></head><body><button onclick=\'window.close();setTimeout(function(){if(history.length>1)history.back();},250)\' style=\'position:fixed;top:12px;right:12px;z-index:999;background:#1A1A1A;color:#fff;border:0;border-radius:20px;padding:9px 16px;font-weight:800;font-size:13px\'>✕ Fermer</button><div class="dip"><div class="inner">'+
   '<div class="brand"><span class="b" style="background:#D52B1E"></span>AM COACH GENÈVE<span class="b" style="background:#0057A8"></span></div>'+
   '<div class="sub">TransfoPhysique · Méthode Balance-360</div>'+
   '<div class="medal">🎓</div>'+
@@ -1221,6 +1222,7 @@ function viewDay(name,start){
   // 🧠 MINDSET DU JOUR
   var ms=d.mindset||{};
   h+='<div style="margin-top:16px"><div class="card-label">🧠 MINDSET DU JOUR — 3 questions, 3 minutes</div>'+
+    (function(){var ms2=comboStreak(allData,idx,mindsetFull);return ms2>0?'<div style="font-size:12px;font-weight:900;margin:-6px 0 8px;padding:0 2px;color:'+streakBadge(ms2).c+'">COMBO '+streakBadge(ms2).e+' '+ms2+' jour'+(ms2>1?'s':'')+' de mindset complet</div>':'';})()+''+
     '<div class="card" style="padding:16px">'+
     '<div class="txt-label">🥇 Une chose dont tu es fier(ère) aujourd\'hui</div>'+
     '<textarea id="ms-fier" class="txt-area" placeholder="J\'ai tenu ma séance malgré la fatigue...">'+esc(ms.fier||"")+'</textarea>'+
@@ -1481,7 +1483,7 @@ function openRapport(name,start,period){
 
   var css="*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,'Helvetica Neue',sans-serif;background:#F4F4F4;color:#1A1A1A}.pg{max-width:600px;margin:0 auto;background:#fff}.hdr{background:#1A1A1A;padding:24px 20px 18px}.brand{color:#fff;font-weight:900;font-size:17px;letter-spacing:2px;text-transform:uppercase;display:flex;align-items:center;gap:8px}.b{width:4px;height:22px;border-radius:2px}.sub{color:#666;font-size:11px;margin-top:5px;padding-left:14px}.hero{background:linear-gradient(135deg,#D52B1E,#8B0000);padding:24px 20px;color:#fff}.hn{font-size:26px;font-weight:900;margin-bottom:3px}.hs{font-size:13px;opacity:.8;margin-bottom:6px}.hd{font-size:11px;opacity:.6}.kg{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:16px}.kpi{background:#fff;border-radius:12px;padding:14px;box-shadow:0 2px 6px rgba(0,0,0,.07);text-align:center}.kv{font-size:28px;font-weight:900;margin-bottom:3px}.kl{font-size:10px;color:#888;font-weight:700;text-transform:uppercase}.ks{font-size:11px;font-weight:700;margin-top:4px}.sec{padding:0 14px 14px}.st{display:flex;align-items:center;gap:8px;margin:14px 0 10px}.sb{width:3px;height:16px;border-radius:2px}.sl{font-weight:900;font-size:12px;text-transform:uppercase;letter-spacing:.8px}.ch{background:#fff;border-radius:12px;padding:12px;margin-bottom:8px;box-shadow:0 2px 6px rgba(0,0,0,.07)}.ct{font-size:10px;font-weight:800;color:#888;text-transform:uppercase;margin-bottom:6px}.hg{display:grid;grid-template-columns:1fr 1fr;gap:7px}.hc{background:#fff;border-radius:10px;padding:11px;box-shadow:0 2px 6px rgba(0,0,0,.07);display:flex;align-items:center;gap:8px}.hi{font-size:18px}.hnm{font-size:10px;color:#888;font-weight:700}.hv{font-size:15px;font-weight:900}.bc{background:#fff;border-radius:12px;padding:13px;margin-bottom:8px;box-shadow:0 2px 6px rgba(0,0,0,.07);border-left:4px solid #D52B1E}.bw{font-size:10px;color:#D52B1E;font-weight:800;margin-bottom:7px;text-transform:uppercase}.bi{margin-bottom:5px}.bk{font-size:9px;color:#AAA;font-weight:700;text-transform:uppercase;margin-bottom:2px}.bt{font-size:12px;color:#333;line-height:1.5}.ftr{background:#1A1A1A;padding:20px;text-align:center;margin-top:14px}.fm{color:#666;font-size:11px;line-height:1.8}.fs{color:#fff;font-weight:900;font-size:13px;margin-top:8px}@media print{body{background:#fff}}";
 
-  var html="<!DOCTYPE html><html lang='fr'><head><meta charset='UTF-8'/><meta name='viewport' content='width=device-width,initial-scale=1'/><title>Rapport J"+period+" — "+esc(name)+"</title><style>"+css+"</style></head><body><div class='pg'>";
+  var html="<!DOCTYPE html><html lang='fr'><head><meta charset='UTF-8'/><meta name='viewport' content='width=device-width,initial-scale=1'/><title>Rapport J"+period+" — "+esc(name)+"</title><style>"+css+"</style></head><body><button onclick='window.close();setTimeout(function(){if(history.length>1)history.back();},250)' style='position:fixed;top:12px;right:12px;z-index:999;background:#1A1A1A;color:#fff;border:0;border-radius:20px;padding:9px 16px;font-weight:800;font-size:13px'>✕ Fermer</button><div class='pg'>";
   html+="<div class='hdr'><div class='brand'><div class='b' style='background:#D52B1E'></div>AM Coach Genève<div class='b' style='background:#0057A8'></div></div><div class='sub'>TransfoPhysique · Rapport J"+period+"</div></div>";
   html+="<div class='hero'><div class='hn'>"+esc(name)+"</div><div class='hs'>"+period+" jours de transformation</div><div class='hd'>"+fmt(d0)+" → "+fmt(d1)+"</div></div>";
   html+="<div class='kg'>";
@@ -2024,7 +2026,7 @@ function bindMain(name,start){
       '.tag{color:#fff;font-weight:900;font-size:13px;letter-spacing:1px}'+
       '.sub2{color:#666;font-size:10px;margin-top:4px;letter-spacing:1px;text-transform:uppercase}'+
       '.hint{color:#666;font-size:12px;text-align:center;margin-top:18px;line-height:1.6}'+
-      '</style></head><body>'+
+      '</style></head><body><button onclick=\'window.close();setTimeout(function(){if(history.length>1)history.back();},250)\' style=\'position:fixed;top:12px;right:12px;z-index:999;background:#1A1A1A;color:#fff;border:0;border-radius:20px;padding:9px 16px;font-weight:800;font-size:13px\'>✕ Fermer</button>'+
       '<div class="card">'+
       '<div class="brand"><div class="b" style="background:#D52B1E"></div><span class="bn">AM COACH GENÈVE</span><div class="b" style="background:#0057A8"></div></div>'+
       '<div class="mid"><div class="gi">'+grade2.icon+'</div><div class="gn">'+grade2.name+'</div><div class="xp">'+xp2+' XP</div>'+

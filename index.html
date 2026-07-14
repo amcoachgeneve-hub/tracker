@@ -813,6 +813,7 @@ function viewCalendar(name,start){
   var pct=Math.round(filled/Math.max(today90+1,1)*100);
   var pctColor=pct>80?"#4CAF50":pct>50?"#FF9800":R;
   var streak=computeStreak(allData,today90);
+  var wkOff=(new Date(start).getDay()+6)%7; // 0=lundi ... 6=dimanche
   var month=currentMonth(today90);
   var goal=getGoal(allData,month);
   var curW=latestWeight(allData,today90);
@@ -946,7 +947,8 @@ function viewCalendar(name,start){
     var isT=state.otForm==="tomorrow";
     h+='<div class="card" style="margin-bottom:18px;padding:18px 16px">'+
       '<div style="font-weight:900;font-size:14px;margin-bottom:6px">⚡ '+(isT?"Ma conquête de demain":"Ma mission du jour")+'</div>'+
-      '<div style="font-size:12px;color:#999;line-height:1.6;margin-bottom:14px">La tâche que tu redoutes le plus. 5-10 minutes. Zéro négociation.</div>'+
+      '<div style="font-size:12px;color:#666;line-height:1.75;margin-bottom:8px">Pourquoi la préparer <strong>la veille au soir</strong> ? Parce qu\'une décision prise le matin se négocie — ton cerveau trouve toujours une excuse au réveil. Une décision prise la veille est déjà tranchée : tu dors avec, ton cerveau la programme pendant la nuit, et au réveil il ne reste que l\'exécution.</div>'+
+      '<div style="font-size:12px;color:#666;line-height:1.75;margin-bottom:14px">Choisis <strong>la tâche que tu redoutes le plus</strong> — celle que tu repousses. 5 à 10 minutes suffisent : le but n\'est pas de tout finir, c\'est de briser la résistance. Une heure fixe. <strong>Zéro négociation.</strong> L\'action précède l\'émotion.</div>'+
       '<div style="font-weight:800;font-size:11px;color:#AAA;margin-bottom:6px">LA FRICTION À CONQUÉRIR</div>'+
       '<input id="ot-task" class="num-input" style="font-weight:400;font-size:15px;margin-bottom:12px" placeholder="ex: passer la porte de la salle et donner 1 conseil"/>'+
       '<div style="font-weight:800;font-size:11px;color:#AAA;margin-bottom:6px">HEURE D\'ENGAGEMENT</div>'+
@@ -976,8 +978,9 @@ function viewCalendar(name,start){
       '<div style="text-align:center;color:#fff;font-weight:900;font-size:15px">'+esc(lvlName)+'</div>'+
       '<div style="text-align:center;color:#8BC34A;font-size:11px;font-weight:700;margin:4px 0 12px">🧱 '+res.total+' brique'+(res.total>1?'s':'')+' posée'+(res.total>1?'s':'')+(nxtL?' · prochain niveau à '+nxtL.min+' briques':' · SOMMET ATTEINT')+'</div>'+
       (function(){var bs2=comboStreak(allData,today90,hasBrique);return bs2>0?'<div style="text-align:center;font-size:12px;font-weight:900;margin:-6px 0 12px;color:'+streakBadge(bs2).c+'">COMBO '+streakBadge(bs2).e+' '+bs2+' jour'+(bs2>1?'s':'')+' de briques</div>':'';})()+
-      '<button id="qg-terrain" '+(qToday.p?'disabled':'')+' style="width:100%;padding:13px 0;border-radius:11px;background:'+(qToday.p?"#2A3A2A":"#5D4037")+';color:'+(qToday.p?"#6A8A6A":"#fff")+';font-weight:900;font-size:13px;margin-bottom:8px">'+(qToday.p?"✓ Brique posée aujourd\'hui":"🧱 "+esc(qgc.v1))+'</button>'+
-      '<button id="qg-digital" '+(qToday.e?'disabled':'')+' style="width:100%;padding:13px 0;border-radius:11px;background:'+(qToday.e?"#2A3A2A":"#0057A8")+';color:'+(qToday.e?"#6A8A6A":"#fff")+';font-weight:900;font-size:13px">'+(qToday.e?"✓ Brique posée aujourd\'hui":"🧱 "+esc(qgc.v2))+'</button>'+
+      '<div style="color:#8BC34A;font-weight:800;font-size:10px;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">✅ Mes actions du jour — chaque action validée = 1 brique</div>'+
+      '<button id="qg-terrain" '+(qToday.p?'disabled':'')+' style="width:100%;padding:13px 0;border-radius:11px;background:'+(qToday.p?"#2A3A2A":"#5D4037")+';color:'+(qToday.p?"#6A8A6A":"#fff")+';font-weight:900;font-size:13px;margin-bottom:8px">'+(qToday.p?"✅ "+esc(qgc.v1)+" — fait":"⬜ "+esc(qgc.v1))+'</button>'+
+      '<button id="qg-digital" '+(qToday.e?'disabled':'')+' style="width:100%;padding:13px 0;border-radius:11px;background:'+(qToday.e?"#2A3A2A":"#0057A8")+';color:'+(qToday.e?"#6A8A6A":"#fff")+';font-weight:900;font-size:13px">'+(qToday.e?"✅ "+esc(qgc.v2)+" — fait":"⬜ "+esc(qgc.v2))+'</button>'+
       (function(){
         var qh="";
         var qs=[qgc.q1,qgc.q2];
@@ -1001,9 +1004,9 @@ function viewCalendar(name,start){
       '<div style="font-size:12px;color:#666;line-height:1.75;margin-bottom:14px">Comment on bascule ? <strong>Par les briques.</strong> Chaque action quotidienne pose une brique de ta nouvelle identité : chaque séance faite est une brique « je suis sportif », chaque repas préparé une brique « je prends soin de moi ». Une brique seule ne fait rien — mais l\'accumulation construit la forteresse. <strong>Deviens la personne, et les résultats suivront.</strong> <span style="color:#AAA">(James Clear, Atomic Habits)</span></div>'+
       '<div style="font-weight:800;font-size:11px;color:#AAA;margin-bottom:6px">MON IDENTITÉ CIBLE</div>'+
       '<input id="qg-identity" class="num-input" style="font-weight:400;font-size:15px;margin-bottom:12px" placeholder="ex: Père en pleine santé, Athlète discipliné..." value="'+esc(q0.identity||"")+'"/>'+
-      '<div style="font-weight:800;font-size:11px;color:#AAA;margin-bottom:6px">VOTE QUOTIDIEN N°1 (action terrain)</div>'+
+      '<div style="font-weight:800;font-size:11px;color:#AAA;margin-bottom:6px">ACTION QUOTIDIENNE N°1 (terrain)</div>'+
       '<input id="qg-v1" class="num-input" style="font-weight:400;font-size:14px;margin-bottom:12px" placeholder="ex: Faire ma séance de sport" value="'+esc(q0.v1||"")+'"/>'+
-      '<div style="font-weight:800;font-size:11px;color:#AAA;margin-bottom:6px">VOTE QUOTIDIEN N°2 (action clé)</div>'+
+      '<div style="font-weight:800;font-size:11px;color:#AAA;margin-bottom:6px">ACTION QUOTIDIENNE N°2 (action clé)</div>'+
       '<input id="qg-v2" class="num-input" style="font-weight:400;font-size:14px;margin-bottom:14px" placeholder="ex: Préparer mes repas de demain" value="'+esc(q0.v2||"")+'"/>'+
       '<div style="font-weight:800;font-size:11px;color:#AAA;margin-bottom:8px">⚔️ MA QUÊTE SECONDAIRE DU BLOC (1 seule — cible ta plus grande faiblesse)</div>'+
       (function(){
@@ -1121,10 +1124,13 @@ function viewCalendar(name,start){
       h+='<div class="cal-grid"><div class="cal-days">';
       for(var dn=0;dn<7;dn++)h+='<div class="cal-dayname">'+DAY_SHORT[dn]+'</div>';
       h+='</div>';
-      for(var w=0;w<4;w++){
+      var nRows=Math.ceil((28+wkOff)/7);
+      for(var w=0;w<nRows;w++){
         h+='<div class="cal-week">';
         for(var dd=0;dd<7;dd++){
-          var idx=mi*28+w*7+dd;
+          var slot=w*7+dd-wkOff;
+          if(slot<0||slot>=28){h+='<div style="aspect-ratio:1;border-radius:8px;background:#F4F4F4"></div>';continue;}
+          var idx=mi*28+slot;
           if(idx>=90){h+='<div></div>';continue;}
           var cellBg="#EEF4FF", cls="";
           if(idx<=today90){
@@ -1222,6 +1228,7 @@ function viewDay(name,start){
   // 🧠 MINDSET DU JOUR
   var ms=d.mindset||{};
   h+='<div style="margin-top:16px"><div class="card-label">🧠 MINDSET DU JOUR — 3 questions, 3 minutes</div>'+
+    '<div class="card" style="padding:13px 15px;margin-bottom:10px;border-left:4px solid #7B1FA2"><div style="font-size:12px;color:#666;line-height:1.75">Ton cerveau est programmé pour retenir le négatif — c\'est un réflexe de survie. Ces 3 questions le rééquilibrent chaque soir : la <strong>fierté</strong> ancre tes victoires, la <strong>gratitude</strong> entraîne ton cerveau à voir ce qui va bien, et nommer le <strong>négatif</strong> le sort de ta tête — un problème écrit pèse deux fois moins lourd qu\'un problème ruminé. En 90 jours, ce rituel de 3 minutes reprogramme ta façon de voir tes journées. Sois honnête, sois précis : c\'est ce qui revient chaque semaine qui révèle ce qu\'il faut corriger.</div></div>'+
     (function(){var ms2=comboStreak(allData,idx,mindsetFull);return ms2>0?'<div style="font-size:12px;font-weight:900;margin:-6px 0 8px;padding:0 2px;color:'+streakBadge(ms2).c+'">COMBO '+streakBadge(ms2).e+' '+ms2+' jour'+(ms2>1?'s':'')+' de mindset complet</div>':'';})()+''+
     '<div class="card" style="padding:16px">'+
     '<div class="txt-label">🥇 Une chose dont tu es fier(ère) aujourd\'hui</div>'+
@@ -1630,6 +1637,11 @@ function viewCoachDetail(){
     }
   }
 
+  // 🚀 Date de départ (modifiable)
+  h+='<div class="card" style="border-left:4px solid '+B+';padding:13px 15px;display:flex;align-items:center;justify-content:space-between">'+
+    '<span style="font-weight:800;font-size:13px">🚀 Départ : <strong>'+new Date(c.start_date).toLocaleDateString("fr-FR")+'</strong></span>'+
+    '<button id="cd-start" style="font-size:12px;font-weight:800;color:'+B+';padding:6px 12px;border:1.5px solid '+B+';border-radius:18px;background:#fff">✏️ Modifier</button></div>';
+
   // 🔑 Contrôle d'accès
   var acc2=allData[504]||{};
   var isOff=!!acc2.off;
@@ -1711,7 +1723,9 @@ function viewCoachDash(){
       '<input id="nc-slug" class="num-input" style="font-size:15px;font-weight:400;margin-bottom:4px" placeholder="ex: sarah"/>'+
       '<div id="nc-preview" style="font-size:11px;color:#AAA;margin-bottom:12px"></div>'+
       '<div class="card-label">DATE DE DÉPART</div>'+
-      '<input id="nc-date" type="date" class="num-input" style="font-size:15px;font-weight:400;margin-bottom:16px" value="'+new Date().toISOString().split("T")[0]+'"/>'+
+      '<input id="nc-date" type="date" class="num-input" style="font-size:15px;font-weight:400;margin-bottom:12px" value="'+new Date().toISOString().split("T")[0]+'"/>'+
+      '<div class="card-label">DATE DE FIN D\'ACCÈS (OPTIONNEL — vide = illimité)</div>'+
+      '<input id="nc-end" type="date" class="num-input" style="font-size:15px;font-weight:400;margin-bottom:16px"/>'+
       '<button id="nc-create" class="big-btn" style="padding:14px 0;font-size:14px;margin-bottom:0">Créer le lien →</button></div>';
   }
 
@@ -1785,6 +1799,12 @@ function bindCoach(){
       clients.unshift({name:name,slug:slug,start_date:startDate,created_at:new Date().toISOString()});
       lsSet("amcoach_clients",clients);
       sbFetch("clients?on_conflict=slug",{method:"POST",prefer:"resolution=merge-duplicates",body:{slug:slug,name:name,start_date:startDate}}).catch(function(){});
+      var endDate=document.getElementById("nc-end").value;
+      if(endDate){
+        var accN={end:endDate,off:false};
+        var allN=lsGet("amcoach_"+slug,{});allN[504]=accN;lsSet("amcoach_"+slug,allN);
+        sbFetch("tracking?on_conflict=client_slug,day_index",{method:"POST",prefer:"resolution=merge-duplicates",body:{client_slug:slug,day_index:504,data:accN}}).catch(function(){});
+      }
       state.showForm=false;
       render();
     });
@@ -1805,6 +1825,22 @@ function bindCoach(){
   }
   var cdBack=document.getElementById("cd-back");
   if(cdBack)cdBack.addEventListener("click",function(){state.coachDetail=null;render();});
+  var cdStart=document.getElementById("cd-start");
+  if(cdStart)cdStart.addEventListener("click",function(){
+    var v=prompt("Nouvelle date de départ (JJ/MM/AAAA) :","");
+    if(!v)return;
+    var mm=v.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+    if(!mm){alert("Format : JJ/MM/AAAA");return;}
+    var nd=mm[3]+"-"+("0"+mm[2]).slice(-2)+"-"+("0"+mm[1]).slice(-2);
+    var slug=state.coachDetail;
+    var cls=lsGet("amcoach_clients",[]);
+    var cName=slug;
+    for(var ci=0;ci<cls.length;ci++){if(cls[ci].slug===slug){cls[ci].start_date=nd;cName=cls[ci].name;break;}}
+    lsSet("amcoach_clients",cls);
+    try{localStorage.setItem("amcoach_start_"+slug,nd);}catch(e){}
+    sbFetch("clients?on_conflict=slug",{method:"POST",prefer:"resolution=merge-duplicates",body:{slug:slug,name:cName,start_date:nd}}).catch(function(){});
+    render();
+  });
   function saveAcc(acc){
     var slug=state.coachDetail;
     var all=lsGet("amcoach_"+slug,{});

@@ -431,6 +431,29 @@ var PENSEES=[
 "Tu n'es pas arrivé au bout de 90 jours. Tu es arrivé au début de ta nouvelle vie. — AM Coach Genève"
 ];
 
+function slugHash(s){var h=0;s=s||"";for(var i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))>>>0;}return h;}
+function pickPensee(allData,today90){
+  var qgc=allData[502];
+  // Pensée d'identité 1×/semaine (jour 3 de chaque semaine)
+  if(qgc&&qgc.identity&&today90%7===2){
+    return "🧱 Chaque action d'aujourd'hui pose une brique de plus vers celui que tu deviens : « "+qgc.identity+" ». La forteresse se souvient de tout ce que tu fais dans l'ombre.";
+  }
+  var off=slugHash(CLIENT||"");
+  // Mission perdue hier → résilience
+  var y=allData[200+(today90-1)];
+  if(y&&y.status==="lost"){
+    var pool=PENSEES.filter(function(p){return /relève|Tombe|cendres|recule|tailleur|chenille|échou|tempête/.test(p);});
+    if(pool.length)return pool[(today90+off)%pool.length];
+  }
+  // Combo 7+ → guerrier/constance
+  var st=computeStreak(allData,today90);
+  if(st>=7){
+    var pool2=PENSEES.filter(function(p){return /guerrier|discipline|constance|champion|habitude/i.test(p);});
+    if(pool2.length)return pool2[(today90+off)%pool2.length];
+  }
+  return PENSEES[(today90+off)%PENSEES.length];
+}
+
 // ═══════════ ONE THING — CONQUÊTE ═══════════
 // Missions stockées en day_index 200+dayIdx : {task,hour,status:"pending|done|half|lost",xp,iso}
 // ═══════════ FORTERESSE (QG coach) ═══════════
@@ -1023,7 +1046,7 @@ function viewCalendar(name,start){
   }
 
   // 🌙 PENSÉE DU SOIR
-  var pensee=PENSEES[today90%PENSEES.length];
+  var pensee=pickPensee(allData,today90);
   h+='<div class="card" style="margin-bottom:18px;background:linear-gradient(135deg,#1a1a2e,#16213e);padding:18px;border:none">'+
     '<div style="color:#C9A227;font-weight:800;font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">🌙 La pensée du soir — Jour '+(today90+1)+'</div>'+
     '<div style="color:#E8E8E8;font-size:14px;line-height:1.8;font-style:italic">'+esc(pensee)+'</div>'+
@@ -2041,7 +2064,7 @@ function bindMain(name,start){
   });
   var pShare=document.getElementById("pensee-share");
   if(pShare)pShare.addEventListener("click",function(){
-    var pTxt=PENSEES[today90%PENSEES.length];
+    var pTxt=pickPensee(getAllData(),today90);
     var html='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Pensée du soir</title><style>'+
       'body{margin:0;font-family:-apple-system,sans-serif;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;box-sizing:border-box}'+
       '.card{width:100%;max-width:380px;aspect-ratio:4/5;background:linear-gradient(160deg,#1a1a2e 0%,#16213e 100%);border-radius:24px;padding:36px 28px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between;border:1px solid #2a2a4a}'+

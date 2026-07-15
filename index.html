@@ -164,7 +164,7 @@ var state={
   openMonth:0,
   filter:"all",
   showBilan:false,
-  coachAuthed:false,
+  coachAuthed:(function(){try{var t=localStorage.getItem("amcoach_coach_auth");return !!t&&(Date.now()-parseInt(t,10))<2592000000;}catch(e){return false;}})(),
   showForm:false,
   showGoalForm:false,
   coachDetail:null,
@@ -1874,7 +1874,7 @@ function loadCoachDataFromCloud(){
 function bindCoach(){
   var cp=document.getElementById("coach-pass"), cg=document.getElementById("coach-go");
   if(cp&&cg){
-    function tryLogin(){if(cp.value===COACH_PASS){state.coachAuthed=true;loadCoachDataFromCloud();render();}}
+    function tryLogin(){if(cp.value===COACH_PASS){state.coachAuthed=true;try{localStorage.setItem("amcoach_coach_auth",String(Date.now()));}catch(e){}loadCoachDataFromCloud();render();}}
     cg.addEventListener("click",tryLogin);
     cp.addEventListener("keydown",function(e){if(e.key==="Enter")tryLogin();});
     return;
@@ -2324,6 +2324,7 @@ function bindMain(name,start){
 // ═══════════ BOOT ═══════════
 (function(){
   render(); // instant render with local data
+  if(typeof IS_COACH!=="undefined"&&IS_COACH&&state.coachAuthed){loadCoachDataFromCloud();}
   if(CLIENT){
     loadFromCloud(function(){
       var start=lsGetStr("amcoach_start_"+CLIENT);

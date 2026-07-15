@@ -1265,14 +1265,27 @@ function viewDay(name,start){
   h+='<div style="margin-top:16px"><div class="card-label">🧠 MINDSET DU JOUR — 3 questions, 3 minutes</div>'+
     '<div class="card" style="padding:13px 15px;margin-bottom:10px;border-left:4px solid #7B1FA2"><div style="font-size:12px;color:#666;line-height:1.75">Ton cerveau est programmé pour retenir le négatif — c\'est un réflexe de survie. Ces 3 questions le rééquilibrent chaque soir : la <strong>fierté</strong> ancre tes victoires, la <strong>gratitude</strong> entraîne ton cerveau à voir ce qui va bien, et nommer le <strong>négatif</strong> le sort de ta tête — un problème écrit pèse deux fois moins lourd qu\'un problème ruminé. En 90 jours, ce rituel de 3 minutes reprogramme ta façon de voir tes journées. Sois honnête, sois précis : c\'est ce qui revient chaque semaine qui révèle ce qu\'il faut corriger.</div></div>'+
     (function(){var ms2=comboStreak(allData,idx,mindsetFull);return ms2>0?'<div style="font-size:12px;font-weight:900;margin:-6px 0 8px;padding:0 2px;color:'+streakBadge(ms2).c+'">COMBO '+streakBadge(ms2).e+' '+ms2+' jour'+(ms2>1?'s':'')+' de mindset complet</div>':'';})()+''+
-    '<div class="card" style="padding:16px">'+
-    '<div class="txt-label">🥇 Une chose dont tu es fier(ère) aujourd\'hui</div>'+
-    '<textarea id="ms-fier" class="txt-area" placeholder="J\'ai tenu ma séance malgré la fatigue...">'+esc(ms.fier||"")+'</textarea>'+
-    '<div class="txt-label">🌟 Une chose positive — la chance que tu as d\'avoir ça</div>'+
-    '<textarea id="ms-positif" class="txt-area" placeholder="Ma santé, ma famille, ce repas...">'+esc(ms.positif||"")+'</textarea>'+
-    '<div class="txt-label">🌧️ Une chose négative — ce que tu n\'as pas aimé aujourd\'hui</div>'+
-    '<textarea id="ms-negatif" class="txt-area" style="margin-bottom:0" placeholder="Le stress du bureau, le grignotage de 16h...">'+esc(ms.negatif||"")+'</textarea>'+
-    '</div></div>';
+    (idx===today90?
+      '<div class="card" style="padding:16px">'+
+      '<div class="txt-label">🥇 Une chose dont tu es fier(ère) aujourd\'hui</div>'+
+      '<textarea id="ms-fier" class="txt-area" placeholder="J\'ai tenu ma séance malgré la fatigue...">'+esc(ms.fier||"")+'</textarea>'+
+      '<div class="txt-label">🌟 Une chose positive — la chance que tu as d\'avoir ça</div>'+
+      '<textarea id="ms-positif" class="txt-area" placeholder="Ma santé, ma famille, ce repas...">'+esc(ms.positif||"")+'</textarea>'+
+      '<div class="txt-label">🌧️ Une chose négative — ce que tu n\'as pas aimé aujourd\'hui</div>'+
+      '<textarea id="ms-negatif" class="txt-area" style="margin-bottom:0" placeholder="Le stress du bureau, le grignotage de 16h...">'+esc(ms.negatif||"")+'</textarea>'+
+      '</div>'
+    :(ms.fier||ms.positif||ms.negatif)?
+      '<div class="card" style="padding:16px">'+
+      (ms.fier?'<div style="font-size:13px;line-height:1.7;margin-bottom:8px">🥇 '+esc(ms.fier)+'</div>':'')+
+      (ms.positif?'<div style="font-size:13px;line-height:1.7;margin-bottom:8px">🌟 '+esc(ms.positif)+'</div>':'')+
+      (ms.negatif?'<div style="font-size:13px;line-height:1.7;color:#D52B1E">🌧️ '+esc(ms.negatif)+'</div>':'')+
+      '<div style="font-size:11px;color:#BBB;margin-top:10px">🔒 Mindset du jour '+(idx+1)+' — verrouillé</div></div>'
+    :
+      '<div class="card" style="padding:16px;text-align:center">'+
+      '<div style="font-size:26px;margin-bottom:8px">🔒</div>'+
+      '<div style="font-size:13px;font-weight:800;margin-bottom:6px">Ce mindset est resté vide</div>'+
+      '<div style="font-size:12px;color:#888;line-height:1.7">Les 3 questions se remplissent <strong>le jour même</strong> — c\'est un rituel du soir, pas un devoir à rattraper. Ce qui compte, c\'est ce soir : rendez-vous sur la page du jour 🌙</div></div>'
+    )+'</div>';
 
   // bilan dimanche
   if(isSunday){
@@ -1352,7 +1365,8 @@ function bindDay(name,start){
   function saveMindset(){
     var d=cur();
     var m=d.mindset||{};
-    m.fier=document.getElementById("ms-fier").value;
+    var f1=document.getElementById("ms-fier");if(!f1)return;
+    m.fier=f1.value;
     m.positif=document.getElementById("ms-positif").value;
     m.negatif=document.getElementById("ms-negatif").value;
     persist({mindset:m});
@@ -1672,6 +1686,36 @@ function viewCoachDetail(){
       h+='</div>';
     }
   }
+
+  // 📅 Calendrier 90 jours (couleurs client)
+  h+='<div class="card"><div style="font-weight:900;font-size:13px;margin-bottom:10px">📅 Son calendrier</div>';
+  (function(){
+    var wkO=(new Date(c.start_date).getDay()+6)%7;
+    for(var mi3=0;mi3<3;mi3++){
+      if(mi3*28>t90)break;
+      h+='<div style="font-size:10px;font-weight:800;color:#999;letter-spacing:1px;margin:8px 0 4px">MOIS '+(mi3+1)+'</div>';
+      var nR=Math.ceil((28+wkO)/7);
+      for(var w3=0;w3<nR;w3++){
+        h+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px">';
+        for(var dd3=0;dd3<7;dd3++){
+          var sl=w3*7+dd3-wkO;
+          if(sl<0||sl>=28){h+='<div style="aspect-ratio:1;border-radius:5px;background:#F6F6F6"></div>';continue;}
+          var ix=mi3*28+sl;
+          if(ix>=90){h+='<div></div>';continue;}
+          var bg2="#EEF4FF";
+          if(ix<=t90){
+            var dO=allData[ix];
+            if(!dO||!dO.habits)bg2="#FFCDD2";
+            else{var sc2=dayScore(dO);bg2=sc2===100?"#4CAF50":sc2>=50?"#C8E6C9":sc2>0?"#FFD0B0":"#FFCDD2";}
+          }
+          var msn2=allData[200+ix];
+          h+='<div style="aspect-ratio:1;border-radius:5px;background:'+bg2+';display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:'+(ix<=t90?"#1A1A1A":"#A0B8D8")+';position:relative'+(ix===t90?';outline:2px solid #D52B1E':'')+'">'+(ix+1)+(msn2?'<span style="position:absolute;top:0;right:1px;font-size:6px">⚡</span>':'')+'</div>';
+        }
+        h+='</div>';
+      }
+    }
+  })();
+  h+='<div style="font-size:9px;color:#BBB;margin-top:6px">🟢 complet · 🟠 partiel · 🔴 manqué · ⚡ mission</div></div>';
 
   // 🚀 Date de départ (modifiable)
   h+='<div class="card" style="border-left:4px solid '+B+';padding:13px 15px;display:flex;align-items:center;justify-content:space-between">'+

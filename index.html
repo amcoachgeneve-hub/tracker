@@ -1812,6 +1812,14 @@ function viewCoachDash(){
   h+='<input id="client-search" class="num-input" placeholder="\ud83d\udd0d Rechercher un client..." value="'+esc(state.searchQ||"")+'" style="font-size:15px;font-weight:400;margin-bottom:14px"/>';
   var q=(state.searchQ||"").toLowerCase();
   var shown=q?clients.filter(function(c){return c.name.toLowerCase().indexOf(q)>=0||c.slug.toLowerCase().indexOf(q)>=0;}):clients;
+  // Tri par assiduité : dernière activité la plus récente en haut, "jamais ouverte" en bas, égalité départagée par le % de remplissage
+  shown=shown.slice().sort(function(a,b){
+    var da=lsGet("amcoach_"+a.slug,{}),db=lsGet("amcoach_"+b.slug,{});
+    var la=(da[505]&&da[505].d)||"",lb=(db[505]&&db[505].d)||"";
+    if(la!==lb)return la<lb?1:-1;
+    function sc(c,cd){var t=getToday90(c.start_date),f=0;for(var x=0;x<=t;x++){if(cd[x])f++;}return f/Math.max(t+1,1);}
+    return sc(b,db)-sc(a,da);
+  });
   if(!clients.length){
     h+='<div style="text-align:center;color:#AAA;padding:40px">Aucun client encore.</div>';
   }else if(!shown.length){

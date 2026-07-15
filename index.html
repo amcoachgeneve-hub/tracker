@@ -431,6 +431,14 @@ var PENSEES=[
 "Tu n'es pas arrivé au bout de 90 jours. Tu es arrivé au début de ta nouvelle vie. — AM Coach Genève"
 ];
 
+function lastActLabel(allData){
+  var la=allData&&allData[505]&&allData[505].d;
+  if(!la)return {t:"jamais ouverte",c:"#D52B1E"};
+  var diff=Math.floor((new Date(new Date().toISOString().split("T")[0])-new Date(la))/86400000);
+  if(diff<=0)return {t:"aujourd'hui",c:"#4CAF50"};
+  if(diff===1)return {t:"hier",c:"#8BC34A"};
+  return {t:"il y a "+diff+" jours",c:diff>=3?"#D52B1E":"#E65100"};
+}
 function slugHash(s){var h=0;s=s||"";for(var i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))>>>0;}return h;}
 function pickPensee(allData,today90){
   var qgc=allData[502];
@@ -735,6 +743,9 @@ function render(){
   var start=lsGetStr("amcoach_start_"+CLIENT);
   if(!name||!start){root.innerHTML=viewOnboarding();bindOnboarding();return;}
   // 🔑 Contrôle d'accès (slot 504)
+  var lastAct=getAllData()[505];
+  var todayIso=new Date().toISOString().split("T")[0];
+  if(CLIENT&&(!lastAct||lastAct.d!==todayIso)){saveDay(505,{d:todayIso});}
   var acc=getAllData()[504];
   if(acc&&(acc.off||(acc.end&&new Date().toISOString().split("T")[0]>acc.end))){
     var aD=getAllData(),aT=getToday90(start);
@@ -1002,8 +1013,8 @@ function viewCalendar(name,start){
       '<div style="text-align:center;color:#8BC34A;font-size:11px;font-weight:700;margin:4px 0 12px">🧱 '+res.total+' brique'+(res.total>1?'s':'')+' posée'+(res.total>1?'s':'')+(nxtL?' · prochain niveau à '+nxtL.min+' briques':' · SOMMET ATTEINT')+'</div>'+
       (function(){var bs2=comboStreak(allData,today90,hasBrique);return bs2>0?'<div style="text-align:center;font-size:12px;font-weight:900;margin:-6px 0 12px;color:'+streakBadge(bs2).c+'">COMBO '+streakBadge(bs2).e+' '+bs2+' jour'+(bs2>1?'s':'')+' de briques</div>':'';})()+
       '<div style="color:#8BC34A;font-weight:800;font-size:10px;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">✅ Mes actions du jour — chaque action validée = 1 brique</div>'+
-      '<button id="qg-terrain" '+(qToday.p?'disabled':'')+' style="width:100%;padding:13px 0;border-radius:11px;background:'+(qToday.p?"#2A3A2A":"#5D4037")+';color:'+(qToday.p?"#6A8A6A":"#fff")+';font-weight:900;font-size:13px;margin-bottom:8px">'+(qToday.p?"✅ "+esc(qgc.v1)+" — fait":"⬜ "+esc(qgc.v1))+'</button>'+
-      '<button id="qg-digital" '+(qToday.e?'disabled':'')+' style="width:100%;padding:13px 0;border-radius:11px;background:'+(qToday.e?"#2A3A2A":"#0057A8")+';color:'+(qToday.e?"#6A8A6A":"#fff")+';font-weight:900;font-size:13px">'+(qToday.e?"✅ "+esc(qgc.v2)+" — fait":"⬜ "+esc(qgc.v2))+'</button>'+
+      '<button id="qg-terrain" style="width:100%;padding:13px 0;border-radius:11px;background:'+(qToday.p?"#2A3A2A":"#5D4037")+';color:'+(qToday.p?"#6A8A6A":"#fff")+';font-weight:900;font-size:13px;margin-bottom:8px">'+(qToday.p?"✅ "+esc(qgc.v1)+" — fait (re-tape pour annuler)":"⬜ "+esc(qgc.v1))+'</button>'+
+      '<button id="qg-digital" style="width:100%;padding:13px 0;border-radius:11px;background:'+(qToday.e?"#2A3A2A":"#0057A8")+';color:'+(qToday.e?"#6A8A6A":"#fff")+';font-weight:900;font-size:13px">'+(qToday.e?"✅ "+esc(qgc.v2)+" — fait (re-tape pour annuler)":"⬜ "+esc(qgc.v2))+'</button>'+
       (function(){
         var qh="";
         var qs=[qgc.q1,qgc.q2];
@@ -1012,7 +1023,7 @@ function viewCalendar(name,start){
           if(!qk||!QUESTS[qk])continue;
           var Q=QUESTS[qk];
           var done=qi===0?qToday.s1:qToday.s2;
-          qh+='<button class="qg-quest" data-q="'+(qi+1)+'" '+(done?'disabled':'')+' style="width:100%;margin-top:8px;padding:13px 0;border-radius:11px;background:'+(done?"#2A3A2A":"#3E2723")+';color:'+(done?"#6A8A6A":"#E8C547")+';font-weight:900;font-size:13px">'+(done?"✓ "+Q.icon+" "+Q.name+" validé":Q.icon+" "+Q.name+" — "+esc(Q.hack))+'</button>';
+          qh+='<button class="qg-quest" data-q="'+(qi+1)+'" style="width:100%;margin-top:8px;padding:13px 0;border-radius:11px;background:'+(done?"#2A3A2A":"#3E2723")+';color:'+(done?"#6A8A6A":"#E8C547")+';font-weight:900;font-size:13px">'+(done?"✓ "+Q.icon+" "+Q.name+" validé (re-tape pour annuler)":Q.icon+" "+Q.name+" — "+esc(Q.hack))+'</button>';
         }
         return qh;
       })()+
@@ -1612,7 +1623,8 @@ function viewCoachDetail(){
     '<div class="hdr"><div style="display:flex;align-items:center;gap:12px">'+
     '<button id="cd-back" class="day-back">←</button>'+
     '<div style="flex:1"><div style="color:#fff;font-weight:900;font-size:16px">'+esc(c.name)+'</div>'+
-    '<div style="color:#666;font-size:12px">Jour '+Math.min(t90+1,90)+'/90 · départ '+new Date(c.start_date).toLocaleDateString("fr-FR")+' · 🔥 '+streak+'j</div></div></div></div>'+
+    '<div style="color:#666;font-size:12px">Jour '+Math.min(t90+1,90)+'/90 · départ '+new Date(c.start_date).toLocaleDateString("fr-FR")+' · 🔥 '+streak+'j</div>'+
+    (function(){var la=lastActLabel(allData);return '<div style="font-size:12px;font-weight:800;margin-top:3px;color:'+la.c+'">📱 Dernière activité : '+la.t+'</div>';})()+'</div></div></div>'+
     '<div style="padding:16px 14px 0">';
 
   // KPIs
@@ -1774,7 +1786,8 @@ function viewCoachDash(){
         '<div class="ring-wrap">'+svgRing(score/100,scol,56)+
         '<div class="ring-txt" style="font-size:13px">'+score+'%</div></div>'+
         '<div style="flex:1"><div style="font-weight:900;font-size:18px">'+esc(c.name)+'</div>'+
-        '<div style="font-size:12px;color:#AAA;margin-top:2px">Jour '+Math.min(t90+1,90)+'/90 · départ '+new Date(c.start_date).toLocaleDateString("fr-FR")+'</div></div></div>'+
+        '<div style="font-size:12px;color:#AAA;margin-top:2px">Jour '+Math.min(t90+1,90)+'/90 · départ '+new Date(c.start_date).toLocaleDateString("fr-FR")+'</div>'+
+        (function(){var la=lastActLabel(lsGet("amcoach_"+c.slug,{}));return '<div style="font-size:11px;font-weight:800;margin-top:3px;color:'+la.c+'">📱 Dernière activité : '+la.t+'</div>';})()+'</div></div>'+
         '<button class="copy-link big-btn" data-slug="'+esc(c.slug)+'" style="padding:12px 0;font-size:13px;background:'+K+';box-shadow:none;margin-bottom:8px">📋 Copier lien TRACKER</button>'+
         '<button class="copy-menu big-btn" data-slug="'+esc(c.slug)+'" style="padding:12px 0;font-size:13px;background:#2E7D32;box-shadow:none;margin-bottom:0">🍽️ Copier lien MENU</button></div>';
     }
@@ -2145,7 +2158,7 @@ function bindMain(name,start){
   var qgT=document.getElementById("qg-terrain");
   if(qgT)qgT.addEventListener("click",function(){
     var q=getAllData()[400+today90]||{};
-    q.p=true;saveDay(400+today90,q);render();
+    q.p=!q.p;saveDay(400+today90,q);render();
     var hp=document.getElementById("qg-house");if(hp)hp.classList.add("qg-shake");
   });
   var qQuests=document.querySelectorAll(".qg-quest");
@@ -2153,7 +2166,7 @@ function bindMain(name,start){
     qQuests[qq].addEventListener("click",function(){
       var n=this.getAttribute("data-q");
       var q=getAllData()[400+today90]||{};
-      if(n==="1")q.s1=true;else q.s2=true;
+      if(n==="1")q.s1=!q.s1;else q.s2=!q.s2;
       saveDay(400+today90,q);render();
       var hq=document.getElementById("qg-house");if(hq)hq.classList.add("qg-shake");
     });
@@ -2161,7 +2174,7 @@ function bindMain(name,start){
   var qgD=document.getElementById("qg-digital");
   if(qgD)qgD.addEventListener("click",function(){
     var q=getAllData()[400+today90]||{};
-    q.e=true;saveDay(400+today90,q);render();
+    q.e=!q.e;saveDay(400+today90,q);render();
     var he=document.getElementById("qg-house");if(he)he.classList.add("qg-shake");
   });
   // Dream autosave

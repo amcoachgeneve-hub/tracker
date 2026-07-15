@@ -1910,6 +1910,8 @@ function viewCoachCalc(){
     '<button id="calc-back" class="big-btn gray" style="padding:12px 0;font-size:13px;margin-bottom:16px">← Retour au dashboard</button>'+
     '<div class="card" style="padding:18px 16px;margin-bottom:16px">'+
     '<div style="font-weight:900;font-size:14px;margin-bottom:14px">Données du client</div>'+
+    '<div class="card-label">PRÉNOM (POUR LE RAPPORT)</div>'+
+    '<input id="calc-nom" class="num-input" type="text" placeholder="ex: Rebecca" value="'+esc(c.nom||"")+'" style="margin-bottom:14px"/>'+
     '<div class="card-label">SEXE</div>'+
     '<div style="display:flex;gap:8px;margin-bottom:14px">'+
       '<button class="calc-sexe big-btn'+(c.sexe==="H"?"":" gray")+'" data-sexe="H" style="flex:1;padding:12px 0;font-size:14px'+(c.sexe==="H"?";background:#0057A8":"")+'">Homme</button>'+
@@ -1973,10 +1975,76 @@ function coachCalcCompute(){
         'dont <strong>'+perteFat.toFixed(1)+' kg de gras</strong> et '+perteLean.toFixed(1)+' kg de masse maigre<br>'+
         '⏱️ Durée estimée : <strong>'+sem1+' à '+sem08+' semaines</strong><br>'+
         '<span style="font-size:12px;color:#888">soit '+(sem1/4.345).toFixed(1)+' à '+(sem08/4.345).toFixed(1)+' mois (rythme 1 kg à 800 g / semaine)</span>'+
-        '</div></div>';
+        '</div></div>'+
+        '<button id="calc-report" class="big-btn" style="padding:14px 0;font-size:14px;margin-top:12px">📄 Générer le rapport client</button>';
     }
   }
   out.innerHTML=h;
+  var rb=document.getElementById("calc-report");
+  if(rb)rb.addEventListener("click",openCalcReport);
+}
+function openCalcReport(){
+  var c=state.calcData;
+  var p0=parseFloat(c.poids),mga=parseFloat(c.mga),mgc=parseFloat(c.mgc);
+  if(!(p0>0&&mga>0&&mgc>0&&mgc<mga))return;
+  var kcal=Math.round(p0*(c.sexe==="F"?28:32));
+  var mg=mga/100,fat=p0*mg,lean=p0*(1-mg),p=p0,guard=0;
+  while(mg>mgc/100&&guard<30000){var r=mg>=0.10?(2/3):0.5;fat-=0.01*r;lean-=0.01*(1-r);p-=0.01;mg=fat/p;guard++;}
+  var aPerdre=p0-p,perteFat=p0*(mga/100)-fat,perteLean=aPerdre-perteFat;
+  var sem1=Math.ceil(aPerdre/1.0),sem08=Math.ceil(aPerdre/0.8);
+  var prenom=(c.nom||"").trim();
+  var reperes=c.sexe==="F"
+    ?'<p>Chez la femme, un taux de masse grasse plus élevé que chez l\'homme est <strong>physiologiquement normal et nécessaire</strong> au bon équilibre hormonal.</p><ul>'+
+     '<li><strong>20–22 %</strong> — silhouette athlétique, lignes abdominales verticales visibles ("11 line abs")</li>'+
+     '<li><strong>16–19 %</strong> — abdominaux nettement définis et visibles</li>'+
+     '<li><strong>Sous 15 %</strong> — définition extrême. ⚠️ Descendre durablement sous ce seuil peut impacter la santé hormonale féminine (aménorrhée). Ce n\'est pas un objectif santé.</li></ul>'
+    :'<ul><li><strong>13–15 %</strong> — les contours généraux et le haut des abdominaux commencent à se dessiner sous une bonne lumière</li>'+
+     '<li><strong>10–12 %</strong> — la sangle abdominale est clairement visible et définie, les obliques apparaissent</li>'+
+     '<li><strong>Sous 10 %</strong> — abdominaux extrêmement découpés, vascularisation apparente</li></ul>';
+  var css='*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#F4F4F4;color:#1A1A1A;padding:24px 18px 60px;line-height:1.7}'+
+    '.pg{max-width:560px;margin:0 auto}'+
+    '.brand{display:flex;align-items:center;justify-content:center;gap:10px;font-weight:900;font-size:13px;letter-spacing:3px;text-transform:uppercase;margin-bottom:4px}'+
+    '.bar{width:5px;height:20px;border-radius:3px;display:inline-block}.br{background:#D52B1E}.bb{background:#0057A8}'+
+    '.sub{text-align:center;font-size:11px;color:#999;letter-spacing:2px;text-transform:uppercase;margin-bottom:26px}'+
+    'h1{font-size:22px;font-weight:900;margin-bottom:16px;letter-spacing:-.3px}'+
+    'h2{font-size:15px;font-weight:900;margin:26px 0 8px;display:flex;align-items:center;gap:8px}'+
+    '.card{background:#fff;border-radius:14px;padding:16px 18px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.05)}'+
+    '.big{font-size:24px;font-weight:900}'+
+    '.kv{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #F0F0F0;font-size:14px}.kv:last-child{border:0}.kv strong{font-weight:900}'+
+    'p,li{font-size:13.5px;color:#444}ul{padding-left:20px;margin:6px 0}li{margin:5px 0}'+
+    '.warn{background:#FFF3E0;border-left:4px solid #E65100;border-radius:10px;padding:12px 14px;font-size:13px;margin-top:10px}'+
+    '.foot{text-align:center;margin-top:34px;font-size:10px;color:#AAA;letter-spacing:2px;text-transform:uppercase;line-height:2}';
+  var html='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Bilan '+esc(prenom||"client")+' — AM Coach Genève</title><style>'+css+'</style></head><body>'+
+    '<button onclick="window.close();setTimeout(function(){if(history.length>1)history.back();},250)" style="position:fixed;top:12px;right:12px;z-index:999;background:#1A1A1A;color:#fff;border:0;border-radius:20px;padding:9px 16px;font-weight:800;font-size:13px">✕ Fermer</button>'+
+    '<div class="pg">'+
+    '<div class="brand"><span class="bar br"></span><span>AM Coach Genève</span><span class="bar bb"></span></div>'+
+    '<div class="sub">Bilan corporel · Méthode Balance-360</div>'+
+    '<h1>'+(prenom?esc(prenom)+', voici':'Voici')+' ton plan chiffré 🎯</h1>'+
+    '<div class="card">'+
+    '<div class="kv"><span>Poids actuel</span><strong>'+p0.toFixed(1)+' kg · '+mga.toFixed(0)+' % de masse grasse</strong></div>'+
+    '<div class="kv"><span>Objectif</span><strong>'+mgc.toFixed(0)+' % de masse grasse</strong></div>'+
+    '<div class="kv"><span>Poids final estimé</span><strong>'+p.toFixed(1)+' kg</strong></div>'+
+    '<div class="kv"><span>À perdre</span><strong style="color:#D52B1E">'+aPerdre.toFixed(1)+' kg</strong></div>'+
+    '<div class="kv"><span>Durée réaliste</span><strong>'+sem1+' à '+sem08+' semaines ('+(sem1/4.345).toFixed(1)+'–'+(sem08/4.345).toFixed(1)+' mois)</strong></div>'+
+    '<div class="kv"><span>Ta barre calorique</span><strong>'+kcal+' kcal / jour</strong></div>'+
+    '</div>'+
+    '<h2>🧠 Comprendre ces chiffres</h2>'+
+    '<div class="card">'+
+    '<p><strong>Pourquoi '+sem1+' à '+sem08+' semaines, et pas moins ?</strong> Parce que ton corps ne perd pas que du gras quand tu maigris. Sur les '+aPerdre.toFixed(1)+' kg à perdre, environ <strong>'+perteFat.toFixed(1)+' kg seront du gras</strong> et '+perteLean.toFixed(1)+' kg de la masse maigre (muscle, eau). Plus tu vas vite, plus la part de muscle perdue augmente — et le muscle, c\'est justement ce qui te donne la silhouette que tu vises et ce qui brûle des calories au repos.</p>'+
+    '<p style="margin-top:10px"><strong>Le rythme de 800 g à 1 kg par semaine n\'est pas un manque d\'ambition.</strong> C\'est le rythme maximum auquel ton corps accepte de puiser dans ses réserves sans se défendre : au-delà, il ralentit ton métabolisme, augmente la faim, et prépare la reprise. Perdre vite pour tout reprendre, ce n\'est pas perdre — c\'est reculer.</p>'+
+    '<p style="margin-top:10px"><strong>Ta barre calorique de '+kcal+' kcal</strong> est ton repère quotidien. Ce n\'est pas une punition, c\'est le niveau d\'énergie qui force ton corps à utiliser son gras comme carburant tout en protégeant ton muscle — à condition d\'y mettre suffisamment de protéines et de continuer l\'entraînement.</p>'+
+    '</div>'+
+    '<h2>👀 À quoi ressemble ton objectif</h2>'+
+    '<div class="card">'+reperes+'</div>'+
+    '<h2>🧭 La règle d\'or</h2>'+
+    '<div class="card">'+
+    '<p>Perdre du gras, c\'est <strong>un travail</strong> — pas un sprint, pas un défi de motivation, un processus. Il y aura des semaines où la balance ne bougera pas alors que ton corps change : c\'est normal, le miroir et les mensurations comptent autant que le chiffre. Ce qui fait le résultat final, ce n\'est pas la perfection, c\'est <strong>la répétition</strong> : tes repas, tes séances, ton sommeil, cochés jour après jour.</p>'+
+    '<div class="warn">⚠️ Ces chiffres sont une estimation pédagogique, pas une prescription médicale. Le plan s\'ajuste avec ton coach au fil des bilans, selon tes sensations et tes résultats réels.</div>'+
+    '</div>'+
+    '<div class="foot">AM Coach Genève · Méthode Balance-360<br>La discipline devient automatique</div>'+
+    '</div></body></html>';
+  var win=window.open("","_blank");
+  if(win){win.document.write(html);win.document.close();}
 }
 
 function bindCoach(){
@@ -1997,7 +2065,7 @@ function bindCoach(){
     for(var s2=0;s2<sx.length;s2++){
       sx[s2].addEventListener("click",function(){state.calcData.sexe=this.getAttribute("data-sexe");render();});
     }
-    [["calc-poids","poids"],["calc-mga","mga"],["calc-mgc","mgc"]].forEach(function(pair){
+    [["calc-nom","nom"],["calc-poids","poids"],["calc-mga","mga"],["calc-mgc","mgc"]].forEach(function(pair){
       var el=document.getElementById(pair[0]);
       if(el)el.addEventListener("input",function(){state.calcData[pair[1]]=this.value;coachCalcCompute();});
     });

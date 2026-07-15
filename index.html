@@ -1923,6 +1923,21 @@ function viewCoachCalc(){
     '<input id="calc-mgc" class="num-input" type="number" step="0.5" min="3" max="60" placeholder="ex: 12" value="'+esc(c.mgc)+'"/>'+
     '</div>'+
     '<div id="calc-results"></div>'+
+    '<div class="card" style="padding:16px;margin-top:12px;border-left:4px solid #7B1FA2">'+
+    '<div class="card-label">📖 REPÈRES VISUELS — % DE MASSE GRASSE</div>'+
+    '<div style="font-weight:900;font-size:13px;margin:8px 0 4px">Hommes</div>'+
+    '<div style="font-size:12.5px;color:#555;line-height:1.75">'+
+    '<strong>13–15 %</strong> : les contours généraux et le haut des abdominaux commencent à se dessiner sous une bonne lumière.<br>'+
+    '<strong>10–12 %</strong> : la sangle abdominale est clairement visible et définie, les obliques commencent à apparaître.<br>'+
+    '<strong>Sous 10 %</strong> : abdominaux extrêmement découpés (aspect "shredded"), vascularisation apparente.'+
+    '</div>'+
+    '<div style="font-weight:900;font-size:13px;margin:12px 0 4px">Femmes</div>'+
+    '<div style="font-size:12.5px;color:#555;line-height:1.75">'+
+    'Les femmes ont physiologiquement besoin d\'un taux de masse grasse plus élevé pour maintenir un bon équilibre hormonal.<br>'+
+    '<strong>20–22 %</strong> : silhouette athlétique, lignes abdominales verticales visibles ("11 line abs").<br>'+
+    '<strong>16–19 %</strong> : abdominaux nettement définis et visibles.<br>'+
+    '<strong>Sous 15 %</strong> : définition extrême et découpe complète. <span style="color:#E65100;font-weight:700">⚠️ Descendre durablement sous ce seuil peut impacter la santé hormonale féminine (aménorrhée).</span>'+
+    '</div></div>'+
     '</div></div>';
   return h;
 }
@@ -1949,14 +1964,15 @@ function coachCalcCompute(){
         fat-=0.01*rMG;lean-=0.01*(1-rMG);p-=0.01;mg=fat/p;guard++;
       }
       var aPerdre=p0-p,perteFat=p0*(mga/100)-fat,perteLean=aPerdre-perteFat;
-      var sem=Math.ceil(aPerdre/1.0); // limite 1 kg/semaine max
+      var sem1=Math.ceil(aPerdre/1.0),sem08=Math.ceil(aPerdre/0.8); // fourchette 1 kg/sem — 800 g/sem
       h+='<div class="card" style="padding:16px;border-left:4px solid #0057A8">'+
         '<div class="card-label">🎯 OBJECTIF '+mgc.toFixed(0)+'% DE MASSE GRASSE</div>'+
         '<div style="font-weight:900;font-size:26px;margin-bottom:4px">Poids final : '+p.toFixed(1)+' kg</div>'+
         '<div style="font-size:14px;font-weight:800;color:#D52B1E;margin-bottom:10px">À perdre : '+aPerdre.toFixed(1)+' kg</div>'+
         '<div style="font-size:13px;color:#555;line-height:1.8">'+
         'dont <strong>'+perteFat.toFixed(1)+' kg de gras</strong> et '+perteLean.toFixed(1)+' kg de masse maigre<br>'+
-        '⏱️ Durée minimum : <strong>'+sem+' semaine'+(sem>1?'s':'')+'</strong> ('+(sem/4.345).toFixed(1)+' mois, à 1 kg/sem max)'+
+        '⏱️ Durée estimée : <strong>'+sem1+' à '+sem08+' semaines</strong><br>'+
+        '<span style="font-size:12px;color:#888">soit '+(sem1/4.345).toFixed(1)+' à '+(sem08/4.345).toFixed(1)+' mois (rythme 1 kg à 800 g / semaine)</span>'+
         '</div></div>';
     }
   }

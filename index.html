@@ -737,7 +737,7 @@ function svgRing(pct,color,size){
 // ═══════════ RENDER ROOT ═══════════
 function render(){
   var root=document.getElementById("root");
-  if(IS_COACH){root.innerHTML=state.coachAuthed?(state.coachDetail?viewCoachDetail():viewCoachDash()):viewCoachLogin();bindCoach();return;}
+  if(IS_COACH){root.innerHTML=state.coachAuthed?(state.coachDetail?viewCoachDetail():(state.coachCalc?viewCoachCalc():viewCoachDash())):viewCoachLogin();bindCoach();return;}
   if(!CLIENT){root.innerHTML=viewNoClient();return;}
   var name=lsGetStr("amcoach_name_"+CLIENT);
   var start=lsGetStr("amcoach_start_"+CLIENT);
@@ -1264,6 +1264,17 @@ function viewDay(name,start){
       '<div class="habit-left"><span class="habit-icon">'+hab.icon+'</span><span class="habit-name">'+hab.label+'</span></div>'+
       '<div class="habit-check">'+(checked?"✓":"")+'</div></div>';
   }
+  // ⭐ Habitude perso (slot 506) — choisie par le client : lecture, méditation, étirements...
+  var persoHab=allData[506];
+  if(persoHab&&persoHab.name){
+    var pChecked=!!habits.perso,pColor="#F9A825";
+    h+='<div class="habit'+(pChecked?" checked":"")+'" data-habit="perso" style="'+(pChecked?"background:"+pColor+";border-color:"+pColor+";box-shadow:0 3px 12px "+pColor+"33":"")+'">'+
+      '<div class="habit-left"><span class="habit-icon">⭐</span><span class="habit-name">'+esc(persoHab.name)+'</span></div>'+
+      '<div style="display:flex;align-items:center;gap:10px"><span id="perso-edit" style="font-size:13px;opacity:.55;padding:4px">✏️</span><div class="habit-check">'+(pChecked?"✓":"")+'</div></div></div>';
+  }else{
+    h+='<div id="perso-add" class="habit" style="border:2px dashed #CCC;background:transparent;color:#999">'+
+      '<div class="habit-left"><span class="habit-icon">➕</span><span class="habit-name" style="color:#999;font-size:13px">Ajoute TON habitude perso<br><span style="font-size:11px;font-weight:600">lecture, méditation, étirements... à toi de choisir</span></span></div></div>';
+  }
   h+='</div>';
 
   // 🧠 MINDSET DU JOUR
@@ -1368,6 +1379,21 @@ function bindDay(name,start){
       render();
     });
   }
+  // ⭐ Habitude perso : ajout / modification
+  var pAdd=document.getElementById("perso-add");
+  if(pAdd)pAdd.addEventListener("click",function(){
+    var n=prompt("Ton habitude perso — celle que TU choisis (ex : Lecture 10 min, Méditation 5 min, Étirements) :");
+    if(n&&n.trim()){saveDay(506,{name:n.trim().slice(0,40)});render();}
+  });
+  var pEdit=document.getElementById("perso-edit");
+  if(pEdit)pEdit.addEventListener("click",function(e){
+    e.stopPropagation();
+    var pn=(getAllData()[506]||{}).name||"";
+    var n=prompt("Modifier ton habitude perso (laisse vide pour la retirer) :",pn);
+    if(n===null)return;
+    saveDay(506,n.trim()?{name:n.trim().slice(0,40)}:{});
+    render();
+  });
   function saveMindset(){
     var d=cur();
     var m=d.mindset||{};
@@ -1798,7 +1824,8 @@ function viewCoachDash(){
     '<div class="hdr-sub" style="color:#666;font-weight:400;font-size:12px">AM Coach Genève · TransfoPhysique</div></div>'+
     '<div style="padding:16px 14px 0">'+
     '<button id="form-toggle" class="big-btn'+(state.showForm?" gray":"")+'" style="padding:16px 0;font-size:14px">'+
-    (state.showForm?"▲ Annuler":"+ Nouveau client")+'</button>';
+    (state.showForm?"▲ Annuler":"+ Nouveau client")+'</button>'+
+    '<button id="calc-open" class="big-btn" style="padding:14px 0;font-size:14px;background:#0057A8;margin-bottom:16px">🧮 Calculateur bilan</button>';
 
   if(state.showForm){
     h+='<div class="card" style="padding:18px 16px;margin-bottom:16px">'+
@@ -1871,12 +1898,94 @@ function loadCoachDataFromCloud(){
   }).catch(function(){});
 }
 
+// ═══════════ COACH CALC (bilan) ═══════════
+function viewCoachCalc(){
+  var c=state.calcData||{sexe:"H",poids:"",mga:"",mgc:""};
+  state.calcData=c;
+  var h='<div class="app" style="max-width:480px">'+
+    '<div class="hdr"><div class="hdr-brand"><div class="bar bar-r"></div>'+
+    '<span class="hdr-title">Calculateur bilan</span><div class="bar bar-b"></div></div>'+
+    '<div class="hdr-sub" style="color:#666;font-weight:400;font-size:12px">AM Coach Genève · Méthode Balance-360</div></div>'+
+    '<div style="padding:16px 14px 40px">'+
+    '<button id="calc-back" class="big-btn gray" style="padding:12px 0;font-size:13px;margin-bottom:16px">← Retour au dashboard</button>'+
+    '<div class="card" style="padding:18px 16px;margin-bottom:16px">'+
+    '<div style="font-weight:900;font-size:14px;margin-bottom:14px">Données du client</div>'+
+    '<div class="card-label">SEXE</div>'+
+    '<div style="display:flex;gap:8px;margin-bottom:14px">'+
+      '<button class="calc-sexe big-btn'+(c.sexe==="H"?"":" gray")+'" data-sexe="H" style="flex:1;padding:12px 0;font-size:14px'+(c.sexe==="H"?";background:#0057A8":"")+'">Homme</button>'+
+      '<button class="calc-sexe big-btn'+(c.sexe==="F"?"":" gray")+'" data-sexe="F" style="flex:1;padding:12px 0;font-size:14px'+(c.sexe==="F"?";background:#0057A8":"")+'">Femme</button>'+
+    '</div>'+
+    '<div class="card-label">POIDS ACTUEL (KG)</div>'+
+    '<input id="calc-poids" class="num-input" type="number" step="0.1" min="30" max="250" placeholder="ex: 86" value="'+esc(c.poids)+'" style="margin-bottom:14px"/>'+
+    '<div class="card-label">% MASSE GRASSE ACTUEL</div>'+
+    '<input id="calc-mga" class="num-input" type="number" step="0.5" min="3" max="60" placeholder="ex: 20" value="'+esc(c.mga)+'" style="margin-bottom:14px"/>'+
+    '<div class="card-label">% MASSE GRASSE CIBLE</div>'+
+    '<input id="calc-mgc" class="num-input" type="number" step="0.5" min="3" max="60" placeholder="ex: 12" value="'+esc(c.mgc)+'"/>'+
+    '</div>'+
+    '<div id="calc-results"></div>'+
+    '</div></div>';
+  return h;
+}
+function coachCalcCompute(){
+  var c=state.calcData,out=document.getElementById("calc-results");
+  if(!out)return;
+  var p0=parseFloat(c.poids),mga=parseFloat(c.mga),mgc=parseFloat(c.mgc);
+  var h="";
+  // Barre calorique dès que le poids est saisi
+  if(p0>0){
+    var kcal=Math.round(p0*(c.sexe==="F"?28:32));
+    h+='<div class="card" style="padding:16px;margin-bottom:12px;border-left:4px solid #D52B1E">'+
+      '<div class="card-label">🔥 BARRE CALORIQUE ('+(c.sexe==="F"?"FEMME × 28":"HOMME × 32")+')</div>'+
+      '<div style="font-weight:900;font-size:26px;color:#1A1A1A">'+kcal+' kcal / jour</div></div>';
+  }
+  // Simulation objectif masse grasse
+  if(p0>0&&mga>0&&mgc>0){
+    if(mgc>=mga){
+      h+='<div class="card" style="padding:14px 16px;font-size:13px;color:#E65100;font-weight:700">La cible doit être inférieure au % actuel.</div>';
+    }else{
+      var mg=mga/100,fat=p0*mg,lean=p0*(1-mg),p=p0,guard=0;
+      while(mg>mgc/100&&guard<30000){
+        var rMG=mg>=0.10?(2/3):0.5;
+        fat-=0.01*rMG;lean-=0.01*(1-rMG);p-=0.01;mg=fat/p;guard++;
+      }
+      var aPerdre=p0-p,perteFat=p0*(mga/100)-fat,perteLean=aPerdre-perteFat;
+      var sem=Math.ceil(aPerdre/1.0); // limite 1 kg/semaine max
+      h+='<div class="card" style="padding:16px;border-left:4px solid #0057A8">'+
+        '<div class="card-label">🎯 OBJECTIF '+mgc.toFixed(0)+'% DE MASSE GRASSE</div>'+
+        '<div style="font-weight:900;font-size:26px;margin-bottom:4px">Poids final : '+p.toFixed(1)+' kg</div>'+
+        '<div style="font-size:14px;font-weight:800;color:#D52B1E;margin-bottom:10px">À perdre : '+aPerdre.toFixed(1)+' kg</div>'+
+        '<div style="font-size:13px;color:#555;line-height:1.8">'+
+        'dont <strong>'+perteFat.toFixed(1)+' kg de gras</strong> et '+perteLean.toFixed(1)+' kg de masse maigre<br>'+
+        '⏱️ Durée minimum : <strong>'+sem+' semaine'+(sem>1?'s':'')+'</strong> ('+(sem/4.345).toFixed(1)+' mois, à 1 kg/sem max)'+
+        '</div></div>';
+    }
+  }
+  out.innerHTML=h;
+}
+
 function bindCoach(){
   var cp=document.getElementById("coach-pass"), cg=document.getElementById("coach-go");
   if(cp&&cg){
     function tryLogin(){if(cp.value===COACH_PASS){state.coachAuthed=true;try{localStorage.setItem("amcoach_coach_auth",String(Date.now()));}catch(e){}loadCoachDataFromCloud();render();}}
     cg.addEventListener("click",tryLogin);
     cp.addEventListener("keydown",function(e){if(e.key==="Enter")tryLogin();});
+    return;
+  }
+  // Calculateur bilan
+  var co=document.getElementById("calc-open");
+  if(co)co.addEventListener("click",function(){state.coachCalc=true;render();});
+  var cbk=document.getElementById("calc-back");
+  if(cbk){
+    cbk.addEventListener("click",function(){state.coachCalc=false;render();});
+    var sx=document.querySelectorAll(".calc-sexe");
+    for(var s2=0;s2<sx.length;s2++){
+      sx[s2].addEventListener("click",function(){state.calcData.sexe=this.getAttribute("data-sexe");render();});
+    }
+    [["calc-poids","poids"],["calc-mga","mga"],["calc-mgc","mgc"]].forEach(function(pair){
+      var el=document.getElementById(pair[0]);
+      if(el)el.addEventListener("input",function(){state.calcData[pair[1]]=this.value;coachCalcCompute();});
+    });
+    coachCalcCompute();
     return;
   }
   var ft=document.getElementById("form-toggle");
@@ -2346,6 +2455,7 @@ function bindMain(name,start){
 
   function goBack(){
     if(state.selDay!==null&&state.selDay!==undefined){state.selDay=null;render();return true;}
+    if(typeof IS_COACH!=="undefined"&&IS_COACH&&state.coachCalc){state.coachCalc=false;render();return true;}
     if(typeof IS_COACH!=="undefined"&&IS_COACH&&state.coachDetail){state.coachDetail=null;render();return true;}
     return false;
   }

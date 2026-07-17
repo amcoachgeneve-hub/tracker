@@ -2027,14 +2027,17 @@ function coachCalcCompute(){
       var k12sA=Math.min(aPerdre,soloMin*12),k12sB=Math.min(aPerdre,soloMax*12);
       var k12pA=Math.min(aPerdre,proMin*12),k12pB=Math.min(aPerdre,proMax*12);
       var proHit12=proMin*12>=aPerdre;
+      var rateGoal=aPerdre/12;
       h+='<div class="card" style="padding:16px;border-left:4px solid #0057A8">'+
         '<div class="card-label">🎯 OBJECTIF '+mgc.toFixed(0)+'% DE MASSE GRASSE</div>'+
         '<div style="font-weight:900;font-size:26px;margin-bottom:4px">Poids final : '+p.toFixed(1)+' kg</div>'+
         '<div style="font-size:14px;font-weight:800;color:#D52B1E;margin-bottom:10px">À perdre : '+aPerdre.toFixed(1)+' kg <span style="color:#888;font-weight:600;font-size:12px">(dont '+perteFat.toFixed(1)+' kg de gras)</span></div>'+
         '<div style="font-size:13px;color:#555;line-height:1.9">'+
-        '🚶 <strong>Seul</strong> ('+fr(soloMin)+'–'+fr(soloMax)+' kg/sem) : '+sSeul1+' à '+sSeul2+' semaines<br>'+
-        '🔥 <strong>Encadré AM Coach</strong> ('+fr(proMin)+'–'+fr(proMax)+' kg/sem'+(obese?' · protocole renforcé':'')+') : <strong style="color:#D52B1E">'+sPro1+' à '+sPro2+' semaines</strong><br>'+
-        '📆 <strong>Sur 12 semaines</strong> : seul '+fr(k12sA)+'–'+fr(k12sB)+' kg · encadré <strong style="color:#D52B1E">'+fr(k12pA)+'–'+fr(k12pB)+' kg'+(proHit12?' — objectif atteint ✅':'')+'</strong>'+
+        '🚶 <strong>Seul (réaliste)</strong> ('+fr(soloMin)+'–'+fr(soloMax)+' kg/sem) : '+fr(k12sA)+'–'+fr(k12sB)+' kg en 12 semaines <span style="color:#999;font-size:11px">(objectif complet : '+sSeul1+' à '+sSeul2+' sem)</span><br>'+
+        (rateGoal<=proMax
+          ?'🎯 <strong>Notre objectif — 12 semaines</strong> : les <strong style="color:#D52B1E">'+aPerdre.toFixed(1)+' kg</strong>, soit ~'+fr(rateGoal)+' kg/sem <span style="color:#999;font-size:11px">(réalisable et minimum)</span><br>'
+          :'🎯 <strong>Notre objectif — 12 semaines</strong> : <strong style="color:#D52B1E">'+fr(k12pA)+'–'+fr(k12pB)+' kg</strong> <span style="color:#999;font-size:11px">(objectif complet : '+sPro1+' à '+sPro2+' sem)</span><br>')+
+        '🎁 <strong>Bonus possible encadré</strong> ('+fr(proMin)+'–'+fr(proMax)+' kg/sem'+(obese?' · protocole renforcé':'')+') : '+(proHit12?'objectif atteint en <strong style="color:#D52B1E">'+sPro1+' à '+sPro2+' semaines</strong> ✅':'jusqu\'à <strong style="color:#D52B1E">'+fr(k12pB)+' kg</strong> en 12 semaines')+
         '</div></div>'+
         '<button id="calc-report" class="big-btn" style="padding:14px 0;font-size:14px;margin-top:12px">📄 Générer le rapport client</button>';
     }
@@ -2058,8 +2061,10 @@ function openCalcReport(){
   function fr(x){return String(Math.round(x*10)/10).replace(".",",");}
   var sem1=Math.ceil(aPerdre/soloMax),sem08=Math.ceil(aPerdre/soloMin);
   var sPro1=Math.ceil(aPerdre/proMax),sPro2=Math.ceil(aPerdre/proMin);
+  var k12sA=Math.min(aPerdre,soloMin*12),k12sB=Math.min(aPerdre,soloMax*12);
   var k12pA=Math.min(aPerdre,proMin*12),k12pB=Math.min(aPerdre,proMax*12);
   var proHit12=proMin*12>=aPerdre;
+  var rateGoal=aPerdre/12;
   var prenom=(c.nom||"").trim();
   var reperes=c.sexe==="F"
     ?'<p>Chez la femme, un taux de masse grasse plus élevé que chez l\'homme est <strong>physiologiquement normal et nécessaire</strong> au bon équilibre hormonal.</p><ul>'+
@@ -2096,9 +2101,11 @@ function openCalcReport(){
     '<div class="kv"><span>Objectif</span><strong>'+mgc.toFixed(0)+' % de masse grasse</strong></div>'+
     '<div class="kv"><span>Poids final estimé</span><strong>'+p.toFixed(1)+' kg</strong></div>'+
     '<div class="kv"><span>À perdre</span><strong style="color:#D52B1E">'+aPerdre.toFixed(1)+' kg</strong></div>'+
-    '<div class="kv"><span>Durée seul(e) <span style="font-size:11px;color:#999">('+fr(soloMin)+'–'+fr(soloMax)+' kg/sem)</span></span><strong>'+sem1+' à '+sem08+' semaines</strong></div>'+
-    '<div class="kv"><span>Durée encadré(e) AM Coach <span style="font-size:11px;color:#999">('+fr(proMin)+'–'+fr(proMax)+' kg/sem)</span></span><strong style="color:#D52B1E">'+sPro1+' à '+sPro2+' semaines</strong></div>'+
-    '<div class="kv"><span>Encadré(e), sur 12 semaines</span><strong style="color:#D52B1E">'+fr(k12pA)+' à '+fr(k12pB)+' kg perdus'+(proHit12?' — objectif atteint ✅':'')+'</strong></div>'+
+    '<div class="kv"><span>Seul(e), réaliste <span style="font-size:11px;color:#999">('+fr(soloMin)+'–'+fr(soloMax)+' kg/sem)</span></span><strong>'+fr(k12sA)+'–'+fr(k12sB)+' kg en 12 sem</strong></div>'+
+    (rateGoal<=proMax
+      ?'<div class="kv"><span>🎯 Notre objectif — 12 semaines <span style="font-size:11px;color:#999">(~'+fr(rateGoal)+' kg/sem, minimum)</span></span><strong style="color:#D52B1E">'+aPerdre.toFixed(1)+' kg</strong></div>'
+      :'<div class="kv"><span>🎯 Notre objectif — 12 semaines</span><strong style="color:#D52B1E">'+fr(k12pA)+'–'+fr(k12pB)+' kg <span style="font-size:11px;color:#999">(complet : '+sPro1+'–'+sPro2+' sem)</span></strong></div>')+
+    '<div class="kv"><span>🎁 Bonus possible encadré(e) <span style="font-size:11px;color:#999">('+fr(proMin)+'–'+fr(proMax)+' kg/sem)</span></span><strong style="color:#D52B1E">'+(proHit12?'objectif atteint en '+sPro1+'–'+sPro2+' sem ✅':'jusqu\'à '+fr(k12pB)+' kg en 12 sem')+'</strong></div>'+
     '<div class="kv"><span>Ta barre calorique</span><strong>'+kcal+' kcal / jour</strong></div>'+
     '</div>'+
     '<h2>🧠 Comprendre ces chiffres</h2>'+

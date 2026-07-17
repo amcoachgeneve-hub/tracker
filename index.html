@@ -2016,18 +2016,25 @@ function coachCalcCompute(){
         fat-=0.01*rMG;lean-=0.01*(1-rMG);p-=0.01;mg=fat/p;guard++;
       }
       var aPerdre=p0-p,perteFat=p0*(mga/100)-fat,perteLean=aPerdre-perteFat;
-      // Rythme seul : 0,8–1 kg/sem. Rythme encadré pro : 1,5–2 kg/sem (surpoids), 3–4 kg/sem (obésité: MG ≥30% H / ≥40% F)
-      var obese=(c.sexe==="F"?mga>=40:mga>=30);
-      var proMin=obese?3:1.5,proMax=obese?4:2;
-      var sSeul1=Math.ceil(aPerdre/1.0),sSeul2=Math.ceil(aPerdre/0.8);
+      // Rythmes par sexe. Hommes — seul : 0,8–1 kg/sem ; encadré : 1,5–2 (obésité : 3–4). Femmes — seul : 0,3–0,5 ; encadré : 0,8–1,2 (obésité : 1,6–2,4). Obésité : MG ≥30% H / ≥40% F. Projections sur 12 semaines.
+      var isF=c.sexe==="F";
+      var obese=(isF?mga>=40:mga>=30);
+      var soloMin=isF?0.3:0.8,soloMax=isF?0.5:1.0;
+      var proMin=isF?(obese?1.6:0.8):(obese?3:1.5),proMax=isF?(obese?2.4:1.2):(obese?4:2);
+      function fr(x){return String(Math.round(x*10)/10).replace(".",",");}
+      var sSeul1=Math.ceil(aPerdre/soloMax),sSeul2=Math.ceil(aPerdre/soloMin);
       var sPro1=Math.ceil(aPerdre/proMax),sPro2=Math.ceil(aPerdre/proMin);
+      var k12sA=Math.min(aPerdre,soloMin*12),k12sB=Math.min(aPerdre,soloMax*12);
+      var k12pA=Math.min(aPerdre,proMin*12),k12pB=Math.min(aPerdre,proMax*12);
+      var proHit12=proMin*12>=aPerdre;
       h+='<div class="card" style="padding:16px;border-left:4px solid #0057A8">'+
         '<div class="card-label">🎯 OBJECTIF '+mgc.toFixed(0)+'% DE MASSE GRASSE</div>'+
         '<div style="font-weight:900;font-size:26px;margin-bottom:4px">Poids final : '+p.toFixed(1)+' kg</div>'+
         '<div style="font-size:14px;font-weight:800;color:#D52B1E;margin-bottom:10px">À perdre : '+aPerdre.toFixed(1)+' kg <span style="color:#888;font-weight:600;font-size:12px">(dont '+perteFat.toFixed(1)+' kg de gras)</span></div>'+
         '<div style="font-size:13px;color:#555;line-height:1.9">'+
-        '🚶 <strong>Seul</strong> (0,8–1 kg/sem) : '+sSeul1+' à '+sSeul2+' semaines<br>'+
-        '🔥 <strong>Encadré AM Coach</strong> ('+proMin+'–'+proMax+' kg/sem'+(obese?' · protocole renforcé':'')+') : <strong style="color:#D52B1E">'+sPro1+' à '+sPro2+' semaines</strong>'+
+        '🚶 <strong>Seul</strong> ('+fr(soloMin)+'–'+fr(soloMax)+' kg/sem) : '+sSeul1+' à '+sSeul2+' semaines<br>'+
+        '🔥 <strong>Encadré AM Coach</strong> ('+fr(proMin)+'–'+fr(proMax)+' kg/sem'+(obese?' · protocole renforcé':'')+') : <strong style="color:#D52B1E">'+sPro1+' à '+sPro2+' semaines</strong><br>'+
+        '📆 <strong>Sur 12 semaines</strong> : seul '+fr(k12sA)+'–'+fr(k12sB)+' kg · encadré <strong style="color:#D52B1E">'+fr(k12pA)+'–'+fr(k12pB)+' kg'+(proHit12?' — objectif atteint ✅':'')+'</strong>'+
         '</div></div>'+
         '<button id="calc-report" class="big-btn" style="padding:14px 0;font-size:14px;margin-top:12px">📄 Générer le rapport client</button>';
     }
@@ -2044,10 +2051,15 @@ function openCalcReport(){
   var mg=mga/100,fat=p0*mg,lean=p0*(1-mg),p=p0,guard=0;
   while(mg>mgc/100&&guard<30000){var r=mg>=0.10?(2/3):0.5;fat-=0.01*r;lean-=0.01*(1-r);p-=0.01;mg=fat/p;guard++;}
   var aPerdre=p0-p,perteFat=p0*(mga/100)-fat,perteLean=aPerdre-perteFat;
-  var sem1=Math.ceil(aPerdre/1.0),sem08=Math.ceil(aPerdre/0.8);
-  var obese=(c.sexe==="F"?mga>=40:mga>=30);
-  var proMin=obese?3:1.5,proMax=obese?4:2;
+  var isF=c.sexe==="F";
+  var obese=(isF?mga>=40:mga>=30);
+  var soloMin=isF?0.3:0.8,soloMax=isF?0.5:1.0;
+  var proMin=isF?(obese?1.6:0.8):(obese?3:1.5),proMax=isF?(obese?2.4:1.2):(obese?4:2);
+  function fr(x){return String(Math.round(x*10)/10).replace(".",",");}
+  var sem1=Math.ceil(aPerdre/soloMax),sem08=Math.ceil(aPerdre/soloMin);
   var sPro1=Math.ceil(aPerdre/proMax),sPro2=Math.ceil(aPerdre/proMin);
+  var k12pA=Math.min(aPerdre,proMin*12),k12pB=Math.min(aPerdre,proMax*12);
+  var proHit12=proMin*12>=aPerdre;
   var prenom=(c.nom||"").trim();
   var reperes=c.sexe==="F"
     ?'<p>Chez la femme, un taux de masse grasse plus élevé que chez l\'homme est <strong>physiologiquement normal et nécessaire</strong> au bon équilibre hormonal.</p><ul>'+
@@ -2084,15 +2096,16 @@ function openCalcReport(){
     '<div class="kv"><span>Objectif</span><strong>'+mgc.toFixed(0)+' % de masse grasse</strong></div>'+
     '<div class="kv"><span>Poids final estimé</span><strong>'+p.toFixed(1)+' kg</strong></div>'+
     '<div class="kv"><span>À perdre</span><strong style="color:#D52B1E">'+aPerdre.toFixed(1)+' kg</strong></div>'+
-    '<div class="kv"><span>Durée seul(e) <span style="font-size:11px;color:#999">(0,8–1 kg/sem)</span></span><strong>'+sem1+' à '+sem08+' semaines</strong></div>'+
-    '<div class="kv"><span>Durée encadré(e) AM Coach <span style="font-size:11px;color:#999">('+proMin+'–'+proMax+' kg/sem)</span></span><strong style="color:#D52B1E">'+sPro1+' à '+sPro2+' semaines</strong></div>'+
+    '<div class="kv"><span>Durée seul(e) <span style="font-size:11px;color:#999">('+fr(soloMin)+'–'+fr(soloMax)+' kg/sem)</span></span><strong>'+sem1+' à '+sem08+' semaines</strong></div>'+
+    '<div class="kv"><span>Durée encadré(e) AM Coach <span style="font-size:11px;color:#999">('+fr(proMin)+'–'+fr(proMax)+' kg/sem)</span></span><strong style="color:#D52B1E">'+sPro1+' à '+sPro2+' semaines</strong></div>'+
+    '<div class="kv"><span>Encadré(e), sur 12 semaines</span><strong style="color:#D52B1E">'+fr(k12pA)+' à '+fr(k12pB)+' kg perdus'+(proHit12?' — objectif atteint ✅':'')+'</strong></div>'+
     '<div class="kv"><span>Ta barre calorique</span><strong>'+kcal+' kcal / jour</strong></div>'+
     '</div>'+
     '<h2>🧠 Comprendre ces chiffres</h2>'+
     '<div class="card">'+
     '<p><strong>Pourquoi deux durées ?</strong> Parce que ton corps ne perd pas que du gras quand tu maigris. Sur les '+aPerdre.toFixed(1)+' kg à perdre, environ <strong>'+perteFat.toFixed(1)+' kg seront du gras</strong> et '+perteLean.toFixed(1)+' kg de la masse maigre (muscle, eau). Plus tu vas vite sans encadrement, plus la part de muscle perdue augmente — et le muscle, c\'est justement ce qui te donne la silhouette que tu vises et ce qui brûle des calories au repos.</p>'+
-    '<p style="margin-top:10px"><strong>Seul(e), 800 g à 1 kg par semaine est le rythme prudent</strong> : au-delà, sans suivi, ton corps se défend — métabolisme qui ralentit, faim qui monte, reprise qui se prépare. Perdre vite pour tout reprendre, ce n\'est pas perdre — c\'est reculer.</p>'+
-    '<p style="margin-top:10px"><strong>Encadré(e), on peut aller beaucoup plus vite en sécurité.</strong> Avec '+(sPro1<sem1?'un protocole ajusté chaque semaine':'un suivi rapproché')+' — menus calibrés, apport en protéines contrôlé, entraînement adapté et ajustements en continu — le rythme passe à '+proMin+'–'+proMax+' kg par semaine tout en protégeant ta masse musculaire. C\'est exactement le travail d\'un professionnel : aller vite sans casser la machine. Seul(e), ne tente pas ce rythme.</p>'+
+    '<p style="margin-top:10px"><strong>Seul(e), '+fr(soloMin)+' à '+fr(soloMax)+' kg par semaine est le rythme prudent</strong> : au-delà, sans suivi, ton corps se défend — métabolisme qui ralentit, faim qui monte, reprise qui se prépare. Perdre vite pour tout reprendre, ce n\'est pas perdre — c\'est reculer.</p>'+
+    '<p style="margin-top:10px"><strong>Encadré(e), on peut aller beaucoup plus vite en sécurité.</strong> Avec '+(sPro1<sem1?'un protocole ajusté chaque semaine':'un suivi rapproché')+' — menus calibrés, apport en protéines contrôlé, entraînement adapté et ajustements en continu — le rythme passe à '+fr(proMin)+'–'+fr(proMax)+' kg par semaine tout en protégeant ta masse musculaire. C\'est exactement le travail d\'un professionnel : aller vite sans casser la machine. Seul(e), ne tente pas ce rythme.</p>'+
     '<p style="margin-top:10px"><strong>Ta barre calorique de '+kcal+' kcal</strong> est ton repère quotidien. Ce n\'est pas une punition, c\'est le niveau d\'énergie qui force ton corps à utiliser son gras comme carburant tout en protégeant ton muscle — à condition d\'y mettre suffisamment de protéines et de continuer l\'entraînement.</p>'+
     '</div>'+
     '<h2>👀 À quoi ressemble ton objectif</h2>'+
@@ -2117,8 +2130,7 @@ function coachSaveSlot(slug,idx,data){
 }
 var BILAN_MESURES=[["brasD","Bras droit",1],["brasG","Bras gauche",1],["poitrine","Poitrine",0],["nombril","Nombril",0],["ventre","Ventre",0],["fessiers","Fessiers/Hanches",0],["jambeD","Jambe droite",1],["jambeG","Jambe gauche",1],["molletD","Mollet droit",1],["molletG","Mollet gauche",1]];
 var BILAN_SCORES=[["puissance","Puissance personnelle — action ou excuse ?"],["vitalite","Vitalité — énergie physique ou épuisement ?"],["temps","Le temps — maîtrise ou gaspillage ?"],["emotions","Gestion émotionnelle — conséquences mental/alimentation, fringales ?"]];
-var BILAN_CONTEXTE=[["pourquoi","1. Raison — POURQUOI c'est important ?","area"],["ressenti","Comment tu te sentirais avec cet objectif réussi ? Et si tu l'as, quel est l'objectif suivant ?","area"],["prof","2. Profession et stress ?","text"],["horaires","3. Horaires de travail ?","text"],["fatphy","4. Fatigue physique de 1 à 10 — si en dessous de 6, pourquoi ?","text"],["fatmen","5. Fatigue mentale de 1 à 10 — si en dessous de 6, pourquoi ?","text"]];
-var BILAN_FREINS=["freins","Qu'est-ce qui pourrait t'empêcher de faire ce challenge et d'atteindre ton objectif ? (finances, entourage, environnement...)","area"];
+var BILAN_CONTEXTE=[["pourquoi","1. Raison — POURQUOI c'est important ?","area"],["ressenti","Comment tu te sentirais avec cet objectif réussi ? Et si tu l'as, quel est l'objectif suivant ?","area"],["freins","2. Qu'est-ce qui pourrait t'empêcher de faire ce challenge et d'atteindre ton objectif ? (finances, entourage, environnement...)","area"],["prof","3. Profession et stress ?","text"],["horaires","4. Horaires de travail ?","text"],["fatphy","5. Fatigue physique de 1 à 10 — si en dessous de 6, pourquoi ?","text"],["fatmen","6. Fatigue mentale de 1 à 10 — si en dessous de 6, pourquoi ?","text"]];
 var BILAN_SEMAINE=["semaine","Bilan semaine — lundi à dimanche","area"];
 var BILAN_HAB=[["h1","1° À quelle heure vous levez-vous ?"],["h2","2° Faites-vous un petit déjeuner ?"],["h3","3° De quoi est composé ce petit déjeuner ?"],["h4","4° Vous sentez-vous fatigué dans la matinée ?"],["h5","5° Mangez-vous en matinée ?"],["h6","6° À quelle heure déjeunez-vous ?"],["h7","7° De quoi est composé votre déjeuner ?"],["h8","8° Êtes-vous fatigué dans l'après-midi ?"],["h9","9° Avez-vous faim dans l'après-midi ?"],["h10","10° Faites-vous un goûter ?"],["h11","11° À quelle heure mangez-vous le soir ?"],["h12","12° Que mangez-vous le soir ?"],["h13","13° Vous couchez-vous rapidement après manger ?"],["h14","14° Remangez-vous avant de dormir ?"],["h15","15° Vivez-vous en couple / avec des enfants ?"],["h16","16° Mangez-vous avec ces personnes ?"],["h17","17° Est-ce vous qui préparez votre repas ?"],["h18","18° Sortez-vous souvent en soirée ?"],["h19","19° Buvez-vous de l'alcool ?"],["h20","20° Buvez-vous des sodas ?"],["h21","21° Combien de litres d'eau buvez-vous ?"],["h22","22° Buvez-vous du café ? Combien par jour ?"],["h23","23° Fumez-vous (cigarettes) ? Combien ?"],["h24","24° Combien de temps par jour sur les réseaux sociaux ?"]];
 function bilanQ(id,label,type){
@@ -2173,14 +2185,13 @@ function viewCoachBilan(){
   }
   h+='<div style="font-weight:900;font-size:12px;color:#7B1FA2;margin:8px 0 8px">POURQUOI & CONTEXTE</div>';
   for(var qc=0;qc<BILAN_CONTEXTE.length;qc++){h+=bilanQ("bl-q-"+BILAN_CONTEXTE[qc][0],BILAN_CONTEXTE[qc][1],BILAN_CONTEXTE[qc][2]);}
-  h+='<div style="font-weight:900;font-size:12px;color:#7B1FA2;margin:8px 0 8px">BARÈME /10 & ENGAGEMENT — BALANCE-360</div>';
+  h+='<div style="font-weight:900;font-size:12px;color:#7B1FA2;margin:8px 0 8px">BARÈME /10 — BALANCE-360</div>';
   for(var s3=0;s3<BILAN_SCORES.length;s3++){
     h+=bilanInput("bl-s-"+BILAN_SCORES[s3][0],(s3+1)+". "+BILAN_SCORES[s3][1].toUpperCase()+" (/10)","7");
   }
-  h+=bilanQ("bl-q-"+BILAN_FREINS[0],"5. "+BILAN_FREINS[1],BILAN_FREINS[2]);
   h+=bilanQ("bl-q-"+BILAN_SEMAINE[0],BILAN_SEMAINE[1],BILAN_SEMAINE[2]);
   h+='<div style="font-weight:900;font-size:12px;color:#7B1FA2;margin:8px 0 8px">HABITUDES ALIMENTAIRES</div>';
-  for(var hq=0;hq<BILAN_HAB.length;hq++){h+=bilanQ("bl-q-"+BILAN_HAB[hq][0],BILAN_HAB[hq][1],"text");}
+  for(var hq=0;hq<BILAN_HAB.length;hq++){h+=bilanQ("bl-q-"+BILAN_HAB[hq][0],BILAN_HAB[hq][1],"area");}
   h+=
     '<button id="bl-save" class="big-btn" style="padding:15px 0;font-size:14px">💾 Enregistrer l&#39;analyse '+(bl.length+1)+'</button>'+
     '</div></div></div>';
@@ -2248,7 +2259,7 @@ function bilanReport(slug,idx){
     return any?'<h2>'+title+'</h2>'+block:'';
   }
   kh+=qa(BILAN_CONTEXTE,'Pourquoi & contexte');
-  kh+=qa([BILAN_FREINS,BILAN_SEMAINE],'Engagement & semaine');
+  kh+=qa([BILAN_SEMAINE],'Bilan semaine');
   kh+=qa(BILAN_HAB,'Habitudes alimentaires');
   if(a.dec)kh+='<h2>Découverte</h2><p>'+esc(a.dec)+'</p>';
   if(a.hab)kh+='<h2>Habitudes (notes)</h2><p>'+esc(a.hab)+'</p>';
@@ -2434,7 +2445,7 @@ function bindCoach(){
       if(BILAN_MESURES[bm][2])a.mdist[BILAN_MESURES[bm][0]]=gv2("bl-d-"+BILAN_MESURES[bm][0]);
     }
     for(var bs=0;bs<BILAN_SCORES.length;bs++){a.scores[BILAN_SCORES[bs][0]]=gv2("bl-s-"+BILAN_SCORES[bs][0]);}
-    var allQ=BILAN_CONTEXTE.concat([BILAN_FREINS,BILAN_SEMAINE]).concat(BILAN_HAB);
+    var allQ=BILAN_CONTEXTE.concat([BILAN_SEMAINE]).concat(BILAN_HAB);
     for(var qq=0;qq<allQ.length;qq++){a.q[allQ[qq][0]]=gv2("bl-q-"+allQ[qq][0]);}
     if(!a.poids&&!a.obj1){alert("Renseigne au moins le poids ou un objectif.");return;}
     var slug=state.coachDetail;

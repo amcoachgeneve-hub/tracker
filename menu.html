@@ -97,8 +97,10 @@ var ADMIN_PASS="akli2024";
 var MENUS={
   equilibre:{num:"Phase 1",name:"Équilibre — Les Fondations",desc:"Rééquilibrage : assiette 1/3 glucides · 1/3 protéines · 1/3 fibres, midi et soir (dîner en glucides bas)."},
   acceleration:{num:"Phase 2",name:"Accélération",desc:"Le midi : glucides + protéines + fibres. Le soir : protéines + fibres uniquement."},
-  cyclage:{num:"Phase 3",name:"Cyclage",desc:"Jours entiers SANS glucides (SG) et jours GLUCIDES BAS (GB) selon le calendrier."}
+  cyclage:{num:"Phase 3",name:"Cyclage",desc:"Jours entiers SANS glucides (SG) et jours GLUCIDES BAS (GB) selon le calendrier."},
+  "14jours":{num:"Reset",name:"Reset 14 jours",desc:"Ton menu spécial Reset : 14 jours pour perdre du poids. Suis exactement les repas du jour — ton coach s'occupe du reste."}
 };
+var MENU_DAYS=function(m){return m==="14jours"?14:28;};
 
 var MEALS=[
   {id:"pdej",  icon:"🌅", name:"Petit-déjeuner"},
@@ -112,6 +114,11 @@ function mealRule(menu,mealId,dayTag){
     if(mealId==="pdej") return {txt:"PROTÉINE",color:"#7B1FA2"};
     if(mealId==="dej")  return {txt:"G + P + F",color:"#2E7D32"};
     return {txt:"GB + P + F",color:"#F59E0B"};
+  }
+  if(menu==="14jours"){
+    if(mealId==="pdej") return {txt:"PROTÉINE",color:"#7B1FA2"};
+    if(mealId==="dej")  return {txt:"G + P + F",color:"#2E7D32"};
+    return {txt:"P + F",color:B};
   }
   if(menu==="acceleration"){
     if(mealId==="pdej") return {txt:"PROTÉINE",color:"#7B1FA2"};
@@ -377,7 +384,7 @@ function viewPicker(){
   var h='<div class="dark-screen">'+
     '<div class="dark-brand"><div class="bar bar-r"></div><span>AM Coach</span><div class="bar bar-b"></div></div>'+
     '<div class="dark-sub">Menus TransfoPhysique · sans blé · sans laitages</div>';
-  var keys=["equilibre","acceleration","cyclage"];
+  var keys=IS_ADMIN?["equilibre","acceleration","cyclage","14jours"]:["equilibre","acceleration","cyclage"];
   for(var i=0;i<keys.length;i++){
     var m=MENUS[keys[i]];
     h+='<button class="menu-pick" data-menu="'+keys[i]+'">'+
@@ -433,7 +440,7 @@ function viewCalendar(){
       }
       var hasRecipe=state.recipes[keyOf(MENU,i,"dej")]||state.recipes[keyOf(MENU,i,"pdej")]||state.recipes[keyOf(MENU,i,"diner")];
       var phIdx=PHASE_ORDER.indexOf(MENU);
-      var isToday=CLIENT&&state.clientStart&&(FORCED?(dayGlobal()%28)===i:(Math.floor(dayGlobal()/28)===phIdx&&(dayGlobal()%28)===i));
+      var isToday=CLIENT&&state.clientStart&&(FORCED?(dayGlobal()%MENU_DAYS(MENU))===i:(Math.floor(dayGlobal()/28)===phIdx&&(dayGlobal()%28)===i));
       var todayStyle=isToday?'border-color:#D52B1E;border-width:2.5px;font-weight:900':'';
       h+='<button class="'+cls+'" data-day="'+i+'" style="'+todayStyle+'">'+(i+1)+tag+(hasRecipe?'<span class="dc-dot"></span>':'')+'</button>';
     }
@@ -536,7 +543,7 @@ function viewAdmin(){
   var h='<div style="padding:14px">'+
     '<div class="admin-field"><div class="admin-label">Jour (1–30)</div>'+
     '<select id="ad-day" class="admin-input">';
-  for(var i=0;i<28;i++)h+='<option value="'+i+'"'+(i===day?' selected':'')+'>Jour '+(i+1)+(MENU==="cyclage"?" — "+cyclageTag(i):"")+'</option>';
+  for(var i=0;i<MENU_DAYS(MENU);i++)h+='<option value="'+i+'"'+(i===day?' selected':'')+'>Jour '+(i+1)+(MENU==="cyclage"?" — "+cyclageTag(i):"")+'</option>';
   h+='</select></div>'+
     '<div class="admin-field"><div class="admin-label">Repas</div>'+
     '<select id="ad-meal" class="admin-input">'+

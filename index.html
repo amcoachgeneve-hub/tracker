@@ -737,7 +737,7 @@ function svgRing(pct,color,size){
 // ═══════════ RENDER ROOT ═══════════
 function render(){
   var root=document.getElementById("root");
-  if(IS_COACH){root.innerHTML=state.coachAuthed?(state.coachDetail?viewCoachDetail():(state.coachCalc?viewCoachCalc():viewCoachDash())):viewCoachLogin();bindCoach();return;}
+  if(IS_COACH){root.innerHTML=state.coachAuthed?(state.coachDetail?(state.cdTab==="bilan"?viewCoachBilan():viewCoachDetail()):(state.coachCalc?viewCoachCalc():viewCoachDash())):viewCoachLogin();bindCoach();return;}
   if(!CLIENT){root.innerHTML=viewNoClient();return;}
   var name=lsGetStr("amcoach_name_"+CLIENT);
   var start=lsGetStr("amcoach_start_"+CLIENT);
@@ -936,9 +936,20 @@ function viewCalendar(name,start){
     h+='<div style="padding:0 14px;margin:0 0 14px"><button id="bday-edit" style="width:100%;padding:13px 0;border-radius:12px;border:2px dashed #F0B6B6;background:#FFF7F7;color:#D52B1E;font-weight:800;font-size:13px">🎂 Ajouter mon anniversaire</button></div>';
   }
 
+  // 🏋️ BONUS ENTRAÎNEMENT DU JOUR (slot 507, planning hebdo défini par le coach)
+  var tr7c=allData[507]||{};
+  var wdToday=(new Date().getDay()+6)%7;
+  var e7c=tr7c[wdToday];
+  if(e7c&&(e7c.v||e7c.m)){
+    h+='<div class="card" style="margin-bottom:18px;border-left:4px solid #7B1FA2;padding:15px 16px">'+
+      '<div class="card-label">🏋️ BONUS DU JOUR</div>';
+    if(e7c.v){h+='<a href="'+esc(e7c.v)+'" target="_blank" rel="noopener" style="display:block;text-align:center;padding:13px 0;border-radius:12px;background:#7B1FA2;color:#fff;font-weight:900;font-size:14px;text-decoration:none;margin-bottom:'+(e7c.m?'10px':'0')+'">▶️ Ta séance muscu 10 min</a>';}
+    if(e7c.m){h+='<div style="font-size:13.5px;font-weight:800;color:#444">🚶 '+esc(e7c.m)+'</div>';}
+    h+='</div>';
+  }
+
   // ⚡ ONE THING — MISSION DU JOUR
-  var mission=getMission(allData,today90);
-  var xp=totalXP(allData);
+  var mission=getMission(allData,today90);  var xp=totalXP(allData);
   var grade=currentGrade(xp);
   var nxt=nextGrade(xp);
 
@@ -1062,12 +1073,7 @@ function viewCalendar(name,start){
       '<button id="qg-save" style="width:100%;padding:14px 0;border-radius:12px;background:'+R+';color:#fff;font-weight:900;font-size:14px">Verrouiller mon identité 🔒</button></div>';
   }
 
-  // 🌙 PENSÉE DU SOIR
-  var pensee=pickPensee(allData,today90);
-  h+='<div class="card" style="margin-bottom:18px;background:linear-gradient(135deg,#1a1a2e,#16213e);padding:18px;border:none">'+
-    '<div style="color:#C9A227;font-weight:800;font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">🌙 La pensée du soir — Jour '+(today90+1)+'</div>'+
-    '<div style="color:#E8E8E8;font-size:14px;line-height:1.8;font-style:italic">'+esc(pensee)+'</div>'+
-    '<button id="pensee-share" style="margin-top:12px;font-size:11px;font-weight:800;color:#C9A227;padding:6px 12px;border:1.5px solid #C9A227;border-radius:16px;background:transparent">📤 Partager cette pensée</button></div>';
+  // 🌙 Pensée du soir → déplacée dans la vue jour (épuration accueil)
 
   // ⚔️ BILAN DE BATAILLE (le dimanche)
   if((today90+1)%7===0&&today90>0){
@@ -1126,13 +1132,7 @@ function viewCalendar(name,start){
     h+='</div>';
   }
 
-  // ALERTE COACH
-  var alert=computeAlert(allData,today90);
-  if(alert){
-    h+='<div class="card" style="margin-bottom:18px;background:#FFF8F0;border:2px solid #FFE0B2;padding:14px 16px">'+
-      '<div style="font-weight:900;font-size:11px;color:#E65100;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">⚠️ Message de ton coach</div>'+
-      '<div style="font-size:13px;color:#7A4A00;line-height:1.7;font-weight:600">'+alert.msg+'</div></div>';
-  }
+  // ⚠️ Message du coach → déplacé dans la vue jour (épuration accueil)
 
   // 3 months (mois 2 et 3 verrouillés tant que le précédent n'est pas terminé)
   for(var mi=0;mi<3;mi++){
@@ -1228,6 +1228,21 @@ function viewDay(name,start){
     '</div></div><div style="padding:16px 14px 0">';
 
   if(idx>today90)h+='<div class="info-banner"><span style="font-size:16px">📅</span><span>Jour futur — tu peux anticiper</span></div>';
+
+  // 🌙 Pensée du jour + message du coach (déplacés ici pour épurer l'accueil)
+  var penseeJ=pickPensee(allData,idx);
+  h+='<div class="card" style="background:linear-gradient(135deg,#1a1a2e,#16213e);padding:16px;border:none">'+
+    '<div style="color:#C9A227;font-weight:800;font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">🌙 La pensée du jour '+(idx+1)+'</div>'+
+    '<div style="color:#E8E8E8;font-size:13.5px;line-height:1.75;font-style:italic">'+esc(penseeJ)+'</div>'+
+    '<button id="pensee-share" style="margin-top:10px;font-size:11px;font-weight:800;color:#C9A227;padding:6px 12px;border:1.5px solid #C9A227;border-radius:16px;background:transparent">📤 Partager</button></div>';
+  if(idx===today90){
+    var alertD=computeAlert(allData,today90);
+    if(alertD){
+      h+='<div class="card" style="background:#FFF8F0;border:2px solid #FFE0B2;padding:13px 15px">'+
+        '<div style="font-weight:900;font-size:11px;color:#E65100;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">⚠️ Message de ton coach</div>'+
+        '<div style="font-size:13px;color:#7A4A00;line-height:1.7;font-weight:600">'+alertD.msg+'</div></div>';
+    }
+  }
 
   // poids
   h+='<div class="card" style="display:flex;align-items:center;gap:14px"><span style="font-size:24px">⚖️</span>'+
@@ -1334,6 +1349,11 @@ function viewDay(name,start){
 }
 
 function bindDay(name,start){
+  var idxP=state.selDay;
+  var pSh=document.getElementById("pensee-share");
+  if(pSh)pSh.addEventListener("click",function(){
+    if(window.openPenseeShare)window.openPenseeShare(pickPensee(getAllData(),idxP),idxP+1);
+  });
   var idx=state.selDay;
   function cur(){return getAllData()[idx]||{};}
   function persist(patch){
@@ -1766,6 +1786,32 @@ function viewCoachDetail(){
     '<button id="acc-inf" style="flex:1;font-size:11px;font-weight:800;padding:9px 0;border:1.5px solid #999;border-radius:10px;background:#fff;color:#555">♾️ Illimité</button>'+
     '<button id="acc-toggle" style="flex:1;font-size:11px;font-weight:800;padding:9px 0;border:1.5px solid '+(isOff?"#4CAF50":"#D52B1E")+';border-radius:10px;background:#fff;color:'+(isOff?"#4CAF50":"#D52B1E")+'">'+(isOff?"✅ Réactiver":"⛔ Couper")+'</button></div></div>';
 
+  // ⚡ RESET 14 JOURS
+  h+='<div class="card" style="border-left:4px solid #E65100;padding:13px 15px">'+
+    '<div style="font-weight:800;font-size:13px;margin-bottom:10px">⚡ Reset 14 jours</div>'+
+    '<div style="display:flex;gap:8px;margin-bottom:8px">'+
+    '<button id="reset14-on" style="flex:1;font-size:11px;font-weight:800;padding:9px 0;border:1.5px solid #E65100;border-radius:10px;background:#fff;color:#E65100">⚡ Activer 14 jours</button>'+
+    '<button id="reset14-off" style="flex:1;font-size:11px;font-weight:800;padding:9px 0;border:1.5px solid #4CAF50;border-radius:10px;background:#fff;color:#4CAF50">🔓 Passer au 90 jours</button></div>'+
+    '<button class="copy-menu14 big-btn" data-slug="'+esc(c.slug)+'" style="width:100%;padding:11px 0;font-size:12px;background:#E65100;box-shadow:none">🍽️ Copier lien MENU 14 jours</button>'+
+    '<div style="font-size:11px;color:#999;margin-top:8px;line-height:1.5">"Activer" fixe la fin d\'accès à J+14 : app et menu se bloquent ensuite automatiquement. "Passer au 90 jours" débloque tout (accès illimité) — renvoie alors le lien tracker habituel.</div></div>';
+
+  // 🏋️ ENTRAÎNEMENT BONUS (7 jours) — slot 507
+  var tr7=allData[507]||{};
+  var dayNames=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
+  h+='<div class="card" style="border-left:4px solid #7B1FA2;padding:13px 15px">'+
+    '<div style="font-weight:800;font-size:13px;margin-bottom:4px">🏋️ Entraînement bonus — planning 7 jours</div>'+
+    '<div style="font-size:11px;color:#999;margin-bottom:10px">10 min muscu (vidéo) + marche 30 min à 1h30. Touche un jour pour définir sa vidéo et sa consigne.</div>';
+  for(var d7=0;d7<7;d7++){
+    var e7=tr7[d7]||{};
+    h+='<div class="tr7-day" data-d="'+d7+'" style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #F0F0F0;cursor:pointer">'+
+      '<span style="font-size:12.5px;font-weight:800">'+dayNames[d7]+'</span>'+
+      '<span style="font-size:11px;color:'+(e7.v||e7.m?"#4CAF50":"#CCC")+';font-weight:700">'+(e7.v?"▶️ vidéo":"")+(e7.v&&e7.m?" · ":"")+(e7.m?"🚶 marche":"")+((!e7.v&&!e7.m)?"— vide":"")+'</span></div>';
+  }
+  h+='</div>';
+
+  // 📋 BILANS
+  h+='<button id="cd-bilan" class="big-btn" style="padding:14px 0;font-size:14px;background:#0057A8;margin-bottom:14px">📋 Bilans du client</button>';
+
   // 🎂 Anniversaire
   var bd3=allData[503]||{};
   var bday=bd3.bday||null;
@@ -1966,15 +2012,18 @@ function coachCalcCompute(){
         fat-=0.01*rMG;lean-=0.01*(1-rMG);p-=0.01;mg=fat/p;guard++;
       }
       var aPerdre=p0-p,perteFat=p0*(mga/100)-fat,perteLean=aPerdre-perteFat;
-      var sem1=Math.ceil(aPerdre/1.0),sem08=Math.ceil(aPerdre/0.8); // fourchette 1 kg/sem — 800 g/sem
+      // Rythme seul : 0,8–1 kg/sem. Rythme encadré pro : 1,5–2 kg/sem (surpoids), 3–4 kg/sem (obésité: MG ≥30% H / ≥40% F)
+      var obese=(c.sexe==="F"?mga>=40:mga>=30);
+      var proMin=obese?3:1.5,proMax=obese?4:2;
+      var sSeul1=Math.ceil(aPerdre/1.0),sSeul2=Math.ceil(aPerdre/0.8);
+      var sPro1=Math.ceil(aPerdre/proMax),sPro2=Math.ceil(aPerdre/proMin);
       h+='<div class="card" style="padding:16px;border-left:4px solid #0057A8">'+
         '<div class="card-label">🎯 OBJECTIF '+mgc.toFixed(0)+'% DE MASSE GRASSE</div>'+
         '<div style="font-weight:900;font-size:26px;margin-bottom:4px">Poids final : '+p.toFixed(1)+' kg</div>'+
-        '<div style="font-size:14px;font-weight:800;color:#D52B1E;margin-bottom:10px">À perdre : '+aPerdre.toFixed(1)+' kg</div>'+
-        '<div style="font-size:13px;color:#555;line-height:1.8">'+
-        'dont <strong>'+perteFat.toFixed(1)+' kg de gras</strong> et '+perteLean.toFixed(1)+' kg de masse maigre<br>'+
-        '⏱️ Durée estimée : <strong>'+sem1+' à '+sem08+' semaines</strong><br>'+
-        '<span style="font-size:12px;color:#888">soit '+(sem1/4.345).toFixed(1)+' à '+(sem08/4.345).toFixed(1)+' mois (rythme 1 kg à 800 g / semaine)</span>'+
+        '<div style="font-size:14px;font-weight:800;color:#D52B1E;margin-bottom:10px">À perdre : '+aPerdre.toFixed(1)+' kg <span style="color:#888;font-weight:600;font-size:12px">(dont '+perteFat.toFixed(1)+' kg de gras)</span></div>'+
+        '<div style="font-size:13px;color:#555;line-height:1.9">'+
+        '🚶 <strong>Seul</strong> (0,8–1 kg/sem) : '+sSeul1+' à '+sSeul2+' semaines<br>'+
+        '🔥 <strong>Encadré AM Coach</strong> ('+proMin+'–'+proMax+' kg/sem'+(obese?' · protocole renforcé':'')+') : <strong style="color:#D52B1E">'+sPro1+' à '+sPro2+' semaines</strong>'+
         '</div></div>'+
         '<button id="calc-report" class="big-btn" style="padding:14px 0;font-size:14px;margin-top:12px">📄 Générer le rapport client</button>';
     }
@@ -1992,6 +2041,9 @@ function openCalcReport(){
   while(mg>mgc/100&&guard<30000){var r=mg>=0.10?(2/3):0.5;fat-=0.01*r;lean-=0.01*(1-r);p-=0.01;mg=fat/p;guard++;}
   var aPerdre=p0-p,perteFat=p0*(mga/100)-fat,perteLean=aPerdre-perteFat;
   var sem1=Math.ceil(aPerdre/1.0),sem08=Math.ceil(aPerdre/0.8);
+  var obese=(c.sexe==="F"?mga>=40:mga>=30);
+  var proMin=obese?3:1.5,proMax=obese?4:2;
+  var sPro1=Math.ceil(aPerdre/proMax),sPro2=Math.ceil(aPerdre/proMin);
   var prenom=(c.nom||"").trim();
   var reperes=c.sexe==="F"
     ?'<p>Chez la femme, un taux de masse grasse plus élevé que chez l\'homme est <strong>physiologiquement normal et nécessaire</strong> au bon équilibre hormonal.</p><ul>'+
@@ -2013,7 +2065,10 @@ function openCalcReport(){
     '.kv{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #F0F0F0;font-size:14px}.kv:last-child{border:0}.kv strong{font-weight:900}'+
     'p,li{font-size:13.5px;color:#444}ul{padding-left:20px;margin:6px 0}li{margin:5px 0}'+
     '.warn{background:#FFF3E0;border-left:4px solid #E65100;border-radius:10px;padding:12px 14px;font-size:13px;margin-top:10px}'+
-    '.foot{text-align:center;margin-top:34px;font-size:10px;color:#AAA;letter-spacing:2px;text-transform:uppercase;line-height:2}';
+    '.foot{text-align:center;margin-top:34px;font-size:10px;color:#AAA;letter-spacing:2px;text-transform:uppercase;line-height:2}'+
+    '.pdfbar{position:fixed;left:0;right:0;bottom:0;padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:rgba(255,255,255,.94);border-top:1px solid #E5E5E5;display:flex;gap:10px}'+
+    '.pdfbar button{flex:1;padding:14px;border:0;border-radius:12px;font-weight:900;font-size:14px}'+
+    '@media print{.pdfbar,body>button{display:none!important}body{background:#fff;padding:0}}';
   var html='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Bilan '+esc(prenom||"client")+' — AM Coach Genève</title><style>'+css+'</style></head><body>'+
     '<button onclick="window.close();setTimeout(function(){if(history.length>1)history.back();},250)" style="position:fixed;top:12px;right:12px;z-index:999;background:#1A1A1A;color:#fff;border:0;border-radius:20px;padding:9px 16px;font-weight:800;font-size:13px">✕ Fermer</button>'+
     '<div class="pg">'+
@@ -2025,13 +2080,15 @@ function openCalcReport(){
     '<div class="kv"><span>Objectif</span><strong>'+mgc.toFixed(0)+' % de masse grasse</strong></div>'+
     '<div class="kv"><span>Poids final estimé</span><strong>'+p.toFixed(1)+' kg</strong></div>'+
     '<div class="kv"><span>À perdre</span><strong style="color:#D52B1E">'+aPerdre.toFixed(1)+' kg</strong></div>'+
-    '<div class="kv"><span>Durée réaliste</span><strong>'+sem1+' à '+sem08+' semaines ('+(sem1/4.345).toFixed(1)+'–'+(sem08/4.345).toFixed(1)+' mois)</strong></div>'+
+    '<div class="kv"><span>Durée seul(e) <span style="font-size:11px;color:#999">(0,8–1 kg/sem)</span></span><strong>'+sem1+' à '+sem08+' semaines</strong></div>'+
+    '<div class="kv"><span>Durée encadré(e) AM Coach <span style="font-size:11px;color:#999">('+proMin+'–'+proMax+' kg/sem)</span></span><strong style="color:#D52B1E">'+sPro1+' à '+sPro2+' semaines</strong></div>'+
     '<div class="kv"><span>Ta barre calorique</span><strong>'+kcal+' kcal / jour</strong></div>'+
     '</div>'+
     '<h2>🧠 Comprendre ces chiffres</h2>'+
     '<div class="card">'+
-    '<p><strong>Pourquoi '+sem1+' à '+sem08+' semaines, et pas moins ?</strong> Parce que ton corps ne perd pas que du gras quand tu maigris. Sur les '+aPerdre.toFixed(1)+' kg à perdre, environ <strong>'+perteFat.toFixed(1)+' kg seront du gras</strong> et '+perteLean.toFixed(1)+' kg de la masse maigre (muscle, eau). Plus tu vas vite, plus la part de muscle perdue augmente — et le muscle, c\'est justement ce qui te donne la silhouette que tu vises et ce qui brûle des calories au repos.</p>'+
-    '<p style="margin-top:10px"><strong>Le rythme de 800 g à 1 kg par semaine n\'est pas un manque d\'ambition.</strong> C\'est le rythme maximum auquel ton corps accepte de puiser dans ses réserves sans se défendre : au-delà, il ralentit ton métabolisme, augmente la faim, et prépare la reprise. Perdre vite pour tout reprendre, ce n\'est pas perdre — c\'est reculer.</p>'+
+    '<p><strong>Pourquoi deux durées ?</strong> Parce que ton corps ne perd pas que du gras quand tu maigris. Sur les '+aPerdre.toFixed(1)+' kg à perdre, environ <strong>'+perteFat.toFixed(1)+' kg seront du gras</strong> et '+perteLean.toFixed(1)+' kg de la masse maigre (muscle, eau). Plus tu vas vite sans encadrement, plus la part de muscle perdue augmente — et le muscle, c\'est justement ce qui te donne la silhouette que tu vises et ce qui brûle des calories au repos.</p>'+
+    '<p style="margin-top:10px"><strong>Seul(e), 800 g à 1 kg par semaine est le rythme prudent</strong> : au-delà, sans suivi, ton corps se défend — métabolisme qui ralentit, faim qui monte, reprise qui se prépare. Perdre vite pour tout reprendre, ce n\'est pas perdre — c\'est reculer.</p>'+
+    '<p style="margin-top:10px"><strong>Encadré(e), on peut aller beaucoup plus vite en sécurité.</strong> Avec '+(sPro1<sem1?'un protocole ajusté chaque semaine':'un suivi rapproché')+' — menus calibrés, apport en protéines contrôlé, entraînement adapté et ajustements en continu — le rythme passe à '+proMin+'–'+proMax+' kg par semaine tout en protégeant ta masse musculaire. C\'est exactement le travail d\'un professionnel : aller vite sans casser la machine. Seul(e), ne tente pas ce rythme.</p>'+
     '<p style="margin-top:10px"><strong>Ta barre calorique de '+kcal+' kcal</strong> est ton repère quotidien. Ce n\'est pas une punition, c\'est le niveau d\'énergie qui force ton corps à utiliser son gras comme carburant tout en protégeant ton muscle — à condition d\'y mettre suffisamment de protéines et de continuer l\'entraînement.</p>'+
     '</div>'+
     '<h2>👀 À quoi ressemble ton objectif</h2>'+
@@ -2042,9 +2099,130 @@ function openCalcReport(){
     '<div class="warn">⚠️ Ces chiffres sont une estimation pédagogique, pas une prescription médicale. Le plan s\'ajuste avec ton coach au fil des bilans, selon tes sensations et tes résultats réels.</div>'+
     '</div>'+
     '<div class="foot">AM Coach Genève · Méthode Balance-360<br>La discipline devient automatique</div>'+
-    '</div></body></html>';
+    '</div>'+
+    '<div class="pdfbar"><button style="background:#1A1A1A;color:#fff" onclick="window.print()">📤 Enregistrer en PDF</button></div>'+
+    '</body></html>';
   var win=window.open("","_blank");
   if(win){win.document.write(html);win.document.close();}
+}
+
+// ═══════════ COACH BILAN (slot 600) ═══════════
+function coachSaveSlot(slug,idx,data){
+  var all=lsGet("amcoach_"+slug,{});all[idx]=data;lsSet("amcoach_"+slug,all);
+  sbFetch("tracking?on_conflict=client_slug,day_index",{method:"POST",prefer:"resolution=merge-duplicates",body:{client_slug:slug,day_index:idx,data:data}}).catch(function(){});
+}
+var BILAN_MESURES=[["brasD","Bras droit"],["brasG","Bras gauche"],["poitrine","Poitrine"],["nombril","Nombril"],["ventre","Ventre"],["fessiers","Fessiers/Hanches"],["jambeD","Jambe droite"],["jambeG","Jambe gauche"],["molletD","Mollet droit"],["molletG","Mollet gauche"]];
+var BILAN_SCORES=[["puissance","Puissance personnelle"],["vitalite","Vitalité"],["temps","Le temps"],["emotions","Gestion émotionnelle"]];
+function bilanInput(id,label,ph,type){
+  return '<div class="card-label">'+label+'</div><input id="'+id+'" class="num-input" type="'+(type||"number")+'" '+(type==="text"?'':'step="0.1" inputmode="decimal"')+' placeholder="'+(ph||"")+'" style="margin-bottom:10px"/>';
+}
+function viewCoachBilan(){
+  var slug=state.coachDetail;
+  var clients=lsGet("amcoach_clients",[]),cName=slug;
+  for(var i=0;i<clients.length;i++){if(clients[i].slug===slug){cName=clients[i].name;break;}}
+  var bl=(lsGet("amcoach_"+slug,{})[600]||{}).list||[];
+  var h='<div class="app" style="max-width:480px">'+
+    '<div class="hdr"><div style="display:flex;align-items:center;gap:12px">'+
+    '<button id="bl-back" class="day-back">←</button>'+
+    '<div style="flex:1"><div style="color:#fff;font-weight:900;font-size:16px">📋 Bilans — '+esc(cName)+'</div>'+
+    '<div style="color:#666;font-size:12px">Analyse '+(bl.length+1)+' · Méthode Balance-360</div></div></div></div>'+
+    '<div style="padding:16px 14px 40px">';
+  if(bl.length){
+    h+='<div class="card" style="padding:14px 16px;margin-bottom:14px"><div style="font-weight:900;font-size:13px;margin-bottom:8px">Analyses enregistrées</div>';
+    for(var b=0;b<bl.length;b++){
+      h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #F0F0F0">'+
+        '<span style="font-size:12.5px;font-weight:700">Analyse '+(b+1)+' — '+esc(bl[b].date||"?")+(bl[b].poids?' · '+bl[b].poids+' kg':'')+(bl[b].mg?' · '+bl[b].mg+' %MG':'')+'</span>'+
+        '<button class="bl-report" data-i="'+b+'" style="font-size:11px;font-weight:800;color:#0057A8;padding:5px 10px;border:1.5px solid #0057A8;border-radius:14px;background:#fff">📄 Rapport</button></div>';
+    }
+    h+='</div>';
+  }
+  var today=new Date();
+  var dstr=("0"+today.getDate()).slice(-2)+"/"+("0"+(today.getMonth()+1)).slice(-2)+"/"+today.getFullYear();
+  h+='<div class="card" style="padding:16px;margin-bottom:14px">'+
+    '<div style="font-weight:900;font-size:14px;margin-bottom:12px">➕ Nouvelle analyse</div>'+
+    '<div class="card-label">DATE</div><input id="bl-date" class="num-input" type="text" value="'+dstr+'" style="margin-bottom:10px"/>'+
+    '<div style="font-weight:900;font-size:12px;color:#7B1FA2;margin:8px 0 8px">COMPOSITION CORPORELLE</div>'+
+    '<div style="display:flex;gap:8px"><div style="flex:1">'+bilanInput("bl-poids","POIDS (KG)","86")+'</div><div style="flex:1">'+bilanInput("bl-taille","TAILLE (CM)","178")+'</div></div>'+
+    '<div style="display:flex;gap:8px"><div style="flex:1">'+bilanInput("bl-mg","% M. GRASSE","20")+'</div><div style="flex:1">'+bilanInput("bl-mm","% M. MUSCULAIRE","38")+'</div></div>'+
+    '<div style="display:flex;gap:8px"><div style="flex:1">'+bilanInput("bl-gv","GRAISSE VISCÉRALE","8")+'</div><div style="flex:1">'+bilanInput("bl-kcal","MÉTABOLISME (KCAL)","1800")+'</div></div>'+
+    '<div style="font-weight:900;font-size:12px;color:#7B1FA2;margin:8px 0 8px">OBJECTIFS & PROBLÈMES PHYSIQUES</div>'+
+    bilanInput("bl-obj1","OBJECTIF 1","","text")+bilanInput("bl-obj2","OBJECTIF 2","","text")+bilanInput("bl-obj3","OBJECTIF 3","","text")+
+    '<div class="card-label">PROBLÈMES PHYSIQUES</div><textarea id="bl-pb" class="num-input" rows="2" style="margin-bottom:10px;resize:vertical"></textarea>'+
+    '<div style="font-weight:900;font-size:12px;color:#7B1FA2;margin:8px 0 8px">MESURES CORPORELLES (CM)</div>';
+  for(var m2=0;m2<BILAN_MESURES.length;m2+=2){
+    h+='<div style="display:flex;gap:8px"><div style="flex:1">'+bilanInput("bl-m-"+BILAN_MESURES[m2][0],BILAN_MESURES[m2][1].toUpperCase(),"")+'</div><div style="flex:1">'+(BILAN_MESURES[m2+1]?bilanInput("bl-m-"+BILAN_MESURES[m2+1][0],BILAN_MESURES[m2+1][1].toUpperCase(),""):"")+'</div></div>';
+  }
+  h+='<div style="font-weight:900;font-size:12px;color:#7B1FA2;margin:8px 0 8px">BARÈME /10 — BALANCE-360</div>';
+  for(var s3=0;s3<BILAN_SCORES.length;s3++){
+    h+=bilanInput("bl-s-"+BILAN_SCORES[s3][0],BILAN_SCORES[s3][1].toUpperCase()+" (/10)","7");
+  }
+  h+='<div style="font-weight:900;font-size:12px;color:#7B1FA2;margin:8px 0 8px">QUESTIONNAIRES</div>'+
+    '<div class="card-label">DÉCOUVERTE (POURQUOI, ENGAGEMENT, TENTATIVES PASSÉES, DÉCLENCHEURS, PROJECTION...)</div>'+
+    '<textarea id="bl-dec" class="num-input" rows="4" style="margin-bottom:10px;resize:vertical"></textarea>'+
+    '<div class="card-label">HABITUDES ALIMENTAIRES (JOURNÉE TYPE, CONTEXTE, EAU, ALCOOL, SODAS...)</div>'+
+    '<textarea id="bl-hab" class="num-input" rows="4" style="margin-bottom:14px;resize:vertical"></textarea>'+
+    '<button id="bl-save" class="big-btn" style="padding:15px 0;font-size:14px">💾 Enregistrer l&#39;analyse '+(bl.length+1)+'</button>'+
+    '</div></div></div>';
+  return h;
+}
+function bilanReport(slug,idx){
+  var clients=lsGet("amcoach_clients",[]),cName=slug;
+  for(var i=0;i<clients.length;i++){if(clients[i].slug===slug){cName=clients[i].name;break;}}
+  var bl=(lsGet("amcoach_"+slug,{})[600]||{}).list||[];
+  var a=bl[idx];if(!a)return;
+  var prev=idx>0?bl[idx-1]:null;
+  function dv(cur,old){
+    var c2=parseFloat(cur),o=parseFloat(old);
+    if(isNaN(c2)||isNaN(o))return"";
+    var d=Math.round((c2-o)*10)/10;if(d===0)return' <span style="color:#999">(=)</span>';
+    return' <span style="color:'+(d<0?"#2E7D32":"#D52B1E")+'">('+(d>0?"+":"")+d+')</span>';
+  }
+  var imc=(a.poids&&a.taille)?Math.round(a.poids/Math.pow(a.taille/100,2)*10)/10:null;
+  var css='*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#1A1A1A;padding:22px 18px 70px;line-height:1.55;font-size:13px}'+
+    '.brand{display:flex;align-items:center;justify-content:center;gap:10px;font-weight:900;font-size:12px;letter-spacing:3px;text-transform:uppercase}'+
+    '.bar{width:5px;height:18px;border-radius:3px;display:inline-block}.br{background:#D52B1E}.bb{background:#0057A8}'+
+    '.sub{text-align:center;font-size:10px;color:#999;letter-spacing:2px;text-transform:uppercase;margin:2px 0 16px}'+
+    'h2{font-size:13px;font-weight:900;margin:14px 0 6px;color:#7B1FA2;letter-spacing:.5px;text-transform:uppercase}'+
+    '.kv{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #F2F2F2;font-size:12.5px}.kv strong{font-weight:900}'+
+    '.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 22px}'+
+    'p{font-size:12px;color:#444;white-space:pre-wrap}'+
+    '.pdfbar{position:fixed;left:0;right:0;bottom:0;padding:10px 14px;background:rgba(255,255,255,.95);border-top:1px solid #E5E5E5}'+
+    '.pdfbar button{width:100%;padding:13px;border:0;border-radius:12px;font-weight:900;font-size:14px;background:#1A1A1A;color:#fff}'+
+    '@media print{.pdfbar,body>button{display:none!important}}';
+  var kh='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Analyse '+(idx+1)+' — '+esc(cName)+'</title><style>'+css+'</style></head><body>'+
+    '<button onclick="window.close();setTimeout(function(){if(history.length>1)history.back();},250)" style="position:fixed;top:10px;right:10px;z-index:999;background:#1A1A1A;color:#fff;border:0;border-radius:18px;padding:8px 14px;font-weight:800;font-size:12px">✕</button>'+
+    '<div class="brand"><span class="bar br"></span><span>AM Coach Genève</span><span class="bar bb"></span></div>'+
+    '<div class="sub">Analyse '+(idx+1)+' · '+esc(a.date||"")+' · '+esc(cName)+(prev?' · évolution vs analyse '+idx:'')+'</div>'+
+    '<h2>Composition corporelle</h2><div class="grid2">'+
+    '<div class="kv"><span>Poids</span><strong>'+(a.poids||"—")+' kg'+(prev?dv(a.poids,prev.poids):'')+'</strong></div>'+
+    '<div class="kv"><span>IMC</span><strong>'+(imc||"—")+'</strong></div>'+
+    '<div class="kv"><span>% Masse grasse</span><strong>'+(a.mg||"—")+' %'+(prev?dv(a.mg,prev.mg):'')+'</strong></div>'+
+    '<div class="kv"><span>% Masse musculaire</span><strong>'+(a.mm||"—")+' %'+(prev?dv(a.mm,prev.mm):'')+'</strong></div>'+
+    '<div class="kv"><span>Graisse viscérale</span><strong>'+(a.gv||"—")+(prev?dv(a.gv,prev.gv):'')+'</strong></div>'+
+    '<div class="kv"><span>Métabolisme</span><strong>'+(a.kcal||"—")+' kcal</strong></div>'+
+    '</div>'+
+    '<h2>Objectifs</h2>'+
+    '<div class="kv"><span>1. '+esc(a.obj1||"—")+'</span></div>'+
+    (a.obj2?'<div class="kv"><span>2. '+esc(a.obj2)+'</span></div>':'')+
+    (a.obj3?'<div class="kv"><span>3. '+esc(a.obj3)+'</span></div>':'')+
+    (a.pb?'<h2>Problèmes physiques</h2><p>'+esc(a.pb)+'</p>':'')+
+    '<h2>Mesures corporelles (cm)</h2><div class="grid2">';
+  for(var mm2=0;mm2<BILAN_MESURES.length;mm2++){
+    var k2=BILAN_MESURES[mm2][0],val=(a.mesures||{})[k2];
+    kh+='<div class="kv"><span>'+BILAN_MESURES[mm2][1]+'</span><strong>'+(val||"—")+(prev&&val?dv(val,(prev.mesures||{})[k2]):'')+'</strong></div>';
+  }
+  kh+='</div><h2>Barème Balance-360 (/10)</h2><div class="grid2">';
+  for(var ss=0;ss<BILAN_SCORES.length;ss++){
+    var ks=BILAN_SCORES[ss][0],vs=(a.scores||{})[ks];
+    kh+='<div class="kv"><span>'+BILAN_SCORES[ss][1]+'</span><strong>'+(vs||"—")+'/10'+(prev&&vs?dv(vs,(prev.scores||{})[ks]):'')+'</strong></div>';
+  }
+  kh+='</div>'+
+    (a.dec?'<h2>Découverte</h2><p>'+esc(a.dec)+'</p>':'')+
+    (a.hab?'<h2>Habitudes alimentaires</h2><p>'+esc(a.hab)+'</p>':'')+
+    '<div class="pdfbar"><button onclick="window.print()">📤 Enregistrer en PDF (à coller dans Goodnotes)</button></div>'+
+    '</body></html>';
+  var win=window.open("","_blank");
+  if(win){win.document.write(kh);win.document.close();}
 }
 
 function bindCoach(){
@@ -2156,6 +2334,75 @@ function bindCoach(){
   if(accT)accT.addEventListener("click",function(){
     var acc=lsGet("amcoach_"+state.coachDetail,{})[504]||{};
     acc.off=!acc.off;saveAcc(acc);
+  });
+  // ⚡ Reset 14 jours : fin d'accès à J+13 (jour 1 → jour 14 inclus)
+  var r14on=document.getElementById("reset14-on");
+  if(r14on)r14on.addEventListener("click",function(){
+    var slug=state.coachDetail;
+    var start=lsGetStr("amcoach_start_"+slug);
+    if(!start){var cls2=lsGet("amcoach_clients",[]);for(var x2=0;x2<cls2.length;x2++){if(cls2[x2].slug===slug){start=cls2[x2].start_date;break;}}}
+    if(!start){alert("Date de départ introuvable.");return;}
+    var end=new Date(start);end.setDate(end.getDate()+13);
+    var acc=lsGet("amcoach_"+slug,{})[504]||{};
+    acc.end=end.toISOString().split("T")[0];
+    saveAcc(acc);
+  });
+  var r14off=document.getElementById("reset14-off");
+  if(r14off)r14off.addEventListener("click",function(){
+    var acc=lsGet("amcoach_"+state.coachDetail,{})[504]||{};
+    acc.end=null;acc.off=false;saveAcc(acc);
+  });
+  var cm14=document.querySelectorAll(".copy-menu14");
+  for(var c14=0;c14<cm14.length;c14++){
+    cm14[c14].addEventListener("click",function(){
+      var slug=this.getAttribute("data-slug");
+      var url=window.location.origin+"/menu.html?client="+slug+"&menu=14jours";
+      var btn=this;
+      function ok(){btn.textContent="✓ Lien 14 jours copié !";btn.style.background="#4CAF50";setTimeout(function(){btn.textContent="🍽️ Copier lien MENU 14 jours";btn.style.background="#E65100";},2000);}
+      if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(url).then(ok,function(){prompt("Copie ce lien :",url);});}
+      else{prompt("Copie ce lien :",url);}
+    });
+  }
+  // 🏋️ Planning entraînement 7 jours (slot 507)
+  var tr7days=document.querySelectorAll(".tr7-day");
+  for(var t7=0;t7<tr7days.length;t7++){
+    tr7days[t7].addEventListener("click",function(){
+      var d=parseInt(this.getAttribute("data-d"),10);
+      var slug=state.coachDetail;
+      var tr=lsGet("amcoach_"+slug,{})[507]||{};
+      var cur7=tr[d]||{};
+      var v=prompt("Lien vidéo muscu 10 min (YouTube...) — vide pour retirer :",cur7.v||"");
+      if(v===null)return;
+      var m=prompt("Consigne marche (ex : 45 min de marche rapide) :",cur7.m||"30 min à 1h30 de marche");
+      if(m===null)return;
+      if(v.trim()||m.trim()){tr[d]={v:v.trim(),m:m.trim()};}else{delete tr[d];}
+      coachSaveSlot(slug,507,tr);
+      render();
+    });
+  }
+  // 📋 Bilans
+  var cdBilan=document.getElementById("cd-bilan");
+  if(cdBilan)cdBilan.addEventListener("click",function(){state.cdTab="bilan";render();});
+  var blBack=document.getElementById("bl-back");
+  if(blBack)blBack.addEventListener("click",function(){state.cdTab=null;render();});
+  var blReps=document.querySelectorAll(".bl-report");
+  for(var br2=0;br2<blReps.length;br2++){
+    blReps[br2].addEventListener("click",function(){bilanReport(state.coachDetail,parseInt(this.getAttribute("data-i"),10));});
+  }
+  var blSave=document.getElementById("bl-save");
+  if(blSave)blSave.addEventListener("click",function(){
+    function gv2(id){var el=document.getElementById(id);return el?el.value.trim():"";}
+    var a={date:gv2("bl-date"),poids:gv2("bl-poids"),taille:gv2("bl-taille"),mg:gv2("bl-mg"),mm:gv2("bl-mm"),gv:gv2("bl-gv"),kcal:gv2("bl-kcal"),
+      obj1:gv2("bl-obj1"),obj2:gv2("bl-obj2"),obj3:gv2("bl-obj3"),pb:gv2("bl-pb"),dec:gv2("bl-dec"),hab:gv2("bl-hab"),mesures:{},scores:{}};
+    for(var bm=0;bm<BILAN_MESURES.length;bm++){a.mesures[BILAN_MESURES[bm][0]]=gv2("bl-m-"+BILAN_MESURES[bm][0]);}
+    for(var bs=0;bs<BILAN_SCORES.length;bs++){a.scores[BILAN_SCORES[bs][0]]=gv2("bl-s-"+BILAN_SCORES[bs][0]);}
+    if(!a.poids&&!a.obj1){alert("Renseigne au moins le poids ou un objectif.");return;}
+    var slug=state.coachDetail;
+    var b6=lsGet("amcoach_"+slug,{})[600]||{};
+    var list=b6.list||[];list.push(a);
+    coachSaveSlot(slug,600,{list:list});
+    bilanReport(slug,list.length-1);
+    render();
   });
   var cdBday=document.getElementById("cd-bday");
   if(cdBday)cdBday.addEventListener("click",function(){
@@ -2326,9 +2573,10 @@ function bindMain(name,start){
     }
     showCount();
   });
-  var pShare=document.getElementById("pensee-share");
-  if(pShare)pShare.addEventListener("click",function(){
-    var pTxt=pickPensee(getAllData(),today90);
+  // (partage pensée : géré dans bindDay via openPenseeShare)
+  var _unusedPensee=function(){};
+  function _openPenseeShareLocal(){}
+  window.openPenseeShare=window.openPenseeShare||function(pTxt,dayNum){
     var html='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Pensée du soir</title><style>'+
       'body{margin:0;font-family:-apple-system,sans-serif;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;box-sizing:border-box}'+
       '.card{width:100%;max-width:380px;aspect-ratio:4/5;background:linear-gradient(160deg,#1a1a2e 0%,#16213e 100%);border-radius:24px;padding:36px 28px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between;border:1px solid #2a2a4a}'+
@@ -2343,7 +2591,7 @@ function bindMain(name,start){
       '</style></head><body><button onclick=\'window.close();setTimeout(function(){if(history.length>1)history.back();},250)\' style=\'position:fixed;top:12px;right:12px;z-index:999;background:#1A1A1A;color:#fff;border:0;border-radius:20px;padding:9px 16px;font-weight:800;font-size:13px\'>✕ Fermer</button>'+
       '<div class="card">'+
       '<div class="brand"><div class="b" style="background:#D52B1E"></div><span class="bn">AM COACH GENÈVE</span><div class="b" style="background:#0057A8"></div></div>'+
-      '<div class="mid"><div class="moon">🌙</div><div class="lbl">La pensée du soir — Jour '+(today90+1)+'</div>'+
+      '<div class="mid"><div class="moon">🌙</div><div class="lbl">La pensée du soir — Jour '+dayNum+'</div>'+
       '<div class="q">'+esc(pTxt)+'</div></div>'+
       '<div class="bot"><div class="tag">TRANSFO\'PHYSIQUE · 90 JOURS</div><div class="sub2">@amcoachsportif</div></div>'+
       '</div>'+
@@ -2351,7 +2599,7 @@ function bindMain(name,start){
       '</body></html>';
     var win=window.open("","_blank");
     if(win){win.document.write(html);win.document.close();}
-  });
+  };
   var otShare=document.getElementById("ot-share");
   if(otShare)otShare.addEventListener("click",function(){
     var allD=getAllData();
@@ -2539,6 +2787,7 @@ function bindMain(name,start){
 
   function goBack(){
     if(state.selDay!==null&&state.selDay!==undefined){state.selDay=null;render();return true;}
+    if(typeof IS_COACH!=="undefined"&&IS_COACH&&state.cdTab==="bilan"){state.cdTab=null;render();return true;}
     if(typeof IS_COACH!=="undefined"&&IS_COACH&&state.coachCalc){state.coachCalc=false;render();return true;}
     if(typeof IS_COACH!=="undefined"&&IS_COACH&&state.coachDetail){state.coachDetail=null;render();return true;}
     return false;

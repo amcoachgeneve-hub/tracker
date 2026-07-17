@@ -1981,14 +1981,14 @@ function planCardHTML(pl,mgc){
     '<div style="font-size:14px;font-weight:800;color:#D52B1E;margin-bottom:10px">À perdre : '+pl.aPerdre.toFixed(1)+' kg <span style="color:#888;font-weight:600;font-size:12px">(dont '+pl.perteFat.toFixed(1)+' kg de gras)</span></div>'+
     '<div style="font-size:13px;color:#555;line-height:1.9">'+
     '🚶 <strong>Seul</strong> ('+frNum(pl.soloMin)+'–'+frNum(pl.soloMax)+' kg/sem) : '+planRng(pl.k12sA,pl.k12sB)+' kg possibles sur 12 semaines<br>'+
-    '🔥 <strong>Encadré AM Coach — minimum</strong> ('+frNum(pl.proMin)+' kg/sem) : <strong style="color:#D52B1E">'+frNum(pl.k12pMin)+' kg</strong> sur 12 semaines'+(pl.minHit?' — objectif atteint ✅':'')+'<br>'+
-    '🎁 <strong>Bonus — top objectif</strong> ('+frNum(pl.proMax)+' kg/sem) : '+(pl.maxHit?'objectif atteint en <strong style="color:#D52B1E">'+pl.sPro1+' semaines</strong> ✅':'<strong style="color:#D52B1E">'+frNum(pl.k12pMax)+' kg</strong> sur 12 semaines')+
+    '🔥 <strong>Encadré AM Coach — minimum</strong> ('+frNum(pl.proMin)+' kg/sem) : <strong style="color:#D52B1E">'+frNum(pl.proMin*12)+' kg</strong> possibles sur 12 semaines'+(pl.minHit?' — objectif atteint ✅':'')+'<br>'+
+    '🎁 <strong>Bonus — top objectif</strong> ('+frNum(pl.proMax)+' kg/sem) : <strong style="color:#D52B1E">jusqu\'à '+frNum(pl.proMax*12)+' kg</strong> sur 12 semaines'+(pl.maxHit?' — objectif atteint en <strong style="color:#D52B1E">'+pl.sPro1+' semaines</strong> ✅':'')+
     '</div></div>';
 }
 function planRowsHTML(pl){
   return '<div class="kv"><span>🚶 Seul(e) <span style="font-size:11px;color:#999">('+frNum(pl.soloMin)+'–'+frNum(pl.soloMax)+' kg/sem)</span></span><strong>'+planRng(pl.k12sA,pl.k12sB)+' kg sur 12 sem</strong></div>'+
-    '<div class="kv"><span>🔥 Encadré(e) AM Coach — minimum <span style="font-size:11px;color:#999">('+frNum(pl.proMin)+' kg/sem)</span></span><strong style="color:#D52B1E">'+frNum(pl.k12pMin)+' kg sur 12 sem'+(pl.minHit?' ✅':'')+'</strong></div>'+
-    '<div class="kv"><span>🎁 Bonus — top objectif <span style="font-size:11px;color:#999">('+frNum(pl.proMax)+' kg/sem)</span></span><strong style="color:#D52B1E">'+(pl.maxHit?'objectif atteint en '+pl.sPro1+' sem ✅':frNum(pl.k12pMax)+' kg sur 12 sem')+'</strong></div>';
+    '<div class="kv"><span>🔥 Encadré(e) AM Coach — minimum <span style="font-size:11px;color:#999">('+frNum(pl.proMin)+' kg/sem)</span></span><strong style="color:#D52B1E">'+frNum(pl.proMin*12)+' kg sur 12 sem'+(pl.minHit?' — objectif atteint ✅':'')+'</strong></div>'+
+    '<div class="kv"><span>🎁 Bonus — top objectif <span style="font-size:11px;color:#999">('+frNum(pl.proMax)+' kg/sem)</span></span><strong style="color:#D52B1E">jusqu\'à '+frNum(pl.proMax*12)+' kg sur 12 sem'+(pl.maxHit?' — objectif atteint en '+pl.sPro1+' sem ✅':'')+'</strong></div>';
 }
 
 // ═══════════ COACH CALC (bilan) ═══════════

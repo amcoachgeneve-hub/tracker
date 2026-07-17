@@ -1948,6 +1948,49 @@ function loadCoachDataFromCloud(){
   }).catch(function(){});
 }
 
+// ═══════════ PLAN PARTAGÉ (calculateur + bilan) ═══════════
+function frNum(x){return String(Math.round(x*10)/10).replace(".",",");}
+function calcPlan(sexe,p0,mga,mgc){
+  var mg=mga/100,fat=p0*mg,lean=p0*(1-mg),p=p0,guard=0;
+  while(mg>mgc/100&&guard<30000){
+    var rMG=mg>=0.10?(2/3):0.5;
+    fat-=0.01*rMG;lean-=0.01*(1-rMG);p-=0.01;mg=fat/p;guard++;
+  }
+  var aPerdre=p0-p;
+  var isF=sexe==="F";
+  // Rythmes AM Coach : Femme seul 0,3-0,5 / encadré min 0,8 / bonus 1,2 · Homme seul 0,5-0,8 / encadré min 1 / bonus 2
+  var soloMin=isF?0.3:0.5,soloMax=isF?0.5:0.8;
+  var proMin=isF?0.8:1.0,proMax=isF?1.2:2.0;
+  var pf=p0*(mga/100)-fat;
+  return {
+    pFinal:p,aPerdre:aPerdre,perteFat:pf,perteLean:aPerdre-pf,
+    kcal:Math.round(p0*(isF?28:32)),isF:isF,
+    soloMin:soloMin,soloMax:soloMax,proMin:proMin,proMax:proMax,
+    sSeul1:Math.ceil(aPerdre/soloMax),sSeul2:Math.ceil(aPerdre/soloMin),
+    sPro1:Math.ceil(aPerdre/proMax),sPro2:Math.ceil(aPerdre/proMin),
+    k12sA:Math.min(aPerdre,soloMin*12),k12sB:Math.min(aPerdre,soloMax*12),
+    k12pMin:Math.min(aPerdre,proMin*12),k12pMax:Math.min(aPerdre,proMax*12),
+    minHit:proMin*12>=aPerdre,maxHit:proMax*12>=aPerdre
+  };
+}
+function planRng(a,b){return Math.round(a*10)===Math.round(b*10)?frNum(a):frNum(a)+'–'+frNum(b);}
+function planCardHTML(pl,mgc){
+  return '<div class="card" style="padding:16px;border-left:4px solid #0057A8">'+
+    '<div class="card-label">🎯 OBJECTIF '+Number(mgc).toFixed(0)+'% DE MASSE GRASSE</div>'+
+    '<div style="font-weight:900;font-size:26px;margin-bottom:4px">Poids final : '+pl.pFinal.toFixed(1)+' kg</div>'+
+    '<div style="font-size:14px;font-weight:800;color:#D52B1E;margin-bottom:10px">À perdre : '+pl.aPerdre.toFixed(1)+' kg <span style="color:#888;font-weight:600;font-size:12px">(dont '+pl.perteFat.toFixed(1)+' kg de gras)</span></div>'+
+    '<div style="font-size:13px;color:#555;line-height:1.9">'+
+    '🚶 <strong>Seul</strong> ('+frNum(pl.soloMin)+'–'+frNum(pl.soloMax)+' kg/sem) : '+planRng(pl.k12sA,pl.k12sB)+' kg possibles sur 12 semaines<br>'+
+    '🔥 <strong>Encadré AM Coach — minimum</strong> ('+frNum(pl.proMin)+' kg/sem) : <strong style="color:#D52B1E">'+frNum(pl.k12pMin)+' kg</strong> sur 12 semaines'+(pl.minHit?' — objectif atteint ✅':'')+'<br>'+
+    '🎁 <strong>Bonus — top objectif</strong> ('+frNum(pl.proMax)+' kg/sem) : '+(pl.maxHit?'objectif atteint en <strong style="color:#D52B1E">'+pl.sPro1+' semaines</strong> ✅':'<strong style="color:#D52B1E">'+frNum(pl.k12pMax)+' kg</strong> sur 12 semaines')+
+    '</div></div>';
+}
+function planRowsHTML(pl){
+  return '<div class="kv"><span>🚶 Seul(e) <span style="font-size:11px;color:#999">('+frNum(pl.soloMin)+'–'+frNum(pl.soloMax)+' kg/sem)</span></span><strong>'+planRng(pl.k12sA,pl.k12sB)+' kg sur 12 sem</strong></div>'+
+    '<div class="kv"><span>🔥 Encadré(e) AM Coach — minimum <span style="font-size:11px;color:#999">('+frNum(pl.proMin)+' kg/sem)</span></span><strong style="color:#D52B1E">'+frNum(pl.k12pMin)+' kg sur 12 sem'+(pl.minHit?' ✅':'')+'</strong></div>'+
+    '<div class="kv"><span>🎁 Bonus — top objectif <span style="font-size:11px;color:#999">('+frNum(pl.proMax)+' kg/sem)</span></span><strong style="color:#D52B1E">'+(pl.maxHit?'objectif atteint en '+pl.sPro1+' sem ✅':frNum(pl.k12pMax)+' kg sur 12 sem')+'</strong></div>';
+}
+
 // ═══════════ COACH CALC (bilan) ═══════════
 function viewCoachCalc(){
   var c=state.calcData||{sexe:"H",poids:"",mga:"",mgc:""};
@@ -2010,35 +2053,11 @@ function coachCalcCompute(){
     if(mgc>=mga){
       h+='<div class="card" style="padding:14px 16px;font-size:13px;color:#E65100;font-weight:700">La cible doit être inférieure au % actuel.</div>';
     }else{
-      var mg=mga/100,fat=p0*mg,lean=p0*(1-mg),p=p0,guard=0;
-      while(mg>mgc/100&&guard<30000){
-        var rMG=mg>=0.10?(2/3):0.5;
-        fat-=0.01*rMG;lean-=0.01*(1-rMG);p-=0.01;mg=fat/p;guard++;
-      }
-      var aPerdre=p0-p,perteFat=p0*(mga/100)-fat,perteLean=aPerdre-perteFat;
+
       // Rythmes par sexe. Hommes — seul : 0,8–1 kg/sem ; encadré : 1,5–2 (obésité : 3–4). Femmes — seul : 0,3–0,5 ; encadré : 0,8–1,2 (obésité : 1,6–2,4). Obésité : MG ≥30% H / ≥40% F. Projections sur 12 semaines.
-      var isF=c.sexe==="F";
-      var obese=(isF?mga>=40:mga>=30);
-      var soloMin=isF?0.3:0.8,soloMax=isF?0.5:1.0;
-      var proMin=isF?(obese?1.6:0.8):(obese?3:1.5),proMax=isF?(obese?2.4:1.2):(obese?4:2);
-      function fr(x){return String(Math.round(x*10)/10).replace(".",",");}
-      var sSeul1=Math.ceil(aPerdre/soloMax),sSeul2=Math.ceil(aPerdre/soloMin);
-      var sPro1=Math.ceil(aPerdre/proMax),sPro2=Math.ceil(aPerdre/proMin);
-      var k12sA=Math.min(aPerdre,soloMin*12),k12sB=Math.min(aPerdre,soloMax*12);
-      var k12pA=Math.min(aPerdre,proMin*12),k12pB=Math.min(aPerdre,proMax*12);
-      var proHit12=proMin*12>=aPerdre;
-      var rateGoal=aPerdre/12;
-      h+='<div class="card" style="padding:16px;border-left:4px solid #0057A8">'+
-        '<div class="card-label">🎯 OBJECTIF '+mgc.toFixed(0)+'% DE MASSE GRASSE</div>'+
-        '<div style="font-weight:900;font-size:26px;margin-bottom:4px">Poids final : '+p.toFixed(1)+' kg</div>'+
-        '<div style="font-size:14px;font-weight:800;color:#D52B1E;margin-bottom:10px">À perdre : '+aPerdre.toFixed(1)+' kg <span style="color:#888;font-weight:600;font-size:12px">(dont '+perteFat.toFixed(1)+' kg de gras)</span></div>'+
-        '<div style="font-size:13px;color:#555;line-height:1.9">'+
-        '🚶 <strong>Seul (réaliste)</strong> ('+fr(soloMin)+'–'+fr(soloMax)+' kg/sem) : '+fr(k12sA)+'–'+fr(k12sB)+' kg en 12 semaines <span style="color:#999;font-size:11px">(objectif complet : '+sSeul1+' à '+sSeul2+' sem)</span><br>'+
-        (rateGoal<=proMax
-          ?'🎯 <strong>Notre objectif — 12 semaines</strong> : les <strong style="color:#D52B1E">'+aPerdre.toFixed(1)+' kg</strong>, soit ~'+fr(rateGoal)+' kg/sem <span style="color:#999;font-size:11px">(réalisable et minimum)</span><br>'
-          :'🎯 <strong>Notre objectif — 12 semaines</strong> : <strong style="color:#D52B1E">'+fr(k12pA)+'–'+fr(k12pB)+' kg</strong> <span style="color:#999;font-size:11px">(objectif complet : '+sPro1+' à '+sPro2+' sem)</span><br>')+
-        '🎁 <strong>Bonus possible encadré</strong> ('+fr(proMin)+'–'+fr(proMax)+' kg/sem'+(obese?' · protocole renforcé':'')+') : '+(proHit12?'objectif atteint en <strong style="color:#D52B1E">'+sPro1+' à '+sPro2+' semaines</strong> ✅':'jusqu\'à <strong style="color:#D52B1E">'+fr(k12pB)+' kg</strong> en 12 semaines')+
-        '</div></div>'+
+      var plan=calcPlan(c.sexe,p0,mga,mgc);
+
+      h+=planCardHTML(plan,mgc)+
         '<button id="calc-report" class="big-btn" style="padding:14px 0;font-size:14px;margin-top:12px">📄 Générer le rapport client</button>';
     }
   }
@@ -2051,20 +2070,10 @@ function openCalcReport(){
   var p0=parseFloat(c.poids),mga=parseFloat(c.mga),mgc=parseFloat(c.mgc);
   if(!(p0>0&&mga>0&&mgc>0&&mgc<mga))return;
   var kcal=Math.round(p0*(c.sexe==="F"?28:32));
-  var mg=mga/100,fat=p0*mg,lean=p0*(1-mg),p=p0,guard=0;
-  while(mg>mgc/100&&guard<30000){var r=mg>=0.10?(2/3):0.5;fat-=0.01*r;lean-=0.01*(1-r);p-=0.01;mg=fat/p;guard++;}
-  var aPerdre=p0-p,perteFat=p0*(mga/100)-fat,perteLean=aPerdre-perteFat;
-  var isF=c.sexe==="F";
-  var obese=(isF?mga>=40:mga>=30);
-  var soloMin=isF?0.3:0.8,soloMax=isF?0.5:1.0;
-  var proMin=isF?(obese?1.6:0.8):(obese?3:1.5),proMax=isF?(obese?2.4:1.2):(obese?4:2);
-  function fr(x){return String(Math.round(x*10)/10).replace(".",",");}
-  var sem1=Math.ceil(aPerdre/soloMax),sem08=Math.ceil(aPerdre/soloMin);
-  var sPro1=Math.ceil(aPerdre/proMax),sPro2=Math.ceil(aPerdre/proMin);
-  var k12sA=Math.min(aPerdre,soloMin*12),k12sB=Math.min(aPerdre,soloMax*12);
-  var k12pA=Math.min(aPerdre,proMin*12),k12pB=Math.min(aPerdre,proMax*12);
-  var proHit12=proMin*12>=aPerdre;
-  var rateGoal=aPerdre/12;
+  var plan=calcPlan(c.sexe,p0,mga,mgc);
+  var fr=frNum,aPerdre=plan.aPerdre,perteFat=plan.perteFat,perteLean=plan.perteLean,p=plan.pFinal;
+  var soloMin=plan.soloMin,soloMax=plan.soloMax,proMin=plan.proMin,proMax=plan.proMax;
+  var sem1=plan.sSeul1,sem08=plan.sSeul2,sPro1=plan.sPro1,sPro2=plan.sPro2;
   var prenom=(c.nom||"").trim();
   var reperes=c.sexe==="F"
     ?'<p>Chez la femme, un taux de masse grasse plus élevé que chez l\'homme est <strong>physiologiquement normal et nécessaire</strong> au bon équilibre hormonal.</p><ul>'+
@@ -2101,11 +2110,7 @@ function openCalcReport(){
     '<div class="kv"><span>Objectif</span><strong>'+mgc.toFixed(0)+' % de masse grasse</strong></div>'+
     '<div class="kv"><span>Poids final estimé</span><strong>'+p.toFixed(1)+' kg</strong></div>'+
     '<div class="kv"><span>À perdre</span><strong style="color:#D52B1E">'+aPerdre.toFixed(1)+' kg</strong></div>'+
-    '<div class="kv"><span>Seul(e), réaliste <span style="font-size:11px;color:#999">('+fr(soloMin)+'–'+fr(soloMax)+' kg/sem)</span></span><strong>'+fr(k12sA)+'–'+fr(k12sB)+' kg en 12 sem</strong></div>'+
-    (rateGoal<=proMax
-      ?'<div class="kv"><span>🎯 Notre objectif — 12 semaines <span style="font-size:11px;color:#999">(~'+fr(rateGoal)+' kg/sem, minimum)</span></span><strong style="color:#D52B1E">'+aPerdre.toFixed(1)+' kg</strong></div>'
-      :'<div class="kv"><span>🎯 Notre objectif — 12 semaines</span><strong style="color:#D52B1E">'+fr(k12pA)+'–'+fr(k12pB)+' kg <span style="font-size:11px;color:#999">(complet : '+sPro1+'–'+sPro2+' sem)</span></strong></div>')+
-    '<div class="kv"><span>🎁 Bonus possible encadré(e) <span style="font-size:11px;color:#999">('+fr(proMin)+'–'+fr(proMax)+' kg/sem)</span></span><strong style="color:#D52B1E">'+(proHit12?'objectif atteint en '+sPro1+'–'+sPro2+' sem ✅':'jusqu\'à '+fr(k12pB)+' kg en 12 sem')+'</strong></div>'+
+    planRowsHTML(plan)+
     '<div class="kv"><span>Ta barre calorique</span><strong>'+kcal+' kcal / jour</strong></div>'+
     '</div>'+
     '<h2>🧠 Comprendre ces chiffres</h2>'+
@@ -2177,6 +2182,14 @@ function viewCoachBilan(){
     '<div style="display:flex;gap:8px"><div style="flex:1">'+bilanInput("bl-poids","POIDS (KG)","86")+'</div><div style="flex:1">'+bilanInput("bl-taille","TAILLE (CM)","178")+'</div></div>'+
     '<div style="display:flex;gap:8px"><div style="flex:1">'+bilanInput("bl-mg","% M. GRASSE","20")+'</div><div style="flex:1">'+bilanInput("bl-mm","% M. MUSCULAIRE","38")+'</div></div>'+
     '<div style="display:flex;gap:8px"><div style="flex:1">'+bilanInput("bl-gv","GRAISSE VISCÉRALE","8")+'</div><div style="flex:1">'+bilanInput("bl-kcal","MÉTABOLISME (KCAL)","1800")+'</div></div>'+
+    '<div style="font-weight:900;font-size:12px;color:#0057A8;margin:8px 0 8px">🧮 CALCUL OBJECTIF (utilise poids + % MG ci-dessus)</div>'+
+    '<div class="card-label">SEXE</div>'+
+    '<div style="display:flex;gap:8px;margin-bottom:10px">'+
+      '<button type="button" id="bl-sexe-F" class="big-btn'+((state.blSexe||"F")==="F"?"":" gray")+'" style="flex:1;padding:10px 0;font-size:13px'+((state.blSexe||"F")==="F"?";background:#0057A8":"")+'">Femme</button>'+
+      '<button type="button" id="bl-sexe-H" class="big-btn'+((state.blSexe||"F")==="H"?"":" gray")+'" style="flex:1;padding:10px 0;font-size:13px'+((state.blSexe||"F")==="H"?";background:#0057A8":"")+'">Homme</button>'+
+    '</div>'+
+    bilanInput("bl-mgc","% MASSE GRASSE CIBLE","25")+
+    '<div id="bl-plan-out"></div>'+
     '<div style="font-weight:900;font-size:12px;color:#7B1FA2;margin:8px 0 8px">OBJECTIFS & PROBLÈMES PHYSIQUES</div>'+
     bilanInput("bl-obj1","OBJECTIF 1","","text")+bilanInput("bl-obj2","OBJECTIF 2","","text")+bilanInput("bl-obj3","OBJECTIF 3","","text")+
     '<div class="card-label">PROBLÈMES PHYSIQUES</div><textarea id="bl-pb" class="num-input" rows="2" style="margin-bottom:10px;resize:vertical"></textarea>'+
@@ -2241,6 +2254,16 @@ function bilanReport(slug,idx){
     '<div class="kv"><span>Graisse viscérale</span><strong>'+(a.gv||"—")+(prev?dv(a.gv,prev.gv):'')+'</strong></div>'+
     '<div class="kv"><span>Métabolisme</span><strong>'+(a.kcal||"—")+' kcal</strong></div>'+
     '</div>'+
+    (function(){
+      var p0=parseFloat(a.poids),mga=parseFloat(a.mg),mgcV=parseFloat(a.mgc);
+      if(!(p0>0&&mga>0&&mgcV>0&&mgcV<mga))return"";
+      var pl=calcPlan(a.sexe||"F",p0,mga,mgcV);
+      return '<h2>🎯 Plan & objectifs — 12 semaines</h2>'+
+        '<div class="kv"><span>Objectif</span><strong>'+mgcV.toFixed(0)+' % de masse grasse — poids final '+pl.pFinal.toFixed(1)+' kg</strong></div>'+
+        '<div class="kv"><span>À perdre</span><strong style="color:#D52B1E">'+pl.aPerdre.toFixed(1)+' kg (dont '+pl.perteFat.toFixed(1)+' kg de gras)</strong></div>'+
+        '<div class="kv"><span>Barre calorique</span><strong>'+pl.kcal+' kcal / jour</strong></div>'+
+        planRowsHTML(pl);
+    })()+
     '<h2>Objectifs</h2>'+
     '<div class="kv"><span>1. '+esc(a.obj1||"—")+'</span></div>'+
     (a.obj2?'<div class="kv"><span>2. '+esc(a.obj2)+'</span></div>':'')+
@@ -2442,10 +2465,36 @@ function bindCoach(){
   for(var br2=0;br2<blReps.length;br2++){
     blReps[br2].addEventListener("click",function(){bilanReport(state.coachDetail,parseInt(this.getAttribute("data-i"),10));});
   }
+  // 🧮 Calcul objectif live dans le bilan
+  function blPlanCompute(){
+    var out=document.getElementById("bl-plan-out");if(!out)return;
+    function nv(id){var el=document.getElementById(id);return el?parseFloat(el.value):NaN;}
+    var p0=nv("bl-poids"),mga=nv("bl-mg"),mgc=nv("bl-mgc");
+    if(p0>0&&mga>0&&mgc>0&&mgc<mga){
+      var pl=calcPlan(state.blSexe||"F",p0,mga,mgc);
+      out.innerHTML='<div style="margin-bottom:10px"><div style="font-size:12px;font-weight:800;color:#D52B1E;margin-bottom:6px">🔥 Barre calorique : '+pl.kcal+' kcal / jour</div>'+planCardHTML(pl,mgc)+'</div>';
+    }else{out.innerHTML='';}
+  }
+  ["bl-poids","bl-mg","bl-mgc"].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el)el.addEventListener("input",blPlanCompute);
+  });
+  ["F","H"].forEach(function(sx){
+    var b=document.getElementById("bl-sexe-"+sx);
+    if(b)b.addEventListener("click",function(){
+      state.blSexe=sx;
+      ["F","H"].forEach(function(s2){
+        var b2=document.getElementById("bl-sexe-"+s2);
+        if(b2){if(s2===sx){b2.classList.remove("gray");b2.style.background="#0057A8";}else{b2.classList.add("gray");b2.style.background="";}}
+      });
+      blPlanCompute();
+    });
+  });
+  if(document.getElementById("bl-plan-out"))blPlanCompute();
   var blSave=document.getElementById("bl-save");
   if(blSave)blSave.addEventListener("click",function(){
     function gv2(id){var el=document.getElementById(id);return el?el.value.trim():"";}
-    var a={date:gv2("bl-date"),age:gv2("bl-age"),poids:gv2("bl-poids"),taille:gv2("bl-taille"),mg:gv2("bl-mg"),mm:gv2("bl-mm"),gv:gv2("bl-gv"),kcal:gv2("bl-kcal"),
+    var a={date:gv2("bl-date"),age:gv2("bl-age"),sexe:(state.blSexe||"F"),mgc:gv2("bl-mgc"),poids:gv2("bl-poids"),taille:gv2("bl-taille"),mg:gv2("bl-mg"),mm:gv2("bl-mm"),gv:gv2("bl-gv"),kcal:gv2("bl-kcal"),
       obj1:gv2("bl-obj1"),obj2:gv2("bl-obj2"),obj3:gv2("bl-obj3"),pb:gv2("bl-pb"),mesures:{},mdist:{},scores:{},q:{}};
     for(var bm=0;bm<BILAN_MESURES.length;bm++){
       a.mesures[BILAN_MESURES[bm][0]]=gv2("bl-m-"+BILAN_MESURES[bm][0]);

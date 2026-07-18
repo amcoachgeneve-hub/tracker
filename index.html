@@ -2168,7 +2168,9 @@ function viewCoachBilan(){
     for(var b=0;b<bl.length;b++){
       h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #F0F0F0">'+
         '<span style="font-size:12.5px;font-weight:700">Analyse '+(b+1)+' — '+esc(bl[b].date||"?")+(bl[b].poids?' · '+bl[b].poids+' kg':'')+(bl[b].mg?' · '+bl[b].mg+' %MG':'')+'</span>'+
-        '<button class="bl-report" data-i="'+b+'" style="font-size:11px;font-weight:800;color:#0057A8;padding:5px 10px;border:1.5px solid #0057A8;border-radius:14px;background:#fff">📄 Rapport</button></div>';
+        '<span style="display:flex;gap:6px">'+
+        '<button class="bl-report" data-i="'+b+'" data-mode="client" style="font-size:11px;font-weight:800;color:#fff;padding:5px 10px;border:0;border-radius:14px;background:#4CAF50">📤 Client</button>'+
+        '<button class="bl-report" data-i="'+b+'" data-mode="full" style="font-size:11px;font-weight:800;color:#0057A8;padding:5px 10px;border:1.5px solid #0057A8;border-radius:14px;background:#fff">📄 Complet</button></span></div>';
     }
     h+='</div>';
   }
@@ -2217,7 +2219,9 @@ function viewCoachBilan(){
     '</div></div></div>';
   return h;
 }
-function bilanReport(slug,idx){
+function bilanReport(slug,idx,mode){
+  mode=mode||"full";
+  var isClient=(mode==="client");
   var clients=lsGet("amcoach_clients",[]),cName=slug;
   for(var i=0;i<clients.length;i++){if(clients[i].slug===slug){cName=clients[i].name;break;}}
   var bl=(lsGet("amcoach_"+slug,{})[600]||{}).list||[];
@@ -2244,7 +2248,7 @@ function bilanReport(slug,idx){
   var kh='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Analyse '+(idx+1)+' — '+esc(cName)+'</title><style>'+css+'</style></head><body>'+
     '<button onclick="window.close();setTimeout(function(){if(history.length>1)history.back();},250)" style="position:fixed;top:10px;right:10px;z-index:999;background:#1A1A1A;color:#fff;border:0;border-radius:18px;padding:8px 14px;font-weight:800;font-size:12px">✕</button>'+
     '<div class="brand"><span class="bar br"></span><span>AM Coach Genève</span><span class="bar bb"></span></div>'+
-    '<div class="sub">Analyse '+(idx+1)+' · '+esc(a.date||"")+' · '+esc(cName)+(prev?' · évolution vs analyse '+idx:'')+'</div>'+
+    '<div class="sub">Analyse '+(idx+1)+' · '+esc(a.date||"")+' · '+esc(cName)+(prev?' · évolution vs analyse '+idx:'')+(isClient?'':' · version complète')+'</div>'+
     '<h2>Composition corporelle</h2><div class="grid2">'+
     '<div class="kv"><span>Âge</span><strong>'+(a.age||"—")+'</strong></div>'+
     '<div class="kv"><span>Poids</span><strong>'+(a.poids||"—")+' kg'+(prev?dv(a.poids,prev.poids):'')+'</strong></div>'+
@@ -2268,7 +2272,7 @@ function bilanReport(slug,idx){
     '<div class="kv"><span>1. '+esc(a.obj1||"—")+'</span></div>'+
     (a.obj2?'<div class="kv"><span>2. '+esc(a.obj2)+'</span></div>':'')+
     (a.obj3?'<div class="kv"><span>3. '+esc(a.obj3)+'</span></div>':'')+
-    (a.pb?'<h2>Problèmes physiques</h2><p>'+esc(a.pb)+'</p>':'')+
+    ((!isClient&&a.pb)?'<h2>Problèmes physiques</h2><p>'+esc(a.pb)+'</p>':'')+
     '<h2>Mesures corporelles (cm)</h2><div class="grid2">';
   for(var mm2=0;mm2<BILAN_MESURES.length;mm2++){
     var k2=BILAN_MESURES[mm2][0],val=(a.mesures||{})[k2],dst=(a.mdist||{})[k2];
@@ -2288,12 +2292,14 @@ function bilanReport(slug,idx){
     }
     return any?'<h2>'+title+'</h2>'+block:'';
   }
-  kh+=qa(BILAN_CONTEXTE,'Pourquoi & contexte');
-  kh+=qa([BILAN_SEMAINE],'Bilan semaine');
-  kh+=qa(BILAN_HAB,'Habitudes alimentaires');
-  if(a.dec)kh+='<h2>Découverte</h2><p>'+esc(a.dec)+'</p>';
-  if(a.hab)kh+='<h2>Habitudes (notes)</h2><p>'+esc(a.hab)+'</p>';
-  kh+='<div class="pdfbar"><button onclick="window.print()">📤 Enregistrer en PDF — à envoyer au client ou coller dans Goodnotes</button></div>'+
+  if(!isClient){
+    kh+=qa(BILAN_CONTEXTE,'Pourquoi & contexte');
+    kh+=qa([BILAN_SEMAINE],'Bilan semaine');
+    kh+=qa(BILAN_HAB,'Habitudes alimentaires');
+    if(a.dec)kh+='<h2>Découverte</h2><p>'+esc(a.dec)+'</p>';
+    if(a.hab)kh+='<h2>Habitudes (notes)</h2><p>'+esc(a.hab)+'</p>';
+  }
+  kh+='<div class="pdfbar"><button onclick="window.print()">'+(isClient?'📤 Enregistrer en PDF — à envoyer au client':'📤 Enregistrer en PDF — version complète (Goodnotes / archives)')+'</button></div>'+
     '</body></html>';
   var win=window.open("","_blank");
   if(win){win.document.write(kh);win.document.close();}
@@ -2463,7 +2469,7 @@ function bindCoach(){
   if(blBack)blBack.addEventListener("click",function(){state.cdTab=null;render();});
   var blReps=document.querySelectorAll(".bl-report");
   for(var br2=0;br2<blReps.length;br2++){
-    blReps[br2].addEventListener("click",function(){bilanReport(state.coachDetail,parseInt(this.getAttribute("data-i"),10));});
+    blReps[br2].addEventListener("click",function(){bilanReport(state.coachDetail,parseInt(this.getAttribute("data-i"),10),this.getAttribute("data-mode")||"full");});
   }
   // 🧮 Calcul objectif live dans le bilan
   function blPlanCompute(){
@@ -2508,7 +2514,7 @@ function bindCoach(){
     var b6=lsGet("amcoach_"+slug,{})[600]||{};
     var list=b6.list||[];list.push(a);
     coachSaveSlot(slug,600,{list:list});
-    bilanReport(slug,list.length-1);
+    bilanReport(slug,list.length-1,"full");
     render();
   });
   var cdBday=document.getElementById("cd-bday");

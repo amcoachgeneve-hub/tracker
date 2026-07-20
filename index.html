@@ -626,6 +626,112 @@ function avgOf(series,key){
   var s=0;for(var j=0;j<v.length;j++)s+=v[j];
   return Math.round(s/v.length*10)/10;
 }
+function frDate(iso){
+  if(!iso)return "";
+  var p=String(iso).split("-");
+  return p.length===3?p[2]+"/"+p[1]+"/"+p[0]:iso;
+}
+
+// ═══════════ BOUCLES VERTUEUSES / BOUCLES D'ÉCHEC ═══════════
+function computeLoops(allData,period,offset){
+  offset=offset||0;
+  var rates=[],daysFilled=0;
+  for(var hb=0;hb<HABITS.length;hb++){
+    var hab=HABITS[hb],on=0,off=0,sOn=0,sOff=0,cnt=0;
+    for(var i=offset;i<offset+period;i++){
+      var d=allData[i];
+      if(!d||!d.habits)continue;
+      cnt++;
+      var sc=dayScore(d)||0;
+      if(d.habits[hab.id]){on++;sOn+=sc;}else{off++;sOff+=sc;}
+    }
+    if(hb===0)daysFilled=cnt;
+    rates.push({hab:hab,rate:cnt?on/cnt:0,on:on,off:off,cnt:cnt,
+      delta:(on&&off)?Math.round(sOn/on-sOff/off):null});
+  }
+  // Socle : habitudes tenues ≥ 70% du temps
+  var socle=rates.filter(function(r){return r.cnt>=3&&r.rate>=0.7;})
+    .sort(function(a,b){return b.rate-a.rate;});
+  // Moteur : l'habitude qui, quand elle est cochée, tire le plus la journée vers le haut
+  var moteur=null,mb=9;
+  for(var m=0;m<rates.length;m++){
+    var r=rates[m];
+    if(r.delta!=null&&r.on>=2&&r.off>=2&&r.delta>mb){mb=r.delta;moteur=r;}
+  }
+  // Faiblesses : habitudes qui sautent le plus souvent
+  var faibles=rates.filter(function(r){return r.cnt>=3&&r.rate<=0.45;})
+    .sort(function(a,b){return a.rate-b.rate;});
+  // Enchaînements de jours manqués (un jour saute → le suivant aussi)
+  var lastFilled=-1;
+  for(var li=offset;li<offset+period;li++){if(allData[li]&&allData[li].habits)lastFilled=li;}
+  var chains=0,run=0;
+  for(var ci=offset;ci<=lastFilled;ci++){
+    var dd=allData[ci];
+    if(!dd||!dd.habits)run++;else{if(run>=2)chains++;run=0;}
+  }
+  // Mots qui reviennent dans les points négatifs du soir
+  var stop={"avec":1,"pour":1,"trop":1,"plus":1,"dans":1,"fait":1,"faire":1,"suis":1,"bien":1,"tout":1,"toute":1,"rien":1,"cette":1,"comme":1,"mais":1,"encore":1,"assez":1,"aujourd":1,"hier":1,"soir":1,"matin":1,"journ\u00e9e":1,"jour":1,"jours":1,"pass\u00e9":1,"vraiment":1};
+  var freq={};
+  for(var ni=offset;ni<offset+period;ni++){
+    var dn=allData[ni];
+    if(dn&&dn.mindset&&dn.mindset.negatif){
+      var words=String(dn.mindset.negatif).toLowerCase().replace(/[^a-z\u00e0-\u00ff\s-]/g," ").split(/\s+/);
+      var seen={};
+      for(var w=0;w<words.length;w++){
+        var wd=words[w];
+        if(wd.length<4||stop[wd]||seen[wd])continue;
+        seen[wd]=1;freq[wd]=(freq[wd]||0)+1;
+      }
+    }
+  }
+  var mots=[];
+  for(var k in freq){if(freq[k]>=2)mots.push({w:k,n:freq[k]});}
+  mots.sort(function(a,b){return b.n-a.n;});
+  return {socle:socle,moteur:moteur,faibles:faibles,chains:chains,mots:mots.slice(0,3),daysFilled:daysFilled,period:period};
+}
+
+function loopsHTML(lp,compact){
+  if(lp.daysFilled<3)return "";
+  var h="";
+  var fs=compact?"12px":"12.5px";
+  // ─── BOUCLE VERTUEUSE : le socle ───
+  if(lp.socle.length||lp.moteur){
+    h+='<div style="background:linear-gradient(135deg,#F1F8EC,#E3F2E1);border:2px solid #4CAF50;border-radius:14px;padding:15px 16px;margin-bottom:10px">'+
+      '<div style="font-weight:900;font-size:11px;color:#2E7D32;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">\ud83d\udd01 Ta boucle vertueuse \u2014 TON SOCLE</div>';
+    if(lp.socle.length){
+      var names=lp.socle.map(function(r){return r.hab.icon+" "+r.hab.label+" ("+Math.round(r.rate*100)+"%)";}).join(" \u00b7 ");
+      h+='<div style="font-size:'+fs+';color:#1A1A1A;line-height:1.7;margin-bottom:8px"><strong>'+names+'</strong></div>';
+    }
+    if(lp.moteur){
+      h+='<div style="font-size:'+fs+';color:#333;line-height:1.7;margin-bottom:8px">Les jours o\u00f9 tu coches '+lp.moteur.hab.icon+' <strong>'+lp.moteur.hab.label+'</strong>, ta journ\u00e9e monte de <strong style="color:#2E7D32">+'+lp.moteur.delta+' points</strong> en moyenne. Ce n\u2019est pas un hasard.</div>';
+    }
+    h+='<div style="font-size:'+fs+';color:#2E7D32;line-height:1.75;font-weight:700">Ce n\u2019est pas la motivation qui te rend disciplin\u00e9 \u2014 c\u2019est CETTE boucle, r\u00e9p\u00e9t\u00e9e chaque jour. C\u2019est elle qui porte tout le reste.</div>'+
+      '<div style="font-size:'+fs+';color:#4A7A3A;line-height:1.75;margin-top:6px">\u2753 Qu\u2019est-ce que ces jours-l\u00e0 ont de diff\u00e9rent d\u00e8s le matin ? Comment tu prot\u00e8ges ce socle la semaine prochaine ?</div></div>';
+  }
+  // ─── BOUCLE D'ÉCHEC ───
+  var hasFail=lp.faibles.length||lp.chains>=2||lp.mots.length;
+  if(hasFail){
+    h+='<div style="background:#FFF8F5;border:2px solid #FFCDD2;border-radius:14px;padding:15px 16px;margin-bottom:10px">'+
+      '<div style="font-weight:900;font-size:11px;color:#D52B1E;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">\ud83c\udf00 Ta boucle d\u2019\u00e9chec \u2014 ce qui revient</div>';
+    if(lp.faibles.length){
+      var f0=lp.faibles[0];
+      h+='<div style="font-size:'+fs+';color:#333;line-height:1.7;margin-bottom:6px">'+f0.hab.icon+' <strong>'+f0.hab.label+'</strong> saute '+(f0.cnt-f0.on)+' fois sur '+f0.cnt+' jours remplis'+(lp.faibles.length>1?' \u2014 et '+lp.faibles.slice(1).map(function(r){return r.hab.icon+" "+r.hab.label;}).join(", ")+' suivent le m\u00eame chemin':'')+'.</div>';
+    }
+    if(lp.chains>=2){
+      h+='<div style="font-size:'+fs+';color:#333;line-height:1.7;margin-bottom:6px">\u26a0\ufe0f '+lp.chains+' fois, un jour manqu\u00e9 a entra\u00een\u00e9 le suivant. La boucle s\u2019auto-alimente.</div>';
+    }
+    if(lp.mots.length){
+      h+='<div style="font-size:'+fs+';color:#333;line-height:1.7;margin-bottom:6px">\ud83c\udf27\ufe0f Dans tes soir\u00e9es, ces mots reviennent : '+lp.mots.map(function(m){return '\u00ab <strong>'+esc(m.w)+'</strong> \u00bb ('+m.n+'\u00d7)';}).join(" \u00b7 ")+'.</div>';
+    }
+    h+='<div style="font-size:'+fs+';color:#B45309;line-height:1.8;margin-top:8px;font-weight:600">\u2753 Quelques questions \u00e0 te poser :<br>'+
+      '\u2022 Qu\u2019est-ce qui se passe dans les heures qui pr\u00e9c\u00e8dent, les jours o\u00f9 \u00e7a saute ?<br>'+
+      '\u2022 \u00c0 quel moment pr\u00e9cis la d\u00e9cision se joue-t-elle vraiment ?<br>'+
+      '\u2022 Que pourrais-tu pr\u00e9parer la veille pour que \u00e7a ne se n\u00e9gocie plus ?'+
+      (lp.chains>=2?'<br>\u2022 Le soir d\u2019un jour manqu\u00e9, qu\u2019est-ce qui emp\u00eacherait le lendemain de suivre ?':'')+
+      '</div></div>';
+  }
+  return h;
+}
 
 // ═══════════ DIPLÔME ═══════════
 function generateDiplome(name,startDate,allData){
@@ -764,6 +870,7 @@ function render(){
   if(state.view==="calendar")html+=viewCalendar(name,start);
   else if(state.view==="stats")html+=viewStats(name);
   else if(state.view==="dream")html+=viewDream(name);
+  else if(state.view==="training")html+=viewTraining(name,start);
   else html+=viewRapport(name,start);
   html+=navBar();
   html+='</div>';
@@ -827,8 +934,18 @@ function viewDream(name){
 }
 
 // ═══════════ NAV ═══════════
+function progLen(start){
+  // Durée du programme selon la date de fin d'accès (slot 504) : 14, 30 jours... sinon 90
+  var acc=getAllData()[504]||{};
+  var pd=90;
+  if(acc.end&&start){var d=Math.floor((new Date(acc.end)-new Date(start))/86400000)+1;if(d>0&&d<90)pd=d;}
+  return pd;
+}
 function navBar(){
-  var tabs=[["calendar","📅","Agenda"],["stats","📈","Stats"],["dream","🌟","Dream"],["rapport","📄","Rapport"]];
+  var start=lsGetStr("amcoach_start_"+CLIENT);
+  var is14=progLen(start)<=14;
+  var tabs=[["calendar","📅","Agenda"],["stats","📈","Stats"],["dream","🌟","Dream"],
+    is14?["training","🏋️","Sport"]:["rapport","📄","Rapport"]];
   var h='<div class="nav">';
   for(var i=0;i<tabs.length;i++){
     var t=tabs[i];
@@ -1129,21 +1246,25 @@ function viewCalendar(name,start){
       if(wN.length)h+='<div style="font-size:12px;line-height:1.7;margin-bottom:8px"><strong style="color:#D52B1E">🌧️ Ce qui a pesé :</strong> '+wN.map(esc).join(" · ")+'</div>';
       h+='<div style="background:#F4FAF2;border-radius:10px;padding:10px 12px;font-size:11px;color:#4A7A3A;line-height:1.7;font-weight:600">💡 Relis la ligne rouge : ce qui revient 2 fois ou plus est un pattern, pas un hasard. Choisis-en UN et fais-en ta mission One Thing de la semaine prochaine. On ne corrige pas tout — on corrige le levier.</div></div>';
     }
+    // 🔁 Boucles de la semaine (vertueuse = socle · échec = ce qui revient)
+    var wLoops=loopsHTML(computeLoops(allData,7,wStart),true);
+    if(wLoops)h+='<div style="margin-top:12px">'+wLoops+'</div>';
     h+='</div>';
   }
 
   // ⚠️ Message du coach → déplacé dans la vue jour (épuration accueil)
 
   // 3 months (mois 2 et 3 verrouillés tant que le précédent n'est pas terminé)
-  // Programme court (Reset 14 j...) : calendrier limité à progDays, un seul bloc
-  var nbMonths=shortProg?1:3;
+  // Programme court (Reset 14 j...) : les 14 jours visibles, le reste cadenassé
+  var nbMonths=3;
   for(var mi=0;mi<nbMonths;mi++){
-    var locked=mi*28>today90;
+    var beyondProg=shortProg&&mi*28>=progDays;
+    var locked=beyondProg||mi*28>today90;
     if(locked){
       h+='<div style="margin-bottom:10px"><div class="month-hdr" style="opacity:.55;cursor:default">'+
         '<div class="mh-left"><div class="bar" style="background:#DDD"></div>'+
         '<span class="mh-name" style="color:#999">🔒 Mois '+(mi+1)+'</span></div>'+
-        '<span style="font-size:11px;color:#BBB;font-weight:700">Se débloque au jour '+(mi*28+1)+'</span></div></div>';
+        '<span style="font-size:11px;color:#BBB;font-weight:700">'+(beyondProg?'Programme 90 jours':'Se débloque au jour '+(mi*28+1))+'</span></div></div>';
       continue;
     }
     var pastDays=[],fd=0;
@@ -1174,7 +1295,7 @@ function viewCalendar(name,start){
           var slot=w*7+dd-wkOff;
           if(slot<0||slot>=28){h+='<div style="aspect-ratio:1;border-radius:8px;background:#F4F4F4"></div>';continue;}
           var idx=mi*28+slot;
-          if(idx>=progDays){h+='<div style="aspect-ratio:1;border-radius:8px;background:#F4F4F4"></div>';continue;}
+          if(idx>=progDays){h+='<div style="aspect-ratio:1;border-radius:8px;background:#F4F4F4;display:flex;align-items:center;justify-content:center;font-size:11px;opacity:.55">🔒</div>';continue;}
           if(idx>=90){h+='<div></div>';continue;}
           var cellBg="#EEF4FF", cls="";
           if(idx<=today90){
@@ -1549,8 +1670,8 @@ function viewRapport(name,start){
     '<div class="card" style="padding:20px 18px;margin-bottom:16px">'+
     '<div style="font-weight:900;font-size:16px;margin-bottom:8px">Génère ton bilan</div>'+
     '<div style="font-size:13px;color:#888;line-height:1.6;margin-bottom:20px">Un rapport complet s\'ouvre dans un nouvel onglet.<br/>Appuie sur <strong>Partager ↑</strong> → <strong>Imprimer</strong> → <strong>Enregistrer en PDF</strong>.</div>';
-  var periods=[30,60,90];
-  for(var i=0;i<3;i++){
+  var periods=[7,30,60,90];
+  for(var i=0;i<periods.length;i++){
     var pDays=periods[i], n=0;
     for(var x=0;x<pDays;x++){if(allData[x])n++;}
     var pct=Math.round(n/pDays*100);
@@ -1582,7 +1703,7 @@ function openRapport(name,start,period){
   }
 
   var habCounts=[];
-  for(var hb=0;hb<6;hb++){
+  for(var hb=0;hb<HABITS.length;hb++){
     var hab=HABITS[hb], cnt=0;
     for(var i=0;i<period;i++){
       var dd=allData[i];
@@ -1612,6 +1733,12 @@ function openRapport(name,start,period){
     html+="<div class='hc'><div class='hi'>"+hh.icon+"</div><div><div class='hnm'>"+hh.label+"</div><div class='hv' style='color:"+hh.color+"'>"+hh.val+"/"+period+"j</div></div></div>";
   }
   html+="</div></div>";
+  // 🔁 BOUCLES VERTUEUSES / D'ÉCHEC
+  var loops=computeLoops(allData,period);
+  var loopsBlock=loopsHTML(loops,false);
+  if(loopsBlock){
+    html+="<div class='sec'><div class='st'><div class='sb' style='background:#2E7D32'></div><span class='sl'>\ud83d\udd01 Tes boucles \u2014 ce que tes "+period+" jours racontent</span></div>"+loopsBlock+"</div>";
+  }
   // MINDSET RÉCAP
   var fiers=[],positifs=[],negatifs=[];
   for(var mi2=0;mi2<period;mi2++){
@@ -1655,6 +1782,75 @@ function openRapport(name,start,period){
 
   var win=window.open("","_blank");
   if(win){win.document.write(html);win.document.close();}
+}
+
+// ═══════════ ENTRAÎNEMENTS (mode 14 jours) ═══════════
+function viewTraining(name,start){
+  var allData=getAllData();
+  var today90=getToday90(start);
+  var week2=today90>=7;
+  var tr7=allData[507]||{};
+  var dayNames=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
+  var wdToday=(new Date().getDay()+6)%7;
+  var tmDur=state.tmDur||300;
+
+  var h='<div class="hdr"><div class="hdr-brand"><div class="bar bar-r"></div>'+
+    '<span class="hdr-title">Entraînements</span><div class="bar bar-b"></div></div>'+
+    '<div class="hdr-sub">'+esc(name)+' · Reset 14 jours</div></div>'+
+    '<div style="padding:16px 14px 20px">';
+
+  // Philosophie
+  h+='<div class="card" style="padding:15px 16px;margin-bottom:14px;border-left:4px solid #7B1FA2">'+
+    '<div style="font-size:12.5px;color:#444;line-height:1.8">14 jours pour installer le sport <strong>tous les jours</strong> — sans te cramer. '+
+    'Pas de séance d\'1h : <strong>5 à 10 min de muscu</strong> + <strong>20 min à 1h de marche non-stop</strong>, chaque jour. '+
+    'C\'est court exprès : l\'objectif n\'est pas la performance, c\'est que ton corps s\'habitue à bouger quotidiennement.</div></div>';
+
+  // Protocole 2 semaines
+  h+='<div style="display:flex;gap:8px;margin-bottom:14px">'+
+    '<div class="card" style="flex:1;padding:13px 12px;margin:0;text-align:center'+(!week2?';border:2px solid #7B1FA2':';opacity:.6')+'">'+
+    '<div style="font-weight:900;font-size:11px;color:#7B1FA2;letter-spacing:1px;text-transform:uppercase">Semaine 1'+(!week2?' · EN COURS':'')+'</div>'+
+    '<div style="font-weight:900;font-size:22px;margin:4px 0">5 rép</div>'+
+    '<div style="font-size:11px;color:#888;line-height:1.5">toutes les 30 s<br>pendant 5 à 10 min</div></div>'+
+    '<div class="card" style="flex:1;padding:13px 12px;margin:0;text-align:center'+(week2?';border:2px solid #7B1FA2':';opacity:.6')+'">'+
+    '<div style="font-weight:900;font-size:11px;color:#7B1FA2;letter-spacing:1px;text-transform:uppercase">Semaine 2'+(week2?' · EN COURS':'')+'</div>'+
+    '<div style="font-weight:900;font-size:22px;margin:4px 0">10 rép</div>'+
+    '<div style="font-size:11px;color:#888;line-height:1.5">toutes les 30 s<br>pendant 5 à 10 min</div></div></div>';
+
+  // Exos
+  h+='<div class="card" style="padding:14px 16px;margin-bottom:14px">'+
+    '<div class="card-label">💪 LES EXOS — TOUT EST MONTRÉ EN VIDÉO</div>'+
+    '<div style="display:flex;flex-wrap:wrap;gap:6px">'+
+    ["🙌 Pompes","🦵 Squats","💪 Dips","🚶 Fentes","🔥 Abdos","🪢 TRX"].map(function(x){
+      return '<span style="background:#F3E8FA;color:#7B1FA2;border-radius:10px;padding:6px 11px;font-size:12px;font-weight:800">'+x+'</span>';
+    }).join("")+'</div>'+
+    '<div style="font-size:11px;color:#999;margin-top:9px;line-height:1.6">Au bip toutes les 30 s : tu fais tes répétitions, puis tu récupères jusqu\'au bip suivant. Simple. Répétable. Automatique.</div></div>';
+
+  // ⏱️ MINUTEUR 30s
+  h+='<div class="card" style="padding:16px;margin-bottom:14px;background:'+K+';border:none">'+
+    '<div style="color:#C9A227;font-weight:800;font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">⏱️ Minuteur — 1 bip toutes les 30 s</div>'+
+    '<div style="display:flex;gap:8px;margin-bottom:12px">'+
+    '<button data-tmdur="300" style="flex:1;padding:10px 0;border-radius:10px;font-weight:900;font-size:13px;background:'+(tmDur===300?"#7B1FA2":"#2A2A2A")+';color:#fff">5 min</button>'+
+    '<button data-tmdur="600" style="flex:1;padding:10px 0;border-radius:10px;font-weight:900;font-size:13px;background:'+(tmDur===600?"#7B1FA2":"#2A2A2A")+';color:#fff">10 min</button></div>'+
+    '<div style="text-align:center;margin-bottom:12px">'+
+    '<div id="tm-cycle" style="color:#fff;font-weight:900;font-size:52px;line-height:1">30</div>'+
+    '<div style="color:#888;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px">secondes avant le bip</div>'+
+    '<div id="tm-total" style="color:#C9A227;font-weight:800;font-size:13px;margin-top:6px">'+(tmDur/60)+':00 au total</div></div>'+
+    '<button id="tm-start" style="width:100%;padding:15px 0;border-radius:12px;background:'+R+';color:#fff;font-weight:900;font-size:15px;letter-spacing:1px">▶️ START</button></div>';
+
+  // 7 jours d'entraînement
+  h+='<div style="display:flex;align-items:center;gap:8px;margin:4px 0 10px"><div class="bar bar-r"></div><span style="font-weight:900;font-size:14px;text-transform:uppercase;letter-spacing:1px">Tes 7 jours</span></div>';
+  for(var d7=0;d7<7;d7++){
+    var e7=tr7[d7]||{};
+    var isToday=d7===wdToday;
+    h+='<div class="card" style="padding:13px 15px;margin-bottom:9px'+(isToday?';border:2px solid #7B1FA2':'')+'">'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:'+((e7.v||e7.m)?'9px':'0')+'">'+
+      '<span style="font-weight:900;font-size:13.5px">'+dayNames[d7]+(isToday?' <span style="color:#7B1FA2;font-size:10px;letter-spacing:1px">· AUJOURD\'HUI</span>':'')+'</span>'+
+      ((!e7.v&&!e7.m)?'<span style="font-size:11px;color:#BBB;font-weight:700">Vidéo bientôt dispo</span>':'')+'</div>';
+    if(e7.v){h+='<a href="'+esc(e7.v)+'" target="_blank" rel="noopener" style="display:block;text-align:center;padding:12px 0;border-radius:11px;background:#7B1FA2;color:#fff;font-weight:900;font-size:13px;text-decoration:none;margin-bottom:8px">▶️ Vidéo muscu '+(week2?'10':'5')+' rép / 30 s · 5-10 min</a>';}
+    h+='<div style="font-size:12px;font-weight:700;color:#555">🚶 '+esc(e7.m||"20 min à 1h de marche non-stop")+'</div></div>';
+  }
+  h+='<div style="font-size:11px;color:#AAA;text-align:center;line-height:1.7;margin-top:6px">La marche se fait <strong>non-stop</strong> : c\'est la régularité qui compte, pas la vitesse.</div>';
+  return h+'</div>';
 }
 </script>
 <script>
@@ -1781,7 +1977,7 @@ function viewCoachDetail(){
   var acc2=allData[504]||{};
   var isOff=!!acc2.off;
   var isExpired=acc2.end&&new Date().toISOString().split("T")[0]>acc2.end;
-  var accStatus=isOff?'<span style="color:#D52B1E">⛔ COUPÉ</span>':isExpired?'<span style="color:#E65100">⏸️ EXPIRÉ ('+acc2.end+')</span>':'<span style="color:#4CAF50">✅ ACTIF'+(acc2.end?' → '+acc2.end:' · illimité')+'</span>';
+  var accStatus=isOff?'<span style="color:#D52B1E">⛔ COUPÉ</span>':isExpired?'<span style="color:#E65100">⏸️ EXPIRÉ ('+frDate(acc2.end)+')</span>':'<span style="color:#4CAF50">✅ ACTIF'+(acc2.end?' → '+frDate(acc2.end):' · illimité')+'</span>';
   h+='<div class="card" style="border-left:4px solid '+(isOff||isExpired?"#D52B1E":"#4CAF50")+';padding:13px 15px">'+
     '<div style="font-weight:800;font-size:13px;margin-bottom:10px">🔑 Accès : '+accStatus+'</div>'+
     '<div style="display:flex;gap:8px">'+
@@ -1923,6 +2119,30 @@ function viewCoachDash(){
         '<div style="flex:1"><div style="font-weight:900;font-size:18px">'+esc(c.name)+'</div>'+
         '<div style="font-size:12px;color:#AAA;margin-top:2px">Jour '+Math.min(t90+1,90)+'/90 · départ '+new Date(c.start_date).toLocaleDateString("fr-FR")+'</div>'+
         (function(){var la=lastActLabel(lsGet("amcoach_"+c.slug,{}));return '<div style="font-size:11px;font-weight:800;margin-top:3px;color:'+la.c+'">📱 Dernière activité : '+la.t+'</div>';})()+'</div></div>'+
+        // 📊 Indicateurs 7 derniers jours : briques identité · missions du jour · journal
+        (function(){
+          var from=Math.max(0,t90-6), nd=Math.min(t90,89)-from+1;
+          if(nd<1)return "";
+          var briq=0,miss=0,nut=0,som=0,spo=0;
+          for(var z=from;z<=Math.min(t90,89);z++){
+            var qz=cd[400+z]||{};
+            if(qz.p)briq++;if(qz.e)briq++;
+            if(missionWon(cd,z))miss++;
+            var dz=cd[z];
+            if(dz&&dz.habits){if(dz.habits.nutrition)nut++;if(dz.habits.sommeil)som++;if(dz.habits.sport)spo++;}
+          }
+          function chip(ico,val,max,lbl){
+            var pctc=val/max, col=pctc>=0.7?"#4CAF50":pctc>=0.4?"#E65100":"#D52B1E";
+            return '<span style="display:inline-flex;align-items:center;gap:3px;background:#F7F7F7;border-radius:9px;padding:4px 8px;font-size:10.5px;font-weight:800;color:'+col+'" title="'+lbl+'">'+ico+' '+val+'/'+max+'</span>';
+          }
+          return '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px">'+
+            chip("🧱",briq,nd*2,"Briques identité posées (2/jour) — 7 derniers jours")+
+            chip("⚡",miss,nd,"Missions du jour gagnées — 7 derniers jours")+
+            chip("🏋️",spo,nd,"Sport coché — 7 derniers jours")+
+            chip("🥗",nut,nd,"Nutrition cochée — 7 derniers jours")+
+            chip("😴",som,nd,"Sommeil coché — 7 derniers jours")+
+            '</div>';
+        })()+
         '<button class="copy-link big-btn" data-slug="'+esc(c.slug)+'" style="padding:12px 0;font-size:13px;background:'+K+';box-shadow:none;margin-bottom:8px">📋 Copier lien TRACKER</button>'+
         '<button class="copy-menu big-btn" data-slug="'+esc(c.slug)+'" style="padding:12px 0;font-size:13px;background:#2E7D32;box-shadow:none;margin-bottom:0">🍽️ Copier lien MENU</button></div>';
     }
@@ -2871,6 +3091,70 @@ function bindMain(name,start){
     rapports[r2].addEventListener("click",function(){
       if(this.classList.contains("disabled"))return;
       openRapport(name,start,parseInt(this.getAttribute("data-rapport")));
+    });
+  }
+
+  // ⏱️ MINUTEUR ENTRAÎNEMENT (bip léger toutes les 30 s)
+  if(window.__tmIv){clearInterval(window.__tmIv);window.__tmIv=null;state.tmRun=false;}
+  var tmStart=document.getElementById("tm-start");
+  if(tmStart){
+    var tmDurBtns=document.querySelectorAll("[data-tmdur]");
+    for(var td=0;td<tmDurBtns.length;td++){
+      tmDurBtns[td].addEventListener("click",function(){
+        if(state.tmRun)return; // pas de changement en cours de route
+        state.tmDur=parseInt(this.getAttribute("data-tmdur"),10);
+        render();
+      });
+    }
+    var tmCycle=document.getElementById("tm-cycle"), tmTotal=document.getElementById("tm-total");
+    var tmLeft=0, tmIv=null, tmCtx=null;
+    function tmBeep(n){
+      try{
+        if(!tmCtx)tmCtx=new (window.AudioContext||window.webkitAudioContext)();
+        if(tmCtx.state==="suspended")tmCtx.resume();
+        var t=tmCtx.currentTime;
+        for(var b=0;b<n;b++){
+          var o=tmCtx.createOscillator(),g=tmCtx.createGain();
+          o.connect(g);g.connect(tmCtx.destination);
+          o.frequency.value=880;o.type="sine";
+          g.gain.setValueAtTime(0.0001,t+b*0.28);
+          g.gain.exponentialRampToValueAtTime(0.18,t+b*0.28+0.02);
+          g.gain.exponentialRampToValueAtTime(0.0001,t+b*0.28+0.2);
+          o.start(t+b*0.28);o.stop(t+b*0.28+0.22);
+        }
+      }catch(e){}
+    }
+    function tmFmt(s){return Math.floor(s/60)+":"+("0"+(s%60)).slice(-2);}
+    function tmStop(done){
+      if(tmIv){clearInterval(tmIv);tmIv=null;window.__tmIv=null;}
+      state.tmRun=false;
+      tmStart.textContent=done?"💪 TERMINÉ — Recommencer":"▶️ START";
+      tmStart.style.background=done?"#4CAF50":R;
+      if(!done){tmCycle.textContent="30";tmTotal.textContent=tmFmt(state.tmDur||300)+" au total";}
+    }
+    tmStart.addEventListener("click",function(){
+      if(state.tmRun){tmStop(false);return;}
+      state.tmRun=true;
+      tmLeft=state.tmDur||300;
+      tmStart.textContent="⏹️ STOP";
+      tmStart.style.background="#2A2A2A";
+      tmBeep(1); // bip de départ
+      tmCycle.textContent="30";
+      tmTotal.textContent=tmFmt(tmLeft)+" restantes";
+      tmIv=window.__tmIv=setInterval(function(){
+        tmLeft--;
+        if(tmLeft<=0){
+          tmCycle.textContent="0";
+          tmTotal.textContent="0:00";
+          tmBeep(3); // triple bip de fin
+          tmStop(true);
+          return;
+        }
+        var cyc=tmLeft%30===0?30:tmLeft%30;
+        if(tmLeft%30===0)tmBeep(1); // bip toutes les 30 s
+        tmCycle.textContent=String(cyc);
+        tmTotal.textContent=tmFmt(tmLeft)+" restantes";
+      },1000);
     });
   }
 }

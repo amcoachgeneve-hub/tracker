@@ -669,25 +669,59 @@ function computeLoops(allData,period,offset){
     var dd=allData[ci];
     if(!dd||!dd.habits)run++;else{if(run>=2)chains++;run=0;}
   }
-  // Mots qui reviennent dans les points négatifs du soir
-  var stop={"avec":1,"pour":1,"trop":1,"plus":1,"dans":1,"fait":1,"faire":1,"suis":1,"bien":1,"tout":1,"toute":1,"rien":1,"cette":1,"comme":1,"mais":1,"encore":1,"assez":1,"aujourd":1,"hier":1,"soir":1,"matin":1,"journ\u00e9e":1,"jour":1,"jours":1,"pass\u00e9":1,"vraiment":1};
-  var freq={};
-  for(var ni=offset;ni<offset+period;ni++){
-    var dn=allData[ni];
-    if(dn&&dn.mindset&&dn.mindset.negatif){
-      var words=String(dn.mindset.negatif).toLowerCase().replace(/[^a-z\u00e0-\u00ff\s-]/g," ").split(/\s+/);
-      var seen={};
-      for(var w=0;w<words.length;w++){
-        var wd=words[w];
-        if(wd.length<4||stop[wd]||seen[wd])continue;
-        seen[wd]=1;freq[wd]=(freq[wd]||0)+1;
+  // Phrases qui reviennent dans les soirées (regroupées par mots significatifs partagés)
+  var LOOP_STOP={"avec":1,"pour":1,"trop":1,"plus":1,"dans":1,"fait":1,"faire":1,"suis":1,"bien":1,"tout":1,"toute":1,"rien":1,"cette":1,"comme":1,"mais":1,"encore":1,"assez":1,"aujourd":1,"hier":1,"journ\u00e9e":1,"jour":1,"jours":1,"pass\u00e9":1,"vraiment":1,"\u00e9t\u00e9":1,"\u00eatre":1,"avoir":1,"quand":1,"parce":1,"chose":1,"choses":1};
+  function sigWords(s){
+    var words=String(s).toLowerCase().replace(/[^a-z\u00e0-\u00ff\s-]/g," ").split(/\s+/);
+    var out={},arr=[];
+    for(var w=0;w<words.length;w++){
+      var wd=words[w];
+      if(wd.length<4||LOOP_STOP[wd]||out[wd])continue;
+      out[wd]=1;arr.push(wd);
+    }
+    return arr;
+  }
+  function groupPhrases(texts){
+    // texts: [{t:"...", d:jour}] → groupes de phrases proches (≥2 mots significatifs en commun, ou 1 seul si la phrase n'en a qu'un)
+    var groups=[];
+    for(var ti=0;ti<texts.length;ti++){
+      var tx=texts[ti], ws=sigWords(tx.t);
+      if(!ws.length)continue;
+      var placed=false;
+      for(var gi=0;gi<groups.length;gi++){
+        var g=groups[gi], shared=[];
+        for(var si=0;si<ws.length;si++){if(g.wset[ws[si]])shared.push(ws[si]);}
+        var need=Math.min(2,ws.length,g.minLen);
+        if(shared.length>=need){
+          g.n++;g.days.push(tx.d);
+          if(tx.t.length>g.t.length)g.t=tx.t; // garder la phrase la plus parlante
+          // resserrer le thème sur les mots communs
+          if(shared.length>=1){var nw={};for(var sh=0;sh<shared.length;sh++)nw[shared[sh]]=1;g.wset=nw;g.kw=shared;}
+          g.minLen=Math.min(g.minLen,ws.length);
+          placed=true;break;
+        }
+      }
+      if(!placed){
+        var wset={};for(var wi=0;wi<ws.length;wi++)wset[ws[wi]]=1;
+        groups.push({t:tx.t,n:1,days:[tx.d],wset:wset,kw:ws.slice(0,4),minLen:ws.length});
       }
     }
+    var out=groups.filter(function(g){return g.n>=2;});
+    out.sort(function(a,b){return b.n-a.n;});
+    return out.slice(0,3);
   }
-  var mots=[];
-  for(var k in freq){if(freq[k]>=2)mots.push({w:k,n:freq[k]});}
-  mots.sort(function(a,b){return b.n-a.n;});
-  return {socle:socle,moteur:moteur,faibles:faibles,chains:chains,mots:mots.slice(0,3),daysFilled:daysFilled,period:period};
+  var negTexts=[],posTexts=[];
+  for(var ni=offset;ni<offset+period;ni++){
+    var dn=allData[ni];
+    if(dn&&dn.mindset){
+      if(dn.mindset.negatif)negTexts.push({t:dn.mindset.negatif,d:ni+1});
+      if(dn.mindset.fier)posTexts.push({t:dn.mindset.fier,d:ni+1});
+      if(dn.mindset.positif)posTexts.push({t:dn.mindset.positif,d:ni+1});
+    }
+  }
+  var phrasesNeg=groupPhrases(negTexts);
+  var phrasesPos=groupPhrases(posTexts);
+  return {socle:socle,moteur:moteur,faibles:faibles,chains:chains,phrasesNeg:phrasesNeg,phrasesPos:phrasesPos,daysFilled:daysFilled,period:period};
 }
 
 function loopsHTML(lp,compact){
@@ -705,11 +739,19 @@ function loopsHTML(lp,compact){
     if(lp.moteur){
       h+='<div style="font-size:'+fs+';color:#333;line-height:1.7;margin-bottom:8px">Les jours o\u00f9 tu coches '+lp.moteur.hab.icon+' <strong>'+lp.moteur.hab.label+'</strong>, ta journ\u00e9e monte de <strong style="color:#2E7D32">+'+lp.moteur.delta+' points</strong> en moyenne. Ce n\u2019est pas un hasard.</div>';
     }
+    if(lp.phrasesPos&&lp.phrasesPos.length){
+      h+='<div style="font-size:'+fs+';color:#333;line-height:1.75;margin-bottom:8px"><strong style="color:#2E7D32">\ud83c\udf1f Ce qui revient dans tes bonnes soir\u00e9es :</strong><br>';
+      for(var pp=0;pp<lp.phrasesPos.length;pp++){
+        var gp=lp.phrasesPos[pp];
+        h+='\u00ab <em>'+esc(gp.t)+'</em> \u00bb <span style="color:#888;font-size:11px">\u2014 revenu '+gp.n+'\u00d7 (J'+gp.days.join(", J")+')</span><br>';
+      }
+      h+='</div>';
+    }
     h+='<div style="font-size:'+fs+';color:#2E7D32;line-height:1.75;font-weight:700">Ce n\u2019est pas la motivation qui te rend disciplin\u00e9 \u2014 c\u2019est CETTE boucle, r\u00e9p\u00e9t\u00e9e chaque jour. C\u2019est elle qui porte tout le reste.</div>'+
       '<div style="font-size:'+fs+';color:#4A7A3A;line-height:1.75;margin-top:6px">\u2753 Qu\u2019est-ce que ces jours-l\u00e0 ont de diff\u00e9rent d\u00e8s le matin ? Comment tu prot\u00e8ges ce socle la semaine prochaine ?</div></div>';
   }
   // ─── BOUCLE D'ÉCHEC ───
-  var hasFail=lp.faibles.length||lp.chains>=2||lp.mots.length;
+  var hasFail=lp.faibles.length||lp.chains>=2||(lp.phrasesNeg&&lp.phrasesNeg.length);
   if(hasFail){
     h+='<div style="background:#FFF8F5;border:2px solid #FFCDD2;border-radius:14px;padding:15px 16px;margin-bottom:10px">'+
       '<div style="font-weight:900;font-size:11px;color:#D52B1E;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">\ud83c\udf00 Ta boucle d\u2019\u00e9chec \u2014 ce qui revient</div>';
@@ -720,10 +762,16 @@ function loopsHTML(lp,compact){
     if(lp.chains>=2){
       h+='<div style="font-size:'+fs+';color:#333;line-height:1.7;margin-bottom:6px">\u26a0\ufe0f '+lp.chains+' fois, un jour manqu\u00e9 a entra\u00een\u00e9 le suivant. La boucle s\u2019auto-alimente.</div>';
     }
-    if(lp.mots.length){
-      h+='<div style="font-size:'+fs+';color:#333;line-height:1.7;margin-bottom:6px">\ud83c\udf27\ufe0f Dans tes soir\u00e9es, ces mots reviennent : '+lp.mots.map(function(m){return '\u00ab <strong>'+esc(m.w)+'</strong> \u00bb ('+m.n+'\u00d7)';}).join(" \u00b7 ")+'.</div>';
+    if(lp.phrasesNeg&&lp.phrasesNeg.length){
+      h+='<div style="font-size:'+fs+';color:#333;line-height:1.75;margin-bottom:6px"><strong style="color:#D52B1E">\ud83c\udf27\ufe0f Ce qui revient dans tes soir\u00e9es :</strong><br>';
+      for(var pn=0;pn<lp.phrasesNeg.length;pn++){
+        var gn=lp.phrasesNeg[pn];
+        h+='\u00ab <em>'+esc(gn.t)+'</em> \u00bb <span style="color:#888;font-size:11px">\u2014 revenu '+gn.n+'\u00d7 (J'+gn.days.join(", J")+')</span><br>';
+      }
+      h+='</div>';
     }
     h+='<div style="font-size:'+fs+';color:#B45309;line-height:1.8;margin-top:8px;font-weight:600">\u2753 Quelques questions \u00e0 te poser :<br>'+
+      ((lp.phrasesNeg&&lp.phrasesNeg.length)?'\u2022 Le sujet \u00ab '+esc(lp.phrasesNeg[0].kw.join(" / "))+' \u00bb revient '+lp.phrasesNeg[0].n+' fois. Qu\u2019est-ce qui devrait changer pour que \u00e7a n\u2019apparaisse plus dans tes soir\u00e9es ? Qu\u2019est-ce qui d\u00e9pend r\u00e9ellement de toi l\u00e0-dedans ?<br>':'')+
       '\u2022 Qu\u2019est-ce qui se passe dans les heures qui pr\u00e9c\u00e8dent, les jours o\u00f9 \u00e7a saute ?<br>'+
       '\u2022 \u00c0 quel moment pr\u00e9cis la d\u00e9cision se joue-t-elle vraiment ?<br>'+
       '\u2022 Que pourrais-tu pr\u00e9parer la veille pour que \u00e7a ne se n\u00e9gocie plus ?'+
@@ -816,7 +864,7 @@ function svgLineChart(values,color,opts){
   var path="", started=false;
   for(var i2=0;i2<n;i2++){
     var v2=values[i2];
-    if(v2==null){started=false;continue;}
+    if(v2==null)continue; // jour non rempli : on saute, la courbe se relie au point suivant
     var X=px(i2).toFixed(1), Y=py(v2).toFixed(1);
     path+=(started?"L":"M")+X+","+Y;
     started=true;
@@ -1827,7 +1875,7 @@ function viewTraining(name,start){
 
   // ⏱️ MINUTEUR 30s
   h+='<div class="card" style="padding:16px;margin-bottom:14px;background:'+K+';border:none">'+
-    '<div style="color:#C9A227;font-weight:800;font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">⏱️ Minuteur — 1 bip toutes les 30 s</div>'+
+    '<div style="color:#C9A227;font-weight:800;font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">⏱️ Minuteur — alarme forte de 3 s toutes les 30 s</div>'+
     '<div style="display:flex;gap:8px;margin-bottom:12px">'+
     '<button data-tmdur="300" style="flex:1;padding:10px 0;border-radius:10px;font-weight:900;font-size:13px;background:'+(tmDur===300?"#7B1FA2":"#2A2A2A")+';color:#fff">5 min</button>'+
     '<button data-tmdur="600" style="flex:1;padding:10px 0;border-radius:10px;font-weight:900;font-size:13px;background:'+(tmDur===600?"#7B1FA2":"#2A2A2A")+';color:#fff">10 min</button></div>'+
@@ -1847,7 +1895,8 @@ function viewTraining(name,start){
       '<span style="font-weight:900;font-size:13.5px">'+dayNames[d7]+(isToday?' <span style="color:#7B1FA2;font-size:10px;letter-spacing:1px">· AUJOURD\'HUI</span>':'')+'</span>'+
       ((!e7.v&&!e7.m)?'<span style="font-size:11px;color:#BBB;font-weight:700">Vidéo bientôt dispo</span>':'')+'</div>';
     if(e7.v){h+='<a href="'+esc(e7.v)+'" target="_blank" rel="noopener" style="display:block;text-align:center;padding:12px 0;border-radius:11px;background:#7B1FA2;color:#fff;font-weight:900;font-size:13px;text-decoration:none;margin-bottom:8px">▶️ Vidéo muscu '+(week2?'10':'5')+' rép / 30 s · 5-10 min</a>';}
-    h+='<div style="font-size:12px;font-weight:700;color:#555">🚶 '+esc(e7.m||"20 min à 1h de marche non-stop")+'</div></div>';
+    h+='<div style="font-size:12px;font-weight:700;color:#555;line-height:1.7">💪 Muscu 5 à 10 min <span style="color:#7B1FA2;font-weight:900">+</span> 🚶 '+esc(e7.m||"20 min à 1h de marche non-stop")+'</div>'+
+      '<div style="font-size:10.5px;color:#AAA;margin-top:3px">Les deux, chaque jour — c\'est ça le deal.</div></div>';
   }
   h+='<div style="font-size:11px;color:#AAA;text-align:center;line-height:1.7;margin-top:6px">La marche se fait <strong>non-stop</strong> : c\'est la régularité qui compte, pas la vitesse.</div>';
   return h+'</div>';
@@ -3108,20 +3157,42 @@ function bindMain(name,start){
     }
     var tmCycle=document.getElementById("tm-cycle"), tmTotal=document.getElementById("tm-total");
     var tmLeft=0, tmIv=null, tmCtx=null;
+    function tmCtxGet(){
+      if(!tmCtx)tmCtx=new (window.AudioContext||window.webkitAudioContext)();
+      if(tmCtx.state==="suspended")tmCtx.resume();
+      return tmCtx;
+    }
     function tmBeep(n){
+      // petit bip (départ)
       try{
-        if(!tmCtx)tmCtx=new (window.AudioContext||window.webkitAudioContext)();
-        if(tmCtx.state==="suspended")tmCtx.resume();
-        var t=tmCtx.currentTime;
+        var ctx=tmCtxGet(), t=ctx.currentTime;
         for(var b=0;b<n;b++){
-          var o=tmCtx.createOscillator(),g=tmCtx.createGain();
-          o.connect(g);g.connect(tmCtx.destination);
+          var o=ctx.createOscillator(),g=ctx.createGain();
+          o.connect(g);g.connect(ctx.destination);
           o.frequency.value=880;o.type="sine";
           g.gain.setValueAtTime(0.0001,t+b*0.28);
-          g.gain.exponentialRampToValueAtTime(0.18,t+b*0.28+0.02);
+          g.gain.exponentialRampToValueAtTime(0.35,t+b*0.28+0.02);
           g.gain.exponentialRampToValueAtTime(0.0001,t+b*0.28+0.2);
           o.start(t+b*0.28);o.stop(t+b*0.28+0.22);
         }
+      }catch(e){}
+    }
+    function tmAlarm(){
+      // 🔊 alarme forte : 3 secondes de bips (6 pulsations), impossible à louper
+      try{
+        var ctx=tmCtxGet(), t=ctx.currentTime;
+        for(var b=0;b<6;b++){
+          var o=ctx.createOscillator(),g=ctx.createGain();
+          o.connect(g);g.connect(ctx.destination);
+          o.frequency.value=b%2===0?950:1150; // alternance de tons, plus perçant
+          o.type="square";
+          g.gain.setValueAtTime(0.0001,t+b*0.5);
+          g.gain.exponentialRampToValueAtTime(0.6,t+b*0.5+0.02);
+          g.gain.setValueAtTime(0.6,t+b*0.5+0.3);
+          g.gain.exponentialRampToValueAtTime(0.0001,t+b*0.5+0.42);
+          o.start(t+b*0.5);o.stop(t+b*0.5+0.45);
+        }
+        if(navigator.vibrate)navigator.vibrate([300,150,300,150,300]); // vibration en bonus sur Android
       }catch(e){}
     }
     function tmFmt(s){return Math.floor(s/60)+":"+("0"+(s%60)).slice(-2);}
@@ -3146,12 +3217,12 @@ function bindMain(name,start){
         if(tmLeft<=0){
           tmCycle.textContent="0";
           tmTotal.textContent="0:00";
-          tmBeep(3); // triple bip de fin
+          tmAlarm(); // alarme de fin — 3 secondes
           tmStop(true);
           return;
         }
         var cyc=tmLeft%30===0?30:tmLeft%30;
-        if(tmLeft%30===0)tmBeep(1); // bip toutes les 30 s
+        if(tmLeft%30===0)tmAlarm(); // alarme forte 3 s toutes les 30 s
         tmCycle.textContent=String(cyc);
         tmTotal.textContent=tmFmt(tmLeft)+" restantes";
       },1000);

@@ -2953,6 +2953,13 @@ function viewCoachBilan(){
       '<button type="button" id="bl-sexe-F" class="big-btn'+((state.blSexe||"F")==="F"?"":" gray")+'" style="flex:1;padding:10px 0;font-size:13px'+((state.blSexe||"F")==="F"?";background:#0057A8":"")+'">Femme</button>'+
       '<button type="button" id="bl-sexe-H" class="big-btn'+((state.blSexe||"F")==="H"?"":" gray")+'" style="flex:1;padding:10px 0;font-size:13px'+((state.blSexe||"F")==="H"?";background:#0057A8":"")+'">Homme</button>'+
     '</div>'+
+    '<div class="card-label">PROFIL DE STOCKAGE</div>'+
+    '<div style="display:flex;gap:6px;margin-bottom:4px">'+
+      '<button type="button" class="bl-profil big-btn'+((state.blProfil||"mixte")==="androide"?"":" gray")+'" data-profil="androide" style="flex:1;padding:10px 0;font-size:12px'+((state.blProfil||"mixte")==="androide"?";background:#7B1FA2":"")+'">🍎 Pomme</button>'+
+      '<button type="button" class="bl-profil big-btn'+((state.blProfil||"mixte")==="gynoide"?"":" gray")+'" data-profil="gynoide" style="flex:1;padding:10px 0;font-size:12px'+((state.blProfil||"mixte")==="gynoide"?";background:#7B1FA2":"")+'">🍐 Poire</button>'+
+      '<button type="button" class="bl-profil big-btn'+((state.blProfil||"mixte")==="mixte"?"":" gray")+'" data-profil="mixte" style="flex:1;padding:10px 0;font-size:12px'+((state.blProfil||"mixte")==="mixte"?";background:#7B1FA2":"")+'">🔄 Mixte</button>'+
+    '</div>'+
+    '<div style="font-size:11px;color:#6E6E6E;line-height:1.5;margin-bottom:10px">Le tour de taille utilisé pour l\'analyse est la mesure « Nombril » ci-dessous.</div>'+
     bilanInput("bl-mgc","% MASSE GRASSE CIBLE","25")+
     '<div id="bl-plan-out"></div>'+
     '<div style="font-weight:900;font-size:12px;color:#7B1FA2;margin:8px 0 8px">OBJECTIFS & PROBLÈMES PHYSIQUES</div>'+
@@ -3164,7 +3171,20 @@ function bilanReport(slug,idx,mode){
         (!pl.blocked?'<div class="kv"><span>À perdre</span><strong style="color:#D52B1E">'+pl.L.toFixed(1)+' kg (encadré : '+enc2.gras.toFixed(1)+' kg de gras)</strong></div>':'')+
         '<div class="kv"><span>Barre calorique</span><strong>'+pl.kcal+' kcal / jour</strong></div>'+
         '<div class="kv"><span>Protéines</span><strong>'+pl.prot+' g / jour</strong></div>'+
-        planRowsHTMLV2(pl)+ws;
+        planRowsHTMLV2(pl)+ws+
+        (function(){
+          var vN=parseFloat(a.mesures&&a.mesures.nombril)||0;
+          var Am=morphoAnalyse(a.sexe||"F",a.profil||"mixte",vN,mgcV);
+          var ic={androide:"🍎",gynoide:"🍐",mixte:"🔄"}[Am.profil];
+          var vw="";
+          if(Am.visceral===2)vw='<div class="warn">🚨 Tour de taille '+Am.ventre+' cm (seuil '+Am.w2+' cm) : graisse viscérale probable — la plus dangereuse, mais la première à partir en déficit. Suivi médical recommandé en parallèle.</div>';
+          else if(Am.visceral===1)vw='<div class="warn">⚠️ Tour de taille '+Am.ventre+' cm (vigilance dès '+Am.w1+' cm) : chaque centimètre perdu compte plus que chaque kilo.</div>';
+          return '<h2>'+ic+' Profil de stockage</h2>'+
+            '<div class="kv" style="border:0"><span style="line-height:1.7">'+Am.ordre+'</span></div>'+
+            '<div class="kv" style="border:0"><span style="line-height:1.7">'+Am.leviers+'</span></div>'+
+            '<div class="kv" style="border:0"><span style="line-height:1.7"><strong>🎯 Ventre plat :</strong> pour ce profil, il se dessine généralement autour de <strong>'+Am.ventrePlatCible+'</strong> de masse grasse. La perte localisée n\'existe pas — on baisse le global, la génétique décide de l\'ordre.</span></div>'+
+            '<div class="kv" style="border:0"><span style="line-height:1.7">'+Am.kpi+'</span></div>'+vw;
+        })();
     })()+
     '<h2>Objectifs</h2>'+
     '<div class="kv"><span>1. '+esc(a.obj1||"—")+'</span></div>'+
@@ -3391,13 +3411,26 @@ function bindCoach(){
     if(p0>0&&mga>0&&mgc>0&&mgc<mga){
       if(!(tll>0)){out.innerHTML='<div style="font-size:12px;color:#E65100;font-weight:700;margin-bottom:10px">📏 Renseigne la TAILLE pour activer le calcul et les protections IMC.</div>';return;}
       var pl=calcPlanV2(state.blSexe||"F",p0,mga,mgc,tll,ag||null);
-      out.innerHTML='<div style="margin-bottom:10px"><div style="font-size:12px;font-weight:800;color:#D52B1E;margin-bottom:6px">🔥 Barre calorique : '+pl.kcal+' kcal / jour · 💪 '+pl.prot+' g protéines</div>'+planCardHTMLV2(pl,mgc)+'</div>';
+      var vNom=nv("bl-m-nombril");
+      var mo=morphoHTML(morphoAnalyse(state.blSexe||"F",state.blProfil||"mixte",vNom>0?vNom:0,mgc),mgc);
+      out.innerHTML='<div style="margin-bottom:10px"><div style="font-size:12px;font-weight:800;color:#D52B1E;margin-bottom:6px">🔥 Barre calorique : '+pl.kcal+' kcal / jour · 💪 '+pl.prot+' g protéines</div>'+planCardHTMLV2(pl,mgc)+mo+'</div>';
     }else{out.innerHTML='';}
   }
-  ["bl-poids","bl-mg","bl-mgc","bl-taille","bl-age"].forEach(function(id){
+  ["bl-poids","bl-mg","bl-mgc","bl-taille","bl-age","bl-m-nombril"].forEach(function(id){
     var el=document.getElementById(id);
     if(el)el.addEventListener("input",blPlanCompute);
   });
+  var blProfs=document.querySelectorAll(".bl-profil");
+  for(var bp=0;bp<blProfs.length;bp++){
+    blProfs[bp].addEventListener("click",function(){
+      state.blProfil=this.getAttribute("data-profil");
+      for(var bq=0;bq<blProfs.length;bq++){
+        if(blProfs[bq]===this){blProfs[bq].classList.remove("gray");blProfs[bq].style.background="#7B1FA2";}
+        else{blProfs[bq].classList.add("gray");blProfs[bq].style.background="";}
+      }
+      blPlanCompute();
+    });
+  }
   ["F","H"].forEach(function(sx){
     var b=document.getElementById("bl-sexe-"+sx);
     if(b)b.addEventListener("click",function(){
@@ -3413,7 +3446,7 @@ function bindCoach(){
   var blSave=document.getElementById("bl-save");
   if(blSave)blSave.addEventListener("click",function(){
     function gv2(id){var el=document.getElementById(id);return el?el.value.trim():"";}
-    var a={date:gv2("bl-date"),age:gv2("bl-age"),sexe:(state.blSexe||"F"),mgc:gv2("bl-mgc"),poids:gv2("bl-poids"),taille:gv2("bl-taille"),mg:gv2("bl-mg"),mm:gv2("bl-mm"),gv:gv2("bl-gv"),kcal:gv2("bl-kcal"),
+    var a={date:gv2("bl-date"),age:gv2("bl-age"),sexe:(state.blSexe||"F"),profil:(state.blProfil||"mixte"),mgc:gv2("bl-mgc"),poids:gv2("bl-poids"),taille:gv2("bl-taille"),mg:gv2("bl-mg"),mm:gv2("bl-mm"),gv:gv2("bl-gv"),kcal:gv2("bl-kcal"),
       obj1:gv2("bl-obj1"),obj2:gv2("bl-obj2"),obj3:gv2("bl-obj3"),pb:gv2("bl-pb"),mesures:{},mdist:{},scores:{},q:{}};
     for(var bm=0;bm<BILAN_MESURES.length;bm++){
       a.mesures[BILAN_MESURES[bm][0]]=gv2("bl-m-"+BILAN_MESURES[bm][0]);

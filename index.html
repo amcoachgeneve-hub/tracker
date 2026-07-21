@@ -1535,7 +1535,7 @@ function viewDay(name,start){
       '<div style="font-size:13px;font-weight:800;margin-bottom:6px">Ce mindset est resté vide</div>'+
       '<div style="font-size:12px;color:#666;line-height:1.7">Les 3 questions se remplissent <strong>le jour même</strong> — c\'est un rituel du soir, pas un devoir à rattraper. Ce qui compte, c\'est ce soir : rendez-vous sur la page du jour 🌙</div></div>'
     )+
-    (idx===today90?'<button id="wa-mindset" class="big-btn" style="background:#25D366;box-shadow:0 4px 14px #25D36644;margin-top:2px">📱 Envoyer ma pensée du soir à Akli</button>':'')+
+    (idx===today90&&isSunday?'<button id="wa-mindset" class="big-btn" style="background:#25D366;box-shadow:0 4px 14px #25D36644;margin-top:2px">📱 Envoyer ma pensée du soir à Akli</button>':'')+
     '</div>';
 
   // bilan dimanche

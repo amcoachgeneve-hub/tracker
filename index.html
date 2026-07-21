@@ -2934,7 +2934,8 @@ function viewCoachBilan(){
         '<select id="bl-cmp-a" class="num-input" style="flex:1;font-size:12.5px;font-weight:700;padding:10px">'+optsA+'</select>'+
         '<span style="font-weight:900">→</span>'+
         '<select id="bl-cmp-b" class="num-input" style="flex:1;font-size:12.5px;font-weight:700;padding:10px">'+optsB+'</select></div>'+
-        '<button id="bl-cmp-go" class="big-btn" style="background:#2E7D32;padding:13px 0;font-size:13.5px;margin-bottom:0">📈 Générer la progression (cm perdus, composition, zones)</button></div>';
+        '<button id="bl-cmp-go" class="big-btn" style="background:#2E7D32;padding:13px 0;font-size:13.5px;margin-bottom:8px">📈 Générer la progression (cm perdus, composition, zones)</button>'+
+        '<button id="bl-cmp-card" class="big-btn" style="background:linear-gradient(45deg,#F58529,#DD2A7B,#8134AF);box-shadow:none;padding:13px 0;font-size:13.5px;margin-bottom:0">🏆 Carte réussite — partage story</button></div>';
     }
   }
   var today=new Date();
@@ -3115,6 +3116,70 @@ function progressReport(slug,iA,iB){
   }
   html+='<div style="text-align:center;font-size:10px;color:#6E6E6E;margin-top:18px;letter-spacing:1px">AM COACH GENÈVE · MÉTHODE BALANCE-360 · @AMCOACHSPORTIF</div>'+
     '<div class="pdfbar"><button onclick="window.print()">📄 Enregistrer en PDF</button></div>'+
+    '</body></html>';
+  var win=window.open("","_blank");
+  if(win){win.document.write(html);win.document.close();}
+}
+
+// ═══════════ CARTE RÉUSSITE CHALLENGE (story Instagram) ═══════════
+function successCard(slug,iA,iB){
+  var clients=lsGet("amcoach_clients",[]),cName=slug;
+  for(var i=0;i<clients.length;i++){if(clients[i].slug===slug){cName=clients[i].name;break;}}
+  var prenom=String(cName).split(" ")[0];
+  var bl=(lsGet("amcoach_"+slug,{})[600]||{}).list||[];
+  var A=bl[iA],B=bl[iB];
+  if(!A||!B)return;
+  var C=compareBilans(A,B);
+  // ─── Les 4 meilleurs résultats à afficher (toujours 4 cases) ───
+  var stats=[];
+  if(C.dPoids!=null&&C.dPoids<0)stats.push({n:C.dPoids+" kg",l:"sur la balance",c:"#4CAF50"});
+  if(C.totalCm>0)stats.push({n:"−"+C.totalCm+" cm",l:"de mensurations",c:"#C9A227"});
+  if(C.dMg!=null&&C.dMg<0)stats.push({n:C.dMg+" %",l:"de masse grasse",c:"#4CAF50"});
+  if(C.dMus!=null&&C.dMus>0)stats.push({n:"+"+C.dMus+" kg",l:"de muscle",c:"#0057A8"});
+  if(C.dGras!=null&&C.dGras<0)stats.push({n:C.dGras+" kg",l:"de gras",c:"#4CAF50"});
+  if(C.dGv!=null&&C.dGv<0)stats.push({n:""+C.dGv,l:"graisse viscérale",c:"#4CAF50"});
+  if(C.topZones&&C.topZones[0])stats.push({n:C.topZones[0].d+" cm",l:C.topZones[0].label.toLowerCase(),c:"#C9A227"});
+  if(C.topZones&&C.topZones[1])stats.push({n:C.topZones[1].d+" cm",l:C.topZones[1].label.toLowerCase(),c:"#C9A227"});
+  if(C.dMus!=null&&C.dMus<0&&Math.abs(C.dMus)<=0.5)stats.push({n:"💪",l:"muscle protégé",c:"#0057A8"});
+  if(C.jours)stats.push({n:C.jours+" j",l:"de discipline",c:"#C9A227"});
+  // dédoublonnage par libellé, puis on garde les 4 premiers
+  var seen={},uniq=[];
+  for(var u=0;u<stats.length;u++){if(!seen[stats[u].l]){seen[stats[u].l]=1;uniq.push(stats[u]);}}
+  stats=uniq.slice(0,4);
+  if(!stats.length){alert("Pas encore assez de données comparables entre ces deux analyses.");return;}
+  var cells='';
+  for(var s=0;s<stats.length;s++){
+    cells+='<div class="cell"><div class="cn" style="color:'+stats[s].c+'">'+esc(stats[s].n)+'</div><div class="cl">'+esc(stats[s].l)+'</div></div>';
+  }
+  var html='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Réussite '+esc(prenom)+'</title><style>'+
+    'body{margin:0;font-family:-apple-system,sans-serif;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;box-sizing:border-box}'+
+    '.card{width:100%;max-width:380px;aspect-ratio:4/5;background:linear-gradient(160deg,#1A1A1A 0%,#0d2513 100%);border-radius:24px;padding:32px 26px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between;border:1px solid #333}'+
+    '.brand{display:flex;align-items:center;gap:8px;justify-content:center}'+
+    '.b{width:4px;height:20px;border-radius:2px}'+
+    '.bn{color:#fff;font-weight:900;font-size:13px;letter-spacing:2px}'+
+    '.ti{text-align:center;margin-top:6px}'+
+    '.t1{color:#C9A227;font-weight:900;font-size:12px;letter-spacing:3px;text-transform:uppercase}'+
+    '.t2{color:#fff;font-weight:900;font-size:24px;margin-top:4px}'+
+    '.t3{color:#4CAF50;font-weight:800;font-size:13px;margin-top:4px;letter-spacing:1px}'+
+    '.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}'+
+    '.cell{background:rgba(255,255,255,.05);border:1px solid #333;border-radius:16px;padding:16px 8px;text-align:center}'+
+    '.cn{font-weight:900;font-size:24px;letter-spacing:.5px}'+
+    '.cl{color:#8A8A8A;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-top:5px}'+
+    '.bot{text-align:center}'+
+    '.tag{color:#fff;font-weight:900;font-size:13px;letter-spacing:1px}'+
+    '.sub2{color:#666;font-size:11px;margin-top:4px;letter-spacing:1px;text-transform:uppercase}'+
+    '.hint{color:#666;font-size:12px;text-align:center;margin-top:16px;line-height:1.6}'+
+    '.ig{display:block;width:100%;max-width:380px;margin-top:12px;padding:14px 0;border-radius:12px;background:linear-gradient(45deg,#F58529,#DD2A7B,#8134AF);color:#fff;font-weight:900;font-size:14px;text-align:center;text-decoration:none}'+
+    '</style></head><body><button onclick=\'window.close();setTimeout(function(){if(history.length>1)history.back();},250)\' style=\'position:fixed;top:12px;right:12px;z-index:999;background:#1A1A1A;color:#fff;border:0;border-radius:20px;padding:9px 16px;font-weight:800;font-size:13px\'>✕ Fermer</button>'+
+    '<div class="card">'+
+    '<div><div class="brand"><div class="b" style="background:#D52B1E"></div><span class="bn">AM COACH GENÈVE</span><div class="b" style="background:#0057A8"></div></div>'+
+    '<div class="ti"><div class="t1">🏆 Réussite Challenge</div><div class="t2">'+esc(prenom)+'</div>'+
+    (C.jours?'<div class="t3">en '+C.jours+' jours</div>':'')+'</div></div>'+
+    '<div class="grid">'+cells+'</div>'+
+    '<div class="bot"><div class="tag">TRANSFO\'PHYSIQUE</div><div class="sub2">@amcoachsportif · Méthode Balance-360</div></div>'+
+    '</div>'+
+    '<a class="ig" href="instagram://story-camera">📸 Ouvrir Instagram Story</a>'+
+    '<div class="hint">1. Fais une capture d\'écran de la carte<br>2. Ouvre Instagram Story et poste-la 🔥</div>'+
     '</body></html>';
   var win=window.open("","_blank");
   if(win){win.document.write(html);win.document.close();}
@@ -3402,6 +3467,13 @@ function bindCoach(){
     if(ia===ib){alert("Choisis deux analyses différentes 🙂");return;}
     if(ia>ib){var tmp=ia;ia=ib;ib=tmp;}
     progressReport(state.coachDetail,ia,ib);
+  });
+  var cmpCard=document.getElementById("bl-cmp-card");
+  if(cmpCard)cmpCard.addEventListener("click",function(){
+    var ia=cmpA?parseInt(cmpA.value,10):0,ib=cmpB?parseInt(cmpB.value,10):0;
+    if(ia===ib){alert("Choisis deux analyses différentes 🙂");return;}
+    if(ia>ib){var tmp2=ia;ia=ib;ib=tmp2;}
+    successCard(state.coachDetail,ia,ib);
   });
   // 🧮 Calcul objectif live dans le bilan
   function blPlanCompute(){

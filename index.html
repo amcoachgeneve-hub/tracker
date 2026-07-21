@@ -665,6 +665,29 @@ function frDate(iso){
   return p.length===3?p[2]+"/"+p[1]+"/"+p[0]:iso;
 }
 
+// ═══════════ CYCLES DE SOMMEIL (90 min) ═══════════
+function sleepCycles(h){
+  h=parseFloat(h);
+  if(!h||h<=0)return null;
+  var min=h*60,c=Math.floor(min/90),part=(min%90)>=45?0.5:0;
+  return {c:c,part:part,total:c+part,critical:h<7,h:h};
+}
+function cycleVizHTML(hVal){
+  var sc=sleepCycles(hVal);
+  if(!sc)return '<div style="font-size:11px;color:#6E6E6E;margin-top:6px">1 cycle = 90 min · objectif 5 cycles par nuit (7 h 30)</div>';
+  var dots='';
+  for(var i=0;i<5;i++){
+    dots+=i<sc.c?'<span style="color:#0057A8">●</span>':(i===sc.c&&sc.part?'<span style="color:#0057A8">◐</span>':'<span style="color:#DDD">●</span>');
+  }
+  var html='<div style="margin-top:8px"><span style="font-size:17px;letter-spacing:5px">'+dots+'</span> <span style="font-size:12px;font-weight:900;color:#0057A8">'+sc.total+' cycle'+(sc.total>=2?'s':'')+' / 5</span></div>';
+  if(sc.critical){
+    html+='<div style="margin-top:8px;background:#FFEBEE;border-radius:9px;padding:9px 11px;font-size:11.5px;color:#B71C1C;line-height:1.65"><strong>🚨 Sous les 7 h — cortisol élevé.</strong> Stockage de gras ↑, faim sucrée ↑, récupération musculaire ↓.<br>💤 <strong>Conseil :</strong> micro-sieste de 20-25 min entre 13 h et 15 h. Jamais plus de 30 min — au-delà, réveil en plein sommeil profond, tu te lèves groggy.</div>';
+  }else if(sc.total>=5){
+    html+='<div style="margin-top:6px;font-size:11px;color:#4CAF50;font-weight:700">✅ Nuit complète — récupération optimale.</div>';
+  }
+  return html;
+}
+
 // ═══════════ BOUCLES VERTUEUSES / BOUCLES D'ÉCHEC ═══════════
 function computeLoops(allData,period,offset){
   offset=offset||0;
@@ -686,10 +709,11 @@ function computeLoops(allData,period,offset){
   var socle=rates.filter(function(r){return r.cnt>=3&&r.rate>=0.7;})
     .sort(function(a,b){return b.rate-a.rate;});
   // Moteur : l'habitude qui, quand elle est cochée, tire le plus la journée vers le haut
+  // Moteur : delta = score moyen quand cochée − score moyen quand pas cochée (le levier, pas la corrélation)
   var moteur=null,mb=9;
   for(var m=0;m<rates.length;m++){
     var r=rates[m];
-    if(r.delta!=null&&r.on>=2&&r.off>=2&&r.delta>mb){mb=r.delta;moteur=r;}
+    if(r.delta!=null&&r.on>=2&&r.off>=1&&r.delta>mb){mb=r.delta;moteur=r;}
   }
   // Faiblesses : habitudes qui sautent le plus souvent
   var faibles=rates.filter(function(r){return r.cnt>=3&&r.rate<=0.45;})
@@ -702,6 +726,20 @@ function computeLoops(allData,period,offset){
     var dd=allData[ci];
     if(!dd||!dd.habits)run++;else{if(run>=2)chains++;run=0;}
   }
+  // 🛡️ Résilience : après un jour manqué, repart-il dès le lendemain (≥4 habitudes cochées) ?
+  var rec=0,missCnt=0;
+  for(var ri=offset;ri<lastFilled;ri++){
+    var tdD=allData[ri];
+    if(!tdD||!tdD.habits){
+      missCnt++;
+      var ndD=allData[ri+1];
+      if(ndD&&ndD.habits){
+        var nOk=0;for(var hk in ndD.habits){if(ndD.habits[hk])nOk++;}
+        if(nOk>=4)rec++;
+      }
+    }
+  }
+  var resilience={rec:rec,miss:missCnt,score:missCnt?Math.round(rec/missCnt*100):null};
   // Phrases qui reviennent dans les soirées (regroupées par mots significatifs partagés)
   var LOOP_STOP={"avec":1,"pour":1,"trop":1,"plus":1,"dans":1,"fait":1,"faire":1,"suis":1,"bien":1,"tout":1,"toute":1,"rien":1,"cette":1,"comme":1,"mais":1,"encore":1,"assez":1,"aujourd":1,"hier":1,"journ\u00e9e":1,"jour":1,"jours":1,"pass\u00e9":1,"vraiment":1,"\u00e9t\u00e9":1,"\u00eatre":1,"avoir":1,"quand":1,"parce":1,"chose":1,"choses":1};
   function sigWords(s){
@@ -754,7 +792,7 @@ function computeLoops(allData,period,offset){
   }
   var phrasesNeg=groupPhrases(negTexts);
   var phrasesPos=groupPhrases(posTexts);
-  return {socle:socle,moteur:moteur,faibles:faibles,chains:chains,phrasesNeg:phrasesNeg,phrasesPos:phrasesPos,daysFilled:daysFilled,period:period};
+  return {socle:socle,moteur:moteur,faibles:faibles,chains:chains,resilience:resilience,phrasesNeg:phrasesNeg,phrasesPos:phrasesPos,daysFilled:daysFilled,period:period};
 }
 
 function loopsHTML(lp,compact){
@@ -784,16 +822,16 @@ function loopsHTML(lp,compact){
       '<div style="font-size:'+fs+';color:#4A7A3A;line-height:1.75;margin-top:6px">\u2753 Qu\u2019est-ce que ces jours-l\u00e0 ont de diff\u00e9rent d\u00e8s le matin ? Comment tu prot\u00e8ges ce socle la semaine prochaine ?</div></div>';
   }
   // ─── BOUCLE D'ÉCHEC ───
-  var hasFail=lp.faibles.length||lp.chains>=2||(lp.phrasesNeg&&lp.phrasesNeg.length);
+  var hasFail=lp.faibles.length||lp.chains>=1||(lp.phrasesNeg&&lp.phrasesNeg.length);
   if(hasFail){
     h+='<div style="background:#FFF8F5;border:2px solid #FFCDD2;border-radius:14px;padding:15px 16px;margin-bottom:10px">'+
-      '<div style="font-weight:900;font-size:11px;color:#D52B1E;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">\ud83c\udf00 Ta boucle d\u2019\u00e9chec \u2014 ce qui revient</div>';
+      '<div style="font-weight:900;font-size:11px;color:#D52B1E;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">\ud83c\udf2a\ufe0f Ta boucle d\u2019\u00e9chec \u2014 ce qui revient</div>';
     if(lp.faibles.length){
       var f0=lp.faibles[0];
       h+='<div style="font-size:'+fs+';color:#333;line-height:1.7;margin-bottom:6px">'+f0.hab.icon+' <strong>'+f0.hab.label+'</strong> saute '+(f0.cnt-f0.on)+' fois sur '+f0.cnt+' jours remplis'+(lp.faibles.length>1?' \u2014 et '+lp.faibles.slice(1).map(function(r){return r.hab.icon+" "+r.hab.label;}).join(", ")+' suivent le m\u00eame chemin':'')+'.</div>';
     }
-    if(lp.chains>=2){
-      h+='<div style="font-size:'+fs+';color:#333;line-height:1.7;margin-bottom:6px">\u26a0\ufe0f '+lp.chains+' fois, un jour manqu\u00e9 a entra\u00een\u00e9 le suivant. La boucle s\u2019auto-alimente.</div>';
+    if(lp.chains>=1){
+      h+='<div style="font-size:'+fs+';color:#333;line-height:1.7;margin-bottom:6px">\u26a0\ufe0f '+lp.chains+' fois, un jour manqu\u00e9 a entra\u00een\u00e9 le suivant.'+(lp.chains>=2?' La boucle s\u2019auto-alimente.':'')+'</div>';
     }
     if(lp.phrasesNeg&&lp.phrasesNeg.length){
       h+='<div style="font-size:'+fs+';color:#333;line-height:1.75;margin-bottom:6px"><strong style="color:#D52B1E">\ud83c\udf27\ufe0f Ce qui revient dans tes soir\u00e9es :</strong><br>';
@@ -808,8 +846,18 @@ function loopsHTML(lp,compact){
       '\u2022 Qu\u2019est-ce qui se passe dans les heures qui pr\u00e9c\u00e8dent, les jours o\u00f9 \u00e7a saute ?<br>'+
       '\u2022 \u00c0 quel moment pr\u00e9cis la d\u00e9cision se joue-t-elle vraiment ?<br>'+
       '\u2022 Que pourrais-tu pr\u00e9parer la veille pour que \u00e7a ne se n\u00e9gocie plus ?'+
-      (lp.chains>=2?'<br>\u2022 Le soir d\u2019un jour manqu\u00e9, qu\u2019est-ce qui emp\u00eacherait le lendemain de suivre ?':'')+
+      (lp.chains>=1?'<br>\u2022 Le soir d\u2019un jour manqu\u00e9, qu\u2019est-ce qui emp\u00eacherait le lendemain de suivre ?':'')+
       '</div></div>';
+  }
+  // ─── RÉSILIENCE : la capacité à repartir ───
+  if(lp.resilience&&lp.resilience.miss>=1){
+    var rz=lp.resilience;
+    var rCol=rz.score>=70?"#2E7D32":rz.score>=40?"#E65100":"#D52B1E";
+    h+='<div style="background:#EEF4FF;border:2px solid #C5D8F0;border-radius:14px;padding:13px 15px;margin-bottom:10px">'+
+      '<div style="font-weight:900;font-size:11px;color:#0057A8;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">\ud83d\udee1\ufe0f Ta r\u00e9silience</div>'+
+      '<div style="font-size:'+fs+';color:#333;line-height:1.7">Apr\u00e8s un jour manqu\u00e9, tu es reparti d\u00e8s le lendemain <strong style="color:'+rCol+'">'+rz.rec+' fois sur '+rz.miss+'</strong>'+(rz.score!=null?' ('+rz.score+' %)':'')+'.'+
+      (rz.score>=70?' C\u2019est \u00e7a, un disciplin\u00e9 : pas z\u00e9ro chute \u2014 z\u00e9ro chute qui dure.':'')+'</div>'+
+      '<div style="font-size:'+fs+';color:#0057A8;line-height:1.7;margin-top:6px;font-weight:600">R\u00e8gle du \u00ab jour m\u00eame \u00bb : si la journ\u00e9e a saut\u00e9, coche AU MOINS une habitude le soir. C\u2019est elle qui emp\u00eache le lendemain de suivre.</div></div>';
   }
   return h;
 }
@@ -1072,6 +1120,38 @@ function viewCalendar(name,start){
       '<div style="font-size:12px;color:#555;line-height:1.65;margin-bottom:10px">Un tap, et ton téléphone te notifie <strong>chaque soir à 20h30</strong> pour remplir ton tracker. C\'est ce qui fait la différence entre ceux qui tiennent 90 jours et les autres.</div>'+
       '<button id="add-reminder" class="big-btn" style="background:#7B1FA2;box-shadow:0 4px 14px #7B1FA244;margin-bottom:0;padding:13px 0;font-size:14px">Ajouter à mon calendrier →</button></div>';
   }
+
+  // 🌙 Cycles de sommeil — semaine en cours (objectif 35 cycles, données du champ sommeil existant)
+  (function(){
+    var wS=Math.floor(today90/7)*7;
+    var tot=0,cells='',hasAny=false;
+    for(var di=wS;di<wS+7;di++){
+      var dd=allData[di],sc2=(dd&&dd.sommeilH)?sleepCycles(dd.sommeilH):null;
+      var fut=di>today90;
+      if(sc2){tot+=sc2.total;hasAny=true;}
+      var bg=fut?'#F6F6F6':!sc2?'#FFF6EC':sc2.critical?'#FFEBEE':sc2.total>=5?'#E8F5E9':'#E3F2FD';
+      var col=fut?'#CCC':!sc2?'#E65100':sc2.critical?'#D52B1E':sc2.total>=5?'#4CAF50':'#0057A8';
+      cells+='<div style="flex:1;text-align:center;padding:7px 2px;border-radius:8px;background:'+bg+(di===today90?';box-shadow:0 0 0 2px #1A1A1A':'')+'">'+
+        '<div style="font-size:11px;font-weight:800;color:#8A8A8A">J'+(di+1)+'</div>'+
+        '<div style="font-size:14px;font-weight:900;color:'+col+'">'+(sc2?sc2.total:(fut?'·':'?'))+'</div></div>';
+    }
+    var pctS=Math.min(tot/35,1),barCol=pctS>=1?'#4CAF50':pctS>=0.6?'#0057A8':'#E65100';
+    var doneDays=Math.min(today90,wS+6)-wS+1;
+    var behind=Math.max(0,5*doneDays-tot);
+    var msg;
+    if(!hasAny)msg='Note tes heures de sommeil chaque jour — 1 cycle = 90 min, objectif 5 cycles par nuit.';
+    else if(behind>=1){
+      var dLeft=Math.max(1,wS+6-today90);
+      msg='⚠️ '+(Math.round(behind*10)/10)+' cycle'+(behind>=2?'s':'')+' de retard cette semaine. Rattrape avec des nuits plus longues (+'+Math.min(120,Math.round(behind/dLeft*90))+' min/nuit) ou une micro-sieste de 20-25 min entre 13 h et 15 h.';
+    }else msg='✅ Bon rythme — continue à viser 5 cycles par nuit.';
+    h+='<div class="card" style="padding:14px 15px;margin-bottom:14px;border-left:4px solid #0057A8">'+
+      '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">'+
+      '<span style="font-weight:900;font-size:13px">🌙 Cycles de sommeil — semaine</span>'+
+      '<span style="font-size:12px;font-weight:900;color:'+barCol+'">'+(Math.round(tot*10)/10)+' / 35</span></div>'+
+      '<div style="height:8px;background:#EEE;border-radius:4px;overflow:hidden;margin-bottom:9px"><div style="height:100%;width:'+(pctS*100)+'%;background:'+barCol+';border-radius:4px"></div></div>'+
+      '<div style="display:flex;gap:3px;margin-bottom:9px">'+cells+'</div>'+
+      '<div style="font-size:11.5px;color:#555;line-height:1.6">'+msg+'</div></div>';
+  })();
 
   // progress card
   h+='<div class="card" style="display:flex;align-items:center;gap:16px;padding:16px 18px;margin-bottom:18px">'+
@@ -1467,9 +1547,10 @@ function viewDay(name,start){
     '<input id="in-poids" class="num-input" type="number" step="0.1" placeholder="ex: 78.5" value="'+esc(d.poids||"")+'"/></div></div>';
 
   // sommeil h
-  h+='<div class="card" style="display:flex;align-items:center;gap:14px"><span style="font-size:24px">⏱️</span>'+
+  h+='<div class="card"><div style="display:flex;align-items:center;gap:14px"><span style="font-size:24px">⏱️</span>'+
     '<div style="flex:1"><div class="card-label">HEURES DE SOMMEIL</div>'+
-    '<input id="in-sommeil" class="num-input" type="number" step="0.5" min="0" max="24" placeholder="ex: 7.5" value="'+esc(d.sommeilH||"")+'"/></div></div>';
+    '<input id="in-sommeil" class="num-input" type="number" step="0.5" min="0" max="24" placeholder="ex: 7.5" value="'+esc(d.sommeilH||"")+'"/></div></div>'+
+    '<div id="cycle-viz">'+cycleVizHTML(d.sommeilH)+'</div></div>';
 
   // mental
   h+='<div class="card"><div class="card-label">🧠 RESSENTI MENTAL</div><div class="mood-row">';
@@ -1535,7 +1616,6 @@ function viewDay(name,start){
       '<div style="font-size:13px;font-weight:800;margin-bottom:6px">Ce mindset est resté vide</div>'+
       '<div style="font-size:12px;color:#666;line-height:1.7">Les 3 questions se remplissent <strong>le jour même</strong> — c\'est un rituel du soir, pas un devoir à rattraper. Ce qui compte, c\'est ce soir : rendez-vous sur la page du jour 🌙</div></div>'
     )+
-    (idx===today90&&isSunday?'<button id="wa-mindset" class="big-btn" style="background:#25D366;box-shadow:0 4px 14px #25D36644;margin-top:2px">📱 Envoyer ma pensée du soir à Akli</button>':'')+
     '</div>';
 
   // bilan dimanche
@@ -1544,7 +1624,7 @@ function viewDay(name,start){
     h+='<button id="bilan-toggle" class="big-btn'+(state.showBilan?" gray":"")+'" style="margin-top:8px">'+
       (state.showBilan?"▲ Fermer":(d.bilan?"✏️ Modifier mon bilan":"📋 Bilan de semaine →"))+'</button>';
     if(d.bilan&&!state.showBilan){
-      h+='<button id="wa-bilan" class="big-btn" style="background:#25D366;box-shadow:0 4px 14px #25D36644">📱 Envoyer mon bilan à Akli</button>';
+      h+='<button id="wa-bilan" class="big-btn" style="background:#25D366;box-shadow:0 4px 14px #25D36644">📱 Envoyer mon bilan à Akli — 1 clic</button>';
     }
     if(state.showBilan){
       h+='<div class="card" style="padding:18px 16px"><div style="font-weight:900;font-size:14px;margin-bottom:16px;display:flex;align-items:center;gap:8px">'+
@@ -1590,7 +1670,11 @@ function bindDay(name,start){
   document.getElementById("day-back").addEventListener("click",function(){state.selDay=null;state.showBilan=false;render();});
 
   document.getElementById("in-poids").addEventListener("input",function(){persist({poids:this.value});});
-  document.getElementById("in-sommeil").addEventListener("input",function(){persist({sommeilH:this.value});});
+  document.getElementById("in-sommeil").addEventListener("input",function(){
+    persist({sommeilH:this.value});
+    var cv=document.getElementById("cycle-viz");
+    if(cv)cv.innerHTML=cycleVizHTML(this.value);
+  });
 
   var mbtns=document.querySelectorAll("[data-mental]");
   for(var i=0;i<mbtns.length;i++){
@@ -1682,21 +1766,10 @@ function bindDay(name,start){
     render();
   });
 
-  // 📱 WhatsApp : pensée du soir (mindset du jour)
-  var waMs=document.getElementById("wa-mindset");
-  if(waMs)waMs.addEventListener("click",function(){
-    var d=cur(),m=d.mindset||{};
-    if(!m.fier&&!m.positif&&!m.negatif){alert("Remplis d'abord tes 3 questions du soir 🙂");return;}
-    var t="🌙 Ma pensée du soir — Jour "+(idx+1)+"\n"+
-      (m.fier?"🥇 Fier : "+m.fier+"\n":"")+
-      (m.positif?"🌟 Positif : "+m.positif+"\n":"")+
-      (m.negatif?"🌧️ Négatif : "+m.negatif:"");
-    waSend(t.trim());
-  });
-  // 📱 WhatsApp : bilan de la semaine
+  // 📱 WhatsApp : bilan de la semaine en 1 clic (dimanche uniquement)
   var waBl=document.getElementById("wa-bilan");
   if(waBl)waBl.addEventListener("click",function(){
-    var d=cur(),b=d.bilan||{};
+    var d=cur(),b=d.bilan||{},m=d.mindset||{};
     var allData=getAllData();
     var wStart=Math.max(0,idx-6),sc=[],briq=0,mw=0;
     for(var z=wStart;z<=idx;z++){
@@ -1713,7 +1786,8 @@ function bindDay(name,start){
       (b.victoire?"🏆 Victoire : "+b.victoire+"\n":"")+
       (b.blocage?"🤛 Difficulté : "+b.blocage+"\n":"")+
       (b.ressenti?"💬 Ressenti : "+b.ressenti+"\n":"")+
-      (b.question?"❓ Ma question : "+b.question:"");
+      ((m.fier||m.positif||m.negatif)?"\n🌙 Ce soir :\n"+(m.fier?"🥇 "+m.fier+"\n":"")+(m.positif?"🌟 "+m.positif+"\n":"")+(m.negatif?"🌧️ "+m.negatif+"\n":""):"")+
+      (b.question?"\n❓ Ma question : "+b.question:"");
     waSend(t.trim());
   });
 }
@@ -2565,6 +2639,57 @@ function planCardHTMLV2(res,mgc){
   h+=avertissementsHTML(res);
   return h;
 }
+// ═══════════ PROFIL DE STOCKAGE (androïde / gynoïde / mixte) ═══════════
+// La perte localisée n'existe pas : le profil prédit l'ORDRE de déstockage,
+// la cible réaliste pour un ventre plat, et le risque viscéral (tour de taille).
+function morphoAnalyse(sexe,profil,ventre,mgc){
+  var isF=sexe==="F";
+  profil=profil||"mixte";
+  var A={profil:profil,isF:isF};
+  // Seuils de tour de taille (IDF/OMS) : H 94/102 cm · F 80/88 cm
+  var w1=isF?80:94,w2=isF?88:102;
+  A.visceral=ventre>0?(ventre>=w2?2:ventre>=w1?1:0):null;
+  A.w1=w1;A.w2=w2;A.ventre=ventre;
+  // Cible MG réaliste pour un ventre plat selon le profil
+  if(profil==="androide"){
+    A.ventrePlatCible=isF?"21-23 %":"13-15 %";
+    A.ordre="Chez ce profil, le ventre est la zone dominante : il est souvent le DERNIER à finir complètement plat, mais la graisse viscérale répond très vite au déficit — le tour de taille descend dès les premières semaines.";
+    A.leviers="Leviers prioritaires : sommeil 5 cycles (le cortisol stocke en abdominal), gestion du stress, limiter l'alcool, marche quotidienne. Le gainage muscle la sangle mais ne fait pas fondre le ventre — c'est le déficit qui le fait.";
+    A.kpi="Indicateur n°1 à suivre : le TOUR DE TAILLE, chaque semaine, plus parlant que la balance.";
+  }else if(profil==="gynoide"){
+    A.ventrePlatCible=isF?"23-25 %":"15-17 %";
+    A.ordre="Chez ce profil, le haut du corps et le ventre dégonflent en PREMIER — le ventre plat arrive relativement tôt. Hanches, fesses et cuisses sont la réserve préférée du corps : elles partent en DERNIER, c'est génétique et hormonal, pas un échec du programme.";
+    A.leviers="Leviers prioritaires : patience sur le bas du corps (ne jamais juger le programme sur les cuisses à 4 semaines), renforcement bas du corps pour la fermeté (squats, fentes, hip thrust), déficit régulier sans crash.";
+    A.kpi="Indicateurs à suivre : tour de taille (descend vite = programme qui marche) ET tour de hanches (descend lentement = normal).";
+  }else{
+    A.ventrePlatCible=isF?"22-24 %":"14-16 %";
+    A.ordre="Répartition mixte : la perte se fait de façon relativement homogène sur tout le corps, sans zone qui résiste fortement.";
+    A.leviers="Leviers prioritaires : régularité du déficit et protéines — c'est le profil qui répond le mieux à un plan simple bien tenu.";
+    A.kpi="Indicateur n°1 à suivre : le TOUR DE TAILLE hebdomadaire, meilleur juge que la balance.";
+  }
+  return A;
+}
+function morphoHTML(A,mgc,compact){
+  var icons={androide:"🍎",gynoide:"🍐",mixte:"🔄"};
+  var names={androide:"Androïde (« pomme »)",gynoide:"Gynoïde (« poire »)",mixte:"Mixte"};
+  var h='<div class="card" style="padding:15px 16px;border-left:4px solid #7B1FA2;margin-top:12px">'+
+    '<div class="card-label">'+icons[A.profil]+' PROFIL DE STOCKAGE — '+names[A.profil].toUpperCase()+'</div>'+
+    '<div style="font-size:12.5px;color:#333;line-height:1.75;margin-bottom:8px">'+A.ordre+'</div>'+
+    '<div style="font-size:12.5px;color:#333;line-height:1.75;margin-bottom:8px">'+A.leviers+'</div>'+
+    '<div style="background:#F3E8FA;border-radius:10px;padding:10px 12px;font-size:12.5px;color:#4A148C;line-height:1.7;margin-bottom:8px"><strong>🎯 Ventre plat :</strong> pour ce profil, il se dessine généralement autour de <strong>'+A.ventrePlatCible+'</strong> de masse grasse'+(mgc?' (cible actuelle : '+mgc+' %)':'')+'. La perte localisée n\'existe pas — on baisse le global, la génétique décide de l\'ordre.</div>'+
+    '<div style="font-size:11.5px;color:#6E6E6E;line-height:1.6">'+A.kpi+'</div>';
+  if(A.visceral!=null){
+    if(A.visceral===2){
+      h+='<div style="margin-top:8px;background:#FDECEA;border-left:4px solid #D52B1E;border-radius:10px;padding:10px 12px;font-size:12px;color:#B71C1C;line-height:1.7"><strong>🚨 Tour de taille '+A.ventre+' cm (seuil '+A.w2+' cm) :</strong> graisse viscérale probable — la plus dangereuse (diabète, cardiovasculaire). Bonne nouvelle : c\'est aussi la première à partir en déficit. Suivi médical recommandé en parallèle.</div>';
+    }else if(A.visceral===1){
+      h+='<div style="margin-top:8px;background:#FFF3E0;border-left:4px solid #E65100;border-radius:10px;padding:10px 12px;font-size:12px;color:#7A3D00;line-height:1.7"><strong>⚠️ Tour de taille '+A.ventre+' cm (zone de vigilance dès '+A.w1+' cm) :</strong> risque métabolique modéré — chaque centimètre perdu compte plus que chaque kilo.</div>';
+    }else{
+      h+='<div style="margin-top:8px;font-size:11.5px;color:#4CAF50;font-weight:700">✅ Tour de taille '+A.ventre+' cm — sous les seuils de risque ('+A.w1+' cm).</div>';
+    }
+  }
+  return h+'</div>';
+}
+
 function planRowsHTMLV2(res){
   var h="";
   if(res.blocked&&!res.lockedFull){
@@ -2604,6 +2729,15 @@ function viewCoachCalc(){
     '<div style="flex:1"><div class="card-label">ÂGE</div>'+
     '<input id="calc-age" class="num-input" type="number" step="1" min="14" max="90" placeholder="ex: 43" value="'+esc(c.age||"")+'"/></div>'+
     '</div>'+
+    '<div class="card-label">PROFIL DE STOCKAGE</div>'+
+    '<div style="display:flex;gap:6px;margin-bottom:6px">'+
+      '<button class="calc-profil big-btn'+(c.profil==="androide"?"":" gray")+'" data-profil="androide" style="flex:1;padding:11px 0;font-size:12.5px'+(c.profil==="androide"?";background:#7B1FA2":"")+'">🍎 Pomme</button>'+
+      '<button class="calc-profil big-btn'+(c.profil==="gynoide"?"":" gray")+'" data-profil="gynoide" style="flex:1;padding:11px 0;font-size:12.5px'+(c.profil==="gynoide"?";background:#7B1FA2":"")+'">🍐 Poire</button>'+
+      '<button class="calc-profil big-btn'+(!c.profil||c.profil==="mixte"?"":" gray")+'" data-profil="mixte" style="flex:1;padding:11px 0;font-size:12.5px'+(!c.profil||c.profil==="mixte"?";background:#7B1FA2":"")+'">🔄 Mixte</button>'+
+    '</div>'+
+    '<div style="font-size:11px;color:#6E6E6E;line-height:1.5;margin-bottom:14px">🍎 ventre/taille/thorax · 🍐 hanches/fesses/cuisses · 🔄 réparti</div>'+
+    '<div class="card-label">TOUR DE TAILLE (CM) — AU NOMBRIL, OPTIONNEL</div>'+
+    '<input id="calc-ventre" class="num-input" type="number" step="0.5" min="40" max="200" placeholder="ex: 92" value="'+esc(c.ventre||"")+'" style="margin-bottom:14px"/>'+
     '<div class="card-label">% MASSE GRASSE ACTUEL</div>'+
     '<input id="calc-mga" class="num-input" type="number" step="0.5" min="3" max="60" placeholder="ex: 20" value="'+esc(c.mga)+'" style="margin-bottom:14px"/>'+
     '<div class="card-label">% MASSE GRASSE CIBLE</div>'+
@@ -2650,6 +2784,7 @@ function coachCalcCompute(){
     }else{
       var plan=calcPlanV2(c.sexe,p0,mga,mgc,taille,age||null);
       h+=planCardHTMLV2(plan,mgc)+
+        morphoHTML(morphoAnalyse(c.sexe,c.profil,parseFloat(c.ventre)||0,mgc),mgc)+
         '<button id="calc-report" class="big-btn" style="padding:14px 0;font-size:14px;margin-top:12px">📄 Générer le rapport client</button>';
     }
   }
@@ -2709,6 +2844,20 @@ function openCalcReport(){
     '<div class="kv"><span>Tes protéines</span><strong>'+plan.prot+' g / jour ('+plan.S.protX+' g × kg cible)</strong></div>'+
     '</div>'+
     warnsHTML+
+    (function(){
+      var A=morphoAnalyse(c.sexe,c.profil,parseFloat(c.ventre)||0,mgc);
+      var icons={androide:"🍎",gynoide:"🍐",mixte:"🔄"};
+      var visc="";
+      if(A.visceral===2)visc='<div class="warn">🚨 Tour de taille '+A.ventre+' cm (seuil '+A.w2+' cm) : graisse viscérale probable — la plus dangereuse pour la santé, mais aussi la première à partir en déficit. Un suivi médical en parallèle est recommandé.</div>';
+      else if(A.visceral===1)visc='<div class="warn">⚠️ Tour de taille '+A.ventre+' cm (vigilance dès '+A.w1+' cm) : chaque centimètre perdu compte plus que chaque kilo.</div>';
+      return '<h2>'+icons[A.profil]+' Ton profil de stockage</h2>'+
+        '<div class="card">'+
+        '<p><strong>Où ton corps stocke, et dans quel ordre il déstocke.</strong> '+A.ordre+'</p>'+
+        '<p style="margin-top:10px">'+A.leviers+'</p>'+
+        '<p style="margin-top:10px"><strong>🎯 Ventre plat :</strong> pour ton profil, il se dessine généralement autour de <strong>'+A.ventrePlatCible+'</strong> de masse grasse. Retiens une chose : la perte localisée n\'existe pas — aucun exercice ne fait fondre une zone précise. On baisse le taux global, ton corps décide de l\'ordre, et ton profil nous dit à quoi t\'attendre pour ne jamais te décourager au mauvais moment.</p>'+
+        '<p style="margin-top:10px">'+A.kpi+'</p>'+
+        '</div>'+visc;
+    })()+
     '<h2>🧠 Comprendre ces chiffres</h2>'+
     '<div class="card">'+
     '<p><strong>Pourquoi trois scénarios pour la même perte ?</strong> Parce que ton corps ne perd pas que du gras quand tu maigris. Sur '+(plan.Leff||plan.L).toFixed(1)+' kg à perdre, la vraie question est : <strong>quelle part sera du gras, et quelle part du muscle ?</strong> Seul(e), environ '+Math.round(plan.S.ratios.seul*100)+' % de gras seulement — le reste part en muscle et en eau. Encadré(e), on monte à '+Math.round(plan.S.ratios.encadre*100)+' %, et jusqu\'à '+Math.round(plan.S.ratios.bonus*100)+' % en protocole pro. Le muscle, c\'est justement ce qui te donne la silhouette que tu vises et ce qui brûle des calories au repos.</p>'+
@@ -2769,6 +2918,24 @@ function viewCoachBilan(){
         '<button class="bl-report" data-i="'+b+'" data-mode="full" style="font-size:11px;font-weight:800;color:#0057A8;padding:5px 10px;border:1.5px solid #0057A8;border-radius:14px;background:#fff">📄 Complet</button></span></div>';
     }
     h+='</div>';
+    // 📊 Comparaison / progression (dès 2 analyses)
+    if(bl.length>=2){
+      var selA=state.blCmpA!=null?state.blCmpA:0;
+      var selB=state.blCmpB!=null?state.blCmpB:bl.length-1;
+      var optsA='',optsB='';
+      for(var oi=0;oi<bl.length;oi++){
+        var lab='Analyse '+(oi+1)+' — '+esc(bl[oi].date||"?");
+        optsA+='<option value="'+oi+'"'+(oi===selA?' selected':'')+'>'+lab+'</option>';
+        optsB+='<option value="'+oi+'"'+(oi===selB?' selected':'')+'>'+lab+'</option>';
+      }
+      h+='<div class="card" style="padding:14px 16px;margin-bottom:14px;border-left:4px solid #2E7D32">'+
+        '<div style="font-weight:900;font-size:13px;margin-bottom:10px">📊 Rapport de progression</div>'+
+        '<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">'+
+        '<select id="bl-cmp-a" class="num-input" style="flex:1;font-size:12.5px;font-weight:700;padding:10px">'+optsA+'</select>'+
+        '<span style="font-weight:900">→</span>'+
+        '<select id="bl-cmp-b" class="num-input" style="flex:1;font-size:12.5px;font-weight:700;padding:10px">'+optsB+'</select></div>'+
+        '<button id="bl-cmp-go" class="big-btn" style="background:#2E7D32;padding:13px 0;font-size:13.5px;margin-bottom:0">📈 Générer la progression (cm perdus, composition, zones)</button></div>';
+    }
   }
   var today=new Date();
   var dstr=("0"+today.getDate()).slice(-2)+"/"+("0"+(today.getMonth()+1)).slice(-2)+"/"+today.getFullYear();
@@ -2815,6 +2982,137 @@ function viewCoachBilan(){
     '</div></div></div>';
   return h;
 }
+// ═══════════ COMPARAISON DE BILANS — RAPPORT DE PROGRESSION ═══════════
+function compareBilans(A,B){
+  function nf(x){var v=parseFloat(x);return isNaN(v)?null:v;}
+  var C={A:A,B:B};
+  C.poidsA=nf(A.poids);C.poidsB=nf(B.poids);
+  C.dPoids=(C.poidsA!=null&&C.poidsB!=null)?Math.round((C.poidsB-C.poidsA)*10)/10:null;
+  C.mgA=nf(A.mg);C.mgB=nf(B.mg);
+  C.dMg=(C.mgA!=null&&C.mgB!=null)?Math.round((C.mgB-C.mgA)*10)/10:null;
+  // kg de gras et de muscle (mm = % masse musculaire)
+  C.grasA=(C.poidsA!=null&&C.mgA!=null)?C.poidsA*C.mgA/100:null;
+  C.grasB=(C.poidsB!=null&&C.mgB!=null)?C.poidsB*C.mgB/100:null;
+  C.dGras=(C.grasA!=null&&C.grasB!=null)?Math.round((C.grasB-C.grasA)*10)/10:null;
+  var mmA=nf(A.mm),mmB=nf(B.mm);
+  C.musA=(C.poidsA!=null&&mmA!=null)?C.poidsA*mmA/100:null;
+  C.musB=(C.poidsB!=null&&mmB!=null)?C.poidsB*mmB/100:null;
+  C.dMus=(C.musA!=null&&C.musB!=null)?Math.round((C.musB-C.musA)*10)/10:null;
+  C.gvA=nf(A.gv);C.gvB=nf(B.gv);
+  C.dGv=(C.gvA!=null&&C.gvB!=null)?Math.round((C.gvB-C.gvA)*10)/10:null;
+  var tll=nf(B.taille)||nf(A.taille);
+  C.imcA=(C.poidsA!=null&&tll)?Math.round(C.poidsA/Math.pow(tll/100,2)*10)/10:null;
+  C.imcB=(C.poidsB!=null&&tll)?Math.round(C.poidsB/Math.pow(tll/100,2)*10)/10:null;
+  // Jours entre les deux (dates JJ/MM/AAAA)
+  function pd(s){var p=String(s||"").split("/");return p.length===3?new Date(p[2],p[1]-1,p[0]):null;}
+  var da=pd(A.date),db=pd(B.date);
+  C.jours=(da&&db)?Math.round((db-da)/86400000):null;
+  // ─── Qualité de la perte : d'où vient chaque kilo ? ───
+  C.qualite=null;
+  if(C.dPoids!=null&&C.dPoids<0&&C.dGras!=null){
+    var partGras=Math.min(100,Math.max(0,Math.round(C.dGras/C.dPoids*100)));
+    C.qualite={partGras:partGras,
+      verdict:(C.dMus!=null&&C.dMus>=0)?"recomp":partGras>=75?"excellent":partGras>=60?"bon":"alerte"};
+  }else if(C.dPoids!=null&&C.dPoids>=0&&C.dGras!=null&&C.dGras<0&&C.dMus!=null&&C.dMus>0){
+    C.qualite={partGras:100,verdict:"recomp"};
+  }
+  // ─── Mesures : où le corps a puisé ───
+  C.zones=[];C.totalCm=0;
+  for(var m=0;m<BILAN_MESURES.length;m++){
+    var k=BILAN_MESURES[m][0],lbl=BILAN_MESURES[m][1];
+    var va=nf(A.mesures&&A.mesures[k]),vb=nf(B.mesures&&B.mesures[k]);
+    if(va==null||vb==null)continue;
+    var dz=Math.round((vb-va)*10)/10;
+    C.zones.push({k:k,label:lbl,a:va,b:vb,d:dz});
+    if(dz<0)C.totalCm+=-dz;
+  }
+  C.totalCm=Math.round(C.totalCm*10)/10;
+  var losses=C.zones.filter(function(z){return z.d<0;}).sort(function(x,y){return x.d-y.d;});
+  C.topZones=losses.slice(0,3);
+  C.resistantes=C.zones.filter(function(z){return z.d>=0;});
+  if(!C.resistantes.length&&losses.length>3)C.resistantes=[losses[losses.length-1]];
+  return C;
+}
+function progressReport(slug,iA,iB){
+  var clients=lsGet("amcoach_clients",[]),cName=slug;
+  for(var i=0;i<clients.length;i++){if(clients[i].slug===slug){cName=clients[i].name;break;}}
+  var bl=(lsGet("amcoach_"+slug,{})[600]||{}).list||[];
+  var A=bl[iA],B=bl[iB];
+  if(!A||!B)return;
+  var C=compareBilans(A,B);
+  function sgn(d,goodDown){
+    if(d==null)return"";
+    if(d===0)return' <span style="color:#6E6E6E">(=)</span>';
+    var good=goodDown?d<0:d>0;
+    return' <span style="color:'+(good?"#2E7D32":"#D52B1E")+';font-weight:900">('+(d>0?"+":"")+d+')</span>';
+  }
+  var css='*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#1A1A1A;padding:22px 18px 70px;line-height:1.55;font-size:13px}'+
+    '.brand{display:flex;align-items:center;justify-content:center;gap:10px;font-weight:900;font-size:12px;letter-spacing:3px;text-transform:uppercase}'+
+    '.bar{width:5px;height:18px;border-radius:3px;display:inline-block}.br{background:#D52B1E}.bb{background:#0057A8}'+
+    '.sub{text-align:center;font-size:11px;color:#6E6E6E;letter-spacing:2px;text-transform:uppercase;margin:2px 0 16px}'+
+    'h1{font-size:17px;font-weight:900;text-align:center;margin-bottom:4px}'+
+    'h2{font-size:13px;font-weight:900;margin:16px 0 6px;color:#7B1FA2;letter-spacing:.5px;text-transform:uppercase}'+
+    '.big{text-align:center;margin:10px 0 4px}.big .n{font-size:34px;font-weight:900;color:#2E7D32}.big .l{font-size:11px;color:#6E6E6E;text-transform:uppercase;letter-spacing:1px}'+
+    '.kv{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #F2F2F2;font-size:12.5px}.kv strong{font-weight:900}'+
+    'table{width:100%;border-collapse:collapse;font-size:12px}th{text-align:left;font-size:10px;color:#6E6E6E;text-transform:uppercase;padding:4px 6px;border-bottom:2px solid #EEE}td{padding:5px 6px;border-bottom:1px solid #F2F2F2}'+
+    '.blk{border-radius:12px;padding:12px 14px;margin:8px 0;font-size:12.5px;line-height:1.7}'+
+    'p{font-size:12px;color:#444}'+
+    '.pdfbar{position:fixed;left:0;right:0;bottom:0;padding:10px 14px;background:rgba(255,255,255,.95);border-top:1px solid #E5E5E5}'+
+    '.pdfbar button{width:100%;padding:12px 0;border-radius:10px;border:0;background:#1A1A1A;color:#fff;font-weight:900;font-size:13px}'+
+    '@media print{.pdfbar{display:none}}';
+  var html='<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Progression '+esc(cName)+'</title><style>'+css+'</style></head><body>'+
+    '<div class="brand"><span class="bar br"></span>AM COACH GENÈVE<span class="bar bb"></span></div>'+
+    '<div class="sub">Rapport de progression · Méthode Balance-360</div>'+
+    '<h1>'+esc(cName)+' — Analyse '+(iA+1)+' → Analyse '+(iB+1)+'</h1>'+
+    '<div style="text-align:center;font-size:11.5px;color:#6E6E6E">'+esc(A.date||"?")+' → '+esc(B.date||"?")+(C.jours?' · '+C.jours+' jours':'')+'</div>';
+  // ─── En un coup d'œil ───
+  if(C.totalCm>0){
+    html+='<div class="big"><div class="n">−'+C.totalCm+' cm</div><div class="l">perdus au total sur tes mensurations</div></div>';
+  }
+  html+='<h2>⚖️ Composition corporelle</h2>'+
+    (C.dPoids!=null?'<div class="kv"><span>Poids</span><strong>'+C.poidsA+' → '+C.poidsB+' kg'+sgn(C.dPoids,true)+'</strong></div>':'')+
+    (C.dMg!=null?'<div class="kv"><span>Masse grasse</span><strong>'+C.mgA+' → '+C.mgB+' %'+sgn(C.dMg,true)+'</strong></div>':'')+
+    (C.dGras!=null?'<div class="kv"><span>Gras (kg)</span><strong>'+C.grasA.toFixed(1)+' → '+C.grasB.toFixed(1)+' kg'+sgn(C.dGras,true)+'</strong></div>':'')+
+    (C.dMus!=null?'<div class="kv"><span>Muscle (kg)</span><strong>'+C.musA.toFixed(1)+' → '+C.musB.toFixed(1)+' kg'+sgn(C.dMus,false)+'</strong></div>':'')+
+    (C.dGv!=null?'<div class="kv"><span>Graisse viscérale</span><strong>'+C.gvA+' → '+C.gvB+sgn(C.dGv,true)+'</strong></div>':'')+
+    (C.imcA!=null&&C.imcB!=null?'<div class="kv"><span>IMC</span><strong>'+C.imcA+' → '+C.imcB+'</strong></div>':'');
+  // ─── Qualité de la perte ───
+  if(C.qualite){
+    var q=C.qualite;
+    if(q.verdict==="recomp"){
+      html+='<div class="blk" style="background:#F1F8EC;border:2px solid #4CAF50"><strong style="color:#2E7D32">🏆 RECOMPOSITION CORPORELLE.</strong> Tu as perdu du gras'+(C.dMus>0?' EN GAGNANT du muscle ('+(C.dMus>0?"+":"")+C.dMus+' kg)':' en protégeant ton muscle')+'. C\'est le scénario parfait — exactement ce qu\'un plan encadré doit produire.</div>';
+    }else if(q.verdict==="excellent"){
+      html+='<div class="blk" style="background:#F1F8EC;border:2px solid #4CAF50"><strong style="color:#2E7D32">✅ PERTE DE HAUTE QUALITÉ :</strong> '+q.partGras+' % de ta perte vient du gras. Le muscle est protégé — la machine à brûler reste intacte.</div>';
+    }else if(q.verdict==="bon"){
+      html+='<div class="blk" style="background:#EEF4FF;border:2px solid #C5D8F0"><strong style="color:#0057A8">👍 BONNE PERTE :</strong> '+q.partGras+' % de la perte vient du gras. On peut faire mieux : protéines chaque jour + musculation pour verrouiller le muscle.</div>';
+    }else{
+      html+='<div class="blk" style="background:#FFF8F5;border:2px solid #FFCDD2"><strong style="color:#D52B1E">⚠️ ATTENTION :</strong> seulement '+q.partGras+' % de la perte vient du gras — le reste part en muscle. Priorité immédiate : remonter les protéines et la musculation, sinon le métabolisme ralentit et la reprise se prépare.</div>';
+    }
+  }
+  // ─── Mensurations zone par zone ───
+  if(C.zones.length){
+    html+='<h2>📏 Mensurations — zone par zone</h2><table><tr><th>Zone</th><th>Avant</th><th>Après</th><th>Évolution</th></tr>';
+    for(var z=0;z<C.zones.length;z++){
+      var Z=C.zones[z];
+      html+='<tr><td><strong>'+Z.label+'</strong></td><td>'+Z.a+' cm</td><td>'+Z.b+' cm</td><td style="font-weight:900;color:'+(Z.d<0?"#2E7D32":Z.d>0?"#D52B1E":"#6E6E6E")+'">'+(Z.d>0?"+":"")+Z.d+' cm</td></tr>';
+    }
+    html+='</table>';
+    // Où le corps a puisé
+    if(C.topZones.length){
+      html+='<h2>🎯 Où ton corps a puisé</h2>'+
+        '<div class="blk" style="background:#F3E8FA">Ton corps a déstocké en priorité : '+
+        C.topZones.map(function(z){return '<strong>'+z.label.toLowerCase()+' ('+z.d+' cm)</strong>';}).join(' · ')+'.'+
+        (C.resistantes.length?'<br>Zone'+(C.resistantes.length>1?'s':'')+' qui résiste'+(C.resistantes.length>1?'nt':'')+' encore : '+C.resistantes.map(function(z){return z.label.toLowerCase()+(z.d>0?' (+'+z.d+' cm)':'');}).join(', ')+' — c\'est la réserve préférée de ton corps, elle part toujours en dernier. Ce n\'est pas un échec du programme, c\'est l\'ordre génétique de déstockage. On continue, elle finira par suivre.':'')+
+        '</div>';
+    }
+  }
+  html+='<div style="text-align:center;font-size:10px;color:#6E6E6E;margin-top:18px;letter-spacing:1px">AM COACH GENÈVE · MÉTHODE BALANCE-360 · @AMCOACHSPORTIF</div>'+
+    '<div class="pdfbar"><button onclick="window.print()">📄 Enregistrer en PDF</button></div>'+
+    '</body></html>';
+  var win=window.open("","_blank");
+  if(win){win.document.write(html);win.document.close();}
+}
+
 function bilanReport(slug,idx,mode){
   mode=mode||"full";
   var isClient=(mode==="client");
@@ -2923,7 +3221,11 @@ function bindCoach(){
     for(var s2=0;s2<sx.length;s2++){
       sx[s2].addEventListener("click",function(){state.calcData.sexe=this.getAttribute("data-sexe");render();});
     }
-    [["calc-nom","nom"],["calc-poids","poids"],["calc-taille","taille"],["calc-age","age"],["calc-mga","mga"],["calc-mgc","mgc"]].forEach(function(pair){
+    var px=document.querySelectorAll(".calc-profil");
+    for(var p2=0;p2<px.length;p2++){
+      px[p2].addEventListener("click",function(){state.calcData.profil=this.getAttribute("data-profil");render();});
+    }
+    [["calc-nom","nom"],["calc-poids","poids"],["calc-taille","taille"],["calc-age","age"],["calc-ventre","ventre"],["calc-mga","mga"],["calc-mgc","mgc"]].forEach(function(pair){
       var el=document.getElementById(pair[0]);
       if(el)el.addEventListener("input",function(){state.calcData[pair[1]]=this.value;coachCalcCompute();});
     });
@@ -3071,6 +3373,16 @@ function bindCoach(){
   for(var br2=0;br2<blReps.length;br2++){
     blReps[br2].addEventListener("click",function(){bilanReport(state.coachDetail,parseInt(this.getAttribute("data-i"),10),this.getAttribute("data-mode")||"full");});
   }
+  // 📊 Progression : comparaison de deux analyses
+  var cmpA=document.getElementById("bl-cmp-a"),cmpB=document.getElementById("bl-cmp-b"),cmpGo=document.getElementById("bl-cmp-go");
+  if(cmpA)cmpA.addEventListener("change",function(){state.blCmpA=parseInt(this.value,10);});
+  if(cmpB)cmpB.addEventListener("change",function(){state.blCmpB=parseInt(this.value,10);});
+  if(cmpGo)cmpGo.addEventListener("click",function(){
+    var ia=cmpA?parseInt(cmpA.value,10):0,ib=cmpB?parseInt(cmpB.value,10):0;
+    if(ia===ib){alert("Choisis deux analyses différentes 🙂");return;}
+    if(ia>ib){var tmp=ia;ia=ib;ib=tmp;}
+    progressReport(state.coachDetail,ia,ib);
+  });
   // 🧮 Calcul objectif live dans le bilan
   function blPlanCompute(){
     var out=document.getElementById("bl-plan-out");if(!out)return;

@@ -150,6 +150,78 @@ var MENTAL=[["Super","#4CAF50"],["Bien","#8BC34A"],["Moyen","#FFC107"],["Dur","#
 var ENERGIE=[["Vidé","#D52B1E"],["Faible","#FF9800"],["Moyen","#FFC107"],["Bien","#8BC34A"],["Top","#4CAF50"]];
 var SCALE_COLORS=["#4CAF50","#4CAF50","#8BC34A","#CDDC39","#FFC107","#FFC107","#FF9800","#FF5722","#D52B1E","#B71C1C"];
 
+// ═══════════ NUTRITION / PROTÉINES (slot 510) ═══════════
+// Base alimentaire — g de protéines pour 100 g (per100:true) ou par unité (per100:false)
+var FOODS={
+  "blanc de poulet":{p:31,u:100},"poulet":{p:29,u:100},"escalope de poulet":{p:31,u:100},
+  "escalope":{p:31,u:100},"dinde":{p:29,u:100},"blanc de dinde":{p:30,u:100},
+  "boeuf":{p:26,u:100},"bœuf":{p:26,u:100},"steak":{p:27,u:100},"steak haché":{p:26,u:100},
+  "steak haché 5%":{p:21,u:100},"viande hachée":{p:20,u:100},"veau":{p:24,u:100},
+  "porc":{p:27,u:100},"jambon":{p:18,u:100},"jambon blanc":{p:18,u:100},
+  "agneau":{p:25,u:100},"lapin":{p:21,u:100},
+  "oeuf":{p:6.5,u:1},"oeufs":{p:6.5,u:1},"œuf":{p:6.5,u:1},"œufs":{p:6.5,u:1},
+  "blanc d'oeuf":{p:3.6,u:1},"blanc d'œuf":{p:3.6,u:1},
+  "poisson":{p:22,u:100},"saumon":{p:22,u:100},"thon":{p:26,u:100},"thon en boite":{p:26,u:100},
+  "cabillaud":{p:18,u:100},"colin":{p:18,u:100},"merlu":{p:18,u:100},"lieu":{p:18,u:100},
+  "sardine":{p:25,u:100},"sardines":{p:25,u:100},"maquereau":{p:19,u:100},"truite":{p:20,u:100},
+  "crevette":{p:20,u:100},"crevettes":{p:20,u:100},"moules":{p:12,u:100},"crabe":{p:19,u:100},
+  "riz":{p:2.7,u:100},"riz cuit":{p:2.7,u:100},"riz basmati":{p:2.7,u:100},
+  "pates":{p:5,u:100},"pâtes":{p:5,u:100},"pâtes cuites":{p:5,u:100},"semoule":{p:4,u:100},
+  "quinoa":{p:4.4,u:100},"boulgour":{p:3,u:100},"patate douce":{p:1.6,u:100},
+  "pomme de terre":{p:2,u:100},"pommes de terre":{p:2,u:100},"pain":{p:9,u:100},
+  "pain complet":{p:10,u:100},"flocons d'avoine":{p:13,u:100},"avoine":{p:13,u:100},
+  "yaourt":{p:4,u:100},"yaourt grec":{p:9,u:100},"skyr":{p:11,u:100},"fromage blanc":{p:8,u:100},
+  "fromage blanc 0%":{p:8,u:100},"cottage":{p:11,u:100},"cottage cheese":{p:11,u:100},
+  "fromage":{p:25,u:100},"mozzarella":{p:18,u:100},"feta":{p:14,u:100},"parmesan":{p:36,u:100},
+  "lait":{p:3.3,u:100},"lait écrémé":{p:3.4,u:100},
+  "lentilles":{p:9,u:100},"pois chiches":{p:9,u:100},"haricots rouges":{p:9,u:100},
+  "haricots":{p:9,u:100},"tofu":{p:12,u:100},"tempeh":{p:19,u:100},"seitan":{p:25,u:100},
+  "edamame":{p:11,u:100},"soja":{p:12,u:100},
+  "amandes":{p:21,u:100},"noix":{p:15,u:100},"noisettes":{p:14,u:100},"cacahuètes":{p:26,u:100},
+  "beurre de cacahuète":{p:25,u:100},"pistaches":{p:20,u:100},
+  "whey":{p:75,u:100},"protéine en poudre":{p:75,u:100},"proteine":{p:75,u:100},
+  "barre protéinée":{p:30,u:100},
+  "brocoli":{p:2.8,u:100},"épinards":{p:2.9,u:100},"haricots verts":{p:1.8,u:100},
+  "petits pois":{p:5,u:100},"maïs":{p:3.3,u:100},"avocat":{p:2,u:100},
+  "banane":{p:1.1,u:100},"pomme":{p:0.3,u:100}
+};
+// Paramètres du calculateur AM Coach (identiques au bilan slot 600)
+var NUT_PARAMS={
+  H:{protX:2.0,kcalX:32,imcMin:20.0},
+  F:{protX:1.8,kcalX:28,imcMin:19.0}
+};
+// Reconnaît un aliment dans la base et renvoie ses protéines pour une quantité donnée
+function nutProtFor(name,qty){
+  var clean=(name||"").toLowerCase().trim();
+  if(!clean||!qty)return null;
+  // match exact d'abord, puis le plus long nom contenu dans la saisie
+  var best=null;
+  if(FOODS[clean])best=clean;
+  else{
+    for(var k in FOODS){
+      if(clean.indexOf(k)>=0||k.indexOf(clean)>=0){
+        if(!best||k.length>best.length)best=k;
+      }
+    }
+  }
+  if(!best)return null;
+  var f=FOODS[best];
+  return f.u===100?Math.round(qty*f.p/100*10)/10:Math.round(qty*f.p*10)/10;
+}
+// Config nutrition (slot 510) : {on, sexe, pDepart, pCible, prot, kcal, duree, daily:{iso:{foods:[],tot,ok}}}
+function nutCfg(data){return (data&&data[510])||{};}
+function nutDayKey(){return new Date().toISOString().split("T")[0];}
+function nutToday(cfg){var k=nutDayKey();return (cfg.daily&&cfg.daily[k])||{foods:[],tot:0,ok:false};}
+// Calcule le plan (prot/kcal/durée) depuis poids départ → cible
+function nutPlan(sexe,pDepart,pCible){
+  var P=NUT_PARAMS[sexe]||NUT_PARAMS.H;
+  var prot=Math.round(P.protX*pCible);
+  var kcal=Math.round(P.kcalX*pCible);
+  var perte=Math.round((pDepart-pCible)*10)/10;
+  var duree=perte>0?Math.ceil(perte/0.8):0; // ~800 g / semaine
+  return {prot:prot,kcal:kcal,perte:perte,duree:duree,protX:P.protX,kcalX:P.kcalX};
+}
+
 // ═══════════ ÉTAT GLOBAL ═══════════
 var params=new URLSearchParams(window.location.search);
 var CLIENT=params.get("client");
@@ -172,6 +244,8 @@ var state={
   qgForm:false,
   otCountdown:false,
   otChrono:null,
+  nutPhoto:null, // photo en attente d'analyse
+  nutBusy:false, // analyse IA en cours
   syncStatus:"" // "", "sync", "ok", "err"
 };
 
@@ -1000,6 +1074,7 @@ function render(){
   var html='<div class="app">';
   if(state.view==="contract"){root.innerHTML='<div class="app">'+viewContract(name,start)+'</div>';bindContract(name,start);return;}
   if(state.view==="calendar")html+=viewCalendar(name,start);
+  else if(state.view==="nutrition")html+=viewNutrition(name,start);
   else if(state.view==="stats")html+=viewStats(name);
   else if(state.view==="dream")html+=viewDream(name);
   else if(state.view==="training")html+=viewTraining(name,start);
@@ -1079,12 +1154,110 @@ function navBar(){
   var is14=progLen(start)<=14;
   var tabs=[["calendar","📅","Agenda"],["stats","📈","Stats"],["dream","🌟","Dream"],
     is14?["training","🏋️","Sport"]:["rapport","📄","Rapport"]];
+  // 🍗 Onglet Nutrition : visible seulement si le coach l'a activé (slot 510.on)
+  if(nutCfg(getAllData()).on){
+    tabs.splice(1,0,["nutrition","🍗","Prot"]); // en 2e position, après Agenda
+  }
   var h='<div class="nav">';
   for(var i=0;i<tabs.length;i++){
     var t=tabs[i];
     h+='<button class="nav-btn'+(state.view===t[0]?" active":"")+'" data-nav="'+t[0]+'">'+
       '<span class="nav-ico">'+t[1]+'</span><span class="nav-lbl">'+t[2]+'</span></button>';
   }
+  return h+'</div>';
+}
+
+// ═══════════ NUTRITION (CLIENT) ═══════════
+function viewNutrition(name,start){
+  var allData=getAllData();
+  var cfg=nutCfg(allData);
+  var day=nutToday(cfg);
+  var target=cfg.prot||0;
+  var tot=day.tot||0;
+  var pct=target>0?Math.min(100,Math.round(tot/target*100)):0;
+  var atteint=target>0&&tot>=target*0.8; // ✅ victoire dès 80% du quota
+  var reste=Math.max(0,Math.round((target-tot)*10)/10);
+  var barCol=atteint?"#4CAF50":pct>=50?"#8BC34A":pct>=25?"#FFC107":"#FF9800";
+
+  var h='<div class="hdr"><div class="hdr-brand"><div class="bar bar-r"></div><div class="bar bar-b"></div>'+
+    '<span class="hdr-title">Discipline 90</span></div>'+
+    '<div class="hdr-sub">🍗 Protéines · '+esc(name)+'</div></div>'+
+    '<div style="padding:16px 14px 0">';
+
+  // ⚔️ QUÊTE DU JOUR (bandeau)
+  h+='<div class="card" style="background:linear-gradient(135deg,#1B5E20,#2E7D32);border:none;padding:15px 16px;margin-bottom:14px">'+
+    '<div style="color:#A5D6A7;font-weight:800;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:5px">⚔️ Ta quête du jour</div>'+
+    '<div style="color:#fff;font-weight:900;font-size:16px">Atteindre '+target+' g de protéines</div>'+
+    (atteint?'<div style="color:#A5D6A7;font-weight:900;font-size:13px;margin-top:6px">✅ QUÊTE ACCOMPLIE — '+tot+' g !</div>'
+      :'<div style="color:rgba(255,255,255,.75);font-size:12px;font-weight:700;margin-top:6px">Encore '+reste+' g pour valider 💪</div>')+'</div>';
+
+  // 🎯 QUOTA — barre de progression
+  h+='<div class="card" style="padding:16px">'+
+    '<div class="card-label">🎯 Quota protéines — aujourd\'hui</div>'+
+    '<div style="background:#E8E8E8;height:30px;border-radius:9px;overflow:hidden;position:relative;margin-bottom:10px">'+
+    '<div style="background:'+barCol+';height:100%;width:'+pct+'%;border-radius:9px;transition:width .35s;display:flex;align-items:center;justify-content:center;min-width:42px">'+
+    '<span style="color:#fff;font-weight:900;font-size:12px">'+pct+'%</span></div></div>'+
+    '<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800">'+
+    '<span style="color:'+barCol+'">'+tot+' g</span>'+
+    '<span style="color:#999">/ '+target+' g</span>'+
+    '<span style="color:#666">'+(atteint?'objectif atteint ✅':reste+' g restants')+'</span></div>'+
+    (cfg.kcal?'<div style="font-size:11px;color:#999;text-align:center;margin-top:8px">Barre calorique du plan : '+cfg.kcal+' kcal/jour</div>':'')+'</div>';
+
+  // 📝 SAISIE
+  h+='<div class="card" style="padding:14px">'+
+    '<div class="card-label">📝 Ajouter un aliment</div>'+
+    '<div style="display:flex;gap:8px;margin-bottom:8px">'+
+    '<input id="nut-name" type="text" placeholder="ex : poulet, œufs, riz..." style="flex:1;padding:11px 12px;border-radius:9px;border:1.5px solid #E8E8E8;font-size:15px;font-weight:600"/>'+
+    '<input id="nut-qty" type="number" inputmode="numeric" placeholder="g" style="width:78px;padding:11px 10px;border-radius:9px;border:1.5px solid #E8E8E8;font-size:15px;font-weight:700;text-align:center"/></div>'+
+    '<div style="display:flex;gap:8px">'+
+    '<button id="nut-add" style="flex:1;padding:13px 0;border-radius:11px;background:#2E7D32;color:#fff;font-weight:800;font-size:14px">➕ Ajouter</button>'+
+    '<button id="nut-photo" style="flex:1;padding:13px 0;border-radius:11px;background:#0057A8;color:#fff;font-weight:800;font-size:14px">📷 Photo</button></div>'+
+    '<input id="nut-file" type="file" accept="image/*" capture="environment" style="display:none"/>'+
+    (state.nutBusy?'<div style="text-align:center;color:#0057A8;font-size:13px;font-weight:700;margin-top:10px">🔍 Analyse de la photo en cours...</div>':'')+
+    '<div style="font-size:11px;color:#AAA;margin-top:8px;line-height:1.5">💡 Tape l\'aliment et le poids en grammes (pour les œufs : le nombre d\'œufs). Le calcul des protéines est automatique. Ou prends la photo de ton assiette.</div></div>';
+
+  // 📊 REPAS DU JOUR
+  h+='<div class="card" style="padding:14px">'+
+    '<div class="card-label">📊 Mes protéines du jour</div>';
+  if(!day.foods||!day.foods.length){
+    h+='<div style="text-align:center;color:#BBB;font-size:13px;padding:18px 0">Rien enregistré aujourd\'hui.<br>Ajoute ton premier aliment 👆</div>';
+  }else{
+    for(var i=0;i<day.foods.length;i++){
+      var f=day.foods[i];
+      h+='<div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid #F2F2F2">'+
+        '<div style="flex:1"><div style="font-weight:800;font-size:14px">'+esc(f.name)+'</div>'+
+        '<div style="font-size:12px;color:#999;font-weight:600">'+f.qty+' g</div></div>'+
+        '<div style="font-weight:900;font-size:15px;color:#2E7D32;margin-right:10px">'+f.prot+' g</div>'+
+        '<button class="nut-del" data-i="'+i+'" style="color:#CCC;font-size:17px;padding:4px">🗑️</button></div>';
+    }
+    h+='<div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;margin-top:2px">'+
+      '<span style="font-weight:900;font-size:14px">TOTAL</span>'+
+      '<span style="font-weight:900;font-size:18px;color:'+barCol+'">'+tot+' g</span></div>';
+  }
+  h+='</div>';
+
+  // 📅 HISTORIQUE 7 jours
+  (function(){
+    var cells='';var any=false;
+    for(var dd=6;dd>=0;dd--){
+      var dt=new Date();dt.setDate(dt.getDate()-dd);
+      var key=dt.toISOString().split("T")[0];
+      var e=(cfg.daily&&cfg.daily[key])||null;
+      var lbl=["D","L","M","M","J","V","S"][dt.getDay()];
+      var ok=e&&target>0&&e.tot>=target*0.8;
+      var bg=!e?"#F6F6F6":ok?"#E8F5E9":"#FFF6EC";
+      var col=!e?"#CCC":ok?"#4CAF50":"#E65100";
+      if(e)any=true;
+      cells+='<div style="flex:1;text-align:center;padding:8px 2px;border-radius:8px;background:'+bg+(dd===0?';box-shadow:0 0 0 2px #1A1A1A':'')+'">'+
+        '<div style="font-size:11px;font-weight:800;color:#999">'+lbl+'</div>'+
+        '<div style="font-size:15px;margin-top:3px">'+(!e?'·':ok?'✅':'○')+'</div>'+
+        '<div style="font-size:10px;font-weight:800;color:'+col+';margin-top:2px">'+(e?e.tot+'g':'—')+'</div></div>';
+    }
+    h+='<div class="card" style="padding:14px"><div class="card-label">📅 Mes 7 derniers jours</div>'+
+      '<div style="display:flex;gap:4px">'+cells+'</div>'+
+      (any?'':'<div style="font-size:11px;color:#BBB;text-align:center;margin-top:8px">Ton historique se construit jour après jour.</div>')+'</div>';
+  })();
+
   return h+'</div>';
 }
 
@@ -1119,6 +1292,14 @@ function viewCalendar(name,start){
       '<div style="font-weight:900;font-size:13.5px;margin-bottom:5px">🔔 Active ton rappel du soir</div>'+
       '<div style="font-size:12px;color:#555;line-height:1.65;margin-bottom:10px">Un tap, et ton téléphone te notifie <strong>chaque soir à 20h30</strong> pour remplir ton tracker. C\'est ce qui fait la différence entre ceux qui tiennent 90 jours et les autres.</div>'+
       '<button id="add-reminder" class="big-btn" style="background:#7B1FA2;box-shadow:0 4px 14px #7B1FA244;margin-bottom:0;padding:13px 0;font-size:14px">Ajouter à mon calendrier →</button></div>';
+  }
+
+  // 🍗 Bannière rappel protéines — seulement si le suivi est activé et pas encore configuré (slot 511)
+  if(nutCfg(allData).on&&!(allData[511]&&allData[511].rappel)){
+    h+='<div class="card" style="padding:14px 15px;margin-bottom:14px;border:2px solid #2E7D32;background:#F1F8E9">'+
+      '<div style="font-weight:900;font-size:13.5px;margin-bottom:5px">🍗 Ta quête protéines t\'attend</div>'+
+      '<div style="font-size:12px;color:#555;line-height:1.65;margin-bottom:10px">Active un rappel <strong>chaque soir à 20h30</strong> pour ne jamais oublier de peser tes protéines. C\'est ta quête secondaire — atteins ton quota, valide ta journée.</div>'+
+      '<button id="add-prot-reminder" class="big-btn" style="background:#2E7D32;box-shadow:0 4px 14px #2E7D3244;margin-bottom:0;padding:13px 0;font-size:14px">Activer mon rappel protéines →</button></div>';
   }
 
   // 🌙 Cycles de sommeil — semaine en cours (objectif 35 cycles, données du champ sommeil existant)
@@ -1626,6 +1807,19 @@ function viewDay(name,start){
     if(d.bilan&&!state.showBilan){
       h+='<button id="wa-bilan" class="big-btn" style="background:#25D366;box-shadow:0 4px 14px #25D36644">📱 Envoyer mon bilan à Akli — 1 clic</button>';
     }
+    // 🍗 Résumé nutrition semaine (D)
+    var nutCfg2=nutCfg(allData);
+    if(nutCfg2.on){
+      var totWeek=0,okWeek=0;
+      for(var nwd=0;nwd<7;nwd++){
+        var nwdt=new Date();nwdt.setDate(nwdt.getDate()-nwd);
+        var nwk=nwdt.toISOString().split("T")[0];
+        var nwe=(nutCfg2.daily&&nutCfg2.daily[nwk])||null;
+        if(nwe){totWeek+=nwe.tot;if(nwe.tot>=nutCfg2.prot*0.8)okWeek++;}
+      }
+      var avgWeek=Math.round(totWeek/7);
+      h+='<button id="nut-recap" class="big-btn" style="background:#2E7D32;margin-top:8px">📊 Résumé nutrition de la semaine</button>';
+    }
     if(state.showBilan){
       h+='<div class="card" style="padding:18px 16px"><div style="font-weight:900;font-size:14px;margin-bottom:16px;display:flex;align-items:center;gap:8px">'+
         '<div class="bar bar-r"></div>Difficulté ressentie — Semaine '+weekNum+'</div>';
@@ -1788,6 +1982,38 @@ function bindDay(name,start){
       (b.ressenti?"💬 Ressenti : "+b.ressenti+"\n":"")+
       ((m.fier||m.positif||m.negatif)?"\n🌙 Ce soir :\n"+(m.fier?"🥇 "+m.fier+"\n":"")+(m.positif?"🌟 "+m.positif+"\n":"")+(m.negatif?"🌧️ "+m.negatif+"\n":""):"")+
       (b.question?"\n❓ Ma question : "+b.question:"");
+    waSend(t.trim());
+  });
+  // 📊 Résumé nutrition semaine en WhatsApp (D)
+  var nutRec=document.getElementById("nut-recap");
+  if(nutRec)nutRec.addEventListener("click",function(){
+    var allData=getAllData();
+    var cfg=nutCfg(allData);
+    if(!cfg.on)return;
+    var wStart=Math.max(0,idx-6),totW=0,okW=0,items={};
+    for(var nwd=0;nwd<7;nwd++){
+      var nwdt=new Date();nwdt.setDate(nwdt.getDate()-nwd);
+      var nwk=nwdt.toISOString().split("T")[0];
+      var nwe=(cfg.daily&&cfg.daily[nwk])||null;
+      if(nwe){
+        totW+=nwe.tot;
+        if(nwe.tot>=cfg.prot*0.8)okW++;
+        for(var nfi=0;nfi<(nwe.foods||[]).length;nfi++){
+          var nf=nwe.foods[nfi];
+          items[nf.name]=(items[nf.name]||0)+1;
+        }
+      }
+    }
+    var avgW=Math.round(totW/7);
+    var top2=Object.keys(items).sort(function(a,b){return items[b]-items[a];}).slice(0,2);
+    var t="🍗 Résumé nutrition — Semaine "+Math.floor(idx/7)+1+"\n\n"+
+      "💪 Protéines moyennes : "+avgW+" g/jour\n"+
+      "Quota cible : "+cfg.prot+" g/jour\n"+
+      "✅ Jours réussis : "+okW+"/7 (≥80%)\n\n"+
+      "🥘 Aliments favoris :\n"+
+      (top2[0]?"#1 "+top2[0]+" ("+items[top2[0]]+"×)\n":"")+
+      (top2[1]?"#2 "+top2[1]+" ("+items[top2[1]]+"×)\n":"")+
+      "\n→ Continue comme ça ! 💪";
     waSend(t.trim());
   });
 }
@@ -2294,6 +2520,38 @@ function viewCoachDetail(){
     '<button class="copy-menu14 big-btn" data-slug="'+esc(c.slug)+'" style="width:100%;padding:11px 0;font-size:12px;background:#E65100;box-shadow:none">🍽️ Copier lien MENU 14 jours</button>'+
     '<div style="font-size:11px;color:#6E6E6E;margin-top:8px;line-height:1.5">"Activer" fixe la fin d\'accès à J+14 : app et menu se bloquent ensuite automatiquement. "Passer au 90 jours" débloque tout (accès illimité) — renvoie alors le lien tracker habituel.</div></div>';
 
+  // 🍗 SUIVI NUTRITION / PROTÉINES (slot 510) — bonus optionnel activé par le coach
+  var nut=allData[510]||{};
+  var nutOn=!!nut.on;
+  h+='<div class="card" style="border-left:4px solid #2E7D32;padding:13px 15px">'+
+    '<div style="font-weight:800;font-size:13px;margin-bottom:4px">🍗 Suivi protéines <span style="font-size:11px;font-weight:700;color:'+(nutOn?"#4CAF50":"#999")+'">— '+(nutOn?"ACTIVÉ":"désactivé")+'</span></div>'+
+    '<div style="font-size:11px;color:#6E6E6E;margin-bottom:10px;line-height:1.5">Onglet 🍗 + quête quotidienne + rappel du soir chez le client. À activer seulement pour ceux dont tu veux surveiller les protéines.</div>';
+  if(nutOn){
+    var np=nutPlan(nut.sexe||"H",nut.pDepart||0,nut.pCible||0);
+    h+='<div style="background:#F1F8E9;border-radius:10px;padding:11px 12px;margin-bottom:10px;font-size:12px;line-height:1.7">'+
+      '<div><strong>Objectif :</strong> '+(nut.pDepart||"?")+' kg → '+(nut.pCible||"?")+' kg ('+(nut.sexe==="F"?"femme":"homme")+')</div>'+
+      '<div><strong>💪 Protéines :</strong> '+(nut.prot||np.prot)+' g/jour · <strong>🔥</strong> '+(nut.kcal||np.kcal)+' kcal/jour</div>'+
+      (np.perte>0?'<div><strong>Perte :</strong> '+np.perte+' kg (~'+np.duree+' sem à 800 g/sem)</div>':'')+'</div>';
+    // Aperçu remplissage 7 derniers jours
+    (function(){
+      var cells='';
+      for(var dd=6;dd>=0;dd--){
+        var dt=new Date();dt.setDate(dt.getDate()-dd);
+        var key=dt.toISOString().split("T")[0];
+        var e=(nut.daily&&nut.daily[key])||null;
+        var target=nut.prot||0;
+        var ok=e&&target>0&&e.tot>=target*0.8;
+        var bg=!e?"#F0F0F0":ok?"#4CAF50":"#FFB74D";
+        cells+='<div style="flex:1;text-align:center"><div style="height:26px;border-radius:6px;background:'+bg+';display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:'+(!e?"#BBB":"#fff")+'">'+(e?e.tot:"·")+'</div>'+
+          '<div style="font-size:9px;color:#999;margin-top:2px">'+["D","L","M","M","J","V","S"][dt.getDay()]+'</div></div>';
+      }
+      h+='<div style="display:flex;gap:3px;margin-bottom:10px">'+cells+'</div>';
+    })();
+  }
+  h+='<div style="display:flex;gap:8px">'+
+    '<button id="nut-config" style="flex:1;font-size:11px;font-weight:800;padding:9px 0;border:1.5px solid #2E7D32;border-radius:10px;background:#fff;color:#2E7D32">'+(nutOn?"✏️ Modifier le plan":"➕ Activer + définir le plan")+'</button>'+
+    (nutOn?'<button id="nut-off" style="flex:1;font-size:11px;font-weight:800;padding:9px 0;border:1.5px solid #D52B1E;border-radius:10px;background:#fff;color:#D52B1E">⛔ Désactiver</button>':'')+'</div></div>';
+
   // 🏋️ ENTRAÎNEMENT BONUS (7 jours) — slot 507
   var tr7=allData[507]||{};
   var dayNames=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
@@ -2425,7 +2683,45 @@ function viewCoachDash(){
         for(var z3=t90-6;z3<=t90;z3++){var dz3=cd[z3];if(!(dz3&&dz3.mindset&&(dz3.mindset.fier||dz3.mindset.positif||dz3.mindset.negatif)))msEmpty++;}
         if(msEmpty>=4)alerts.push({p:3,s:c.slug,n:c.name,t:"mindset vide "+msEmpty+" j/7",e:"🟡"});
       }
+      // 🍗 Nutrition : seulement si le suivi protéines est activé pour ce client
+      var ncfg=cd[510];
+      if(ncfg&&ncfg.on&&ncfg.prot){
+        var todayK=new Date().toISOString().split("T")[0];
+        var nd=(ncfg.daily&&ncfg.daily[todayK])||null;
+        // rien saisi aujourd'hui après 18h
+        if(!nd&&new Date().getHours()>=18){
+          alerts.push({p:2,s:c.slug,n:c.name,t:"🍗 aucune protéine saisie aujourd'hui",e:"🟠"});
+        }else if(nd&&nd.tot<ncfg.prot*0.8&&new Date().getHours()>=20){
+          // sous 80% du quota et il est tard
+          alerts.push({p:2,s:c.slug,n:c.name,t:"🍗 protéines à "+nd.tot+"/"+ncfg.prot+" g (sous l'objectif)",e:"🟠"});
+        }
+        // tendance : <80% sur ≥4 des 7 derniers jours
+        var nMiss=0;
+        for(var nz=0;nz<7;nz++){
+          var ndt=new Date();ndt.setDate(ndt.getDate()-nz);
+          var nk=ndt.toISOString().split("T")[0];
+          var ne=(ncfg.daily&&ncfg.daily[nk])||null;
+          if(!ne||ne.tot<ncfg.prot*0.8)nMiss++;
+        }
+        if(nMiss>=4)alerts.push({p:3,s:c.slug,n:c.name,t:"🍗 protéines sous l'objectif "+nMiss+" j/7",e:"🟡"});
+      }
     }
+    // Alerte agrégée : clients avec nutrition mais sans activité 2+ jours (C)
+    (function(){
+      var nutNoSee=[];
+      for(var nc2=0;nc2<clients.length;nc2++){
+        var c2=clients[nc2];
+        var cd2=lsGet("amcoach_"+c2.slug,{});
+        var cfg2=cd2[510];
+        if(!cfg2||!cfg2.on)return;
+        var la2=cd2[505]&&cd2[505].d;
+        var daysSinceNut=la2?Math.floor((new Date(new Date().toISOString().split("T")[0])-new Date(la2))/86400000):999;
+        if(daysSinceNut>=2)nutNoSee.push(c2.name);
+      }
+      if(nutNoSee.length>=2){
+        alerts.push({p:2,s:"nutrition-global",n:"👁️ "+nutNoSee.length+" clients",t:"n'ont pas vu l'app depuis ≥2 jours (nutrition inactive)",e:"🍗"});
+      }
+    })();
     alerts.sort(function(a,b){return a.p-b.p;});
     h+='<div class="card" style="padding:15px 16px;margin-bottom:14px;border-left:4px solid '+(alerts.length?'#D52B1E':'#4CAF50')+'">'+
       '<div style="font-weight:900;font-size:12px;letter-spacing:1px;text-transform:uppercase;margin-bottom:'+(alerts.length?'10px':'0')+'">'+
@@ -2439,6 +2735,51 @@ function viewCoachDash(){
         '<span style="color:#777;font-size:13px">›</span></div>';
     }
     h+='</div>';
+  })();
+
+  // 🍗 SYNTHÈSE NUTRITION — clients avec suivi activé (B)
+  (function(){
+    var nutClients=[];
+    for(var ni=0;ni<clients.length;ni++){
+      var nc=clients[ni];
+      var ncd=lsGet("amcoach_"+nc.slug,{});
+      var ncfg=ncd[510];
+      if(!ncfg||!ncfg.on)continue;
+      var todayK=new Date().toISOString().split("T")[0];
+      var nd=(ncfg.daily&&ncfg.daily[todayK])||null;
+      var tot=nd?nd.tot:0;
+      var pct=ncfg.prot>0?Math.min(100,Math.round(tot/ncfg.prot*100)):0;
+      var ok=nd&&tot>=ncfg.prot*0.8;
+      var okDays=0;
+      for(var nw=0;nw<7;nw++){
+        var ndt=new Date();ndt.setDate(ndt.getDate()-nw);
+        var nk=ndt.toISOString().split("T")[0];
+        var ne=(ncfg.daily&&ncfg.daily[nk])||null;
+        if(ne&&ne.tot>=ncfg.prot*0.8)okDays++;
+      }
+      nutClients.push({slug:nc.slug,name:nc.name,tot:tot,target:ncfg.prot,pct:pct,ok:ok,trend7:okDays});
+    }
+    if(nutClients.length){
+      nutClients.sort(function(a,b){
+        var aOk=a.pct>=80?0:1, bOk=b.pct>=80?0:1;
+        if(aOk!==bOk)return aOk-bOk;
+        return b.pct-a.pct;
+      });
+      h+='<div class="card" style="padding:15px 16px;margin-bottom:14px;border-left:4px solid #2E7D32">'+
+        '<div style="font-weight:900;font-size:12px;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">🍗 Protéines aujourd\'hui</div>';
+      for(var ni2=0;ni2<nutClients.length;ni2++){
+        var nu=nutClients[ni2];
+        var barCol=nu.pct>=80?"#4CAF50":nu.pct>=50?"#8BC34A":nu.pct>=25?"#FFC107":"#FF9800";
+        h+='<div class="alert-row" data-detail="'+esc(nu.slug)+'" style="display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;background:#FAFAFA;margin-bottom:8px;cursor:pointer">'+
+          '<span style="font-weight:900;font-size:13px;color:'+barCol+';min-width:40px">'+nu.pct+'%</span>'+
+          '<div style="flex:1">'+
+          '<div style="font-weight:900;font-size:12.5px">'+esc(nu.name)+'</div>'+
+          '<div style="font-size:11px;color:#999">'+nu.tot+'/'+nu.target+' g · '+nu.trend7+'/7 jours ✅</div>'+
+          '</div>'+
+          '<span style="color:#777;font-size:13px">›</span></div>';
+      }
+      h+='</div>';
+    }
   })();
 
   h+='<input id="client-search" class="num-input" placeholder="\ud83d\udd0d Rechercher un client..." value="'+esc(state.searchQ||"")+'" style="font-size:15px;font-weight:400;margin-bottom:14px"/>';
@@ -2488,12 +2829,26 @@ function viewCoachDash(){
             var pctc=val/max, col=pctc>=0.7?"#4CAF50":pctc>=0.4?"#E65100":"#D52B1E";
             return '<span style="display:inline-flex;align-items:center;gap:3px;background:#F7F7F7;border-radius:9px;padding:4px 8px;font-size:11px;font-weight:800;color:'+col+'" title="'+lbl+'">'+ico+' '+val+'/'+max+'</span>';
           }
+          // 🍗 chip protéines (seulement si suivi activé)
+          var protChip="";
+          var ncf=cd[510];
+          if(ncf&&ncf.on&&ncf.prot){
+            var pOk=0;
+            for(var pz=from;pz<=Math.min(t90,89);pz++){
+              var pdt=new Date();pdt.setDate(pdt.getDate()-(t90-pz));
+              var pk=pdt.toISOString().split("T")[0];
+              var pe=(ncf.daily&&ncf.daily[pk])||null;
+              if(pe&&pe.tot>=ncf.prot*0.8)pOk++;
+            }
+            protChip=chip("🍗",pOk,nd,"🍗 "+pOk+"/"+nd+" jours à l'objectif (≥80%)");
+          }
           return '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px">'+
             chip("🧱",briq,nd*2,"Briques identité posées (2/jour) — 7 derniers jours")+
             chip("⚡",miss,nd,"Missions du jour gagnées — 7 derniers jours")+
             chip("🏋️",spo,nd,"Sport coché — 7 derniers jours")+
             chip("🥗",nut,nd,"Nutrition cochée — 7 derniers jours")+
             chip("😴",som,nd,"Sommeil coché — 7 derniers jours")+
+            protChip+
             '</div>';
         })()+
         '<button class="copy-link big-btn" data-slug="'+esc(c.slug)+'" style="padding:12px 0;font-size:13px;background:'+K+';box-shadow:none;margin-bottom:8px">📋 Copier lien TRACKER</button>'+
@@ -3419,6 +3774,38 @@ function bindCoach(){
     var acc=lsGet("amcoach_"+state.coachDetail,{})[504]||{};
     acc.end=null;acc.off=false;saveAcc(acc);
   });
+  // 🍗 Config nutrition/protéines (slot 510)
+  var nutCfgBtn=document.getElementById("nut-config");
+  if(nutCfgBtn)nutCfgBtn.addEventListener("click",function(){
+    var slug=state.coachDetail;
+    var cur=lsGet("amcoach_"+slug,{})[510]||{};
+    var sexe=prompt("Sexe du client (H ou F) :",cur.sexe||"H");
+    if(sexe===null)return;
+    sexe=(sexe.trim().toUpperCase()==="F")?"F":"H";
+    var pd=prompt("Poids de DÉPART (kg) :",cur.pDepart||"");
+    if(pd===null)return;
+    var pc=prompt("Poids CIBLE (kg) :",cur.pCible||"");
+    if(pc===null)return;
+    pd=parseFloat(pd)||0;pc=parseFloat(pc)||0;
+    if(!pd||!pc){alert("Poids invalides.");return;}
+    var plan=nutPlan(sexe,pd,pc);
+    var cfg=lsGet("amcoach_"+slug,{})[510]||{};
+    cfg.on=true;cfg.sexe=sexe;cfg.pDepart=pd;cfg.pCible=pc;
+    cfg.prot=plan.prot;cfg.kcal=plan.kcal;cfg.duree=plan.duree;
+    cfg.daily=cfg.daily||{};
+    coachSaveSlot(slug,510,cfg);
+    alert("✅ Suivi protéines activé\n\n💪 "+plan.prot+" g protéines/jour\n🔥 "+plan.kcal+" kcal/jour"+(plan.perte>0?"\n📉 "+plan.perte+" kg à perdre (~"+plan.duree+" sem)":""));
+    render();
+  });
+  var nutOffBtn=document.getElementById("nut-off");
+  if(nutOffBtn)nutOffBtn.addEventListener("click",function(){
+    if(!confirm("Désactiver le suivi protéines pour ce client ? (l'historique est conservé)"))return;
+    var slug=state.coachDetail;
+    var cfg=lsGet("amcoach_"+slug,{})[510]||{};
+    cfg.on=false;
+    coachSaveSlot(slug,510,cfg);
+    render();
+  });
   var cm14=document.querySelectorAll(".copy-menu14");
   for(var c14=0;c14<cm14.length;c14++){
     cm14[c14].addEventListener("click",function(){
@@ -3587,8 +3974,105 @@ function bindCoach(){
   }
 }
 
+// ═══════════ NAV BINDING (réutilisable) ═══════════
+function bindNav(){
+  var navs=document.querySelectorAll("[data-nav]");
+  for(var i=0;i<navs.length;i++){
+    navs[i].addEventListener("click",function(){state.view=this.getAttribute("data-nav");render();});
+  }
+}
+
+// ═══════════ NUTRITION BINDINGS (CLIENT) ═══════════
+function nutSaveDay(newDay){
+  var all=getAllData();
+  var cfg=all[510]||{};
+  cfg.daily=cfg.daily||{};
+  var target=cfg.prot||0;
+  newDay.tot=Math.round((newDay.foods||[]).reduce(function(s,f){return s+(f.prot||0);},0)*10)/10;
+  newDay.ok=target>0&&newDay.tot>=target*0.8;
+  cfg.daily[nutDayKey()]=newDay;
+  saveDay(510,cfg); // sync Supabase via le même mécanisme (slot 510)
+}
+function nutAddFood(name,qty){
+  var prot=nutProtFor(name,qty);
+  if(prot===null){
+    alert("Aliment non reconnu 🤔\nEssaie un nom simple : poulet, œufs, riz, saumon, yaourt grec, whey...");
+    return false;
+  }
+  var day=nutToday(nutCfg(getAllData()));
+  var foods=(day.foods||[]).slice();
+  // Nom propre : première lettre en majuscule
+  var disp=name.trim().charAt(0).toUpperCase()+name.trim().slice(1);
+  foods.push({name:disp,qty:qty,prot:prot});
+  nutSaveDay({foods:foods});
+  return true;
+}
+// Analyse photo via Claude Vision (proxy Supabase Edge Function pour ne pas exposer la clé)
+function nutAnalyzePhoto(base64){
+  state.nutBusy=true;render();
+  fetch(SB_URL+"/functions/v1/nutrition-vision",{
+    method:"POST",
+    headers:{"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY,"Content-Type":"application/json"},
+    body:JSON.stringify({image:base64})
+  }).then(function(r){return r.json();}).then(function(res){
+    state.nutBusy=false;
+    var items=res&&res.foods?res.foods:null;
+    if(!items||!items.length){alert("Je n'ai pas reconnu d'aliment sur la photo 😅\nRéessaie avec une photo plus nette, ou saisis à la main.");render();return;}
+    var day=nutToday(nutCfg(getAllData()));
+    var foods=(day.foods||[]).slice();
+    var added=0,skipped=[];
+    for(var i=0;i<items.length;i++){
+      var it=items[i];
+      var prot=nutProtFor(it.name,it.qty)||(it.prot!=null?Math.round(it.prot*10)/10:null);
+      if(prot===null){skipped.push(it.name);continue;}
+      var disp=(it.name||"Aliment").charAt(0).toUpperCase()+(it.name||"").slice(1);
+      foods.push({name:disp,qty:it.qty||0,prot:prot});
+      added++;
+    }
+    nutSaveDay({foods:foods});
+    render();
+    if(added)setTimeout(function(){alert("✅ "+added+" aliment(s) ajouté(s) depuis la photo"+(skipped.length?"\n(non reconnus : "+skipped.join(", ")+")":""));},100);
+  }).catch(function(){
+    state.nutBusy=false;render();
+    alert("L'analyse photo n'est pas disponible pour le moment. Saisis ton aliment à la main 🙂");
+  });
+}
+function bindNutrition(){
+  var addBtn=document.getElementById("nut-add");
+  var nameI=document.getElementById("nut-name"),qtyI=document.getElementById("nut-qty");
+  function doAdd(){
+    var n=(nameI.value||"").trim(),q=parseInt(qtyI.value,10)||0;
+    if(!n){nameI.focus();return;}
+    if(q<=0){qtyI.focus();return;}
+    if(nutAddFood(n,q))render();
+  }
+  if(addBtn)addBtn.addEventListener("click",doAdd);
+  if(qtyI)qtyI.addEventListener("keypress",function(e){if(e.key==="Enter")doAdd();});
+  var dels=document.querySelectorAll(".nut-del");
+  for(var i=0;i<dels.length;i++){
+    dels[i].addEventListener("click",function(){
+      var ix=parseInt(this.getAttribute("data-i"),10);
+      var day=nutToday(nutCfg(getAllData()));
+      var foods=(day.foods||[]).slice();
+      foods.splice(ix,1);
+      nutSaveDay({foods:foods});render();
+    });
+  }
+  var photoBtn=document.getElementById("nut-photo"),fileI=document.getElementById("nut-file");
+  if(photoBtn&&fileI){
+    photoBtn.addEventListener("click",function(){fileI.click();});
+    fileI.addEventListener("change",function(e){
+      var file=e.target.files[0];if(!file)return;
+      var reader=new FileReader();
+      reader.onload=function(ev){nutAnalyzePhoto(ev.target.result.split(",")[1]);};
+      reader.readAsDataURL(file);
+    });
+  }
+}
+
 // ═══════════ MAIN BINDINGS ═══════════
 function bindMain(name,start){
+  if(state.view==="nutrition"){bindNutrition();bindNav();return;}
   var oc=document.getElementById("open-contract");
   if(oc)oc.addEventListener("click",function(){state.view="contract";render();});
   // 🔔 Rappel quotidien 20h30 : événement calendrier récurrent avec alerte native
@@ -3610,6 +4094,28 @@ function bindMain(name,start){
     a.download="rappel-discipline90.ics";
     document.body.appendChild(a);a.click();document.body.removeChild(a);
     saveDay(509,{rappel:1,d:new Date().toISOString().split("T")[0]}); // fait une fois → bannière retirée
+    setTimeout(render,600);
+  });
+  // 🍗 Rappel protéines 20h30 (slot 511)
+  var apr=document.getElementById("add-prot-reminder");
+  if(apr)apr.addEventListener("click",function(){
+    var cfg=nutCfg(getAllData());
+    var d=new Date();d.setDate(d.getDate()+1);
+    var ymd=d.getFullYear()+("0"+(d.getMonth()+1)).slice(-2)+("0"+d.getDate()).slice(-2);
+    var appUrl=location.origin+location.pathname+(CLIENT?"?client="+CLIENT:"");
+    var ics="BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//AM Coach Geneve//Discipline90//FR\r\nBEGIN:VEVENT\r\n"+
+      "UID:discipline90-prot-"+(CLIENT||"moi")+"@amcoach\r\n"+
+      "DTSTART:"+ymd+"T203000\r\nDTEND:"+ymd+"T203500\r\n"+
+      "RRULE:FREQ=DAILY\r\n"+
+      "SUMMARY:🍗 Discipline 90 — pèse tes protéines ("+(cfg.prot||"")+" g)\r\n"+
+      "DESCRIPTION:Atteins ton quota de protéines du jour. "+appUrl+"\r\n"+
+      "BEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:Quota protéines Discipline 90\r\nTRIGGER:PT0M\r\nEND:VALARM\r\n"+
+      "END:VEVENT\r\nEND:VCALENDAR";
+    var a=document.createElement("a");
+    a.href="data:text/calendar;charset=utf-8,"+encodeURIComponent(ics);
+    a.download="rappel-proteines-discipline90.ics";
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    saveDay(511,{rappel:1,d:new Date().toISOString().split("T")[0]});
     setTimeout(render,600);
   });
   var allData=getAllData();

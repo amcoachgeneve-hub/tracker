@@ -249,6 +249,19 @@ var FIN_CHARGES_INDEP=[
   {n:"Publicité / Marketing",c:"pro"},{n:"Cotisations sociales (URSSAF)",c:"pro"},
   {n:"Impôts professionnels",c:"fixe"},{n:"Autres charges",c:"var"}
 ];
+// Revenus du mois : {sal, ind}. Si le mois n'est pas encore renseigné,
+// on reporte automatiquement les derniers revenus connus.
+function finRevMois(cfg,key){
+  key=key||finMonthKey();
+  var rm=(cfg&&cfg.revMois)||{};
+  if(rm[key])return {sal:parseFloat(rm[key].sal)||0,ind:parseFloat(rm[key].ind)||0,saisi:true};
+  var ks=Object.keys(rm).sort(),last=null;
+  for(var i=0;i<ks.length;i++){if(ks[i]<key)last=ks[i];}
+  if(last)return {sal:parseFloat(rm[last].sal)||0,ind:parseFloat(rm[last].ind)||0,saisi:false,report:last};
+  // Reprise de l'ancien champ unique
+  var leg=parseFloat(cfg&&cfg.revenus)||0;
+  return {sal:leg,ind:0,saisi:false};
+}
 function finCalc(cfg){
   var ch=cfg.charges||[];
   var fixe=0,vari=0,pro=0;
@@ -257,14 +270,15 @@ function finCalc(cfg){
     if(ch[i].c==="pro")pro+=m;else if(ch[i].c==="var")vari+=m;else fixe+=m;
   }
   var tot=fixe+vari+pro;
-  var rev=parseFloat(cfg.revenus)||0;
+  var R=finRevMois(cfg);
+  var rev=R.sal+R.ind;
   var reste=rev-tot;
   var marge=Math.round(rev*0.10);
   var capa=Math.max(0,reste-marge);
   var matelos=Math.round(tot*3);
   var moisMatelas=capa>0?Math.ceil(matelos/capa):0;
   var pctCapa=rev>0?Math.round(capa/rev*100):0;
-  return {fixe:fixe,vari:vari,pro:pro,tot:tot,rev:rev,reste:reste,
+  return {fixe:fixe,vari:vari,pro:pro,tot:tot,rev:rev,revSal:R.sal,revInd:R.ind,reste:reste,
           marge:marge,capa:capa,matelos:matelos,moisMatelas:moisMatelas,pctCapa:pctCapa};
 }
 // Alias pour compatibilité
@@ -1462,22 +1476,66 @@ function viewFinance(name,start){
   // Si aucun statut choisi : afficher le choix
   if(!cfg.statut){
     h+='<div class="card" style="padding:20px;text-align:center;background:linear-gradient(135deg,#F5F5F5,#EBEBEB)">'+
-      '<div style="font-size:14px;font-weight:800;color:#333;margin-bottom:16px">Commençons par ton statut</div>'+
-      '<div style="display:flex;gap:10px">'+
-      '<button class="fin-statut" data-st="salarie" style="flex:1;padding:14px;border-radius:10px;border:2px solid #0057A8;background:#fff;color:#0057A8;font-weight:900;font-size:13px;cursor:pointer">💼<br>Salarié</button>'+
-      '<button class="fin-statut" data-st="indep" style="flex:1;padding:14px;border-radius:10px;border:2px solid #2E7D32;background:#fff;color:#2E7D32;font-weight:900;font-size:13px;cursor:pointer">🚀<br>Indépendant</button>'+
+      '<div style="font-size:14px;font-weight:800;color:#333;margin-bottom:6px">Commençons par ton statut</div>'+
+      '<div style="font-size:11.5px;color:#888;margin-bottom:16px;line-height:1.5">Tu pourras le changer plus tard</div>'+
+      '<div style="display:flex;gap:8px">'+
+      '<button class="fin-statut" data-st="salarie" style="flex:1;padding:14px 4px;border-radius:10px;border:2px solid #0057A8;background:#fff;color:#0057A8;font-weight:900;font-size:12px;cursor:pointer">💼<br>Salarié</button>'+
+      '<button class="fin-statut" data-st="indep" style="flex:1;padding:14px 4px;border-radius:10px;border:2px solid #2E7D32;background:#fff;color:#2E7D32;font-weight:900;font-size:12px;cursor:pointer">🚀<br>Indépendant</button>'+
+      '<button class="fin-statut" data-st="mixte" style="flex:1;padding:14px 4px;border-radius:10px;border:2px solid #B8935C;background:#fff;color:#8A6A2F;font-weight:900;font-size:12px;cursor:pointer">💼🚀<br>Les deux</button>'+
       '</div></div>';
   } else {
     // Statut choisi : afficher le formulaire
     var lst=cfg.statut==="salarie"?FIN_CHARGES_SALARIE:FIN_CHARGES_INDEP;
-    
-    // Revenus
+    var R=finRevMois(cfg);
+    var moisLbl=finMonthLabel(finMonthKey());
+    var showSal=cfg.statut!=="indep";
+    var showInd=cfg.statut!=="salarie";
+
+    // Revenus du mois en cours
     h+='<div class="card" style="padding:16px;margin-bottom:12px">'+
-      '<div style="font-size:11px;font-weight:900;color:#AAA;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">📊 Tes revenus nets / mois</div>'+
-      '<div style="display:flex;align-items:center;gap:10px">'+
-      '<input id="fin-rev-input" type="number" inputmode="decimal" value="'+(cfg.revenus||"")+'" '+
-        'placeholder="0" style="flex:1;padding:12px 12px;border-radius:10px;border:1.5px solid #E8E8E8;font-size:15px;font-weight:800"/>'+
-      '<span style="color:#AAA;font-weight:700">'+dev+'</span></div></div>';
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">'+
+      '<span style="font-size:11px;font-weight:900;color:#AAA;letter-spacing:1px;text-transform:uppercase">📊 Mes revenus — '+moisLbl+'</span>'+
+      '<button id="fin-statut-chg" style="border:none;background:none;color:#0057A8;font-size:11px;font-weight:800;cursor:pointer;padding:0">'+
+      (cfg.statut==="salarie"?"💼 Salarié":cfg.statut==="indep"?"🚀 Indépendant":"💼🚀 Les deux")+' ✏️</button></div>'+
+      (!R.saisi&&R.report?'<div id="fin-rev-report" style="font-size:11px;color:#E65100;font-weight:700;margin-bottom:8px">↩️ Repris de '+finMonthLabel(R.report)+' — corrige si ça a changé</div>':'<div style="height:4px"></div>');
+
+    if(showSal){
+      h+='<div style="display:flex;align-items:center;gap:10px;padding:8px 0'+(showInd?';border-bottom:1px solid #F2F2F2':'')+'">'+
+        '<span style="flex:1;font-size:13px;font-weight:800">💼 Salaire net</span>'+
+        '<input id="fin-rev-sal" type="number" inputmode="decimal" value="'+(R.sal||"")+'" '+
+        'placeholder="0" style="width:110px;padding:10px;border-radius:9px;border:1.5px solid #E8E8E8;font-size:14px;font-weight:800;text-align:right"/>'+
+        '<span style="color:#BBB;font-size:11px;font-weight:700">'+dev+'</span></div>';
+    }
+    if(showInd){
+      h+='<div style="display:flex;align-items:center;gap:10px;padding:8px 0">'+
+        '<span style="flex:1;font-size:13px;font-weight:800">🚀 Revenus indépendant</span>'+
+        '<input id="fin-rev-ind" type="number" inputmode="decimal" value="'+(R.ind||"")+'" '+
+        'placeholder="0" style="width:110px;padding:10px;border-radius:9px;border:1.5px solid #E8E8E8;font-size:14px;font-weight:800;text-align:right"/>'+
+        '<span style="color:#BBB;font-size:11px;font-weight:700">'+dev+'</span></div>';
+    }
+    if(showSal&&showInd){
+      h+='<div style="display:flex;justify-content:space-between;padding-top:9px;margin-top:4px;border-top:2px solid #F2F2F2">'+
+        '<span style="font-size:13px;font-weight:900">Total du mois</span>'+
+        '<span id="fin-rev-tot" style="font-size:15px;font-weight:900;color:#0057A8">'+finFmt(R.sal+R.ind,dev)+'</span></div>';
+    }
+    h+='<div style="font-size:11px;color:#AAA;margin-top:8px;line-height:1.5">💡 Chaque mois, tes revenus sont repris automatiquement. Tu les corriges ici quand ils changent, puis tu recalcules.</div>';
+
+    // Historique des revenus
+    (function(){
+      var rm=cfg.revMois||{},ks=Object.keys(rm).sort();
+      if(ks.length<2)return;
+      var cells='';
+      for(var i=Math.max(0,ks.length-6);i<ks.length;i++){
+        var k=ks[i],v=(parseFloat(rm[k].sal)||0)+(parseFloat(rm[k].ind)||0);
+        var cur=k===finMonthKey();
+        cells+='<div style="flex:1;text-align:center;padding:6px 2px;border-radius:7px;background:'+(cur?"#E3F2FD":"#F7F7F7")+(cur?';box-shadow:0 0 0 1.5px #0057A8':'')+'">'+
+          '<div style="font-size:9.5px;color:#999;font-weight:800">'+finMonthLabel(k).split(" ")[0]+'</div>'+
+          '<div style="font-size:11px;font-weight:900;color:#333;margin-top:1px">'+Math.round(v)+'</div></div>';
+      }
+      h+='<div style="margin-top:11px"><div style="font-size:10px;font-weight:800;color:#BBB;letter-spacing:.5px;text-transform:uppercase;margin-bottom:5px">Historique</div>'+
+        '<div style="display:flex;gap:3px">'+cells+'</div></div>';
+    })();
+    h+='</div>';
     
     // Liste des charges
     h+='<div class="card" style="padding:16px">'+
@@ -4410,26 +4468,52 @@ function bindFinance(){
     stabs[s].addEventListener("click",function(){
       var st=this.getAttribute("data-st");
       var cfg=finCfg(getAllData());
+      var ancien=cfg.statut;
       cfg.statut=st;
-      cfg.devise="CHF";
-      var lst=st==="salarie"?FIN_CHARGES_SALARIE:FIN_CHARGES_INDEP;
-      cfg.charges=[];
-      for(var i=0;i<lst.length;i++){
-        cfg.charges.push({n:lst[i].n,c:lst[i].c,m:0});
+      cfg.devise=cfg.devise||"CHF";
+      // On ne régénère la liste que si la famille de charges change
+      var listeAvant=ancien==="salarie"?"S":ancien?"I":null;
+      var listeApres=st==="salarie"?"S":"I";
+      if(!cfg.charges||!cfg.charges.length||listeAvant!==listeApres){
+        var lst=st==="salarie"?FIN_CHARGES_SALARIE:FIN_CHARGES_INDEP;
+        var anciennes={};
+        (cfg.charges||[]).forEach(function(c){anciennes[c.n]=parseFloat(c.m)||0;});
+        cfg.charges=[];
+        for(var i=0;i<lst.length;i++){
+          cfg.charges.push({n:lst[i].n,c:lst[i].c,m:anciennes[lst[i].n]||0});
+        }
       }
       finSaveCfg(cfg);
       render();
     });
   }
-  // Input revenus
-  var revInput=document.getElementById("fin-rev-input");
-  if(revInput){
-    revInput.addEventListener("change",function(){
-      var cfg=finCfg(getAllData());
-      cfg.revenus=parseFloat(this.value)||0;
-      finSaveCfg(cfg);
-    });
+  // Bouton "changer de statut"
+  var chgSt=document.getElementById("fin-statut-chg");
+  if(chgSt)chgSt.addEventListener("click",function(){
+    var cfg=finCfg(getAllData());
+    cfg.statut=null;
+    finSaveCfg(cfg);
+    render();
+  });
+  // Revenus du mois en cours (salarié / indépendant)
+  function setRev(champ,val){
+    var cfg=finCfg(getAllData());
+    var k=finMonthKey();
+    var actuel=finRevMois(cfg,k);
+    cfg.revMois=cfg.revMois||{};
+    cfg.revMois[k]={sal:actuel.sal,ind:actuel.ind};
+    cfg.revMois[k][champ]=val;
+    finSaveCfg(cfg);
+    // Mise à jour du total sans reconstruire la vue (le champ garde le focus)
+    var tot=document.getElementById("fin-rev-tot");
+    if(tot)tot.textContent=finFmt(cfg.revMois[k].sal+cfg.revMois[k].ind,cfg.devise||"CHF");
+    var rep=document.getElementById("fin-rev-report");
+    if(rep)rep.style.display="none";
   }
+  var rSal=document.getElementById("fin-rev-sal");
+  if(rSal)rSal.addEventListener("change",function(){setRev("sal",parseFloat(this.value)||0);});
+  var rInd=document.getElementById("fin-rev-ind");
+  if(rInd)rInd.addEventListener("change",function(){setRev("ind",parseFloat(this.value)||0);});
   // Inputs charges
   var chInputs=document.querySelectorAll("[data-charge-idx]");
   for(var c=0;c<chInputs.length;c++){
@@ -4447,10 +4531,19 @@ function bindFinance(){
   if(btnCalc){
     btnCalc.addEventListener("click",function(){
       var cfg=finCfg(getAllData());
-      if(!cfg.statut||!cfg.revenus||cfg.revenus<=0||!cfg.charges||cfg.charges.length===0){
-        alert("Remplis le statut, les revenus et au moins une charge");
+      if(!cfg.statut||!cfg.charges||cfg.charges.length===0){
+        alert("Choisis ton statut d'abord");
         return;
       }
+      var Rv=finRevMois(cfg);
+      if((Rv.sal+Rv.ind)<=0){
+        alert("Renseigne tes revenus du mois");
+        return;
+      }
+      // On fige les revenus du mois au moment du calcul
+      var kM=finMonthKey();
+      cfg.revMois=cfg.revMois||{};
+      cfg.revMois[kM]={sal:Rv.sal,ind:Rv.ind};
       var T=finCalc(cfg);
       if(T.capa<=0){
         alert("Tes charges dépassent tes revenus — impossible de mettre de côté");

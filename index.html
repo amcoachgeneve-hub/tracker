@@ -222,6 +222,60 @@ function nutPlan(sexe,pDepart,pCible){
   return {prot:prot,kcal:kcal,perte:perte,duree:duree,protX:P.protX,kcalX:P.kcalX};
 }
 
+// ═══════════ 💰 QUÊTE FINANCE — QUESTIONNAIRE GUIDÉ ═══════════
+function finCfg(data){return (data&&data[512])||{};}
+function finFmt(n,dev){
+  n=Math.round(parseFloat(n)||0);
+  return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,"'")+" "+(dev||"CHF");
+}
+// Listes de charges pré-définies par statut
+var FIN_CHARGES_SALARIE=[
+  {n:"Loyer / Habitation",c:"fixe"},{n:"Électricité / Chauffage",c:"fixe"},
+  {n:"Assurance habitation",c:"fixe"},{n:"Téléphone + Internet",c:"fixe"},
+  {n:"Assurance voiture",c:"fixe"},{n:"Carburant / Transports",c:"var"},
+  {n:"Courses alimentaires",c:"var"},{n:"Loisirs + abonnements",c:"var"},
+  {n:"Sorties / Restaurants",c:"var"},{n:"Vêtements",c:"var"},
+  {n:"Mutuelle santé (LAMal/France)",c:"fixe"},{n:"Impôts / Cotisations salariales",c:"fixe"},
+  {n:"Enfants (allocations, cantine)",c:"var"},{n:"Autres charges",c:"var"}
+];
+var FIN_CHARGES_INDEP=[
+  {n:"Loyer / Habitation",c:"fixe"},{n:"Électricité / Chauffage",c:"fixe"},
+  {n:"Assurance habitation",c:"fixe"},{n:"Téléphone + Internet",c:"fixe"},
+  {n:"Assurance voiture",c:"fixe"},{n:"Carburant / Transports",c:"var"},
+  {n:"Courses alimentaires",c:"var"},{n:"Loisirs + abonnements",c:"var"},
+  {n:"Sorties / Restaurants",c:"var"},{n:"Vêtements",c:"var"},
+  {n:"RC professionnelle",c:"pro"},{n:"Mutuelle santé (LAMal/France)",c:"fixe"},
+  {n:"Comptabilité / Expert-comptable",c:"pro"},{n:"Formation professionnelle",c:"pro"},
+  {n:"Publicité / Marketing",c:"pro"},{n:"Cotisations sociales (URSSAF)",c:"pro"},
+  {n:"Impôts professionnels",c:"fixe"},{n:"Autres charges",c:"var"}
+];
+function finCalc(cfg){
+  var ch=cfg.charges||[];
+  var fixe=0,vari=0,pro=0;
+  for(var i=0;i<ch.length;i++){
+    var m=parseFloat(ch[i].m)||0;
+    if(ch[i].c==="pro")pro+=m;else if(ch[i].c==="var")vari+=m;else fixe+=m;
+  }
+  var tot=fixe+vari+pro;
+  var rev=parseFloat(cfg.revenus)||0;
+  var reste=rev-tot;
+  var marge=Math.round(rev*0.10);
+  var capa=Math.max(0,reste-marge);
+  var matelos=Math.round(tot*3);
+  var moisMatelas=capa>0?Math.ceil(matelos/capa):0;
+  var pctCapa=rev>0?Math.round(capa/rev*100):0;
+  return {fixe:fixe,vari:vari,pro:pro,tot:tot,rev:rev,reste:reste,
+          marge:marge,capa:capa,matelos:matelos,moisMatelas:moisMatelas,pctCapa:pctCapa};
+}
+// Alias pour compatibilité
+function finTotals(cfg){return finCalc(cfg);}
+function finPlan(cfg){
+  var T=finCalc(cfg);
+  return {capacite:T.capa,matelas:T.matelos,moisRestants:T.moisMatelas,
+          T:T,palier:T.capa>0?1:2,versTreso:T.capa,versEp:0,versInv:0};
+}
+
+
 // ═══════════ 💰 QUÊTE FINANCE (slot 512) ═══════════
 // {on, devise, revenus, charges:[{n,m,t}], objEpargne, moisCible, solde, soldeInvest,
 //  repInvest (% vers invest. au palier 2), margeImprevu (% du revenu gardé en marge),
@@ -1453,7 +1507,7 @@ function viewNutrition(name,start){
 // ═══════════ 💰 FINANCE (CLIENT) ═══════════
 function viewFinance(name,start){
   var allData=getAllData();
-  var cfg=finCfg(allData);
+  var cfg=finCfg(allData)||{};
   var dev=cfg.devise||"CHF";
   var T=finTotals(cfg);
   var P=finPlan(cfg);

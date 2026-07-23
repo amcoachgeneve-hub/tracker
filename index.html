@@ -761,6 +761,38 @@ function cycleVizHTML(hVal){
   }
   return html;
 }
+// 🌙 Carte "Cycles de sommeil — semaine" (objectif 35 cycles)
+// refIdx = jour de référence pour choisir la semaine affichée ; today90 = jour réel
+function sleepWeekHTML(allData,refIdx,today90){
+  var wS=Math.floor(refIdx/7)*7;
+  var tot=0,cells='',hasAny=false;
+  for(var di=wS;di<wS+7;di++){
+    var dd=allData[di],sc2=(dd&&dd.sommeilH)?sleepCycles(dd.sommeilH):null;
+    var fut=di>today90;
+    if(sc2){tot+=sc2.total;hasAny=true;}
+    var bg=fut?'#F6F6F6':!sc2?'#FFF6EC':sc2.critical?'#FFEBEE':sc2.total>=5?'#E8F5E9':'#E3F2FD';
+    var col=fut?'#CCC':!sc2?'#E65100':sc2.critical?'#D52B1E':sc2.total>=5?'#4CAF50':'#0057A8';
+    cells+='<div style="flex:1;text-align:center;padding:7px 2px;border-radius:8px;background:'+bg+(di===refIdx?';box-shadow:0 0 0 2px #1A1A1A':'')+'">'+
+      '<div style="font-size:11px;font-weight:800;color:#8A8A8A">J'+(di+1)+'</div>'+
+      '<div style="font-size:14px;font-weight:900;color:'+col+'">'+(sc2?sc2.total:(fut?'·':'?'))+'</div></div>';
+  }
+  var pctS=Math.min(tot/35,1),barCol=pctS>=1?'#4CAF50':pctS>=0.6?'#0057A8':'#E65100';
+  var doneDays=Math.max(1,Math.min(today90,wS+6)-wS+1);
+  var behind=Math.max(0,5*doneDays-tot);
+  var msg;
+  if(!hasAny)msg='Note tes heures de sommeil chaque jour — 1 cycle = 90 min, objectif 5 cycles par nuit.';
+  else if(behind>=1){
+    var dLeft=Math.max(1,wS+6-today90);
+    msg='⚠️ '+(Math.round(behind*10)/10)+' cycle'+(behind>=2?'s':'')+' de retard cette semaine. Rattrape avec des nuits plus longues (+'+Math.min(120,Math.round(behind/dLeft*90))+' min/nuit) ou une micro-sieste de 20-25 min entre 13 h et 15 h.';
+  }else msg='✅ Bon rythme — continue à viser 5 cycles par nuit.';
+  return '<div class="card" style="padding:14px 15px;margin-bottom:14px;border-left:4px solid #0057A8">'+
+    '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">'+
+    '<span style="font-weight:900;font-size:13px">🌙 Cycles de sommeil — semaine</span>'+
+    '<span style="font-size:12px;font-weight:900;color:'+barCol+'">'+(Math.round(tot*10)/10)+' / 35</span></div>'+
+    '<div style="height:8px;background:#EEE;border-radius:4px;overflow:hidden;margin-bottom:9px"><div style="height:100%;width:'+(pctS*100)+'%;background:'+barCol+';border-radius:4px"></div></div>'+
+    '<div style="display:flex;gap:3px;margin-bottom:9px">'+cells+'</div>'+
+    '<div style="font-size:11.5px;color:#555;line-height:1.6">'+msg+'</div></div>';
+}
 
 // ═══════════ BOUCLES VERTUEUSES / BOUCLES D'ÉCHEC ═══════════
 function computeLoops(allData,period,offset){
@@ -1044,7 +1076,36 @@ function svgRing(pct,color,size){
 "use strict";
 
 // ═══════════ RENDER ROOT ═══════════
+// ═══════════ SCROLL AUTO EN HAUT AU CHANGEMENT DE PAGE ═══════════
+// render() est appelé à chaque micro-changement d'état (cocher une habitude,
+// saisir un poids...). On ne remonte en haut QUE si la destination a changé.
+var _lastRoute=null;
+function routeSig(){
+  return [
+    IS_COACH?"coach":"client",
+    state.coachAuthed?1:0,
+    state.coachCalc?1:0,
+    state.coachDetail||"",
+    state.cdTab||"",
+    state.selDay===null||state.selDay===undefined?"":("day"+state.selDay),
+    state.view||""
+  ].join("|");
+}
+function scrollTopIfRouteChanged(){
+  var sig=routeSig();
+  if(sig===_lastRoute)return;
+  _lastRoute=sig;
+  try{window.scrollTo(0,0);}catch(e){}
+  try{
+    if(document.documentElement)document.documentElement.scrollTop=0;
+    if(document.body)document.body.scrollTop=0;
+  }catch(e){}
+}
 function render(){
+  renderView();
+  scrollTopIfRouteChanged();
+}
+function renderView(){
   var root=document.getElementById("root");
   if(IS_COACH){root.innerHTML=state.coachAuthed?(state.coachCalc?viewCoachCalc():(state.coachDetail?(state.cdTab==="bilan"?viewCoachBilan():viewCoachDetail()):viewCoachDash())):viewCoachLogin();bindCoach();return;}
   if(!CLIENT){root.innerHTML=viewNoClient();return;}
@@ -1301,38 +1362,6 @@ function viewCalendar(name,start){
       '<div style="font-size:12px;color:#555;line-height:1.65;margin-bottom:10px">Active un rappel <strong>chaque soir à 20h30</strong> pour ne jamais oublier de peser tes protéines. C\'est ta quête secondaire — atteins ton quota, valide ta journée.</div>'+
       '<button id="add-prot-reminder" class="big-btn" style="background:#2E7D32;box-shadow:0 4px 14px #2E7D3244;margin-bottom:0;padding:13px 0;font-size:14px">Activer mon rappel protéines →</button></div>';
   }
-
-  // 🌙 Cycles de sommeil — semaine en cours (objectif 35 cycles, données du champ sommeil existant)
-  (function(){
-    var wS=Math.floor(today90/7)*7;
-    var tot=0,cells='',hasAny=false;
-    for(var di=wS;di<wS+7;di++){
-      var dd=allData[di],sc2=(dd&&dd.sommeilH)?sleepCycles(dd.sommeilH):null;
-      var fut=di>today90;
-      if(sc2){tot+=sc2.total;hasAny=true;}
-      var bg=fut?'#F6F6F6':!sc2?'#FFF6EC':sc2.critical?'#FFEBEE':sc2.total>=5?'#E8F5E9':'#E3F2FD';
-      var col=fut?'#CCC':!sc2?'#E65100':sc2.critical?'#D52B1E':sc2.total>=5?'#4CAF50':'#0057A8';
-      cells+='<div style="flex:1;text-align:center;padding:7px 2px;border-radius:8px;background:'+bg+(di===today90?';box-shadow:0 0 0 2px #1A1A1A':'')+'">'+
-        '<div style="font-size:11px;font-weight:800;color:#8A8A8A">J'+(di+1)+'</div>'+
-        '<div style="font-size:14px;font-weight:900;color:'+col+'">'+(sc2?sc2.total:(fut?'·':'?'))+'</div></div>';
-    }
-    var pctS=Math.min(tot/35,1),barCol=pctS>=1?'#4CAF50':pctS>=0.6?'#0057A8':'#E65100';
-    var doneDays=Math.min(today90,wS+6)-wS+1;
-    var behind=Math.max(0,5*doneDays-tot);
-    var msg;
-    if(!hasAny)msg='Note tes heures de sommeil chaque jour — 1 cycle = 90 min, objectif 5 cycles par nuit.';
-    else if(behind>=1){
-      var dLeft=Math.max(1,wS+6-today90);
-      msg='⚠️ '+(Math.round(behind*10)/10)+' cycle'+(behind>=2?'s':'')+' de retard cette semaine. Rattrape avec des nuits plus longues (+'+Math.min(120,Math.round(behind/dLeft*90))+' min/nuit) ou une micro-sieste de 20-25 min entre 13 h et 15 h.';
-    }else msg='✅ Bon rythme — continue à viser 5 cycles par nuit.';
-    h+='<div class="card" style="padding:14px 15px;margin-bottom:14px;border-left:4px solid #0057A8">'+
-      '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">'+
-      '<span style="font-weight:900;font-size:13px">🌙 Cycles de sommeil — semaine</span>'+
-      '<span style="font-size:12px;font-weight:900;color:'+barCol+'">'+(Math.round(tot*10)/10)+' / 35</span></div>'+
-      '<div style="height:8px;background:#EEE;border-radius:4px;overflow:hidden;margin-bottom:9px"><div style="height:100%;width:'+(pctS*100)+'%;background:'+barCol+';border-radius:4px"></div></div>'+
-      '<div style="display:flex;gap:3px;margin-bottom:9px">'+cells+'</div>'+
-      '<div style="font-size:11.5px;color:#555;line-height:1.6">'+msg+'</div></div>';
-  })();
 
   // progress card
   h+='<div class="card" style="display:flex;align-items:center;gap:16px;padding:16px 18px;margin-bottom:18px">'+
@@ -1733,6 +1762,9 @@ function viewDay(name,start){
     '<input id="in-sommeil" class="num-input" type="number" step="0.5" min="0" max="24" placeholder="ex: 7.5" value="'+esc(d.sommeilH||"")+'"/></div></div>'+
     '<div id="cycle-viz">'+cycleVizHTML(d.sommeilH)+'</div></div>';
 
+  // 🌙 Cycles de sommeil — semaine (déplacé de l'accueil vers le calendrier)
+  h+='<div id="sleep-week">'+sleepWeekHTML(allData,idx,today90)+'</div>';
+
   // mental
   h+='<div class="card"><div class="card-label">🧠 RESSENTI MENTAL</div><div class="mood-row">';
   for(var m=0;m<MENTAL.length;m++){
@@ -1868,6 +1900,8 @@ function bindDay(name,start){
     persist({sommeilH:this.value});
     var cv=document.getElementById("cycle-viz");
     if(cv)cv.innerHTML=cycleVizHTML(this.value);
+    var sw=document.getElementById("sleep-week");
+    if(sw)sw.innerHTML=sleepWeekHTML(getAllData(),idx,getToday90(start));
   });
 
   var mbtns=document.querySelectorAll("[data-mental]");
@@ -3945,7 +3979,18 @@ function bindCoach(){
     clients=clients.filter(function(x){return x.slug!==slug;});
     lsSet("amcoach_clients",clients);
     try{localStorage.removeItem("amcoach_"+slug);localStorage.removeItem("amcoach_name_"+slug);localStorage.removeItem("amcoach_start_"+slug);}catch(e){}
-    sbFetch("clients?slug=eq."+encodeURIComponent(slug),{method:"DELETE"}).catch(function(){});
+    // Supprimer Supabase : clients table (by slug)
+    sbFetch("clients?slug=eq."+encodeURIComponent(slug),{method:"DELETE"}).then(function(r){
+      if(!r.ok){console.error("Erreur suppression Supabase clients",r.status);return;}
+      // Supprimer toutes les données tracking du client
+      return sbFetch("tracking?client_slug=eq."+encodeURIComponent(slug),{method:"DELETE"});
+    }).then(function(r){
+      if(r&&!r.ok)console.error("Erreur suppression Supabase tracking",r.status);
+      alert("✅ Client supprimé définitivement (données Supabase aussi)");
+    }).catch(function(e){
+      console.error("Erreur suppression",e);
+      alert("⚠️ Suppression locale OK, mais vérifies Supabase dashboard pour être sûr");
+    });
     state.coachDetail=null;
     render();
   });

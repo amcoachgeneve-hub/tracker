@@ -161,10 +161,10 @@ var FOODS={
   "agneau":{p:25,u:100},"lapin":{p:21,u:100},
   "oeuf":{p:6.5,u:1},"oeufs":{p:6.5,u:1},"œuf":{p:6.5,u:1},"œufs":{p:6.5,u:1},
   "blanc d'oeuf":{p:3.6,u:1},"blanc d'œuf":{p:3.6,u:1},
-  "poisson":{p:22,u:100},"saumon":{p:22,u:100},"thon":{p:26,u:100},"thon en boite":{p:26,u:100},
-  "cabillaud":{p:18,u:100},"colin":{p:18,u:100},"merlu":{p:18,u:100},"lieu":{p:18,u:100},
-  "sardine":{p:25,u:100},"sardines":{p:25,u:100},"maquereau":{p:19,u:100},"truite":{p:20,u:100},
-  "crevette":{p:20,u:100},"crevettes":{p:20,u:100},"moules":{p:12,u:100},"crabe":{p:19,u:100},
+  "poisson":{p:24,u:100},"saumon":{p:25,u:100},"thon":{p:29,u:100},"thon en boite":{p:26,u:100},
+  "cabillaud":{p:23,u:100},"colin":{p:23,u:100},"merlu":{p:23,u:100},"lieu":{p:23,u:100},
+  "sardine":{p:25,u:100},"sardines":{p:25,u:100},"maquereau":{p:24,u:100},"truite":{p:25,u:100},
+  "crevette":{p:24,u:100},"crevettes":{p:24,u:100},"moules":{p:12,u:100},"crabe":{p:19,u:100},
   "riz":{p:2.7,u:100},"riz cuit":{p:2.7,u:100},"riz basmati":{p:2.7,u:100},
   "pates":{p:5,u:100},"pâtes":{p:5,u:100},"pâtes cuites":{p:5,u:100},"semoule":{p:4,u:100},
   "quinoa":{p:4.4,u:100},"boulgour":{p:3,u:100},"patate douce":{p:1.6,u:100},
@@ -212,6 +212,42 @@ function nutProtFor(name,qty){
 function nutCfg(data){return (data&&data[510])||{};}
 function nutDayKey(){return new Date().toISOString().split("T")[0];}
 function nutToday(cfg){var k=nutDayKey();return (cfg.daily&&cfg.daily[k])||{foods:[],tot:0,ok:false};}
+// 🔥 Série de jours consécutifs au quota (même règle que la victoire : ≥ 80 %)
+function nutStreak(cfg){
+  var d=(cfg&&cfg.daily)||{},q=parseFloat(cfg&&cfg.prot)||0;
+  if(q<=0)return {cur:0,best:0,todayOk:false};
+  function ok(k){var e=d[k];return !!(e&&(parseFloat(e.tot)||0)>=q*0.8);}
+  function key(dt){return dt.toISOString().split("T")[0];}
+  var today=new Date();
+  var todayOk=ok(key(today));
+  // La série tient encore si aujourd'hui n'est pas fini mais qu'hier était bon
+  var c=new Date(today);
+  if(!todayOk)c.setDate(c.getDate()-1);
+  var cur=0;
+  while(ok(key(c))){cur++;c.setDate(c.getDate()-1);}
+  // Record personnel
+  var oks=Object.keys(d).filter(ok).sort();
+  var best=0,run=0,prev=null;
+  for(var i=0;i<oks.length;i++){
+    run=(prev&&Math.round((new Date(oks[i])-new Date(prev))/86400000)===1)?run+1:1;
+    if(run>best)best=run;
+    prev=oks[i];
+  }
+  return {cur:cur,best:Math.max(best,cur),todayOk:todayOk};
+}
+// 🎯 Progression vers le poids cible — la destination manquait au client
+function nutProgress(cfg,allData,today90){
+  var pd=parseFloat(cfg&&cfg.pDepart)||0,pc=parseFloat(cfg&&cfg.pCible)||0;
+  if(!pd||!pc||pd<=pc)return null;
+  var act=latestWeight(allData,today90);
+  if(act==null)act=pd;
+  var total=pd-pc;
+  var perdu=Math.round(Math.max(0,pd-act)*10)/10;
+  var reste=Math.round((act-pc)*10)/10;
+  return {pd:pd,pc:pc,act:act,total:total,perdu:perdu,reste:reste,
+          pct:total>0?Math.min(100,Math.round(perdu/total*100)):0,
+          sem:reste>0?Math.ceil(reste/0.8):0,atteint:reste<=0};
+}
 // Calcule le plan (prot/kcal/durée) depuis poids départ → cible
 function nutPlan(sexe,pDepart,pCible){
   var P=NUT_PARAMS[sexe]||NUT_PARAMS.H;
@@ -320,14 +356,18 @@ function finCalc(cfg){
   var R=finRevMois(cfg);
   var rev=R.sal+R.ind;
   var reste=rev-tot;
-  var marge=Math.round(rev*0.10);
+  // Réglages du coach — ils étaient enregistrés mais ignorés jusqu'ici
+  var pctMarge=(cfg.margeImprevu!=null&&cfg.margeImprevu!=="")?parseFloat(cfg.margeImprevu):10;
+  var nbMois=(cfg.moisCible!=null&&cfg.moisCible!=="")?parseFloat(cfg.moisCible):3;
+  var marge=Math.round(rev*pctMarge/100);
   var capa=Math.max(0,reste-marge);
-  var matelos=Math.round(tot*3);
+  var matelos=Math.round(tot*nbMois);
   var moisMatelas=capa>0?Math.ceil(matelos/capa):0;
   var pctCapa=rev>0?Math.round(capa/rev*100):0;
   return {fixe:fixe,vari:vari,pro:pro,tot:tot,rev:rev,revSal:R.sal,revInd:R.ind,reste:reste,
           urssaf:A.urssaf,impot:A.impot,txUrssaf:A.tx,txImpot:A.txImp,
           socSal:S.soc,impSal:S.imp,estBrut:S.estBrut,
+          pctMarge:pctMarge,nbMois:nbMois,
           marge:marge,capa:capa,matelos:matelos,moisMatelas:moisMatelas,pctCapa:pctCapa};
 }
 // 🐷 TIRELIRE — versements réels, écart vs objectif, compte à rebours
@@ -1452,6 +1492,46 @@ function viewNutrition(name,start){
     '<div class="hdr-sub">🍗 Protéines · '+esc(name)+'</div></div>'+
     '<div style="padding:16px 14px 0">';
 
+  // 🎯 DESTINATION — compte à rebours vers le poids cible
+  var PR=nutProgress(cfg,allData,getToday90(start));
+  if(PR){
+    if(PR.atteint){
+      h+='<div class="card" style="padding:16px;text-align:center;background:linear-gradient(135deg,#E8F5E9,#C8E6C9);border:none;margin-bottom:12px">'+
+        '<div style="font-size:26px">🎉</div>'+
+        '<div style="font-size:15px;font-weight:900;color:#1B5E20;margin-top:3px">OBJECTIF ATTEINT — '+PR.pc+' kg</div>'+
+        '<div style="font-size:12px;color:#2E7D32;font-weight:700;margin-top:3px">Place au maintien : garde ton quota, garde tes muscles.</div></div>';
+    }else{
+      h+='<div class="card" style="padding:0;overflow:hidden;border:none;margin-bottom:12px">'+
+        '<div style="background:linear-gradient(135deg,#0D2137,#1A3A5C);padding:14px;text-align:center">'+
+        '<div style="color:#8FB8DC;font-size:10.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase">Il te reste</div>'+
+        '<div style="color:#fff;font-size:34px;font-weight:900;line-height:1.1;margin:2px 0">'+PR.sem+'</div>'+
+        '<div style="color:#fff;font-size:13px;font-weight:800">semaine'+(PR.sem>1?"s":"")+' pour atteindre '+PR.pc+' kg</div>'+
+        (PR.perdu>0?'<div style="color:#7FD98C;font-size:11.5px;font-weight:800;margin-top:5px">🔥 Déjà '+PR.perdu+' kg de perdus</div>':'')+
+        '</div>'+
+        '<div style="padding:12px 14px;background:#fff">'+
+        '<div style="background:#E8E8E8;height:9px;border-radius:5px;overflow:hidden;margin-bottom:7px">'+
+        '<div style="background:#4CAF50;height:100%;width:'+PR.pct+'%;border-radius:5px;transition:width .4s"></div></div>'+
+        '<div style="display:flex;justify-content:space-between;font-size:11.5px;font-weight:800;color:#666">'+
+        '<span>'+PR.pd+' kg</span><span style="color:#0057A8">'+PR.act+' kg · '+PR.pct+' %</span><span>'+PR.pc+' kg</span>'+
+        '</div></div></div>';
+    }
+  }
+
+  // 🔥 SÉRIE
+  var ST=nutStreak(cfg);
+  if(target>0){
+    var bd=streakBadge(ST.cur);
+    h+='<div class="card" style="padding:13px 15px;margin-bottom:12px;display:flex;align-items:center;gap:12px">'+
+      '<span style="font-size:26px">'+(ST.cur>0?bd.e:"🥚")+'</span><div style="flex:1">'+
+      '<div style="font-size:15px;font-weight:900;color:'+(ST.cur>0?bd.c:"#BBB")+'">'+
+      (ST.cur>0?ST.cur+' jour'+(ST.cur>1?"s":"")+' d\'affilée':'Série à démarrer')+'</div>'+
+      '<div style="font-size:11.5px;color:#888;font-weight:700">'+
+      (ST.best>ST.cur?'Ton record : '+ST.best+' jours':ST.cur>0&&ST.cur===ST.best?'🏅 Record personnel en cours !':'Atteins ton quota aujourd\'hui pour lancer la série')+
+      '</div></div>'+
+      (!ST.todayOk&&ST.cur>0?'<span style="font-size:10.5px;font-weight:900;color:#E65100;text-align:right;line-height:1.3">À<br>TENIR</span>':'')+
+      '</div>';
+  }
+
   // ⚔️ QUÊTE DU JOUR (bandeau)
   h+='<div class="card" style="background:linear-gradient(135deg,#1B5E20,#2E7D32);border:none;padding:15px 16px;margin-bottom:14px">'+
     '<div style="color:#A5D6A7;font-weight:800;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:5px">⚔️ Ta quête du jour</div>'+
@@ -1474,6 +1554,8 @@ function viewNutrition(name,start){
   // 📝 SAISIE
   h+='<div class="card" style="padding:14px">'+
     '<div class="card-label">📝 Ajouter un aliment</div>'+
+    '<div style="background:#FFF8E1;border-radius:9px;padding:9px 11px;margin-bottom:10px;font-size:11.5px;color:#8A6A2F;font-weight:700;line-height:1.5">'+
+    '⚖️ Pèse tes aliments <strong>CUITS</strong>, prêts à manger. C\'est la règle ici — la viande perd de l\'eau à la cuisson, le riz et les pâtes en prennent.</div>'+
     '<div style="display:flex;gap:8px;margin-bottom:8px">'+
     '<input id="nut-name" type="text" placeholder="ex : poulet, œufs, riz..." style="flex:1;padding:11px 12px;border-radius:9px;border:1.5px solid #E8E8E8;font-size:15px;font-weight:600"/>'+
     '<input id="nut-qty" type="number" inputmode="numeric" placeholder="g" style="width:78px;padding:11px 10px;border-radius:9px;border:1.5px solid #E8E8E8;font-size:15px;font-weight:700;text-align:center"/></div>'+
@@ -1667,17 +1749,17 @@ function viewFinance(name,start){
         '<div style="font-size:10px;color:#666;font-weight:700">Charges totales</div>'+
         '<div style="font-size:16px;font-weight:900;color:#D52B1E">'+finFmt(T.tot,dev)+'</div></div>'+
         '<div style="padding:10px;background:rgba(255,255,255,.7);border-radius:8px">'+
-        '<div style="font-size:10px;color:#666;font-weight:700">Capacité (après marge 10%)</div>'+
+        '<div style="font-size:10px;color:#666;font-weight:700">Capacité (après marge '+T.pctMarge+'%)</div>'+
         '<div style="font-size:16px;font-weight:900;color:#2E7D32">'+finFmt(T.capa,dev)+'</div></div>'+
         '<div style="padding:10px;background:rgba(255,255,255,.7);border-radius:8px">'+
-        '<div style="font-size:10px;color:#666;font-weight:700">Trésorerie 3 mois</div>'+
+        '<div style="font-size:10px;color:#666;font-weight:700">Trésorerie '+T.nbMois+' mois</div>'+
         '<div style="font-size:16px;font-weight:900;color:#0057A8">'+finFmt(T.matelos,dev)+'</div></div>'+
         '<div style="padding:10px;background:rgba(255,255,255,.7);border-radius:8px">'+
         '<div style="font-size:10px;color:#666;font-weight:700">Temps pour remplir</div>'+
         '<div style="font-size:16px;font-weight:900;color:#B8935C">'+T.moisMatelas+' mois</div></div></div>'+
         '<div style="font-size:11px;color:#1B5E20;line-height:1.6">'+
         '💡 Chaque mois, tu mets '+finFmt(T.capa,dev)+' de côté ('+pct+'% de tes revenus). '+
-        'Dans '+T.moisMatelas+' mois, ton matelas de sécurité 3 mois sera complet. '+
+        'Dans '+T.moisMatelas+' mois, ton matelas de sécurité '+T.nbMois+' mois sera complet. '+
         'Après, le même montant se répartit entre épargne et investissement.'+
         '</div></div>';
 
@@ -1692,10 +1774,33 @@ function viewFinance(name,start){
 
       // Compte à rebours
       if(TL.plein){
+        var repInv=(cfg.repInvest!=null&&cfg.repInvest!=="")?parseFloat(cfg.repInvest):50;
+        var partInv=Math.round(TL.objMois*repInv/100);
+        var partEp=TL.objMois-partInv;
+        var bonus=Math.max(0,TL.solde-TL.matelas);
         h+='<div style="text-align:center;padding:16px;background:linear-gradient(135deg,#E8F5E9,#C8E6C9);border-radius:12px;margin-bottom:13px">'+
           '<div style="font-size:28px">🎉</div>'+
           '<div style="font-size:15px;font-weight:900;color:#1B5E20;margin-top:4px">TRÉSORERIE COMPLÈTE</div>'+
-          '<div style="font-size:12px;color:#2E7D32;font-weight:700;margin-top:3px">Palier 2 débloqué — épargne + investissement</div></div>';
+          '<div style="font-size:12px;color:#2E7D32;font-weight:700;margin-top:3px">'+finFmt(TL.matelas,dev)+' = '+T.nbMois+' mois d\'autonomie</div>'+
+          (bonus>0?'<div style="font-size:11.5px;color:#2E7D32;font-weight:800;margin-top:4px">+ '+finFmt(bonus,dev)+' déjà au-delà</div>':'')+
+          '</div>';
+        // 🔓 PALIER 2 — l'écran qui manquait
+        h+='<div style="background:#F7F9FB;border-radius:11px;padding:14px;margin-bottom:13px">'+
+          '<div style="font-size:11px;font-weight:900;color:#B8935C;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">🔓 Palier 2 — ton argent travaille</div>'+
+          '<div style="font-size:11.5px;color:#777;line-height:1.5;margin-bottom:11px">Ta sécurité est faite. Chaque mois, tes '+finFmt(TL.objMois,dev)+' se répartissent :</div>'+
+          '<div style="display:flex;align-items:center;gap:10px;padding:11px;border-radius:10px;background:#E8F5E9;margin-bottom:7px">'+
+          '<span style="font-size:20px">🏦</span><div style="flex:1">'+
+          '<div style="font-weight:900;font-size:13px">Épargne disponible</div>'+
+          '<div style="font-size:11px;color:#666;font-weight:700">projets, opportunités, plaisirs · '+(100-repInv)+' %</div></div>'+
+          '<strong style="font-size:15px;color:#2E7D32">'+finFmt(partEp,dev)+'</strong></div>'+
+          '<div style="display:flex;align-items:center;gap:10px;padding:11px;border-radius:10px;background:#FFF8E1;margin-bottom:9px">'+
+          '<span style="font-size:20px">📈</span><div style="flex:1">'+
+          '<div style="font-weight:900;font-size:13px">Investissement long terme</div>'+
+          '<div style="font-size:11px;color:#666;font-weight:700">'+repInv+' % de ta capacité</div></div>'+
+          '<strong style="font-size:15px;color:#B8935C">'+finFmt(partInv,dev)+'</strong></div>'+
+          '<button id="fin-rep-chg" style="width:100%;padding:9px;border-radius:8px;border:1.5px solid #E8E8E8;background:#fff;color:#0057A8;font-size:11.5px;font-weight:800;cursor:pointer">⚙️ Changer la répartition</button>'+
+          '<div style="font-size:10.5px;color:#BBB;margin-top:9px;line-height:1.5">⚠️ Le choix des placements se fait avec un professionnel agréé — cette app ne donne aucun conseil en investissement.</div>'+
+          '</div>';
       }else{
         h+='<div style="text-align:center;padding:14px;background:linear-gradient(135deg,#0D2137,#1A3A5C);border-radius:12px;margin-bottom:13px">'+
           '<div style="color:#8FB8DC;font-size:10.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase">Il te reste</div>'+
@@ -3039,25 +3144,48 @@ function viewCoachDetail(){
     '<div style="font-weight:800;font-size:13px;margin-bottom:4px">💰 Quête finance <span style="font-size:11px;font-weight:700;color:'+(finOn?"#4CAF50":"#999")+'">— '+(finOn?"ACTIVÉE":"désactivée")+'</span></div>'+
     '<div style="font-size:11px;color:#6E6E6E;margin-bottom:10px;line-height:1.5">Onglet 💰 + quête d\'épargne mensuelle + matelas de sécurité. Réservé aux clients qui renouvellent : le stress financier est un facteur de cortisol au même titre que le manque de sommeil.</div>';
   if(finOn){
+    var TLc=finTirelire(fin);
     h+='<div style="background:#F0F4F8;border-radius:10px;padding:11px 12px;margin-bottom:10px;font-size:12px;line-height:1.7">'+
-      '<div><strong>Statut :</strong> '+(fin.statut==="salarie"?"💼 Salarié":fin.statut==="indep"?"🚀 Indépendant":"non choisi")+'</div>'+
-      '<div><strong>Réglages auto :</strong> matelas 3 mois · marge 10 % · invest. 50 %</div>'+
+      '<div><strong>Statut :</strong> '+(fin.statut==="salarie"?"💼 Salarié":fin.statut==="indep"?"🚀 Indépendant":fin.statut==="mixte"?"💼🚀 Les deux":"non choisi")+'</div>'+
+      '<div><strong>Réglages :</strong> matelas '+FT.nbMois+' mois · marge '+FT.pctMarge+' % · invest. '+((fin.repInvest!=null&&fin.repInvest!=="")?fin.repInvest:50)+' %</div>'+
       (FT.tot>0?'<div><strong>Charges :</strong> '+finFmt(FT.tot,fin.devise)+' · <strong>capacité :</strong> '+finFmt(FT.capa,fin.devise)+' ('+FT.pctCapa+' %)</div>':'<div style="color:#E65100">Le client n\'a pas encore fait son calcul.</div>')+
-      (FT.tot>0?'<div><strong>🛡️ Trésorerie visée :</strong> '+finFmt(FT.matelos,fin.devise)+(FT.moisMatelas>0?' · pleine dans '+FT.moisMatelas+' mois':'')+'</div>':'')+'</div>';
-    // Aperçu 6 derniers mois
+      (FT.tot>0?'<div><strong>🛡️ Trésorerie visée :</strong> '+finFmt(FT.matelos,fin.devise)+'</div>':'')+'</div>';
+
+    // 🐷 Tirelire — le signal le plus actionnable
+    if(FT.tot>0){
+      var tCol=TLc.plein?"#4CAF50":TLc.ecartCum<0?"#E65100":"#0057A8";
+      h+='<div style="background:#fff;border:1.5px solid '+tCol+';border-radius:10px;padding:11px 12px;margin-bottom:10px">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">'+
+        '<span style="font-size:12px;font-weight:900;color:'+tCol+'">🐷 Tirelire</span>'+
+        '<span style="font-size:12px;font-weight:900;color:'+tCol+'">'+
+        (TLc.plein?"✅ pleine":TLc.moisRestants+" mois restants")+'</span></div>'+
+        '<div style="background:#E8E8E8;height:10px;border-radius:5px;overflow:hidden;margin-bottom:6px">'+
+        '<div style="background:'+tCol+';height:100%;width:'+TLc.pct+'%;border-radius:5px"></div></div>'+
+        '<div style="display:flex;justify-content:space-between;font-size:11px;font-weight:800">'+
+        '<span style="color:'+tCol+'">'+finFmt(TLc.solde,fin.devise)+' ('+TLc.pct+' %)</span>'+
+        '<span style="color:#999">'+TLc.nb+' versement'+(TLc.nb>1?"s":"")+'</span>'+
+        '<span style="color:'+(TLc.ecartCum>=0?"#2E7D32":"#D52B1E")+'">'+(TLc.ecartCum>0?"+":"")+finFmt(TLc.ecartCum,fin.devise)+'</span></div>'+
+        (TLc.ecartCum<0&&TLc.nb>=2?'<div style="font-size:10.5px;color:#D52B1E;font-weight:800;margin-top:6px">⚠️ Retard cumulé — à évoquer en séance</div>':'')+
+        (TLc.nb===0?'<div style="font-size:10.5px;color:#E65100;font-weight:800;margin-top:6px">Aucun versement validé pour l\'instant</div>':'')+
+        '</div>';
+    }
+
+    // Aperçu 6 derniers mois — versements réels vs objectif
     (function(){
+      var vs=(fin.tirelire&&fin.tirelire.versements)||{};
       var cells='';
       for(var mm=5;mm>=0;mm--){
         var dt=new Date();dt.setMonth(dt.getMonth()-mm);
         var key=dt.getFullYear()+"-"+("0"+(dt.getMonth()+1)).slice(-2);
-        var e=(fin.monthly&&fin.monthly[key])||null;
-        var som=finChecksMonth(fin,key)+(e?parseFloat(e.inv)||0:0);
-        var v=som>0?som:null;
-        var obj=FT.capa;
-        var ok=v!==null&&obj>0&&v>=obj*0.8;
+        var e=vs[key]||null;
+        var v=e?parseFloat(e.m)||0:null;
+        var o=e?parseFloat(e.obj)||0:0;
+        var ok=v!==null&&o>0&&v>=o*0.8;
         var bg=v===null?"#F0F0F0":ok?"#4CAF50":"#FFB74D";
+        var ec=v!==null?v-o:0;
         cells+='<div style="flex:1;text-align:center"><div style="height:26px;border-radius:6px;background:'+bg+';display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:'+(v===null?"#BBB":"#fff")+'">'+(v!==null?Math.round(v):"·")+'</div>'+
-          '<div style="font-size:9px;color:#999;margin-top:2px">'+finMonthLabel(key).split(" ")[0]+'</div></div>';
+          '<div style="font-size:8.5px;font-weight:800;color:'+(ec>=0?"#2E7D32":"#D52B1E")+';margin-top:1px">'+(v!==null?(ec>0?"+":"")+Math.round(ec):"")+'</div>'+
+          '<div style="font-size:9px;color:#999">'+finMonthLabel(key).split(" ")[0]+'</div></div>';
       }
       h+='<div style="display:flex;gap:3px;margin-bottom:10px">'+cells+'</div>';
     })();
@@ -4340,14 +4468,17 @@ function bindCoach(){
     var slug=state.coachDetail;
     var cfg=lsGet("amcoach_"+slug,{})[512]||{};
     cfg.on=true;
-    cfg.devise="CHF";
-    cfg.moisCible=3;
-    cfg.margeImprevu=10;
-    cfg.repInvest=50;
+    cfg.devise=cfg.devise||"CHF";
+    if(cfg.moisCible==null||cfg.moisCible===""){
+      var mc=prompt("Matelas de sécurité visé, en mois de charges :\n(3 = démarrage réaliste · 6 = confort)","3");
+      cfg.moisCible=Math.max(1,Math.min(24,parseFloat(mc)||3));
+    }
+    if(cfg.margeImprevu==null||cfg.margeImprevu==="")cfg.margeImprevu=10;
+    if(cfg.repInvest==null||cfg.repInvest==="")cfg.repInvest=50;
     cfg.charges=cfg.charges||[];
     cfg.monthly=cfg.monthly||{};
     coachSaveSlot(slug,512,cfg);
-    alert("✅ Quête finance activée\n\nDefaults :\n🛡️ Matelas 3 mois\n⚠️ Marge imprévus 10%\n📈 Investissement 50%\n\nLe client remplit revenus + charges, puis appuie sur Calculer. C'est tout.");
+    alert("✅ Quête finance activée\n\n🛡️ Matelas "+cfg.moisCible+" mois\n⚠️ Marge imprévus "+cfg.margeImprevu+" %\n📈 Investissement "+cfg.repInvest+" % au palier 2\n\nLe client remplit revenus + charges, puis appuie sur Calculer. C'est tout.");
     render();
   });
   var finOffBtn=document.getElementById("fin-off");
@@ -4741,6 +4872,17 @@ function bindFinance(){
         (cfg.tauxImpSal!=null&&cfg.tauxImpSal!=="")?cfg.tauxImpSal:P.imp);
       if(tp!==null)cfg.tauxImpSal=Math.max(0,Math.min(50,parseFloat(tp)||0));
     }
+    finSaveCfg(cfg);render();
+  });
+
+  // ⚙️ Répartition du palier 2
+  var repB=document.getElementById("fin-rep-chg");
+  if(repB)repB.addEventListener("click",function(){
+    var cfg=finCfg(getAllData());
+    var cur=(cfg.repInvest!=null&&cfg.repInvest!=="")?cfg.repInvest:50;
+    var r=prompt("Quelle part vers l'INVESTISSEMENT long terme ?\n(le reste va à ton épargne disponible)\n\nEn pourcentage :",cur);
+    if(r===null)return;
+    cfg.repInvest=Math.max(0,Math.min(100,parseFloat(r)||0));
     finSaveCfg(cfg);render();
   });
 

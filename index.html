@@ -153,18 +153,18 @@ var SCALE_COLORS=["#4CAF50","#4CAF50","#8BC34A","#CDDC39","#FFC107","#FFC107","#
 // ═══════════ NUTRITION / PROTÉINES (slot 510) ═══════════
 // Base alimentaire — g de protéines pour 100 g (per100:true) ou par unité (per100:false)
 var FOODS={
-  "blanc de poulet":{p:31,u:100},"poulet":{p:29,u:100},"escalope de poulet":{p:31,u:100},
-  "escalope":{p:31,u:100},"dinde":{p:29,u:100},"blanc de dinde":{p:30,u:100},
-  "boeuf":{p:26,u:100},"bœuf":{p:26,u:100},"steak":{p:27,u:100},"steak haché":{p:26,u:100},
-  "steak haché 5%":{p:21,u:100},"viande hachée":{p:20,u:100},"veau":{p:24,u:100},
-  "porc":{p:27,u:100},"jambon":{p:18,u:100},"jambon blanc":{p:18,u:100},
-  "agneau":{p:25,u:100},"lapin":{p:21,u:100},
+  "blanc de poulet":{p:23,u:100},"poulet":{p:22,u:100},"escalope de poulet":{p:23,u:100},
+  "escalope":{p:23,u:100},"dinde":{p:22,u:100},"blanc de dinde":{p:24,u:100},
+  "boeuf":{p:21,u:100},"bœuf":{p:21,u:100},"steak":{p:21,u:100},"steak haché":{p:20,u:100},
+  "steak haché 5%":{p:21,u:100},"viande hachée":{p:19,u:100},"veau":{p:20,u:100},
+  "porc":{p:21,u:100},"jambon":{p:18,u:100},"jambon blanc":{p:18,u:100},
+  "agneau":{p:20,u:100},"lapin":{p:20,u:100},
   "oeuf":{p:6.5,u:1},"oeufs":{p:6.5,u:1},"œuf":{p:6.5,u:1},"œufs":{p:6.5,u:1},
   "blanc d'oeuf":{p:3.6,u:1},"blanc d'œuf":{p:3.6,u:1},
-  "poisson":{p:24,u:100},"saumon":{p:25,u:100},"thon":{p:29,u:100},"thon en boite":{p:26,u:100},
-  "cabillaud":{p:23,u:100},"colin":{p:23,u:100},"merlu":{p:23,u:100},"lieu":{p:23,u:100},
-  "sardine":{p:25,u:100},"sardines":{p:25,u:100},"maquereau":{p:24,u:100},"truite":{p:25,u:100},
-  "crevette":{p:24,u:100},"crevettes":{p:24,u:100},"moules":{p:12,u:100},"crabe":{p:19,u:100},
+  "poisson":{p:20,u:100},"saumon":{p:20,u:100},"thon":{p:23,u:100},"thon en boite":{p:26,u:100},
+  "cabillaud":{p:18,u:100},"colin":{p:18,u:100},"merlu":{p:18,u:100},"lieu":{p:18,u:100},
+  "sardine":{p:25,u:100},"sardines":{p:25,u:100},"maquereau":{p:19,u:100},"truite":{p:20,u:100},
+  "crevette":{p:20,u:100},"crevettes":{p:20,u:100},"moules":{p:12,u:100},"crabe":{p:19,u:100},
   "riz":{p:2.7,u:100},"riz cuit":{p:2.7,u:100},"riz basmati":{p:2.7,u:100},
   "pates":{p:5,u:100},"pâtes":{p:5,u:100},"pâtes cuites":{p:5,u:100},"semoule":{p:4,u:100},
   "quinoa":{p:4.4,u:100},"boulgour":{p:3,u:100},"patate douce":{p:1.6,u:100},
@@ -1555,7 +1555,7 @@ function viewNutrition(name,start){
   h+='<div class="card" style="padding:14px">'+
     '<div class="card-label">📝 Ajouter un aliment</div>'+
     '<div style="background:#FFF8E1;border-radius:9px;padding:9px 11px;margin-bottom:10px;font-size:11.5px;color:#8A6A2F;font-weight:700;line-height:1.5">'+
-    '⚖️ Pèse tes aliments <strong>CUITS</strong>, prêts à manger. C\'est la règle ici — la viande perd de l\'eau à la cuisson, le riz et les pâtes en prennent.</div>'+
+    '⚖️ Pèse ta viande et ton poisson <strong>CRUS</strong>, avant cuisson. C\'est plus simple et toujours fiable.</div>'+
     '<div style="display:flex;gap:8px;margin-bottom:8px">'+
     '<input id="nut-name" type="text" placeholder="ex : poulet, œufs, riz..." style="flex:1;padding:11px 12px;border-radius:9px;border:1.5px solid #E8E8E8;font-size:15px;font-weight:600"/>'+
     '<input id="nut-qty" type="number" inputmode="numeric" placeholder="g" style="width:78px;padding:11px 10px;border-radius:9px;border:1.5px solid #E8E8E8;font-size:15px;font-weight:700;text-align:center"/></div>'+
@@ -4703,6 +4703,19 @@ function nutAddFood(name,qty){
   return true;
 }
 // Analyse photo via Claude Vision (proxy Supabase Edge Function pour ne pas exposer la clé)
+// Aliments pesés CRUS dans la base : viandes, poissons, crustacés.
+// Une photo montre une assiette CUITE — il faut donc reconvertir le poids.
+var NUT_CRUS={"blanc de poulet":1,"poulet":1,"escalope de poulet":1,"escalope":1,
+  "dinde":1,"blanc de dinde":1,"boeuf":1,"bœuf":1,"steak":1,"steak haché":1,
+  "steak haché 5%":1,"viande hachée":1,"veau":1,"porc":1,"agneau":1,"lapin":1,
+  "poisson":1,"saumon":1,"thon":1,"cabillaud":1,"colin":1,"merlu":1,"lieu":1,
+  "maquereau":1,"truite":1,"crevette":1,"crevettes":1};
+// 100 g crus donnent ~72 g cuits → l'inverse pour retrouver le poids cru
+function nutQtyCruDepuisCuit(name,qty){
+  var k=(name||"").toLowerCase().trim();
+  if(!NUT_CRUS[k])return qty;
+  return Math.round((parseFloat(qty)||0)/0.72);
+}
 function nutAnalyzePhoto(base64){
   state.nutBusy=true;render();
   fetch(SB_URL+"/functions/v1/nutrition-vision",{
@@ -4718,10 +4731,12 @@ function nutAnalyzePhoto(base64){
     var added=0,skipped=[];
     for(var i=0;i<items.length;i++){
       var it=items[i];
-      var prot=nutProtFor(it.name,it.qty)||(it.prot!=null?Math.round(it.prot*10)/10:null);
+      // La photo donne un poids cuit : on repasse en cru pour coller à la base
+      var q=nutQtyCruDepuisCuit(it.name,it.qty);
+      var prot=nutProtFor(it.name,q)||(it.prot!=null?Math.round(it.prot*10)/10:null);
       if(prot===null){skipped.push(it.name);continue;}
       var disp=(it.name||"Aliment").charAt(0).toUpperCase()+(it.name||"").slice(1);
-      foods.push({name:disp,qty:it.qty||0,prot:prot});
+      foods.push({name:disp,qty:q||0,prot:prot});
       added++;
     }
     nutSaveDay({foods:foods});

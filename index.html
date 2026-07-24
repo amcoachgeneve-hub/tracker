@@ -235,7 +235,7 @@ var FIN_CHARGES_SALARIE=[
   {n:"Assurance voiture",c:"fixe"},{n:"Carburant / Transports",c:"var"},
   {n:"Courses alimentaires",c:"var"},{n:"Loisirs + abonnements",c:"var"},
   {n:"Sorties / Restaurants",c:"var"},{n:"Vêtements",c:"var"},
-  {n:"Mutuelle santé (LAMal/France)",c:"fixe"},{n:"Impôts / Cotisations salariales",c:"fixe"},
+  {n:"Mutuelle santé (LAMal/France)",c:"fixe"},
   {n:"Enfants (allocations, cantine)",c:"var"},{n:"Autres charges",c:"var"}
 ];
 var FIN_CHARGES_INDEP=[
@@ -246,8 +246,7 @@ var FIN_CHARGES_INDEP=[
   {n:"Sorties / Restaurants",c:"var"},{n:"Vêtements",c:"var"},
   {n:"RC professionnelle",c:"pro"},{n:"Mutuelle santé (LAMal/France)",c:"fixe"},
   {n:"Comptabilité / Expert-comptable",c:"pro"},{n:"Formation professionnelle",c:"pro"},
-  {n:"Publicité / Marketing",c:"pro"},{n:"Cotisations sociales (URSSAF)",c:"pro"},
-  {n:"Impôts professionnels",c:"fixe"},{n:"Autres charges",c:"var"}
+  {n:"Publicité / Marketing",c:"pro"},{n:"Autres charges",c:"var"}
 ];
 // Revenus du mois : {sal, ind}. Si le mois n'est pas encore renseigné,
 // on reporte automatiquement les derniers revenus connus.
@@ -262,6 +261,48 @@ function finRevMois(cfg,key){
   var leg=parseFloat(cfg&&cfg.revenus)||0;
   return {sal:leg,ind:0,saisi:false};
 }
+// Taux officiels au 1er janvier 2026 (source URSSAF)
+// taux = cotisations sociales · cfp = contribution formation pro · lib = versement libératoire IR
+var FIN_ACTIVITES={
+  bnc:{lbl:"Libéral BNC — régime général",taux:25.6,cfp:0.2,lib:2.2},
+  cipav:{lbl:"Libéral BNC — CIPAV",taux:23.2,cfp:0.2,lib:2.2},
+  bicserv:{lbl:"Services BIC — commercial / artisanal",taux:21.2,cfp:0.1,lib:1.7},
+  bicvente:{lbl:"Vente de marchandises BIC",taux:12.3,cfp:0.1,lib:1.0}
+};
+// URSSAF et impôt calculés automatiquement sur le CA indépendant du mois
+function finAuto(cfg){
+  var R=finRevMois(cfg);
+  var ca=(cfg.statut==="salarie")?0:R.ind;
+  var A=FIN_ACTIVITES[cfg.activite||"bnc"]||FIN_ACTIVITES.bnc;
+  var tx=(cfg.tauxUrssaf!=null&&cfg.tauxUrssaf!=="")?parseFloat(cfg.tauxUrssaf):(A.taux+A.cfp);
+  var provision=cfg.impotMode==="provision";
+  var txImp=provision
+    ?((cfg.tauxImpot!=null&&cfg.tauxImpot!=="")?parseFloat(cfg.tauxImpot):10)
+    :A.lib;
+  return {ca:ca,act:A,tx:tx,txImp:txImp,provision:provision,
+          urssaf:Math.round(ca*tx/100),impot:Math.round(ca*txImp/100)};
+}
+// Retenues salariales estimées si le salaire saisi est un BRUT.
+// Ordres de grandeur — variables selon l'âge (LPP), la situation familiale et le canton.
+var FIN_PAYS={
+  FR:{lbl:"France",soc:23,socLbl:"cotisations salariales",imp:0,
+      note:"Le net français est déjà prélevé à la source : saisis ton net à payer."},
+  CH:{lbl:"Suisse",soc:15,socLbl:"AVS/AI/APG + AC + LPP + LAA",imp:0,
+      note:"La LPP varie fortement selon l'âge (3,5 % à 9 %) — ajuste si tu connais ton taux."},
+  FRONT:{lbl:"Frontalier Genève",soc:15,socLbl:"AVS/AI/APG + AC + LPP + LAA",imp:12,
+      note:"Genève impose les frontaliers à la source. Le taux dépend de ta situation familiale."}
+};
+function finSalaire(cfg){
+  var R=finRevMois(cfg);
+  var P=FIN_PAYS[cfg.pays||"FRONT"]||FIN_PAYS.FRONT;
+  // Par défaut le client saisit un NET : rien à retenir
+  if(cfg.salType!=="brut")return {brut:0,net:R.sal,soc:0,imp:0,P:P,estBrut:false};
+  var soc=(cfg.tauxSocSal!=null&&cfg.tauxSocSal!=="")?parseFloat(cfg.tauxSocSal):P.soc;
+  var imp=(cfg.tauxImpSal!=null&&cfg.tauxImpSal!=="")?parseFloat(cfg.tauxImpSal):P.imp;
+  var mSoc=Math.round(R.sal*soc/100);
+  var mImp=Math.round((R.sal-mSoc)*imp/100);
+  return {brut:R.sal,net:R.sal-mSoc-mImp,soc:mSoc,imp:mImp,txSoc:soc,txImp:imp,P:P,estBrut:true};
+}
 function finCalc(cfg){
   var ch=cfg.charges||[];
   var fixe=0,vari=0,pro=0;
@@ -269,6 +310,12 @@ function finCalc(cfg){
     var m=parseFloat(ch[i].m)||0;
     if(ch[i].c==="pro")pro+=m;else if(ch[i].c==="var")vari+=m;else fixe+=m;
   }
+  // Cotisations et impôt : calculés, jamais saisis
+  var A=finAuto(cfg);
+  var S=finSalaire(cfg);
+  pro+=A.urssaf+A.impot;
+  var fixeSal=S.soc+S.imp;
+  fixe+=fixeSal;
   var tot=fixe+vari+pro;
   var R=finRevMois(cfg);
   var rev=R.sal+R.ind;
@@ -279,7 +326,28 @@ function finCalc(cfg){
   var moisMatelas=capa>0?Math.ceil(matelos/capa):0;
   var pctCapa=rev>0?Math.round(capa/rev*100):0;
   return {fixe:fixe,vari:vari,pro:pro,tot:tot,rev:rev,revSal:R.sal,revInd:R.ind,reste:reste,
+          urssaf:A.urssaf,impot:A.impot,txUrssaf:A.tx,txImpot:A.txImp,
+          socSal:S.soc,impSal:S.imp,estBrut:S.estBrut,
           marge:marge,capa:capa,matelos:matelos,moisMatelas:moisMatelas,pctCapa:pctCapa};
+}
+// 🐷 TIRELIRE — versements réels, écart vs objectif, compte à rebours
+function finTirelire(cfg){
+  var T=finCalc(cfg);
+  var v=(cfg.tirelire&&cfg.tirelire.versements)||{};
+  var solde=0,ecartCum=0,nb=0;
+  for(var k in v){
+    if(!v.hasOwnProperty(k))continue;
+    solde+=parseFloat(v[k].m)||0;
+    ecartCum+=(parseFloat(v[k].m)||0)-(parseFloat(v[k].obj)||0);
+    nb++;
+  }
+  var manque=Math.max(0,T.matelos-solde);
+  var moisRestants=T.capa>0?Math.ceil(manque/T.capa):0;
+  var pct=T.matelos>0?Math.min(100,Math.round(solde/T.matelos*100)):0;
+  var moisSansBonus=T.capa>0?Math.ceil(T.matelos/T.capa):0;
+  var moisGagnes=Math.max(0,moisSansBonus-nb-moisRestants);
+  return {solde:solde,ecartCum:ecartCum,nb:nb,manque:manque,moisRestants:moisRestants,
+          pct:pct,objMois:T.capa,matelas:T.matelos,moisGagnes:moisGagnes,plein:manque<=0};
 }
 // Alias pour compatibilité
 function finTotals(cfg){return finCalc(cfg);}
@@ -1537,6 +1605,37 @@ function viewFinance(name,start){
     })();
     h+='</div>';
     
+    // Charges calculées automatiquement
+    var AU=finAuto(cfg),SA=finSalaire(cfg);
+    if(AU.urssaf>0||AU.impot>0||SA.soc>0||SA.imp>0||showInd){
+      h+='<div class="card" style="padding:16px;margin-bottom:12px;border-left:4px solid #0057A8">'+
+        '<div style="font-size:11px;font-weight:900;color:#0057A8;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">🤖 Calculé pour toi</div>'+
+        '<div style="font-size:11px;color:#999;margin-bottom:10px">Tu ne saisis rien ici — tout vient de tes revenus</div>';
+      if(showInd){
+        h+='<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #F2F2F2">'+
+          '<span style="flex:1;font-size:12.5px;font-weight:800">🧾 Cotisations URSSAF<br>'+
+          '<span style="font-size:10.5px;color:#999;font-weight:700">'+AU.act.lbl+' · '+AU.tx.toFixed(1).replace(".",",")+' %</span></span>'+
+          '<strong style="font-size:14px;color:#D52B1E">'+finFmt(AU.urssaf,dev)+'</strong></div>'+
+          '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #F2F2F2">'+
+          '<span style="flex:1;font-size:12.5px;font-weight:800">🏛️ Impôt sur le revenu<br>'+
+          '<span style="font-size:10.5px;color:#999;font-weight:700">'+(AU.provision?"provision":"versement libératoire")+' · '+AU.txImp.toFixed(1).replace(".",",")+' %</span></span>'+
+          '<strong style="font-size:14px;color:#D52B1E">'+finFmt(AU.impot,dev)+'</strong></div>'+
+          '<button id="fin-act-chg" style="width:100%;margin-top:8px;padding:9px;border-radius:8px;border:1.5px solid #E8E8E8;background:#fff;color:#0057A8;font-size:11.5px;font-weight:800;cursor:pointer">⚙️ Changer mon type d\'activité ou mes taux</button>';
+      }
+      if(SA.estBrut&&(SA.soc>0||SA.imp>0)){
+        h+='<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid #F2F2F2;margin-top:8px">'+
+          '<span style="flex:1;font-size:12.5px;font-weight:800">💼 Retenues sur salaire<br>'+
+          '<span style="font-size:10.5px;color:#999;font-weight:700">'+SA.P.lbl+' · '+SA.txSoc+' %'+(SA.imp>0?" + "+SA.txImp+" % impôt":"")+'</span></span>'+
+          '<strong style="font-size:14px;color:#D52B1E">'+finFmt(SA.soc+SA.imp,dev)+'</strong></div>';
+      }
+      if(showSal){
+        h+='<button id="fin-pays-chg" style="width:100%;margin-top:8px;padding:9px;border-radius:8px;border:1.5px solid #E8E8E8;background:#fff;color:#0057A8;font-size:11.5px;font-weight:800;cursor:pointer">🌍 '+
+          (FIN_PAYS[cfg.pays||"FRONT"].lbl)+' · salaire '+(cfg.salType==="brut"?"brut":"net")+' — modifier</button>';
+      }
+      h+='<div style="font-size:10.5px;color:#BBB;margin-top:9px;line-height:1.5">⚠️ Estimations basées sur les taux officiels 2026. Ta situation transfrontalière est particulière — fais valider par ton comptable.</div>'+
+        '</div>';
+    }
+
     // Liste des charges
     h+='<div class="card" style="padding:16px">'+
       '<div style="font-size:11px;font-weight:900;color:#AAA;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">📋 Tes charges mensuelles</div>';
@@ -1581,6 +1680,86 @@ function viewFinance(name,start){
         'Dans '+T.moisMatelas+' mois, ton matelas de sécurité 3 mois sera complet. '+
         'Après, le même montant se répartit entre épargne et investissement.'+
         '</div></div>';
+
+      // 🐷 TIRELIRE
+      var TL=finTirelire(cfg);
+      var kM=finMonthKey();
+      var vMois=(cfg.tirelire&&cfg.tirelire.versements&&cfg.tirelire.versements[kM])||null;
+      var barCol=TL.plein?"#4CAF50":TL.pct>=66?"#8BC34A":TL.pct>=33?"#FFC107":"#FF9800";
+
+      h+='<div class="card" style="padding:16px;margin-top:14px;border-left:4px solid #B8935C">'+
+        '<div style="font-size:11px;font-weight:900;color:#B8935C;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">🐷 Ma tirelire</div>';
+
+      // Compte à rebours
+      if(TL.plein){
+        h+='<div style="text-align:center;padding:16px;background:linear-gradient(135deg,#E8F5E9,#C8E6C9);border-radius:12px;margin-bottom:13px">'+
+          '<div style="font-size:28px">🎉</div>'+
+          '<div style="font-size:15px;font-weight:900;color:#1B5E20;margin-top:4px">TRÉSORERIE COMPLÈTE</div>'+
+          '<div style="font-size:12px;color:#2E7D32;font-weight:700;margin-top:3px">Palier 2 débloqué — épargne + investissement</div></div>';
+      }else{
+        h+='<div style="text-align:center;padding:14px;background:linear-gradient(135deg,#0D2137,#1A3A5C);border-radius:12px;margin-bottom:13px">'+
+          '<div style="color:#8FB8DC;font-size:10.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase">Il te reste</div>'+
+          '<div style="color:#fff;font-size:34px;font-weight:900;line-height:1.1;margin:2px 0">'+TL.moisRestants+'</div>'+
+          '<div style="color:#fff;font-size:13px;font-weight:800">mois pour remplir ta tirelire</div>'+
+          (TL.moisGagnes>0?'<div style="color:#7FD98C;font-size:11.5px;font-weight:800;margin-top:5px">🚀 Tu as gagné '+TL.moisGagnes+' mois d\'avance !</div>':'')+
+          '</div>';
+      }
+
+      // Jauge
+      h+='<div style="background:#E8E8E8;height:26px;border-radius:9px;overflow:hidden;margin-bottom:8px">'+
+        '<div style="background:'+barCol+';height:100%;width:'+TL.pct+'%;border-radius:9px;transition:width .4s;display:flex;align-items:center;justify-content:center;min-width:40px">'+
+        '<span style="color:#fff;font-weight:900;font-size:11.5px">'+TL.pct+'%</span></div></div>'+
+        '<div style="display:flex;justify-content:space-between;font-size:12.5px;font-weight:800;margin-bottom:14px">'+
+        '<span style="color:'+barCol+'">'+finFmt(TL.solde,dev)+'</span>'+
+        '<span style="color:#999">/ '+finFmt(TL.matelas,dev)+'</span></div>';
+
+      // Validation du mois
+      h+='<div style="background:#F7F9FB;border-radius:10px;padding:12px">'+
+        '<div style="font-size:11px;font-weight:900;color:#666;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Versement de '+moisLbl+'</div>';
+      if(vMois){
+        var ec=(parseFloat(vMois.m)||0)-(parseFloat(vMois.obj)||0);
+        var ecCol=ec>0?"#2E7D32":ec<0?"#D52B1E":"#666";
+        h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:9px">'+
+          '<span style="font-size:20px">'+(ec>=0?"✅":"⚠️")+'</span><div style="flex:1">'+
+          '<div style="font-weight:900;font-size:15px">'+finFmt(vMois.m,dev)+' versés</div>'+
+          '<div style="font-size:11.5px;font-weight:800;color:'+ecCol+'">'+
+          (ec>0?"+"+finFmt(ec,dev)+" au-dessus de l'objectif 🔥":ec<0?finFmt(ec,dev)+" sous l'objectif":"pile sur l'objectif")+
+          '</div></div>'+
+          '<button id="fin-tl-undo" style="border:none;background:none;color:#999;font-size:11px;font-weight:800;cursor:pointer">annuler</button></div>';
+      }else{
+        h+='<div style="font-size:12.5px;color:#555;margin-bottom:9px">Objectif du mois : <strong>'+finFmt(TL.objMois,dev)+'</strong></div>'+
+          '<button id="fin-tl-ok" style="width:100%;padding:14px 0;border-radius:11px;border:none;background:#B8935C;color:#fff;font-weight:900;font-size:13.5px;cursor:pointer;margin-bottom:8px">'+
+          '🐷 J\'ai mis '+finFmt(TL.objMois,dev)+' de côté</button>'+
+          '<div style="display:flex;gap:8px;align-items:center">'+
+          '<input id="fin-tl-autre" type="number" inputmode="decimal" placeholder="autre montant" style="flex:1;padding:10px;border-radius:9px;border:1.5px solid #E8E8E8;font-size:13px;font-weight:800;text-align:right"/>'+
+          '<button id="fin-tl-go" style="padding:10px 16px;border-radius:9px;border:1.5px solid #B8935C;background:#fff;color:#8A6A2F;font-weight:900;font-size:12.5px;cursor:pointer">Valider</button></div>';
+      }
+      // Bilan cumulé
+      if(TL.nb>0){
+        var cCol=TL.ecartCum>0?"#2E7D32":TL.ecartCum<0?"#D52B1E":"#666";
+        h+='<div style="display:flex;justify-content:space-between;font-size:11.5px;font-weight:800;margin-top:11px;padding-top:9px;border-top:1px solid #E8E8E8">'+
+          '<span style="color:#999">'+TL.nb+' versement'+(TL.nb>1?"s":"")+'</span>'+
+          '<span style="color:'+cCol+'">'+(TL.ecartCum>0?"+":"")+finFmt(TL.ecartCum,dev)+' cumulé</span></div>';
+      }
+      h+='</div>';
+
+      // Historique des versements
+      (function(){
+        var v=(cfg.tirelire&&cfg.tirelire.versements)||{},ks=Object.keys(v).sort();
+        if(!ks.length)return;
+        var cells='';
+        for(var i=Math.max(0,ks.length-6);i<ks.length;i++){
+          var k=ks[i],m=parseFloat(v[k].m)||0,o=parseFloat(v[k].obj)||0,e=m-o;
+          var bg=e>=0?"#E8F5E9":"#FFEBEE",cl=e>=0?"#2E7D32":"#D52B1E";
+          cells+='<div style="flex:1;text-align:center;padding:7px 2px;border-radius:7px;background:'+bg+'">'+
+            '<div style="font-size:9.5px;color:#999;font-weight:800">'+finMonthLabel(k).split(" ")[0]+'</div>'+
+            '<div style="font-size:11.5px;font-weight:900;color:'+cl+';margin-top:1px">'+Math.round(m)+'</div>'+
+            '<div style="font-size:9px;font-weight:800;color:'+cl+'">'+(e>0?"+":"")+Math.round(e)+'</div></div>';
+        }
+        h+='<div style="margin-top:12px"><div style="font-size:10px;font-weight:800;color:#BBB;letter-spacing:.5px;text-transform:uppercase;margin-bottom:5px">Mes versements</div>'+
+          '<div style="display:flex;gap:3px">'+cells+'</div></div>';
+      })();
+      h+='</div>';
     }
   }
   
@@ -4514,6 +4693,82 @@ function bindFinance(){
   if(rSal)rSal.addEventListener("change",function(){setRev("sal",parseFloat(this.value)||0);});
   var rInd=document.getElementById("fin-rev-ind");
   if(rInd)rInd.addEventListener("change",function(){setRev("ind",parseFloat(this.value)||0);});
+
+  // ⚙️ Type d'activité et taux
+  var actB=document.getElementById("fin-act-chg");
+  if(actB)actB.addEventListener("click",function(){
+    var cfg=finCfg(getAllData());
+    var ks=Object.keys(FIN_ACTIVITES),menu="Ton type d'activité :\n\n";
+    for(var i=0;i<ks.length;i++)menu+=(i+1)+" — "+FIN_ACTIVITES[ks[i]].lbl+" ("+FIN_ACTIVITES[ks[i]].taux+" %)\n";
+    var c=prompt(menu+"\nNuméro :",String(ks.indexOf(cfg.activite||"bnc")+1));
+    if(c===null)return;
+    var idx=parseInt(c,10)-1;
+    if(idx>=0&&idx<ks.length)cfg.activite=ks[idx];
+    var A=FIN_ACTIVITES[cfg.activite||"bnc"];
+    var t=prompt("Taux de cotisations (%) :\nOfficiel 2026 pour "+A.lbl+" = "+(A.taux+A.cfp)+" %",
+      (cfg.tauxUrssaf!=null&&cfg.tauxUrssaf!=="")?cfg.tauxUrssaf:(A.taux+A.cfp));
+    if(t!==null)cfg.tauxUrssaf=(t===""?"":Math.max(0,Math.min(60,parseFloat(t)||0)));
+    var im=prompt("Impôt sur le revenu :\n\n1 — Versement libératoire ("+A.lib+" % du CA)\n2 — Provision libre (%)",
+      cfg.impotMode==="provision"?"2":"1");
+    if(im==="2"){
+      cfg.impotMode="provision";
+      var ti=prompt("Pourcentage à provisionner pour l'impôt :",(cfg.tauxImpot!=null&&cfg.tauxImpot!=="")?cfg.tauxImpot:10);
+      if(ti!==null)cfg.tauxImpot=Math.max(0,Math.min(50,parseFloat(ti)||0));
+    }else if(im==="1")cfg.impotMode="liberatoire";
+    finSaveCfg(cfg);render();
+  });
+
+  // 🌍 Pays et type de salaire
+  var paysB=document.getElementById("fin-pays-chg");
+  if(paysB)paysB.addEventListener("click",function(){
+    var cfg=finCfg(getAllData());
+    var ks=Object.keys(FIN_PAYS),menu="Où travailles-tu ?\n\n";
+    for(var i=0;i<ks.length;i++)menu+=(i+1)+" — "+FIN_PAYS[ks[i]].lbl+"\n";
+    var c=prompt(menu+"\nNuméro :",String(ks.indexOf(cfg.pays||"FRONT")+1));
+    if(c===null)return;
+    var idx=parseInt(c,10)-1;
+    if(idx>=0&&idx<ks.length)cfg.pays=ks[idx];
+    var P=FIN_PAYS[cfg.pays];
+    var ty=prompt("Le salaire que tu saisis est :\n\n1 — NET (ce qui arrive sur ton compte)\n2 — BRUT (avant retenues)\n\n"+P.note,
+      cfg.salType==="brut"?"2":"1");
+    if(ty===null){finSaveCfg(cfg);render();return;}
+    cfg.salType=(ty==="2")?"brut":"net";
+    if(cfg.salType==="brut"){
+      var ts=prompt("Taux de retenues sociales (%) :\n"+P.socLbl,
+        (cfg.tauxSocSal!=null&&cfg.tauxSocSal!=="")?cfg.tauxSocSal:P.soc);
+      if(ts!==null)cfg.tauxSocSal=Math.max(0,Math.min(50,parseFloat(ts)||0));
+      var tp=prompt("Taux d'impôt prélevé à la source (%) :\n0 si tu es imposé ailleurs",
+        (cfg.tauxImpSal!=null&&cfg.tauxImpSal!=="")?cfg.tauxImpSal:P.imp);
+      if(tp!==null)cfg.tauxImpSal=Math.max(0,Math.min(50,parseFloat(tp)||0));
+    }
+    finSaveCfg(cfg);render();
+  });
+
+  // 🐷 Tirelire
+  function versement(montant){
+    var cfg=finCfg(getAllData());
+    var T=finCalc(cfg);
+    cfg.tirelire=cfg.tirelire||{};
+    cfg.tirelire.versements=cfg.tirelire.versements||{};
+    cfg.tirelire.versements[finMonthKey()]={m:montant,obj:T.capa,d:new Date().toISOString().split("T")[0]};
+    finSaveCfg(cfg);render();
+    if(navigator.vibrate)navigator.vibrate([40,20,40]);
+  }
+  var tlOk=document.getElementById("fin-tl-ok");
+  if(tlOk)tlOk.addEventListener("click",function(){versement(finCalc(finCfg(getAllData())).capa);});
+  var tlGo=document.getElementById("fin-tl-go");
+  if(tlGo)tlGo.addEventListener("click",function(){
+    var inp=document.getElementById("fin-tl-autre");
+    var v=parseFloat(inp&&inp.value)||0;
+    if(v<=0){alert("Indique le montant que tu as réellement mis de côté");if(inp)inp.focus();return;}
+    versement(v);
+  });
+  var tlUndo=document.getElementById("fin-tl-undo");
+  if(tlUndo)tlUndo.addEventListener("click",function(){
+    var cfg=finCfg(getAllData());
+    if(cfg.tirelire&&cfg.tirelire.versements)delete cfg.tirelire.versements[finMonthKey()];
+    finSaveCfg(cfg);render();
+  });
   // Inputs charges
   var chInputs=document.querySelectorAll("[data-charge-idx]");
   for(var c=0;c<chInputs.length;c++){

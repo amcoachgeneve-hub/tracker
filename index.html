@@ -1138,19 +1138,26 @@ function computeLoops(allData,period,offset){
     rates.push({hab:hab,rate:cnt?on/cnt:0,on:on,off:off,cnt:cnt,
       delta:(on&&off)?Math.round(sOn/on-sOff/off):null});
   }
+  // Les habitudes facultatives sortent de TOUTE l'analyse de boucles :
+  // ni socle, ni moteur, ni faiblesse. Sinon le rapport attribue une force ou
+  // une faiblesse à quelque chose qui n'engage pas la discipline du client.
+  var ratesA=rates.filter(function(r){return !HABITS_FACULT[r.hab.id];});
   // Socle : habitudes tenues ≥ 70% du temps
-  var socle=rates.filter(function(r){return r.cnt>=3&&r.rate>=0.7;})
-    .sort(function(a,b){return b.rate-a.rate;});
+  var socle=ratesA.filter(function(r){return r.cnt>=3&&r.rate>=0.7;})
+    .sort(function(a,b){
+      if(b.rate!==a.rate)return b.rate-a.rate;
+      return (b.delta==null?-99:b.delta)-(a.delta==null?-99:a.delta);
+    });
   // Moteur : l'habitude qui, quand elle est cochée, tire le plus la journée vers le haut
   // Moteur : delta = score moyen quand cochée − score moyen quand pas cochée (le levier, pas la corrélation)
   var moteur=null,mb=9;
-  for(var m=0;m<rates.length;m++){
-    var r=rates[m];
+  for(var m=0;m<ratesA.length;m++){
+    var r=ratesA[m];
     if(r.delta!=null&&r.on>=2&&r.off>=1&&r.delta>mb){mb=r.delta;moteur=r;}
   }
   // Faiblesses : habitudes qui sautent le plus souvent.
   // Les compléments sont facultatifs — les compter masquerait la vraie boucle d'échec.
-  var faibles=rates.filter(function(r){return r.cnt>=3&&r.rate<=0.45&&!HABITS_FACULT[r.hab.id];})
+  var faibles=ratesA.filter(function(r){return r.cnt>=3&&r.rate<=0.45;})
     .sort(function(a,b){return a.rate-b.rate;});
   // Enchaînements de jours manqués (un jour saute → le suivant aussi)
   var lastFilled=-1;
@@ -1238,7 +1245,7 @@ function loopsHTML(lp,compact){
     h+='<div style="background:linear-gradient(135deg,#F1F8EC,#E3F2E1);border:2px solid #4CAF50;border-radius:14px;padding:15px 16px;margin-bottom:10px">'+
       '<div style="font-weight:900;font-size:11px;color:#2E7D32;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">\ud83d\udd01 Ta boucle vertueuse \u2014 TON SOCLE</div>';
     if(lp.socle.length){
-      var names=lp.socle.map(function(r){return r.hab.icon+" "+r.hab.label+" ("+Math.round(r.rate*100)+"%)";}).join(" \u00b7 ");
+      var names=lp.socle.slice(0,2).map(function(r){return r.hab.icon+" "+r.hab.label+" ("+Math.round(r.rate*100)+"%)";}).join(" \u00b7 ");
       h+='<div style="font-size:'+fs+';color:#1A1A1A;line-height:1.7;margin-bottom:8px"><strong>'+names+'</strong></div>';
     }
     if(lp.moteur){
@@ -4957,6 +4964,18 @@ function bindCoach(){
     var dpo=pvv.length>=2?Math.round((pvv[pvv.length-1]-pvv[0])*10)/10:null;
     var rempli=0;for(var q=0;q<=Math.min(89,t90);q++){if(dat[q]&&Object.keys(dat[q]).length>0)rempli++;}
     var bs=bestStreak(dat,Math.min(89,t90));
+    // 🔁 Socle et moteur : le point d'accroche positif du bilan
+    var LP=computeLoops(dat,duree,0);
+    var socleTxt="";
+    if(LP.socle&&LP.socle.length){
+      socleTxt="\n🔁 *Ton socle* : "+LP.socle.slice(0,2).map(function(r){
+        return r.hab.icon+" "+r.hab.label+" ("+Math.round(r.rate*100)+" %)";
+      }).join(" · ")+"\n";
+    }
+    if(LP.moteur){
+      socleTxt+="💡 Les jours où tu coches "+LP.moteur.hab.icon+" "+LP.moteur.hab.label+
+        ", ta journée monte de +"+LP.moteur.delta+" points.\n";
+    }
     var msg="🏋️ *Bilan "+nm+"* — Discipline 90\n"+
       "Jour "+Math.min(t90+1,duree)+"/"+duree+"\n\n"+
       "✅ Jours remplis : "+rempli+"\n"+
@@ -4965,6 +4984,7 @@ function bindCoach(){
       (aM!=null?"🧠 Mental : "+aM+" %\n":"")+
       (aE!=null?"⚡ Énergie : "+aE+" %\n":"")+
       (pvv.length?"⚖️ Poids : "+pvv[pvv.length-1]+" kg"+(dpo!=null?" ("+(dpo>0?"+":"")+dpo+" kg)":"")+"\n":"")+
+      socleTxt+
       "\nOn continue 💪\n— Akli, AM Coach Genève";
     window.open("https://wa.me/?text="+encodeURIComponent(msg),"_blank");
   });

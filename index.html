@@ -1894,6 +1894,10 @@ function viewFinance(name,start){
     var showSal=cfg.statut!=="indep";
     var showInd=cfg.statut!=="salarie";
 
+    // On memorise ou commence le formulaire : une fois le plan calcule,
+    // il passera AU-DESSUS pour etre la premiere chose visible a l'ouverture.
+    var _posForm=h.length;
+
     // Revenus du mois en cours
     h+='<div class="card" style="padding:16px;margin-bottom:12px">'+
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">'+
@@ -1992,6 +1996,8 @@ function viewFinance(name,start){
     h+='<div style="font-size:11px;color:#AAA;text-align:center;margin-top:10px">Remplis tes revenus et tes charges, puis appuie</div>'+
     '</div>';
     
+    var _posRes=h.length;
+
     // Résultat après calcul
     if(T){
       var pct=T.rev>0?Math.round(T.capa/T.rev*100):0;
@@ -2119,6 +2125,18 @@ function viewFinance(name,start){
       })();
       h+='</div>';
     }
+
+    // Permutation : plan + tirelire en haut, formulaire en dessous
+    if(T){
+      var _form=h.slice(_posForm,_posRes);
+      var _res=h.slice(_posRes);
+      h=h.slice(0,_posForm)+_res+
+        '<div style="display:flex;align-items:center;gap:8px;margin:20px 0 10px">'+
+        '<div style="width:3px;height:18px;background:#0057A8;border-radius:2px"></div>'+
+        '<span style="font-weight:900;font-size:14px;text-transform:uppercase;letter-spacing:1px">Mes chiffres</span>'+
+        '<span style="flex:1;text-align:right;font-size:11px;color:#AAA;font-weight:700">modifie et recalcule</span></div>'+
+        _form;
+    }
   }
   
   h+='</div>';
@@ -2193,7 +2211,29 @@ function viewCalendar(name,start){
       if(diff!=null){
         h+='<div style="font-weight:900;font-size:17px;color:'+K+'">Plus que '+diff+' kg'+(shortProg?' <span style="font-size:13px;color:#E65100;font-weight:800">· ⏳ '+daysLeft+' jour'+(daysLeft>1?'s':'')+' restant'+(daysLeft>1?'s':'')+'</span>':'')+'</div>';
       }
-      h+='<div style="font-size:13px;color:#666;margin-top:4px">'+phrase+'</div>';
+      // 📊 Barre de progression vers l'objectif du mois (deplacee depuis Stats)
+      (function(){
+        var dep=null;
+        // Point de depart : le poids du 1er jour renseigne de la periode en cours
+        var d0=shortProg?0:(month-1)*30;
+        for(var w=d0;w<=today90;w++){
+          if(allData[w]&&allData[w].poids){dep=parseFloat(allData[w].poids);break;}
+        }
+        if(dep==null||curW==null||!goal.target)return;
+        var tot=dep-goal.target, fait=dep-curW;
+        if(tot<=0)return;
+        var pc=Math.max(0,Math.min(100,Math.round(fait/tot*100)));
+        var col=pc>=100?"#4CAF50":pc>=50?"#8BC34A":pc>=20?"#FFC107":"#FF9800";
+        h+='<div style="margin-top:11px">'+
+          '<div style="background:#EFEFEF;height:20px;border-radius:7px;overflow:hidden">'+
+          '<div style="background:'+col+';height:100%;width:'+pc+'%;border-radius:7px;display:flex;align-items:center;justify-content:center;min-width:32px;transition:width .4s">'+
+          '<span style="color:#fff;font-weight:900;font-size:10.5px">'+pc+'%</span></div></div>'+
+          '<div style="display:flex;justify-content:space-between;font-size:10.5px;font-weight:800;color:#AAA;margin-top:4px">'+
+          '<span>'+dep+' kg</span>'+
+          (fait>0?'<span style="color:#2E7D32">'+(Math.round(fait*10)/10)+' kg parcourus</span>':'<span>en route</span>')+
+          '<span>'+goal.target+' kg</span></div></div>';
+      })();
+      h+='<div style="font-size:13px;color:#666;margin-top:9px">'+phrase+'</div>';
       if(goal.reward)h+='<div style="font-size:12px;color:#6E6E6E;margin-top:6px">🎁 Ta récompense : <strong>'+esc(goal.reward)+'</strong></div>';
     }
     h+='<button id="goal-edit" style="font-size:11px;color:#777;margin-top:8px;padding:0">✏️ modifier</button></div>';
@@ -2874,7 +2914,6 @@ function viewStats(name){
   var poidsV=vals("poids");
   var nCfg=nutCfg(allData);
   var cible=parseFloat(nCfg.pCible)||null;
-  var depart=parseFloat(nCfg.pDepart)||null;
   var PJ=statProjection(poidsV,cible,lastIdx);
   var rempli=0;for(var f=0;f<=Math.min(89,lastIdx);f++){if(allData[f]&&Object.keys(allData[f]).length>0)rempli++;}
 
@@ -2932,16 +2971,6 @@ function viewStats(name){
     '<span><span style="display:inline-block;width:14px;height:2px;background:#B8935C;vertical-align:middle"></span> ta tendance</span>'+
     (cible?'<span><span style="display:inline-block;width:14px;height:2px;background:#4CAF50;vertical-align:middle"></span> objectif</span>':'')+
     '</div>';
-  if(depart&&cible&&PJ&&PJ.act){
-    var tot=depart-cible,fait=Math.max(0,depart-PJ.act);
-    var pc=tot>0?Math.min(100,Math.round(fait/tot*100)):0;
-    h+='<div style="margin-top:12px">'+
-      '<div style="background:#EEE;height:22px;border-radius:8px;overflow:hidden">'+
-      '<div style="background:#4CAF50;height:100%;width:'+pc+'%;border-radius:8px;display:flex;align-items:center;justify-content:center;min-width:34px;transition:width .4s">'+
-      '<span style="color:#fff;font-weight:900;font-size:11px">'+pc+'%</span></div></div>'+
-      '<div style="display:flex;justify-content:space-between;font-size:11px;font-weight:800;color:#999;margin-top:5px">'+
-      '<span>'+depart+' kg</span><span style="color:#2E7D32">'+(Math.round(fait*10)/10)+' kg perdus</span><span>'+cible+' kg</span></div></div>';
-  }
   h+='</div>';
 
   // ═══ 3. CETTE SEMAINE VS LA PRÉCÉDENTE ═══

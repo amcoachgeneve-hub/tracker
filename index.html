@@ -1319,6 +1319,114 @@ function generateDiplome(name,startDate,allData){
 // ═══════════ SVG CHART ═══════════
 // 📊 Plusieurs courbes superposées. Les unités diffèrent (kg, %, heures) :
 // chaque série est ramenée sur une échelle commune pour que les croisements se voient.
+// ═══════════ 📈 MOTEURS D'ANALYSE DE PROGRESSION ═══════════
+// Régression linéaire sur les points renseignés : renvoie la pente par jour
+function statTendance(values){
+  var xs=[],ys=[];
+  for(var i=0;i<values.length;i++){if(values[i]!=null){xs.push(i);ys.push(values[i]);}}
+  if(xs.length<3)return null;
+  var n=xs.length,sx=0,sy=0,sxy=0,sxx=0;
+  for(var j=0;j<n;j++){sx+=xs[j];sy+=ys[j];sxy+=xs[j]*ys[j];sxx+=xs[j]*xs[j];}
+  var den=n*sxx-sx*sx;
+  if(den===0)return null;
+  var pente=(n*sxy-sx*sy)/den;
+  var ord=(sy-pente*sx)/n;
+  return {pente:pente,ord:ord,n:n,premier:xs[0],dernier:xs[xs.length-1],
+          yDebut:ys[0],yFin:ys[ys.length-1]};
+}
+// Moyenne des N derniers jours renseignés
+function statMoyDerniers(values,n,finIdx){
+  var v=[],c=0;
+  for(var i=finIdx;i>=0&&c<n;i--){if(values[i]!=null){v.push(values[i]);c++;}}
+  if(!v.length)return null;
+  var s=0;for(var j=0;j<v.length;j++)s+=v[j];
+  return {moy:Math.round(s/v.length*10)/10,n:v.length};
+}
+// Compare les 7 derniers jours renseignés aux 7 précédents
+function statSemaine(values,finIdx){
+  var idx=[];
+  for(var i=0;i<=finIdx;i++){if(values[i]!=null)idx.push(i);}
+  if(idx.length<4)return null;
+  var rec=idx.slice(-7),prec=idx.slice(-14,-7);
+  function moy(list){var s=0;for(var k=0;k<list.length;k++)s+=values[list[k]];return list.length?s/list.length:null;}
+  var a=moy(rec),b=prec.length>=3?moy(prec):null;
+  return {actuel:Math.round(a*10)/10,
+          precedent:b!=null?Math.round(b*10)/10:null,
+          delta:b!=null?Math.round((a-b)*10)/10:null,
+          nRec:rec.length};
+}
+// Projection vers le poids cible à partir de la tendance réelle
+function statProjection(poidsVals,cible,finIdx){
+  var T=statTendance(poidsVals);
+  var act=null;
+  for(var i=finIdx;i>=0;i--){if(poidsVals[i]!=null){act=poidsVals[i];break;}}
+  if(act==null)return null;
+  if(cible==null||!cible)return {act:act,tendance:T,assez:T&&T.n>=8,cible:null};
+  var reste=Math.round((act-cible)*10)/10;
+  if(reste<=0)return {act:act,cible:cible,atteint:true,tendance:T,assez:true};
+  var assez=!!(T&&T.n>=8);
+  var jours=null,dateCible=null,parSem=null;
+  if(assez&&T.pente<-0.005){
+    parSem=Math.round(-T.pente*7*100)/100;
+    jours=Math.ceil(reste/(-T.pente));
+    if(jours>0&&jours<3650){
+      var d=new Date();d.setDate(d.getDate()+jours);
+      dateCible=d.toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"});
+    }
+  }
+  return {act:act,cible:cible,reste:reste,tendance:T,assez:assez,
+          jours:jours,sem:jours?Math.ceil(jours/7):null,dateCible:dateCible,parSem:parSem,
+          stagne:!!(assez&&T&&T.pente>=-0.005&&T.pente<=0.005),
+          monte:!!(assez&&T&&T.pente>0.005)};
+}
+// 📉 Courbe de poids avec droite de tendance et ligne d'objectif
+function svgPoidsChart(values,cible,opts){
+  opts=opts||{};
+  var W=opts.width||340,H=opts.height||160,pad={t:12,r:10,b:22,l:38};
+  var valid=values.filter(function(v){return v!=null;});
+  if(valid.length<2)return '<div class="chart-empty">Pèse-toi quelques jours pour voir ta courbe</div>';
+  var mn=Math.min.apply(null,valid),mx=Math.max.apply(null,valid);
+  if(cible!=null&&cible)mn=Math.min(mn,cible);
+  var marge=Math.max(0.5,(mx-mn)*0.12);
+  mn-=marge;mx+=marge;
+  var rg=mx-mn||1,iw=W-pad.l-pad.r,ih=H-pad.t-pad.b,n=values.length;
+  function px(i){return pad.l+(i/(n-1))*iw;}
+  function py(v){return pad.t+ih-((v-mn)/rg)*ih;}
+  var g="";
+  for(var k=0;k<=3;k++){
+    var gy=pad.t+ih*(k/3),gv=mx-(rg*(k/3));
+    g+='<line x1="'+pad.l+'" y1="'+gy.toFixed(1)+'" x2="'+(W-pad.r)+'" y2="'+gy.toFixed(1)+'" stroke="#F2F2F2"/>'+
+      '<text x="'+(pad.l-6)+'" y="'+(gy+3).toFixed(1)+'" font-size="9" fill="#BBB" text-anchor="end">'+(Math.round(gv*10)/10)+'</text>';
+  }
+  // Ligne d'objectif
+  var obj="";
+  if(cible!=null&&cible&&cible>=mn&&cible<=mx){
+    var oy=py(cible);
+    obj='<line x1="'+pad.l+'" y1="'+oy.toFixed(1)+'" x2="'+(W-pad.r)+'" y2="'+oy.toFixed(1)+'" stroke="#4CAF50" stroke-width="1.5" stroke-dasharray="5 4"/>'+
+      '<text x="'+(W-pad.r)+'" y="'+(oy-5).toFixed(1)+'" font-size="9" font-weight="700" fill="#4CAF50" text-anchor="end">objectif '+cible+' kg</text>';
+  }
+  // Droite de tendance
+  var trend="";
+  var T=statTendance(values);
+  if(T&&T.n>=4){
+    var y1=T.ord+T.pente*T.premier,y2=T.ord+T.pente*T.dernier;
+    y1=Math.max(mn,Math.min(mx,y1));y2=Math.max(mn,Math.min(mx,y2));
+    trend='<line x1="'+px(T.premier).toFixed(1)+'" y1="'+py(y1).toFixed(1)+'" x2="'+px(T.dernier).toFixed(1)+'" y2="'+py(y2).toFixed(1)+'" stroke="#B8935C" stroke-width="1.5" stroke-dasharray="3 3" opacity=".8"/>';
+  }
+  var d="",started=false,dots="";
+  for(var i=0;i<n;i++){
+    if(values[i]==null)continue;
+    var X=px(i),Y=py(values[i]);
+    d+=(started?" L":"M")+X.toFixed(1)+" "+Y.toFixed(1);
+    started=true;
+  }
+  var last=-1;for(var z=n-1;z>=0;z--){if(values[z]!=null){last=z;break;}}
+  if(last>=0)dots='<circle cx="'+px(last).toFixed(1)+'" cy="'+py(values[last]).toFixed(1)+'" r="4" fill="#1A1A1A"/>';
+  var step=Math.max(1,Math.ceil(n/5)),xl="";
+  for(var x=0;x<n;x+=step)xl+='<text x="'+px(x).toFixed(1)+'" y="'+(H-6)+'" font-size="9" fill="#BBB" text-anchor="middle">J'+(x+1)+'</text>';
+  return '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;display:block">'+g+obj+trend+xl+
+    '<path d="'+d+'" fill="none" stroke="#1A1A1A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>'+dots+'</svg>';
+}
 function svgMultiChart(sets,opts){
   opts=opts||{};
   var W=opts.width||340,H=opts.height||190,pad={t:10,r:10,b:22,l:12};
@@ -1673,7 +1781,7 @@ function viewNutrition(name,start){
     '<div style="display:flex;gap:8px;margin-top:8px">'+
     '<button id="nut-search" style="flex:1;padding:12px 0;border-radius:11px;background:#fff;border:1.5px solid #0057A8;color:#0057A8;font-weight:800;font-size:13px">🔍 Chercher une marque</button>'+
     '<button id="nut-scan" style="flex:1;padding:12px 0;border-radius:11px;background:#fff;border:1.5px solid #0057A8;color:#0057A8;font-weight:800;font-size:13px">▮▯ Code-barres</button></div>'+
-    '<video id="nut-cam" playsinline muted style="display:none;width:100%;border-radius:11px;margin-top:9px;background:#000"></video>'+
+    
     '<input id="nut-file" type="file" accept="image/*" capture="environment" style="display:none"/>'+
     (state.nutBusy?'<div style="text-align:center;color:#0057A8;font-size:13px;font-weight:700;margin-top:10px">🔍 Analyse de la photo en cours...</div>':'')+
     (state.nutSearchBusy?'<div style="text-align:center;color:#0057A8;font-size:13px;font-weight:700;margin-top:10px">🔎 Recherche du produit...</div>':'')+
@@ -2755,50 +2863,203 @@ function bindDay(name,start){
 // ═══════════ STATS ═══════════
 function viewStats(name){
   var allData=getAllData();
+  var start=lsGetStr("amcoach_start_"+CLIENT);
+  var today90=start?getToday90(start):89;
   var series=computeSeries(allData,90);
   var lastIdx=-1;
   for(var i=89;i>=0;i--){if(series[i].score!=null){lastIdx=i;break;}}
-  var from=state.filter==="week"?Math.max(0,lastIdx-6):state.filter==="month"?Math.max(0,lastIdx-27):0;
-  var filtered=series.slice(from, state.filter==="all"?90:lastIdx+1);
-  if(filtered.length<2)filtered=series.slice(from,from+7);
+  if(lastIdx<0)lastIdx=Math.max(0,Math.min(89,today90));
 
-  var pv=[];
-  for(var p=0;p<series.length;p++){if(series[p].poids!=null)pv.push(series[p].poids);}
-  var dp=pv.length>=2?Math.round((pv[pv.length-1]-pv[0])*10)/10:null;
-
-  function vals(key){return filtered.map(function(d){return d[key];});}
-  function chart(title,color,key,unit,min,max){
-    var avg=avgOf(series,key);
-    return '<div class="chart-card"><div class="chart-hdr"><div class="chart-dot" style="background:'+color+'"></div>'+
-      '<span class="chart-title">'+title+'</span>'+
-      (avg!=null?'<span class="chart-avg">moy. '+avg+(unit||"%")+'</span>':"")+'</div>'+
-      svgLineChart(vals(key),color,{min:min,max:max})+'</div>';
-  }
-
-  var avgScore=avgOf(series,"score"), avgMental=avgOf(series,"mental");
+  function vals(key){return series.map(function(d){return d[key];});}
+  var poidsV=vals("poids");
+  var nCfg=nutCfg(allData);
+  var cible=parseFloat(nCfg.pCible)||null;
+  var depart=parseFloat(nCfg.pDepart)||null;
+  var PJ=statProjection(poidsV,cible,lastIdx);
+  var rempli=0;for(var f=0;f<=Math.min(89,lastIdx);f++){if(allData[f]&&Object.keys(allData[f]).length>0)rempli++;}
 
   var h='<div class="hdr"><div class="hdr-brand"><div class="bar bar-r"></div>'+
-    '<span class="hdr-title">Stats</span><div class="bar bar-b"></div></div>'+
-    '<div class="hdr-sub">'+esc(name)+' · Courbes 90 jours</div></div>'+
-    '<div style="padding:16px 14px 0">'+
-    '<div class="filter-row">'+
-    '<button class="filter-btn'+(state.filter==="all"?" active":"")+'" data-filter="all">90 jours</button>'+
-    '<button class="filter-btn'+(state.filter==="month"?" active":"")+'" data-filter="month">30 jours</button>'+
-    '<button class="filter-btn'+(state.filter==="week"?" active":"")+'" data-filter="week">7 jours</button></div>'+
-    '<div class="kpi-row">'+
-    '<div class="kpi-card"><div class="kpi-val" style="color:'+R+'">'+(avgScore!=null?avgScore+"%":"—")+'</div><div class="kpi-lbl">Score moyen</div></div>'+
-    '<div class="kpi-card"><div class="kpi-val" style="color:'+B+'">'+(avgMental!=null?avgMental+"%":"—")+'</div><div class="kpi-lbl">Mental</div></div></div>'+
-    '<div class="kpi-row" style="margin-bottom:18px">'+
-    '<div class="kpi-card"><div class="kpi-val">'+(pv.length?pv[pv.length-1]:"—")+'<span style="font-size:14px"> kg</span></div><div class="kpi-lbl">Poids actuel</div></div>'+
-    '<div class="kpi-card"><div class="kpi-val" style="color:'+(dp==null?"#CCC":dp<=0?"#4CAF50":R)+'">'+(dp!=null?(dp>0?"+"+dp:dp):"—")+'<span style="font-size:14px"> kg</span></div><div class="kpi-lbl">Évolution</div></div></div>';
+    '<span class="hdr-title">Ma progression</span><div class="bar bar-b"></div></div>'+
+    '<div class="hdr-sub">'+esc(name)+' · jour '+(Math.min(90,today90+1))+' sur 90</div></div>'+
+    '<div style="padding:16px 14px 0">';
 
-  // 🏆 SALLE DES TROPHÉES
+  // ═══ 1. LE VERDICT ═══
   (function(){
-    var allD=getAllData();
-    var bs=bestStreak(allD,89);
-    var res=qgRes(allD,89);
-    var filledT=0;for(var f2=0;f2<90;f2++){if(allD[f2]&&Object.keys(allD[f2]).length>0)filledT++;}
-    var wins=0;for(var w2=0;w2<90;w2++){var m2=allD[200+w2];if(m2&&m2.status==="done")wins++;}
+    var titre,sous,bg,ico;
+    if(rempli<4){
+      ico="🌱";titre="Ta courbe se construit";
+      sous="Remplis encore "+(4-rempli)+" jour"+((4-rempli)>1?"s":"")+" et je pourrai te dire où tu vas.";
+      bg="linear-gradient(135deg,#455A64,#607D8B)";
+    }else if(!PJ){
+      ico="⚖️";titre="Pèse-toi pour voir ta tendance";
+      sous="Une pesée régulière, même approximative, suffit à faire apparaître la direction.";
+      bg="linear-gradient(135deg,#455A64,#607D8B)";
+    }else if(PJ.atteint){
+      ico="🎉";titre="Objectif atteint";
+      sous="Tu es à "+PJ.act+" kg. Place au maintien : c'est là que la transformation devient définitive.";
+      bg="linear-gradient(135deg,#1B5E20,#4CAF50)";
+    }else if(!PJ.assez){
+      ico="⏳";titre="Encore un peu de patience";
+      sous="Il me faut environ 8 pesées pour distinguer une vraie tendance du bruit quotidien. Tu en as "+((PJ.tendance&&PJ.tendance.n)||0)+".";
+      bg="linear-gradient(135deg,#455A64,#607D8B)";
+    }else if(PJ.monte){
+      ico="📈";titre="Le poids remonte";
+      sous="Ce n'est pas un échec, c'est une information. Parles-en à ton coach : on ajuste et ça repart.";
+      bg="linear-gradient(135deg,#B71C1C,#D52B1E)";
+    }else if(PJ.stagne){
+      ico="➖";titre="Tu stagnes";
+      sous="Le poids ne bouge plus depuis quelques jours. C'est fréquent et ça se débloque — souvent par le sommeil ou les protéines.";
+      bg="linear-gradient(135deg,#E65100,#FF9800)";
+    }else{
+      ico="🔥";titre="Tu progresses";
+      sous="Rythme actuel : "+PJ.parSem+" kg par semaine."+(PJ.dateCible?" À ce rythme, "+PJ.cible+" kg le "+PJ.dateCible+".":"");
+      bg="linear-gradient(135deg,#1B5E20,#2E7D32)";
+    }
+    h+='<div class="card" style="background:'+bg+';border:none;padding:17px 16px;margin-bottom:13px">'+
+      '<div style="font-size:26px;line-height:1">'+ico+'</div>'+
+      '<div style="color:#fff;font-weight:900;font-size:18px;margin-top:5px">'+titre+'</div>'+
+      '<div style="color:rgba(255,255,255,.85);font-size:12.5px;font-weight:600;line-height:1.55;margin-top:5px">'+sous+'</div></div>';
+  })();
+
+  // ═══ 2. COMPTE À REBOURS ═══
+  if(PJ&&!PJ.atteint&&PJ.assez&&PJ.jours&&PJ.sem){
+    h+='<div class="card" style="padding:0;overflow:hidden;border:none;margin-bottom:13px">'+
+      '<div style="background:#0D2137;padding:15px;text-align:center">'+
+      '<div style="color:#8FB8DC;font-size:10.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase">Il te reste</div>'+
+      '<div style="color:#fff;font-size:36px;font-weight:900;line-height:1.1;margin:2px 0">'+PJ.sem+'</div>'+
+      '<div style="color:#fff;font-size:13px;font-weight:800">semaine'+(PJ.sem>1?"s":"")+' pour atteindre '+PJ.cible+' kg</div>'+
+      '<div style="color:rgba(255,255,255,.6);font-size:11px;font-weight:700;margin-top:4px">estimation calculée sur ta tendance réelle</div>'+
+      '</div></div>';
+  }
+
+  // ═══ 3. LA COURBE DE POIDS ═══
+  h+='<div class="chart-card">'+
+    '<div class="chart-hdr"><div class="chart-dot" style="background:#1A1A1A"></div>'+
+    '<span class="chart-title">Mon poids</span>'+
+    (PJ&&PJ.act?'<span class="chart-avg">'+PJ.act+' kg</span>':'')+'</div>'+
+    svgPoidsChart(poidsV,cible)+
+    '<div style="display:flex;gap:14px;margin-top:9px;font-size:10.5px;color:#999;font-weight:700">'+
+    '<span><span style="display:inline-block;width:14px;height:2px;background:#1A1A1A;vertical-align:middle"></span> tes pesées</span>'+
+    '<span><span style="display:inline-block;width:14px;height:2px;background:#B8935C;vertical-align:middle"></span> ta tendance</span>'+
+    (cible?'<span><span style="display:inline-block;width:14px;height:2px;background:#4CAF50;vertical-align:middle"></span> objectif</span>':'')+
+    '</div>';
+  if(depart&&cible&&PJ&&PJ.act){
+    var tot=depart-cible,fait=Math.max(0,depart-PJ.act);
+    var pc=tot>0?Math.min(100,Math.round(fait/tot*100)):0;
+    h+='<div style="margin-top:12px">'+
+      '<div style="background:#EEE;height:22px;border-radius:8px;overflow:hidden">'+
+      '<div style="background:#4CAF50;height:100%;width:'+pc+'%;border-radius:8px;display:flex;align-items:center;justify-content:center;min-width:34px;transition:width .4s">'+
+      '<span style="color:#fff;font-weight:900;font-size:11px">'+pc+'%</span></div></div>'+
+      '<div style="display:flex;justify-content:space-between;font-size:11px;font-weight:800;color:#999;margin-top:5px">'+
+      '<span>'+depart+' kg</span><span style="color:#2E7D32">'+(Math.round(fait*10)/10)+' kg perdus</span><span>'+cible+' kg</span></div></div>';
+  }
+  h+='</div>';
+
+  // ═══ 4. CETTE SEMAINE VS LA PRÉCÉDENTE ═══
+  (function(){
+    var defs=[
+      {k:"poids",lbl:"Poids",u:" kg",ico:"⚖️",mieux:"bas"},
+      {k:"sommeilH",lbl:"Sommeil",u:" h",ico:"😴",mieux:"haut"},
+      {k:"energie",lbl:"Physique",u:" %",ico:"⚡",mieux:"haut"},
+      {k:"mental",lbl:"Mental",u:" %",ico:"🧠",mieux:"haut"}
+    ];
+    var cards="",aucun=true;
+    for(var i=0;i<defs.length;i++){
+      var D=defs[i],S=statSemaine(vals(D.k),lastIdx);
+      if(!S){
+        cards+='<div style="background:#FAFAFA;border-radius:11px;padding:12px">'+
+          '<div style="font-size:11px;font-weight:800;color:#BBB">'+D.ico+' '+D.lbl+'</div>'+
+          '<div style="font-size:15px;font-weight:900;color:#DDD;margin-top:3px">—</div>'+
+          '<div style="font-size:10.5px;color:#CCC;font-weight:700">pas de donnée</div></div>';
+        continue;
+      }
+      aucun=false;
+      var col="#999",fl="",txt="stable";
+      if(S.delta!=null&&Math.abs(S.delta)>=(D.k==="poids"?0.2:2)){
+        var bon=D.mieux==="bas"?S.delta<0:S.delta>0;
+        col=bon?"#2E7D32":"#D52B1E";
+        fl=bon?"▲":"▼";
+        if(D.k==="poids")fl=S.delta<0?"▼":"▲";
+        txt=(S.delta>0?"+":"")+S.delta+D.u+" vs semaine dernière";
+      }else if(S.precedent!=null){
+        txt="stable vs semaine dernière";
+      }else{
+        txt="1re semaine";
+      }
+      cards+='<div style="background:#fff;border-radius:11px;padding:12px;box-shadow:0 1px 4px #0000000d">'+
+        '<div style="font-size:11px;font-weight:800;color:#888">'+D.ico+' '+D.lbl+'</div>'+
+        '<div style="font-size:19px;font-weight:900;color:#1A1A1A;margin-top:2px">'+S.actuel+'<span style="font-size:11px;color:#AAA">'+D.u+'</span></div>'+
+        '<div style="font-size:10.5px;color:'+col+';font-weight:800;line-height:1.35;margin-top:2px">'+(fl?fl+" ":"")+txt+'</div></div>';
+    }
+    if(aucun)return;
+    h+='<div style="display:flex;align-items:center;gap:8px;margin:18px 0 10px"><div style="width:3px;height:18px;background:#0057A8;border-radius:2px"></div>'+
+      '<span style="font-weight:900;font-size:14px;text-transform:uppercase;letter-spacing:1px">Ma semaine</span></div>'+
+      '<div style="font-size:11.5px;color:#999;margin-bottom:10px;line-height:1.5">Moyenne des 7 derniers jours remplis, comparée aux 7 précédents.</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:6px">'+cards+'</div>';
+  })();
+
+  // ═══ 5. CE QUE DISENT TES DONNÉES ═══
+  (function(){
+    if(rempli<10)return;
+    var msgs=[];
+    function moyQuand(cleFiltre,seuil,cleMesure,haut){
+      var a=[],b=[];
+      for(var i=0;i<=lastIdx;i++){
+        var vf=series[i][cleFiltre],vm=series[i][cleMesure];
+        if(vf==null||vm==null)continue;
+        if(haut?(vf>=seuil):(vf<seuil))a.push(vm);else b.push(vm);
+      }
+      if(a.length<3||b.length<3)return null;
+      function m(l){var s=0;for(var k=0;k<l.length;k++)s+=l[k];return s/l.length;}
+      return {avec:Math.round(m(a)),sans:Math.round(m(b)),nA:a.length,nB:b.length};
+    }
+    var som=moyQuand("sommeilH",7,"mental",true);
+    if(som&&som.avec-som.sans>=8){
+      msgs.push({ico:"😴",txt:"Les jours où tu dors 7 h ou plus, ton mental est à <strong>"+som.avec+" %</strong> — contre "+som.sans+" % les autres jours. Ton sommeil est ton levier le plus rentable."});
+    }
+    var en=moyQuand("sommeilH",7,"energie",true);
+    if(en&&en.avec-en.sans>=8){
+      msgs.push({ico:"⚡",txt:"Ton énergie physique passe de "+en.sans+" % à <strong>"+en.avec+" %</strong> quand tu as bien dormi."});
+    }
+    var sc=moyQuand("mental",60,"score",true);
+    if(sc&&sc.avec-sc.sans>=10){
+      msgs.push({ico:"🧠",txt:"Quand ton mental tient, ton score de la journée monte à <strong>"+sc.avec+" %</strong> au lieu de "+sc.sans+" %. Le moral tire le reste."});
+    }
+    var TP=statTendance(poidsV);
+    if(TP&&TP.n>=8&&TP.pente<-0.005){
+      msgs.push({ico:"📉",txt:"Tu perds en moyenne <strong>"+(Math.round(-TP.pente*7*100)/100)+" kg par semaine</strong> depuis le début du suivi."});
+    }
+    if(!msgs.length)return;
+    h+='<div style="display:flex;align-items:center;gap:8px;margin:18px 0 10px"><div style="width:3px;height:18px;background:#7B1FA2;border-radius:2px"></div>'+
+      '<span style="font-weight:900;font-size:14px;text-transform:uppercase;letter-spacing:1px">Ce que disent tes données</span></div>';
+    for(var m2=0;m2<msgs.length&&m2<3;m2++){
+      h+='<div style="display:flex;gap:10px;background:#fff;border-radius:11px;padding:12px 13px;margin-bottom:8px;box-shadow:0 1px 4px #0000000d">'+
+        '<span style="font-size:18px;line-height:1.3">'+msgs[m2].ico+'</span>'+
+        '<div style="flex:1;font-size:12px;color:#444;line-height:1.6">'+msgs[m2].txt+'</div></div>';
+    }
+  })();
+
+  // ═══ 6. RÉGULARITÉ ═══
+  (function(){
+    var avgScore=avgOf(series,"score");
+    var bs=bestStreak(allData,Math.min(89,lastIdx));
+    h+='<div style="display:flex;align-items:center;gap:8px;margin:18px 0 10px"><div style="width:3px;height:18px;background:'+R+';border-radius:2px"></div>'+
+      '<span style="font-weight:900;font-size:14px;text-transform:uppercase;letter-spacing:1px">Ma régularité</span></div>'+
+      '<div class="kpi-row" style="margin-bottom:12px">'+
+      '<div class="kpi-card"><div class="kpi-val" style="color:'+R+'">'+rempli+'</div><div class="kpi-lbl">Jours remplis</div></div>'+
+      '<div class="kpi-card"><div class="kpi-val" style="color:#E65100">'+bs+'</div><div class="kpi-lbl">Meilleure série</div></div></div>'+
+      '<div class="chart-card"><div class="chart-hdr"><div class="chart-dot" style="background:'+R+'"></div>'+
+      '<span class="chart-title">Score global</span>'+
+      (avgScore!=null?'<span class="chart-avg">moy. '+avgScore+'%</span>':'')+'</div>'+
+      svgLineChart(vals("score"),R,{min:0,max:100})+
+      '<div style="font-size:10.5px;color:#AAA;margin-top:7px;line-height:1.5">Ce score résume ta journée : habitudes cochées, ressenti, sommeil.</div></div>';
+  })();
+
+  // ═══ 7. TROPHÉES ═══
+  (function(){
+    var bs=bestStreak(allData,89);
+    var res=qgRes(allData,89);
+    var wins=0;for(var w2=0;w2<90;w2++){var m2=allData[200+w2];if(m2&&m2.status==="done")wins++;}
     var TROPHIES=[
       {icon:"🔥",name:"Semaine de Fer",cond:bs>=7,desc:"7 jours d'affilée"},
       {icon:"⚔️",name:"Régularité d'Acier",cond:bs>=21,desc:"21 jours d'affilée"},
@@ -2808,11 +3069,12 @@ function viewStats(name){
       {icon:"👑",name:"Citadelle",cond:res.total>=110,desc:"110 briques posées"},
       {icon:"🟢",name:"Conquérant",cond:wins>=10,desc:"10 zones sécurisées"},
       {icon:"🏴",name:"Seigneur de Guerre",cond:wins>=30,desc:"30 zones sécurisées"},
-      {icon:"📅",name:"Premier Mois",cond:filledT>=28,desc:"28 jours remplis"},
-      {icon:"🎓",name:"Transformation",cond:filledT>=84,desc:"84 jours remplis"}
+      {icon:"📅",name:"Premier Mois",cond:rempli>=28,desc:"28 jours remplis"},
+      {icon:"🎓",name:"Transformation",cond:rempli>=84,desc:"84 jours remplis"}
     ];
-    h+='<div style="display:flex;align-items:center;gap:8px;margin:18px 0 12px"><div style="width:3px;height:18px;background:#C9A227;border-radius:2px"></div><span style="font-weight:900;font-size:14px;text-transform:uppercase;letter-spacing:1px">🏆 Salle des Trophées</span></div>';
-    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px">';
+    h+='<div style="display:flex;align-items:center;gap:8px;margin:18px 0 10px"><div style="width:3px;height:18px;background:#C9A227;border-radius:2px"></div>'+
+      '<span style="font-weight:900;font-size:14px;text-transform:uppercase;letter-spacing:1px">🏆 Trophées</span></div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px">';
     for(var tr=0;tr<TROPHIES.length;tr++){
       var T=TROPHIES[tr];
       h+='<div style="background:'+(T.cond?"#fff":"#F0F0F0")+';border-radius:12px;padding:12px;text-align:center;box-shadow:0 1px 4px #0001;'+(T.cond?"border:2px solid #C9A227":"opacity:.5")+'">'+
@@ -2822,18 +3084,7 @@ function viewStats(name){
     }
     h+='</div>';
   })();
-  h+=chart("Score global",R,"score","%",0,100);
-  // 🔀 Vue croisée : poids, sommeil, physique et mental sur le même graphe
-  h+='<div class="chart-card">'+
-    '<div class="chart-hdr"><div class="chart-dot" style="background:#7B1FA2"></div>'+
-    '<span class="chart-title">Vue croisée</span></div>'+
-    '<div style="font-size:11px;color:#999;margin-bottom:8px;line-height:1.5">Les échelles sont ramenées à une base commune pour comparer les tendances. Le poids est inversé : sa courbe monte quand tu perds du poids.</div>'+
-    svgMultiChart([
-      {label:"Poids",color:"#555",values:vals("poids"),unit:" kg",invert:true},
-      {label:"Sommeil",color:"#0097A7",values:vals("sommeilH"),unit:" h"},
-      {label:"Physique",color:"#FF9800",values:vals("energie"),unit:" %",min:0,max:100},
-      {label:"Mental",color:B,values:vals("mental"),unit:" %",min:0,max:100}
-    ])+'</div>';
+
   return h+'</div>';
 }
 
@@ -2892,7 +3143,7 @@ function openRapport(name,start,period,dataOverride){
 
   var css="*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,'Helvetica Neue',sans-serif;background:#F4F4F4;color:#1A1A1A}.pg{max-width:600px;margin:0 auto;background:#fff}.hdr{background:#1A1A1A;padding:24px 20px 18px}.brand{color:#fff;font-weight:900;font-size:17px;letter-spacing:2px;text-transform:uppercase;display:flex;align-items:center;gap:8px}.b{width:4px;height:22px;border-radius:2px}.sub{color:#666;font-size:11px;margin-top:5px;padding-left:14px}.hero{background:linear-gradient(135deg,#D52B1E,#8B0000);padding:24px 20px;color:#fff}.hn{font-size:26px;font-weight:900;margin-bottom:3px}.hs{font-size:13px;opacity:.8;margin-bottom:6px}.hd{font-size:11px;opacity:.6}.kg{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:16px}.kpi{background:#fff;border-radius:12px;padding:14px;box-shadow:0 2px 6px rgba(0,0,0,.07);text-align:center}.kv{font-size:28px;font-weight:900;margin-bottom:3px}.kl{font-size:11px;color:#666;font-weight:700;text-transform:uppercase}.ks{font-size:11px;font-weight:700;margin-top:4px}.sec{padding:0 14px 14px}.st{display:flex;align-items:center;gap:8px;margin:14px 0 10px}.sb{width:3px;height:16px;border-radius:2px}.sl{font-weight:900;font-size:12px;text-transform:uppercase;letter-spacing:.8px}.ch{background:#fff;border-radius:12px;padding:12px;margin-bottom:8px;box-shadow:0 2px 6px rgba(0,0,0,.07)}.ct{font-size:11px;font-weight:800;color:#666;text-transform:uppercase;margin-bottom:6px}.hg{display:grid;grid-template-columns:1fr 1fr;gap:7px}.hc{background:#fff;border-radius:10px;padding:11px;box-shadow:0 2px 6px rgba(0,0,0,.07);display:flex;align-items:center;gap:8px}.hi{font-size:18px}.hnm{font-size:11px;color:#666;font-weight:700}.hv{font-size:15px;font-weight:900}.bc{background:#fff;border-radius:12px;padding:13px;margin-bottom:8px;box-shadow:0 2px 6px rgba(0,0,0,.07);border-left:4px solid #D52B1E}.bw{font-size:11px;color:#D52B1E;font-weight:800;margin-bottom:7px;text-transform:uppercase}.bi{margin-bottom:5px}.bk{font-size:11px;color:#666;font-weight:700;text-transform:uppercase;margin-bottom:2px}.bt{font-size:12px;color:#333;line-height:1.5}.ftr{background:#1A1A1A;padding:20px;text-align:center;margin-top:14px}.fm{color:#666;font-size:11px;line-height:1.8}.fs{color:#fff;font-weight:900;font-size:13px;margin-top:8px}@media print{body{background:#fff}}";
 
-  var html="<!DOCTYPE html><html lang='fr'><head><meta charset='UTF-8'/><meta name='viewport' content='width=device-width,initial-scale=1'/><title>Rapport J"+period+" — "+esc(name)+"</title><style>"+css+"</style></head><body><button onclick='window.close();setTimeout(function(){if(history.length>1)history.back();},250)' style='position:fixed;top:12px;right:12px;z-index:999;background:#1A1A1A;color:#fff;border:0;border-radius:20px;padding:9px 16px;font-weight:800;font-size:13px'>✕ Fermer</button><div class='pg'>";
+  var html="<!DOCTYPE html><html lang='fr'><head><meta charset='UTF-8'/><meta name='viewport' content='width=device-width,initial-scale=1'/><title>Rapport J"+period+" — "+esc(name)+"</title><style>"+css+"</style></head><body><div id='rapbar' style='position:sticky;top:0;z-index:999;background:#1A1A1A;padding:9px 10px;display:flex;gap:7px'><button onclick='rapShare()' style='flex:1;background:#0057A8;color:#fff;border:0;border-radius:9px;padding:11px 6px;font-weight:800;font-size:13px'>📤 Partager</button><button onclick='rapPdf()' style='flex:1;background:#C9A227;color:#fff;border:0;border-radius:9px;padding:11px 6px;font-weight:800;font-size:13px'>🖨️ PDF</button><button onclick='window.close();setTimeout(function(){if(history.length>1)history.back();},250)' style='background:#333;color:#fff;border:0;border-radius:9px;padding:11px 13px;font-weight:800;font-size:13px'>✕</button></div><div class='pg'>";
   html+="<div class='hdr'><div class='brand'><div class='b' style='background:#D52B1E'></div>AM Coach Genève<div class='b' style='background:#0057A8'></div></div><div class='sub'>TransfoPhysique · Rapport J"+period+"</div></div>";
   html+="<div class='hero'><div class='hn'>"+esc(name)+"</div><div class='hs'>"+period+" jours de transformation</div><div class='hd'>"+fmt(d0)+" → "+fmt(d1)+"</div></div>";
   html+="<div class='kg'>";
@@ -2955,6 +3206,22 @@ function openRapport(name,start,period,dataOverride){
     html+="</div>";
   }
   html+="<div class='ftr'><div class='fm'>Rapport généré automatiquement<br>Programme TransfoPhysique 90 jours · AM Coach Genève</div><div class='fs'>Akli — AM Coach Genève</div></div>";
+  // Barre d'actions du rapport : partage natif (feuille iOS) + impression/PDF
+  var resume="Rapport "+name+" — J"+period+"\n"+
+    (avgScore?"Score moyen : "+avgScore+" %\n":"")+
+    (avgMental?"Mental : "+avgMental+" %\n":"")+
+    (p1!=null?"Poids : "+p1+" kg"+(dp!=null?" ("+(dp>0?"+":"")+dp+" kg)":"")+"\n":"")+
+    "— AM Coach Genève";
+  html+="<script>"+
+    "var RESUME="+JSON.stringify(resume)+";"+
+    "function rapPdf(){document.getElementById('rapbar').style.display='none';window.print();"+
+    "setTimeout(function(){document.getElementById('rapbar').style.display='flex';},900);}"+
+    "function rapShare(){"+
+    "  if(navigator.share){navigator.share({title:document.title,text:RESUME}).catch(function(){});return;}"+
+    "  if(navigator.clipboard){navigator.clipboard.writeText(RESUME).then(function(){alert('Résumé copié ! Colle-le où tu veux.\\n\\nPour le PDF complet : bouton 🖨️ PDF.');});return;}"+
+    "  rapPdf();"+
+    "}"+
+    "<\/script>";
   html+="</div></body></html>";
 
   var win=window.open("","_blank");
@@ -4956,29 +5223,92 @@ function nutSearchBrand(q){
     alert("La recherche en ligne n'a pas répondu. Réessaie, ou saisis l'aliment à la main 🙂");
   });
 }
-// 📷 Code-barres : lecture native si le navigateur la supporte, sinon saisie manuelle
+// 📷 Scan du code-barres à la caméra — ZXing (marche sur Safari iOS, contrairement à BarcodeDetector)
+var ZXING_URL="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js";
+var _zxLoad=null;
+function nutLoadZXing(){
+  if(window.ZXing)return Promise.resolve(window.ZXing);
+  if(_zxLoad)return _zxLoad;
+  _zxLoad=new Promise(function(res,rej){
+    var s=document.createElement("script");
+    s.src=ZXING_URL;
+    s.onload=function(){window.ZXing?res(window.ZXing):rej(new Error("lib"));};
+    s.onerror=function(){rej(new Error("réseau"));};
+    document.head.appendChild(s);
+  });
+  return _zxLoad;
+}
+function nutCloseScan(){
+  var ov=document.getElementById("scan-overlay");
+  if(window._zxReader){try{window._zxReader.reset();}catch(e){}window._zxReader=null;}
+  if(window._zxStream){try{window._zxStream.getTracks().forEach(function(t){t.stop();});}catch(e){}window._zxStream=null;}
+  if(ov&&ov.parentNode)ov.parentNode.removeChild(ov);
+}
 function nutScanBarcode(){
-  if(!("BarcodeDetector" in window)){
-    var c=prompt("Ton navigateur ne sait pas lire les codes-barres avec la caméra.\n\nTape les chiffres sous le code-barres :");
-    if(c)nutLookupBarcode(c.replace(/\D/g,""));
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+    var c0=prompt("Caméra indisponible sur ce navigateur.\n\nTape les chiffres sous le code-barres :");
+    if(c0)nutLookupBarcode(c0.replace(/\D/g,""));
     return;
   }
-  var v=document.getElementById("nut-cam");
-  var det=new window.BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e"]});
-  navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}}).then(function(stream){
-    v.style.display="block";v.srcObject=stream;v.play();
-    var stop=function(){stream.getTracks().forEach(function(t){t.stop();});v.style.display="none";};
-    var tries=0;
-    var loop=setInterval(function(){
-      tries++;
-      if(tries>90){clearInterval(loop);stop();alert("Code-barres non lu. Réessaie ou saisis le produit à la main.");return;}
-      det.detect(v).then(function(codes){
-        if(codes&&codes.length){clearInterval(loop);stop();nutLookupBarcode(codes[0].rawValue);}
-      }).catch(function(){});
-    },350);
+  var ov=document.createElement("div");
+  ov.id="scan-overlay";
+  ov.style.cssText="position:fixed;inset:0;z-index:9999;background:#000;display:flex;flex-direction:column";
+  ov.innerHTML=
+    '<div style="padding:14px 16px;color:#fff;font-weight:900;font-size:15px;display:flex;align-items:center;gap:10px;background:#111">'+
+    '<span style="flex:1">▮▯ Scanne le code-barres</span>'+
+    '<button id="scan-x" style="background:#333;color:#fff;border:0;border-radius:18px;padding:8px 15px;font-weight:800;font-size:13px">✕</button></div>'+
+    '<div style="flex:1;position:relative;overflow:hidden">'+
+    '<video id="scan-vid" playsinline muted autoplay style="width:100%;height:100%;object-fit:cover"></video>'+
+    '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">'+
+    '<div style="width:78%;max-width:330px;height:150px;border:3px solid #4CAF50;border-radius:14px;box-shadow:0 0 0 3000px rgba(0,0,0,.45)"></div></div>'+
+    '<div id="scan-msg" style="position:absolute;left:0;right:0;bottom:14px;text-align:center;color:#fff;font-size:13px;font-weight:700;text-shadow:0 1px 4px #000">Cadre le code-barres du produit</div>'+
+    '</div>'+
+    '<button id="scan-man" style="margin:12px 16px 20px;padding:13px;border-radius:11px;border:1.5px solid #444;background:#1A1A1A;color:#fff;font-weight:800;font-size:13px">⌨️ Saisir le code à la main</button>';
+  document.body.appendChild(ov);
+  document.getElementById("scan-x").addEventListener("click",nutCloseScan);
+  document.getElementById("scan-man").addEventListener("click",function(){
+    nutCloseScan();
+    var cm=prompt("Tape les chiffres sous le code-barres :");
+    if(cm)nutLookupBarcode(cm.replace(/\D/g,""));
+  });
+  var msg=document.getElementById("scan-msg");
+  msg.textContent="Chargement du lecteur...";
+  nutLoadZXing().then(function(Z){
+    msg.textContent="Cadre le code-barres du produit";
+    var hints=new Map();
+    hints.set(Z.DecodeHintType.POSSIBLE_FORMATS,[
+      Z.BarcodeFormat.EAN_13,Z.BarcodeFormat.EAN_8,
+      Z.BarcodeFormat.UPC_A,Z.BarcodeFormat.UPC_E,Z.BarcodeFormat.CODE_128]);
+    var reader=new Z.BrowserMultiFormatReader(hints,{delayBetweenScanAttempts:180});
+    window._zxReader=reader;
+    reader.decodeFromConstraints(
+      {video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720}}},
+      "scan-vid",
+      function(result,err){
+        if(result&&result.getText){
+          var code=String(result.getText()).replace(/\D/g,"");
+          if(code.length>=6){
+            if(navigator.vibrate)navigator.vibrate([50,30,50]);
+            nutCloseScan();
+            nutLookupBarcode(code);
+          }
+        }
+      }
+    ).then(function(ctrl){
+      var v=document.getElementById("scan-vid");
+      if(v&&v.srcObject)window._zxStream=v.srcObject;
+    }).catch(function(e){
+      msg.textContent="Caméra refusée ou indisponible";
+      setTimeout(function(){
+        nutCloseScan();
+        var c2=prompt("Impossible d'ouvrir la caméra.\n(Autorise l'accès dans les réglages, ou tape le code)\n\nChiffres sous le code-barres :");
+        if(c2)nutLookupBarcode(c2.replace(/\D/g,""));
+      },1100);
+    });
   }).catch(function(){
-    var c2=prompt("Caméra indisponible.\n\nTape les chiffres sous le code-barres :");
-    if(c2)nutLookupBarcode(c2.replace(/\D/g,""));
+    nutCloseScan();
+    var c3=prompt("Le lecteur n'a pas pu se charger (connexion ?).\n\nTape les chiffres sous le code-barres :");
+    if(c3)nutLookupBarcode(c3.replace(/\D/g,""));
   });
 }
 function nutLookupBarcode(code){
@@ -4998,6 +5328,17 @@ function nutLookupBarcode(code){
     state.nutResults=[{name:pr.product_name.trim(),marque:(pr.brands||"").split(",")[0].trim(),
       p100:Math.round(p100*10)/10,portion:parseFloat(pr.serving_quantity)||null}];
     render();
+    // Produit unique identifié : on enchaîne directement sur la quantité, sans étape inutile
+    var it=state.nutResults[0];
+    var def=it.portion||100;
+    var q=prompt("✅ "+it.name+(it.marque?"\n"+it.marque:"")+"\n"+it.p100+" g de protéines pour 100 g\n\nQuelle quantité (en grammes) ?",def);
+    if(q===null){state.nutResults=null;render();return;}
+    q=parseFloat(q)||0;
+    if(q<=0){state.nutResults=null;render();return;}
+    nutAddDirect((it.marque?it.marque+" "+it.name:it.name),q,Math.round(q*it.p100/100*10)/10);
+    state.nutResults=null;
+    render();
+    if(navigator.vibrate)navigator.vibrate(30);
   }).catch(function(){
     state.nutSearchBusy=false;state.nutResults=[];render();
     alert("Lecture impossible pour le moment. Saisis le produit à la main 🙂");

@@ -180,7 +180,16 @@ var FOODS={
   "amandes":{p:21,u:100},"noix":{p:15,u:100},"noisettes":{p:14,u:100},"cacahuètes":{p:26,u:100},
   "beurre de cacahuète":{p:25,u:100},"pistaches":{p:20,u:100},
   "whey":{p:75,u:100},"protéine en poudre":{p:75,u:100},"proteine":{p:75,u:100},
+  "protéine de riz":{p:80,u:100},"protéine de pois":{p:80,u:100},
+  "protéine végétale":{p:78,u:100},"isolat":{p:88,u:100},"isolat de whey":{p:88,u:100},
+  "caséine":{p:78,u:100},"gainer":{p:20,u:100},"collagène":{p:90,u:100},
   "barre protéinée":{p:30,u:100},
+  "steak 5%":{p:21,u:100},"steak 15%":{p:19,u:100},"steak haché 15%":{p:19,u:100},
+  "poulet rôti":{p:29,u:100},"cuisse de poulet":{p:19,u:100},"aiguillette":{p:23,u:100},
+  "surimi":{p:8,u:100},"saumon fumé":{p:23,u:100},"anchois":{p:20,u:100},
+  "chèvre":{p:20,u:100},"comté":{p:27,u:100},"emmental":{p:28,u:100},
+  "ricotta":{p:11,u:100},"petit suisse":{p:9,u:100},"yaourt nature":{p:4,u:100},
+  "yaourt à boire":{p:3,u:100},"lait de soja":{p:3.5,u:100},
   "brocoli":{p:2.8,u:100},"épinards":{p:2.9,u:100},"haricots verts":{p:1.8,u:100},
   "petits pois":{p:5,u:100},"maïs":{p:3.3,u:100},"avocat":{p:2,u:100},
   "banane":{p:1.1,u:100},"pomme":{p:0.3,u:100}
@@ -191,22 +200,47 @@ var NUT_PARAMS={
   F:{protX:1.8,kcalX:28,imcMin:19.0}
 };
 // Reconnaît un aliment dans la base et renvoie ses protéines pour une quantité donnée
+// Normalise pour comparer : minuscules, sans accents, sans ponctuation
+function nutNorm(s){
+  return (s||"").toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/[^a-z0-9%\s]/g," ").replace(/\s+/g," ").trim();
+}
+// Le nom cherché doit apparaître en MOTS ENTIERS dans la saisie.
+// Sans ça, « protéine de riz » matchait « riz » (2,7 g) au lieu de la poudre (~80 g).
+function nutContientMots(saisie,cle){
+  var re=new RegExp("(^|\\s)"+cle.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"($|\\s)");
+  return re.test(saisie);
+}
 function nutProtFor(name,qty){
-  var clean=(name||"").toLowerCase().trim();
+  var clean=nutNorm(name);
   if(!clean||!qty)return null;
-  // match exact d'abord, puis le plus long nom contenu dans la saisie
-  var best=null;
-  if(FOODS[clean])best=clean;
-  else{
-    for(var k in FOODS){
-      if(clean.indexOf(k)>=0||k.indexOf(clean)>=0){
-        if(!best||k.length>best.length)best=k;
-      }
-    }
+  var best=null,bestLen=-1;
+  for(var k in FOODS){
+    if(!FOODS.hasOwnProperty(k))continue;
+    var nk=nutNorm(k);
+    var score=-1;
+    if(nk===clean)score=1000;                              // match exact : priorité absolue
+    else if(nutContientMots(clean,nk))score=nk.length;     // la clé est dans la saisie, en mots entiers
+    if(score>bestLen){bestLen=score;best=k;}
   }
   if(!best)return null;
   var f=FOODS[best];
   return f.u===100?Math.round(qty*f.p/100*10)/10:Math.round(qty*f.p*10)/10;
+}
+// Renvoie aussi ce qui a été reconnu, pour l'afficher au client
+function nutMatchInfo(name){
+  var clean=nutNorm(name);
+  if(!clean)return null;
+  var best=null,bestLen=-1;
+  for(var k in FOODS){
+    if(!FOODS.hasOwnProperty(k))continue;
+    var nk=nutNorm(k),score=-1;
+    if(nk===clean)score=1000;
+    else if(nutContientMots(clean,nk))score=nk.length;
+    if(score>bestLen){bestLen=score;best=k;}
+  }
+  return best?{cle:best,p:FOODS[best].p,u:FOODS[best].u,exact:bestLen===1000}:null;
 }
 // Config nutrition (slot 510) : {on, sexe, pDepart, pCible, prot, kcal, duree, daily:{iso:{foods:[],tot,ok}}}
 function nutCfg(data){return (data&&data[510])||{};}
@@ -789,26 +823,46 @@ function lastActLabel(allData){
   return {t:"il y a "+diff+" jours",c:diff>=3?"#D52B1E":"#E65100"};
 }
 function slugHash(s){var h=0;s=s||"";for(var i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))>>>0;}return h;}
+// 🌙 Historique des pensées (slot 513) : {jour: index} — une pensée n'est jamais servie deux fois
+function penseeVue(allData){return (allData&&allData[513])||{};}
+// Choisit dans un pool en écartant tout ce qui a déjà été montré les jours précédents
+function penseeChoisir(allData,today90,pool){
+  var vues=penseeVue(allData);
+  // Déjà attribuée pour ce jour : on la resserre, elle ne doit pas changer
+  if(vues[today90]!=null&&PENSEES[vues[today90]])return PENSEES[vues[today90]];
+  var deja={};
+  for(var d in vues){if(vues.hasOwnProperty(d)&&parseInt(d,10)!==today90)deja[vues[d]]=1;}
+  var libres=pool.filter(function(i){return !deja[i];});
+  if(!libres.length)libres=pool;              // tout le pool a été vu : on autorise à nouveau
+  var off=slugHash(CLIENT||"");
+  var idx=libres[(today90+off)%libres.length];
+  // On mémorise, sans écraser un autre jour
+  var cp={};for(var k in vues){if(vues.hasOwnProperty(k))cp[k]=vues[k];}
+  cp[today90]=idx;
+  saveDay(513,cp);
+  return PENSEES[idx];
+}
 function pickPensee(allData,today90){
   var qgc=allData[502];
   // Pensée d'identité 1×/semaine (jour 3 de chaque semaine)
   if(qgc&&qgc.identity&&today90%7===2){
     return "🧱 Chaque action d'aujourd'hui pose une brique de plus vers celui que tu deviens : « "+qgc.identity+" ». La forteresse se souvient de tout ce que tu fais dans l'ombre.";
   }
-  var off=slugHash(CLIENT||"");
+  // Index de toutes les pensées, puis pools thématiques
+  var tous=[];for(var i=0;i<PENSEES.length;i++)tous.push(i);
   // Mission perdue hier → résilience
   var y=allData[200+(today90-1)];
   if(y&&y.status==="lost"){
-    var pool=PENSEES.filter(function(p){return /relève|Tombe|cendres|recule|tailleur|chenille|échou|tempête/.test(p);});
-    if(pool.length)return pool[(today90+off)%pool.length];
+    var pool=tous.filter(function(i){return /relève|Tombe|cendres|recule|tailleur|chenille|échou|tempête/.test(PENSEES[i]);});
+    if(pool.length)return penseeChoisir(allData,today90,pool);
   }
   // Combo 7+ → guerrier/constance
   var st=computeStreak(allData,today90);
   if(st>=7){
-    var pool2=PENSEES.filter(function(p){return /guerrier|discipline|constance|champion|habitude/i.test(p);});
-    if(pool2.length)return pool2[(today90+off)%pool2.length];
+    var pool2=tous.filter(function(i){return /guerrier|discipline|constance|champion|habitude/i.test(PENSEES[i]);});
+    if(pool2.length)return penseeChoisir(allData,today90,pool2);
   }
-  return PENSEES[(today90+off)%PENSEES.length];
+  return penseeChoisir(allData,today90,tous);
 }
 
 // ═══════════ ONE THING — CONQUÊTE ═══════════
@@ -1263,6 +1317,59 @@ function generateDiplome(name,startDate,allData){
 }
 
 // ═══════════ SVG CHART ═══════════
+// 📊 Plusieurs courbes superposées. Les unités diffèrent (kg, %, heures) :
+// chaque série est ramenée sur une échelle commune pour que les croisements se voient.
+function svgMultiChart(sets,opts){
+  opts=opts||{};
+  var W=opts.width||340,H=opts.height||190,pad={t:10,r:10,b:22,l:12};
+  var actives=sets.filter(function(s){
+    return s.values.filter(function(v){return v!=null;}).length>=2;
+  });
+  if(!actives.length)return '<div class="chart-empty">Pas encore assez de données</div>';
+  var n=actives[0].values.length;
+  var iw=W-pad.l-pad.r,ih=H-pad.t-pad.b;
+  function px(i){return pad.l+(i/(n-1))*iw;}
+
+  var grid="";
+  for(var g=0;g<=3;g++){
+    var gy=pad.t+ih*(g/3);
+    grid+='<line x1="'+pad.l+'" y1="'+gy.toFixed(1)+'" x2="'+(W-pad.r)+'" y2="'+gy.toFixed(1)+'" stroke="#F2F2F2" stroke-width="1"/>';
+  }
+  var step=Math.max(1,Math.ceil(n/6)),xlab="";
+  for(var x=0;x<n;x+=step){
+    xlab+='<text x="'+px(x).toFixed(1)+'" y="'+(H-6)+'" font-size="9" fill="#BBB" text-anchor="middle">J'+(x+1)+'</text>';
+  }
+
+  var paths="",legend="";
+  for(var s=0;s<actives.length;s++){
+    var S=actives[s];
+    var val=S.values.filter(function(v){return v!=null;});
+    var mn=S.min!=null?S.min:Math.min.apply(null,val);
+    var mx=S.max!=null?S.max:Math.max.apply(null,val);
+    if(mn===mx){mn-=1;mx+=1;}
+    var rg=mx-mn;
+    // Le poids descend quand ça va bien : on l'inverse pour comparer des tendances comparables
+    var inv=!!S.invert;
+    var d="",started=false;
+    for(var i=0;i<n;i++){
+      var v=S.values[i];
+      if(v==null)continue;
+      var frac=(v-mn)/rg;
+      if(inv)frac=1-frac;
+      var y=pad.t+ih-frac*ih;
+      d+=(started?" L":"M")+px(i).toFixed(1)+" "+y.toFixed(1);
+      started=true;
+    }
+    paths+='<path d="'+d+'" fill="none" stroke="'+S.color+'" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" opacity="'+(S.dim?0.55:0.95)+'"/>';
+    legend+='<span style="display:inline-flex;align-items:center;gap:4px;margin-right:11px;margin-bottom:3px">'+
+      '<span style="width:9px;height:9px;border-radius:3px;background:'+S.color+';display:inline-block"></span>'+
+      '<span style="font-size:10.5px;font-weight:800;color:#666">'+S.label+
+      '<span style="color:#BBB;font-weight:700"> '+(Math.round(mn*10)/10)+'→'+(Math.round(mx*10)/10)+(S.unit||"")+
+      (inv?' ↓':'')+'</span></span></span>';
+  }
+  return '<div style="margin-bottom:6px;line-height:1.7">'+legend+'</div>'+
+    '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;display:block">'+grid+xlab+paths+'</svg>';
+}
 function svgLineChart(values,color,opts){
   opts=opts||{};
   var W=opts.width||340, H=opts.height||140, pad={t:8,r:8,b:22,l:34};
@@ -1457,7 +1564,8 @@ function navBar(){
   var start=lsGetStr("amcoach_start_"+CLIENT);
   var is14=progLen(start)<=14;
   var tabs=[["calendar","📅","Agenda"],["stats","📈","Stats"],["dream","🌟","Dream"],
-    is14?["training","🏋️","Sport"]:["rapport","📄","Rapport"]];
+    ];
+  if(is14)tabs.push(["training","🏋️","Sport"]);
   // 🍗 Onglet Nutrition : visible seulement si le coach l'a activé (slot 510.on)
   if(nutCfg(getAllData()).on){
     tabs.splice(1,0,["nutrition","🍗","Prot"]); // en 2e position, après Agenda
@@ -1562,9 +1670,48 @@ function viewNutrition(name,start){
     '<div style="display:flex;gap:8px">'+
     '<button id="nut-add" style="flex:1;padding:13px 0;border-radius:11px;background:#2E7D32;color:#fff;font-weight:800;font-size:14px">➕ Ajouter</button>'+
     '<button id="nut-photo" style="flex:1;padding:13px 0;border-radius:11px;background:#0057A8;color:#fff;font-weight:800;font-size:14px">📷 Photo</button></div>'+
+    '<div style="display:flex;gap:8px;margin-top:8px">'+
+    '<button id="nut-search" style="flex:1;padding:12px 0;border-radius:11px;background:#fff;border:1.5px solid #0057A8;color:#0057A8;font-weight:800;font-size:13px">🔍 Chercher une marque</button>'+
+    '<button id="nut-scan" style="flex:1;padding:12px 0;border-radius:11px;background:#fff;border:1.5px solid #0057A8;color:#0057A8;font-weight:800;font-size:13px">▮▯ Code-barres</button></div>'+
+    '<video id="nut-cam" playsinline muted style="display:none;width:100%;border-radius:11px;margin-top:9px;background:#000"></video>'+
     '<input id="nut-file" type="file" accept="image/*" capture="environment" style="display:none"/>'+
     (state.nutBusy?'<div style="text-align:center;color:#0057A8;font-size:13px;font-weight:700;margin-top:10px">🔍 Analyse de la photo en cours...</div>':'')+
-    '<div style="font-size:11px;color:#AAA;margin-top:8px;line-height:1.5">💡 Tape l\'aliment et le poids en grammes (pour les œufs : le nombre d\'œufs). Le calcul des protéines est automatique. Ou prends la photo de ton assiette.</div></div>';
+    (state.nutSearchBusy?'<div style="text-align:center;color:#0057A8;font-size:13px;font-weight:700;margin-top:10px">🔎 Recherche du produit...</div>':'')+
+    '<div style="font-size:11px;color:#AAA;margin-top:8px;line-height:1.5">💡 Tape l\'aliment et le poids en grammes (pour les œufs : le nombre d\'œufs). Le calcul des protéines est automatique.</div>';
+
+  // 🔎 Résultats de recherche
+  if(state.nutResults&&state.nutResults.length){
+    h+='<div style="margin-top:11px;border-top:1px solid #F0F0F0;padding-top:10px">'+
+      '<div style="font-size:10.5px;font-weight:900;color:#AAA;letter-spacing:.8px;text-transform:uppercase;margin-bottom:7px">Résultats — appuie pour ajouter</div>';
+    for(var ri=0;ri<state.nutResults.length;ri++){
+      var rr=state.nutResults[ri];
+      var qDef=rr.portion||100;
+      h+='<button class="nut-res" data-i="'+ri+'" style="width:100%;text-align:left;display:flex;align-items:center;gap:10px;padding:10px 11px;border-radius:9px;border:1.5px solid #E8E8E8;background:#fff;margin-bottom:6px">'+
+        '<div style="flex:1;min-width:0">'+
+        '<div style="font-weight:800;font-size:13px;color:#1A1A1A;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(rr.name)+'</div>'+
+        '<div style="font-size:11px;color:#999;font-weight:700">'+(rr.marque?esc(rr.marque)+' · ':'')+rr.p100+' g prot / 100 g</div></div>'+
+        '<span style="font-size:12px;font-weight:900;color:#2E7D32;white-space:nowrap">+ '+qDef+' g</span></button>';
+    }
+    h+='<button id="nut-res-clear" style="width:100%;padding:8px;border:none;background:none;color:#999;font-size:11.5px;font-weight:800">Fermer les résultats</button></div>';
+  }
+  h+='</div>';
+
+  // 🕘 HISTORIQUE RÉUTILISABLE
+  (function(){
+    var rec=(cfg.recents||[]);
+    if(!rec.length)return;
+    var items='';
+    for(var i=0;i<rec.length&&i<10;i++){
+      items+='<button class="nut-rec" data-i="'+i+'" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 11px;border-radius:9px;border:1.5px solid #EDEDED;background:#fff;margin-bottom:5px">'+
+        '<span style="font-size:15px;color:#2E7D32;font-weight:900">+</span>'+
+        '<div style="flex:1;min-width:0"><div style="font-weight:800;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(rec[i].name)+'</div>'+
+        '<div style="font-size:10.5px;color:#999;font-weight:700">'+rec[i].qty+(rec[i].qty<10?' ':' g')+' · '+rec[i].prot+' g prot</div></div></button>';
+    }
+    h+='<div class="card" style="padding:14px">'+
+      '<div class="card-label">🕘 Mes aliments récents</div>'+
+      '<div style="font-size:11px;color:#AAA;margin-bottom:9px">Un tap et c\'est ajouté — plus besoin de retaper</div>'+
+      items+'</div>';
+  })();
 
   // 📊 REPAS DU JOUR
   h+='<div class="card" style="padding:14px">'+
@@ -2676,10 +2823,17 @@ function viewStats(name){
     h+='</div>';
   })();
   h+=chart("Score global",R,"score","%",0,100);
-  h+=chart("Ressenti mental",B,"mental","%",0,100);
-  h+=chart("Énergie physique","#FF9800","energie","%",0,100);
-  h+=chart("Heures de sommeil","#0097A7","sommeilH","h",0,12);
-  h+=chart("Poids (kg)","#555","poids"," kg",null,null);
+  // 🔀 Vue croisée : poids, sommeil, physique et mental sur le même graphe
+  h+='<div class="chart-card">'+
+    '<div class="chart-hdr"><div class="chart-dot" style="background:#7B1FA2"></div>'+
+    '<span class="chart-title">Vue croisée</span></div>'+
+    '<div style="font-size:11px;color:#999;margin-bottom:8px;line-height:1.5">Les échelles sont ramenées à une base commune pour comparer les tendances. Le poids est inversé : sa courbe monte quand tu perds du poids.</div>'+
+    svgMultiChart([
+      {label:"Poids",color:"#555",values:vals("poids"),unit:" kg",invert:true},
+      {label:"Sommeil",color:"#0097A7",values:vals("sommeilH"),unit:" h"},
+      {label:"Physique",color:"#FF9800",values:vals("energie"),unit:" %",min:0,max:100},
+      {label:"Mental",color:B,values:vals("mental"),unit:" %",min:0,max:100}
+    ])+'</div>';
   return h+'</div>';
 }
 
@@ -2706,8 +2860,8 @@ function viewRapport(name,start){
   return h;
 }
 
-function openRapport(name,start,period){
-  var allData=getAllData();
+function openRapport(name,start,period,dataOverride){
+  var allData=dataOverride||getAllData();
   var series=computeSeries(allData,period);
   var d0=new Date(start), d1=new Date(d0);d1.setDate(d1.getDate()+period-1);
   function fmt(dt){return dt.toLocaleDateString("fr-FR");}
@@ -3135,6 +3289,24 @@ function viewCoachDetail(){
   h+='<div style="display:flex;gap:8px">'+
     '<button id="nut-config" style="flex:1;font-size:11px;font-weight:800;padding:9px 0;border:1.5px solid #2E7D32;border-radius:10px;background:#fff;color:#2E7D32">'+(nutOn?"✏️ Modifier le plan":"➕ Activer + définir le plan")+'</button>'+
     (nutOn?'<button id="nut-off" style="flex:1;font-size:11px;font-weight:800;padding:9px 0;border:1.5px solid #D52B1E;border-radius:10px;background:#fff;color:#D52B1E">⛔ Désactiver</button>':'')+'</div></div>';
+
+  // 📄 RAPPORT — déplacé du client vers le coach : c'est lui qui l'envoie
+  (function(){
+    var nR=0;for(var rr=0;rr<90;rr++){if(allData[rr]&&Object.keys(allData[rr]).length>0)nR++;}
+    h+='<div class="card" style="border-left:4px solid #C9A227;padding:13px 15px">'+
+      '<div style="font-weight:800;font-size:13px;margin-bottom:4px">📄 Rapport client</div>'+
+      '<div style="font-size:11px;color:#6E6E6E;margin-bottom:10px;line-height:1.5">'+nR+' jours remplis. Ouvre le rapport pour l\'enregistrer en PDF, ou envoie le résumé directement sur WhatsApp.</div>'+
+      '<div style="display:flex;gap:6px;margin-bottom:8px">';
+    var per=[7,30,60,90];
+    for(var pi=0;pi<per.length;pi++){
+      var nn=0;for(var xx=0;xx<per[pi];xx++){if(allData[xx]&&Object.keys(allData[xx]).length>0)nn++;}
+      h+='<button class="cd-rap" data-p="'+per[pi]+'" style="flex:1;padding:10px 2px;border-radius:9px;border:1.5px solid '+(nn?"#C9A227":"#E8E8E8")+';background:#fff;color:'+(nn?"#8A6A2F":"#CCC")+';font-weight:900;font-size:11.5px">J'+per[pi]+'</button>';
+    }
+    h+='</div>'+
+      '<button id="cd-wa" style="width:100%;padding:12px 0;border-radius:10px;border:none;background:#25D366;color:#fff;font-weight:900;font-size:13px">💬 Envoyer le résumé sur WhatsApp</button>'+
+      '<div style="font-size:10.5px;color:#BBB;margin-top:7px;line-height:1.5">Le bouton J30 ouvre le rapport complet : Partager ↑ → Imprimer → Enregistrer en PDF.</div>'+
+      '</div>';
+  })();
 
   // 💰 QUÊTE FINANCE (slot 512) — bonus optionnel, pensé pour les renouvellements
   var fin=allData[512]||{};
@@ -4462,6 +4634,41 @@ function bindCoach(){
     coachSaveSlot(slug,510,cfg);
     render();
   });
+  // 📄 Rapport client (côté coach)
+  var raps=document.querySelectorAll(".cd-rap");
+  for(var rp=0;rp<raps.length;rp++){
+    raps[rp].addEventListener("click",function(){
+      var slug=state.coachDetail;
+      var dat=lsGet("amcoach_"+slug,{});
+      var nm=lsGetStr("amcoach_name_"+slug)||slug;
+      var st=lsGetStr("amcoach_start_"+slug)||new Date().toISOString().split("T")[0];
+      openRapport(nm,st,parseInt(this.getAttribute("data-p"),10),dat);
+    });
+  }
+  var wa=document.getElementById("cd-wa");
+  if(wa)wa.addEventListener("click",function(){
+    var slug=state.coachDetail;
+    var dat=lsGet("amcoach_"+slug,{});
+    var nm=lsGetStr("amcoach_name_"+slug)||slug;
+    var st=lsGetStr("amcoach_start_"+slug)||"";
+    var t90=st?getToday90(st):89;
+    var ser=computeSeries(dat,90);
+    var aS=avgOf(ser,"score"),aM=avgOf(ser,"mental"),aE=avgOf(ser,"energie");
+    var pvv=ser.map(function(x){return x.poids;}).filter(function(v){return v!=null;});
+    var dpo=pvv.length>=2?Math.round((pvv[pvv.length-1]-pvv[0])*10)/10:null;
+    var rempli=0;for(var q=0;q<=Math.min(89,t90);q++){if(dat[q]&&Object.keys(dat[q]).length>0)rempli++;}
+    var bs=bestStreak(dat,Math.min(89,t90));
+    var msg="🏋️ *Bilan "+nm+"* — Discipline 90\n"+
+      "Jour "+(t90+1)+"/90\n\n"+
+      "✅ Jours remplis : "+rempli+"\n"+
+      "🔥 Meilleure série : "+bs+" jours\n"+
+      (aS!=null?"📊 Score moyen : "+aS+" %\n":"")+
+      (aM!=null?"🧠 Mental : "+aM+" %\n":"")+
+      (aE!=null?"⚡ Énergie : "+aE+" %\n":"")+
+      (pvv.length?"⚖️ Poids : "+pvv[pvv.length-1]+" kg"+(dpo!=null?" ("+(dpo>0?"+":"")+dpo+" kg)":"")+"\n":"")+
+      "\nOn continue 💪\n— Akli, AM Coach Genève";
+    window.open("https://wa.me/?text="+encodeURIComponent(msg),"_blank");
+  });
   // 💰 Quête finance
   var finCfgBtn=document.getElementById("fin-config");
   if(finCfgBtn)finCfgBtn.addEventListener("click",function(){
@@ -4688,10 +4895,21 @@ function nutSaveDay(newDay){
   cfg.daily[nutDayKey()]=newDay;
   saveDay(510,cfg); // sync Supabase via le même mécanisme (slot 510)
 }
+// 🕘 Historique réutilisable : chaque aliment validé revient en un tap
+function nutPushRecent(name,qty,prot){
+  var all=getAllData();
+  var cfg=all[510]||{};
+  var r=(cfg.recents||[]).slice();
+  var key=nutNorm(name)+"|"+qty;
+  r=r.filter(function(x){return nutNorm(x.name)+"|"+x.qty!==key;});
+  r.unshift({name:name,qty:qty,prot:prot});
+  cfg.recents=r.slice(0,15);
+  saveDay(510,cfg);
+}
 function nutAddFood(name,qty){
   var prot=nutProtFor(name,qty);
   if(prot===null){
-    alert("Aliment non reconnu 🤔\nEssaie un nom simple : poulet, œufs, riz, saumon, yaourt grec, whey...");
+    alert("Aliment non reconnu 🤔\nEssaie un nom simple : poulet, œufs, riz, saumon, yaourt grec, whey...\nOu cherche la marque avec le bouton 🔍");
     return false;
   }
   var day=nutToday(nutCfg(getAllData()));
@@ -4700,7 +4918,90 @@ function nutAddFood(name,qty){
   var disp=name.trim().charAt(0).toUpperCase()+name.trim().slice(1);
   foods.push({name:disp,qty:qty,prot:prot});
   nutSaveDay({foods:foods});
+  nutPushRecent(disp,qty,prot);
   return true;
+}
+// Ajout direct d'un produit trouvé en ligne (protéines pour 100 g déjà connues)
+function nutAddDirect(name,qty,prot){
+  var day=nutToday(nutCfg(getAllData()));
+  var foods=(day.foods||[]).slice();
+  foods.push({name:name,qty:qty,prot:prot});
+  nutSaveDay({foods:foods});
+  nutPushRecent(name,qty,prot);
+}
+// 🔍 Répertoire de marques — Open Food Facts (base ouverte, sans clé API)
+function nutSearchBrand(q){
+  state.nutSearchBusy=true;state.nutResults=null;render();
+  var url="https://world.openfoodfacts.org/cgi/search.pl?search_terms="+
+    encodeURIComponent(q)+"&search_simple=1&action=process&json=1&page_size=12"+
+    "&fields=product_name,brands,nutriments,quantity,serving_quantity";
+  fetch(url).then(function(r){return r.json();}).then(function(res){
+    state.nutSearchBusy=false;
+    var out=[];
+    var prods=(res&&res.products)||[];
+    for(var i=0;i<prods.length;i++){
+      var pr=prods[i],nu=pr.nutriments||{};
+      var p100=parseFloat(nu.proteins_100g);
+      if(!pr.product_name||isNaN(p100))continue;
+      out.push({name:pr.product_name.trim(),marque:(pr.brands||"").split(",")[0].trim(),
+                p100:Math.round(p100*10)/10,
+                portion:parseFloat(pr.serving_quantity)||null});
+      if(out.length>=8)break;
+    }
+    state.nutResults=out;
+    render();
+  }).catch(function(){
+    state.nutSearchBusy=false;state.nutResults=[];
+    render();
+    alert("La recherche en ligne n'a pas répondu. Réessaie, ou saisis l'aliment à la main 🙂");
+  });
+}
+// 📷 Code-barres : lecture native si le navigateur la supporte, sinon saisie manuelle
+function nutScanBarcode(){
+  if(!("BarcodeDetector" in window)){
+    var c=prompt("Ton navigateur ne sait pas lire les codes-barres avec la caméra.\n\nTape les chiffres sous le code-barres :");
+    if(c)nutLookupBarcode(c.replace(/\D/g,""));
+    return;
+  }
+  var v=document.getElementById("nut-cam");
+  var det=new window.BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e"]});
+  navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}}).then(function(stream){
+    v.style.display="block";v.srcObject=stream;v.play();
+    var stop=function(){stream.getTracks().forEach(function(t){t.stop();});v.style.display="none";};
+    var tries=0;
+    var loop=setInterval(function(){
+      tries++;
+      if(tries>90){clearInterval(loop);stop();alert("Code-barres non lu. Réessaie ou saisis le produit à la main.");return;}
+      det.detect(v).then(function(codes){
+        if(codes&&codes.length){clearInterval(loop);stop();nutLookupBarcode(codes[0].rawValue);}
+      }).catch(function(){});
+    },350);
+  }).catch(function(){
+    var c2=prompt("Caméra indisponible.\n\nTape les chiffres sous le code-barres :");
+    if(c2)nutLookupBarcode(c2.replace(/\D/g,""));
+  });
+}
+function nutLookupBarcode(code){
+  if(!code||code.length<6){alert("Code-barres invalide 🤔");return;}
+  state.nutSearchBusy=true;render();
+  fetch("https://world.openfoodfacts.org/api/v2/product/"+encodeURIComponent(code)+
+        ".json?fields=product_name,brands,nutriments,serving_quantity")
+  .then(function(r){return r.json();}).then(function(res){
+    state.nutSearchBusy=false;
+    var pr=res&&res.product;
+    var p100=pr&&pr.nutriments?parseFloat(pr.nutriments.proteins_100g):NaN;
+    if(!pr||!pr.product_name||isNaN(p100)){
+      state.nutResults=[];render();
+      alert("Produit introuvable dans la base, ou protéines non renseignées.\nSaisis-le à la main 🙂");
+      return;
+    }
+    state.nutResults=[{name:pr.product_name.trim(),marque:(pr.brands||"").split(",")[0].trim(),
+      p100:Math.round(p100*10)/10,portion:parseFloat(pr.serving_quantity)||null}];
+    render();
+  }).catch(function(){
+    state.nutSearchBusy=false;state.nutResults=[];render();
+    alert("Lecture impossible pour le moment. Saisis le produit à la main 🙂");
+  });
 }
 // Analyse photo via Claude Vision (proxy Supabase Edge Function pour ne pas exposer la clé)
 // Aliments pesés CRUS dans la base : viandes, poissons, crustacés.
@@ -4724,8 +5025,13 @@ function nutAnalyzePhoto(base64){
     body:JSON.stringify({image:base64})
   }).then(function(r){return r.json();}).then(function(res){
     state.nutBusy=false;
+    if(res&&res.error){
+      render();
+      alert("L'analyse photo est en panne côté serveur 🔧\n\nDétail : "+res.error+"\n\nSaisis ton aliment à la main en attendant.");
+      return;
+    }
     var items=res&&res.foods?res.foods:null;
-    if(!items||!items.length){alert("Je n'ai pas reconnu d'aliment sur la photo 😅\nRéessaie avec une photo plus nette, ou saisis à la main.");render();return;}
+    if(!items||!items.length){alert("Je n'ai pas reconnu d'aliment protéiné sur la photo 😅\nRéessaie avec une photo plus nette et bien éclairée, ou saisis à la main.");render();return;}
     var day=nutToday(nutCfg(getAllData()));
     var foods=(day.foods||[]).slice();
     var added=0,skipped=[];
@@ -4758,6 +5064,50 @@ function bindNutrition(){
   }
   if(addBtn)addBtn.addEventListener("click",doAdd);
   if(qtyI)qtyI.addEventListener("keypress",function(e){if(e.key==="Enter")doAdd();});
+  // 🔍 Recherche de marque
+  var srch=document.getElementById("nut-search");
+  if(srch)srch.addEventListener("click",function(){
+    var q=(nameI&&nameI.value||"").trim();
+    if(!q)q=prompt("Quel produit cherches-tu ?\n(ex : skyr danone, whey myprotein, jambon herta)")||"";
+    q=q.trim();
+    if(!q){if(nameI)nameI.focus();return;}
+    nutSearchBrand(q);
+  });
+  // ▮▯ Code-barres
+  var scn=document.getElementById("nut-scan");
+  if(scn)scn.addEventListener("click",function(){nutScanBarcode();});
+  // Ajout depuis un résultat de recherche
+  var res=document.querySelectorAll(".nut-res");
+  for(var r0=0;r0<res.length;r0++){
+    res[r0].addEventListener("click",function(){
+      var ix=parseInt(this.getAttribute("data-i"),10);
+      var it=(state.nutResults||[])[ix];
+      if(!it)return;
+      var def=it.portion||100;
+      var q=prompt("Quelle quantité de « "+it.name+" » ?\n("+it.p100+" g de protéines pour 100 g)\n\nEn grammes :",def);
+      if(q===null)return;
+      q=parseFloat(q)||0;
+      if(q<=0)return;
+      var nom=(it.marque?it.marque+" "+it.name:it.name);
+      nutAddDirect(nom,q,Math.round(q*it.p100/100*10)/10);
+      state.nutResults=null;
+      render();
+    });
+  }
+  var clr=document.getElementById("nut-res-clear");
+  if(clr)clr.addEventListener("click",function(){state.nutResults=null;render();});
+  // 🕘 Réutiliser un aliment récent
+  var recs=document.querySelectorAll(".nut-rec");
+  for(var r1=0;r1<recs.length;r1++){
+    recs[r1].addEventListener("click",function(){
+      var ix=parseInt(this.getAttribute("data-i"),10);
+      var it=(nutCfg(getAllData()).recents||[])[ix];
+      if(!it)return;
+      nutAddDirect(it.name,it.qty,it.prot);
+      render();
+      if(navigator.vibrate)navigator.vibrate(25);
+    });
+  }
   var dels=document.querySelectorAll(".nut-del");
   for(var i=0;i<dels.length;i++){
     dels[i].addEventListener("click",function(){

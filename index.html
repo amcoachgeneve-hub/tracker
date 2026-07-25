@@ -144,6 +144,9 @@ var HABITS=[
   {id:"famille",icon:"👨‍👩‍👧",label:"Famille",color:"#E65100"},
   {id:"travail",icon:"💼",label:"Travail",color:"#555555"}
 ];
+// Habitudes facultatives : exclues de l'analyse de la boucle d'échec.
+// Un client qui ne prend simplement pas de compléments n'a pas un problème de discipline.
+var HABITS_FACULT={complements:1};
 var DAY_FULL=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
 var DAY_SHORT=["L","M","M","J","V","S","D"];
 var MENTAL=[["Super","#4CAF50"],["Bien","#8BC34A"],["Moyen","#FFC107"],["Dur","#FF9800"],["KO","#D52B1E"]];
@@ -1145,8 +1148,9 @@ function computeLoops(allData,period,offset){
     var r=rates[m];
     if(r.delta!=null&&r.on>=2&&r.off>=1&&r.delta>mb){mb=r.delta;moteur=r;}
   }
-  // Faiblesses : habitudes qui sautent le plus souvent
-  var faibles=rates.filter(function(r){return r.cnt>=3&&r.rate<=0.45;})
+  // Faiblesses : habitudes qui sautent le plus souvent.
+  // Les compléments sont facultatifs — les compter masquerait la vraie boucle d'échec.
+  var faibles=rates.filter(function(r){return r.cnt>=3&&r.rate<=0.45&&!HABITS_FACULT[r.hab.id];})
     .sort(function(a,b){return a.rate-b.rate;});
   // Enchaînements de jours manqués (un jour saute → le suivant aussi)
   var lastFilled=-1;
@@ -3415,6 +3419,14 @@ function viewCoachLogin(){
     '<button id="coach-go" class="btn-primary">Connexion →</button></div></div>';
 }
 
+// Retrouve la fiche client du coach (nom + date de départ réelle).
+// Les infos vivent dans amcoach_clients, PAS dans amcoach_start_<slug> :
+// lire au mauvais endroit faisait tomber le bilan sur un fallback « Jour 90/90 ».
+function coachClient(slug){
+  var cl=lsGet("amcoach_clients",[]);
+  for(var i=0;i<cl.length;i++){if(cl[i].slug===slug)return cl[i];}
+  return null;
+}
 // ═══════════ COACH DETAIL ═══════════
 function viewCoachDetail(){
   var clients=lsGet("amcoach_clients",[]);
@@ -4923,19 +4935,22 @@ function bindCoach(){
   for(var rp=0;rp<raps.length;rp++){
     raps[rp].addEventListener("click",function(){
       var slug=state.coachDetail;
+      var cc=coachClient(slug);
       var dat=lsGet("amcoach_"+slug,{});
-      var nm=lsGetStr("amcoach_name_"+slug)||slug;
-      var st=lsGetStr("amcoach_start_"+slug)||isoLocal();
+      var nm=(cc&&cc.name)||slug;
+      var st=(cc&&cc.start_date)||isoLocal();
       openRapport(nm,st,parseInt(this.getAttribute("data-p"),10),dat);
     });
   }
   var wa=document.getElementById("cd-wa");
   if(wa)wa.addEventListener("click",function(){
     var slug=state.coachDetail;
+    var cc=coachClient(slug);
     var dat=lsGet("amcoach_"+slug,{});
-    var nm=lsGetStr("amcoach_name_"+slug)||slug;
-    var st=lsGetStr("amcoach_start_"+slug)||"";
-    var t90=st?getToday90(st):89;
+    var nm=(cc&&cc.name)||slug;
+    var st=(cc&&cc.start_date)||"";
+    var duree=st?progLen(st):90;
+    var t90=st?getToday90(st):0;
     var ser=computeSeries(dat,90);
     var aS=avgOf(ser,"score"),aM=avgOf(ser,"mental"),aE=avgOf(ser,"energie");
     var pvv=ser.map(function(x){return x.poids;}).filter(function(v){return v!=null;});
@@ -4943,7 +4958,7 @@ function bindCoach(){
     var rempli=0;for(var q=0;q<=Math.min(89,t90);q++){if(dat[q]&&Object.keys(dat[q]).length>0)rempli++;}
     var bs=bestStreak(dat,Math.min(89,t90));
     var msg="🏋️ *Bilan "+nm+"* — Discipline 90\n"+
-      "Jour "+(t90+1)+"/90\n\n"+
+      "Jour "+Math.min(t90+1,duree)+"/"+duree+"\n\n"+
       "✅ Jours remplis : "+rempli+"\n"+
       "🔥 Meilleure série : "+bs+" jours\n"+
       (aS!=null?"📊 Score moyen : "+aS+" %\n":"")+

@@ -276,19 +276,6 @@ function nutStreak(cfg){
   }
   return {cur:cur,best:Math.max(best,cur),todayOk:todayOk};
 }
-// 🎯 Progression vers le poids cible — la destination manquait au client
-function nutProgress(cfg,allData,today90){
-  var pd=parseFloat(cfg&&cfg.pDepart)||0,pc=parseFloat(cfg&&cfg.pCible)||0;
-  if(!pd||!pc||pd<=pc)return null;
-  var act=latestWeight(allData,today90);
-  if(act==null)act=pd;
-  var total=pd-pc;
-  var perdu=Math.round(Math.max(0,pd-act)*10)/10;
-  var reste=Math.round((act-pc)*10)/10;
-  return {pd:pd,pc:pc,act:act,total:total,perdu:perdu,reste:reste,
-          pct:total>0?Math.min(100,Math.round(perdu/total*100)):0,
-          sem:reste>0?Math.ceil(reste/0.8):0,atteint:reste<=0};
-}
 // Calcule le plan (prot/kcal/durée) depuis poids départ → cible
 function nutPlan(sexe,pDepart,pCible){
   var P=NUT_PARAMS[sexe]||NUT_PARAMS.H;
@@ -1000,6 +987,42 @@ function computeStreak(allData,today90){
 }
 
 // ═══════════ HELPERS ═══════════
+// ═══════════ 🔔 RETOUR IMMÉDIAT : VIBRATION + CONFIRMATION VISUELLE ═══════════
+// iOS interdit navigator.vibrate aux pages web. La vibration ne part donc que sur
+// Android — le toast, lui, s'affiche partout : c'est lui qui garantit que l'action est vue.
+var BUZZ={tap:12,ok:[35,25,35],win:[60,40,60,40,90],err:[90,60,90],undo:20};
+function buzz(kind){
+  try{
+    if(navigator.vibrate)navigator.vibrate(BUZZ[kind]||BUZZ.tap);
+  }catch(e){}
+}
+var __toastT=null;
+function toast(msg,kind){
+  var bg=kind==="err"?"#D52B1E":kind==="win"?"#1B5E20":kind==="undo"?"#555":"#2E7D32";
+  var el=document.getElementById("app-toast");
+  if(!el){
+    el=document.createElement("div");
+    el.id="app-toast";
+    el.style.cssText="position:fixed;left:50%;bottom:86px;transform:translateX(-50%) translateY(14px);"+
+      "z-index:10000;padding:12px 18px;border-radius:24px;color:#fff;font-weight:800;font-size:13.5px;"+
+      "box-shadow:0 6px 22px rgba(0,0,0,.28);opacity:0;transition:opacity .16s,transform .16s;"+
+      "pointer-events:none;max-width:88vw;text-align:center;line-height:1.35";
+    document.body.appendChild(el);
+  }
+  el.style.background=bg;
+  el.textContent=msg;
+  // Relance l'animation même si un toast est déjà affiché
+  el.style.opacity="0";el.style.transform="translateX(-50%) translateY(14px)";
+  requestAnimationFrame(function(){
+    el.style.opacity="1";el.style.transform="translateX(-50%) translateY(0)";
+  });
+  if(__toastT)clearTimeout(__toastT);
+  __toastT=setTimeout(function(){
+    el.style.opacity="0";el.style.transform="translateX(-50%) translateY(14px)";
+  },kind==="win"?2200:1500);
+}
+// Un seul appel pour tout : ça vibre ET ça se voit
+function feedback(msg,kind){buzz(kind);if(msg)toast(msg,kind);}
 function esc(s){
   return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
 }
@@ -1712,31 +1735,6 @@ function viewNutrition(name,start){
     '<span class="hdr-title">Discipline 90</span></div>'+
     '<div class="hdr-sub">🍗 Protéines · '+esc(name)+'</div></div>'+
     '<div style="padding:16px 14px 0">';
-
-  // 🎯 DESTINATION — compte à rebours vers le poids cible
-  var PR=nutProgress(cfg,allData,getToday90(start));
-  if(PR){
-    if(PR.atteint){
-      h+='<div class="card" style="padding:16px;text-align:center;background:linear-gradient(135deg,#E8F5E9,#C8E6C9);border:none;margin-bottom:12px">'+
-        '<div style="font-size:26px">🎉</div>'+
-        '<div style="font-size:15px;font-weight:900;color:#1B5E20;margin-top:3px">OBJECTIF ATTEINT — '+PR.pc+' kg</div>'+
-        '<div style="font-size:12px;color:#2E7D32;font-weight:700;margin-top:3px">Place au maintien : garde ton quota, garde tes muscles.</div></div>';
-    }else{
-      h+='<div class="card" style="padding:0;overflow:hidden;border:none;margin-bottom:12px">'+
-        '<div style="background:linear-gradient(135deg,#0D2137,#1A3A5C);padding:14px;text-align:center">'+
-        '<div style="color:#8FB8DC;font-size:10.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase">Il te reste</div>'+
-        '<div style="color:#fff;font-size:34px;font-weight:900;line-height:1.1;margin:2px 0">'+PR.sem+'</div>'+
-        '<div style="color:#fff;font-size:13px;font-weight:800">semaine'+(PR.sem>1?"s":"")+' pour atteindre '+PR.pc+' kg</div>'+
-        (PR.perdu>0?'<div style="color:#7FD98C;font-size:11.5px;font-weight:800;margin-top:5px">🔥 Déjà '+PR.perdu+' kg de perdus</div>':'')+
-        '</div>'+
-        '<div style="padding:12px 14px;background:#fff">'+
-        '<div style="background:#E8E8E8;height:9px;border-radius:5px;overflow:hidden;margin-bottom:7px">'+
-        '<div style="background:#4CAF50;height:100%;width:'+PR.pct+'%;border-radius:5px;transition:width .4s"></div></div>'+
-        '<div style="display:flex;justify-content:space-between;font-size:11.5px;font-weight:800;color:#666">'+
-        '<span>'+PR.pd+' kg</span><span style="color:#0057A8">'+PR.act+' kg · '+PR.pct+' %</span><span>'+PR.pc+' kg</span>'+
-        '</div></div></div>';
-    }
-  }
 
   // 🔥 SÉRIE
   var ST=nutStreak(cfg);
@@ -2736,10 +2734,12 @@ function bindDay(name,start){
       habits[id]=!habits[id];
       persist({habits:habits});
       // #11 Retour haptique : micro-vibration au check, triple si toutes les habitudes cochées
-      if(habits[id]&&navigator.vibrate){
+      if(habits[id]){
         var allChecked=true;
         for(var hc=0;hc<HABITS.length;hc++){if(!habits[HABITS[hc].id]){allChecked=false;break;}}
-        navigator.vibrate(allChecked?[50,30,50,30,50]:10);
+        feedback(allChecked?"🔥 Toutes tes habitudes sont faites !":"✅ Coché",allChecked?"win":"ok");
+      }else{
+        feedback("Décoché","undo");
       }
       render();
     });
@@ -2921,18 +2921,7 @@ function viewStats(name){
       '<div style="color:rgba(255,255,255,.85);font-size:12.5px;font-weight:600;line-height:1.55;margin-top:5px">'+sous+'</div></div>';
   })();
 
-  // ═══ 2. COMPTE À REBOURS ═══
-  if(PJ&&!PJ.atteint&&PJ.assez&&PJ.jours&&PJ.sem){
-    h+='<div class="card" style="padding:0;overflow:hidden;border:none;margin-bottom:13px">'+
-      '<div style="background:#0D2137;padding:15px;text-align:center">'+
-      '<div style="color:#8FB8DC;font-size:10.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase">Il te reste</div>'+
-      '<div style="color:#fff;font-size:36px;font-weight:900;line-height:1.1;margin:2px 0">'+PJ.sem+'</div>'+
-      '<div style="color:#fff;font-size:13px;font-weight:800">semaine'+(PJ.sem>1?"s":"")+' pour atteindre '+PJ.cible+' kg</div>'+
-      '<div style="color:rgba(255,255,255,.6);font-size:11px;font-weight:700;margin-top:4px">estimation calculée sur ta tendance réelle</div>'+
-      '</div></div>';
-  }
-
-  // ═══ 3. LA COURBE DE POIDS ═══
+  // ═══ 2. LA COURBE DE POIDS ═══
   h+='<div class="chart-card">'+
     '<div class="chart-hdr"><div class="chart-dot" style="background:#1A1A1A"></div>'+
     '<span class="chart-title">Mon poids</span>'+
@@ -2955,7 +2944,7 @@ function viewStats(name){
   }
   h+='</div>';
 
-  // ═══ 4. CETTE SEMAINE VS LA PRÉCÉDENTE ═══
+  // ═══ 3. CETTE SEMAINE VS LA PRÉCÉDENTE ═══
   (function(){
     var defs=[
       {k:"poids",lbl:"Poids",u:" kg",ico:"⚖️",mieux:"bas"},
@@ -2998,7 +2987,7 @@ function viewStats(name){
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:6px">'+cards+'</div>';
   })();
 
-  // ═══ 5. CE QUE DISENT TES DONNÉES ═══
+  // ═══ 4. CE QUE DISENT TES DONNÉES ═══
   (function(){
     if(rempli<10)return;
     var msgs=[];
@@ -3039,7 +3028,7 @@ function viewStats(name){
     }
   })();
 
-  // ═══ 6. RÉGULARITÉ ═══
+  // ═══ 5. RÉGULARITÉ ═══
   (function(){
     var avgScore=avgOf(series,"score");
     var bs=bestStreak(allData,Math.min(89,lastIdx));
@@ -3055,7 +3044,7 @@ function viewStats(name){
       '<div style="font-size:10.5px;color:#AAA;margin-top:7px;line-height:1.5">Ce score résume ta journée : habitudes cochées, ressenti, sommeil.</div></div>';
   })();
 
-  // ═══ 7. TROPHÉES ═══
+  // ═══ 6. TROPHÉES ═══
   (function(){
     var bs=bestStreak(allData,89);
     var res=qgRes(allData,89);
@@ -3349,11 +3338,11 @@ function bindContract(name,start){
     var e1=document.getElementById("ct-e1").value.trim();
     var e2=document.getElementById("ct-e2").value.trim();
     var e3=document.getElementById("ct-e3").value.trim();
-    if(!why||!e1||!e2||!e3){alert("Remplis ton POURQUOI et tes 3 engagements — c'est ta fondation 🧱");return;}
+    if(!why||!e1||!e2||!e3){buzz("err");alert("Remplis ton POURQUOI et tes 3 engagements — c'est ta fondation 🧱");return;}
     var today=new Date();
     var dstr=("0"+today.getDate()).slice(-2)+"/"+("0"+(today.getMonth()+1)).slice(-2)+"/"+today.getFullYear();
     saveDay(508,{why:why,e1:e1,e2:e2,e3:e3,date:dstr});
-    if(navigator.vibrate)navigator.vibrate([50,30,50]);
+    feedback("✍️ Contrat signé — c'est parti","win");
     state.ctDraft=null;
     render();
   });
@@ -5288,7 +5277,7 @@ function nutScanBarcode(){
         if(result&&result.getText){
           var code=String(result.getText()).replace(/\D/g,"");
           if(code.length>=6){
-            if(navigator.vibrate)navigator.vibrate([50,30,50]);
+            buzz("ok");
             nutCloseScan();
             nutLookupBarcode(code);
           }
@@ -5338,7 +5327,7 @@ function nutLookupBarcode(code){
     nutAddDirect((it.marque?it.marque+" "+it.name:it.name),q,Math.round(q*it.p100/100*10)/10);
     state.nutResults=null;
     render();
-    if(navigator.vibrate)navigator.vibrate(30);
+    feedback("+"+(Math.round(q*it.p100/100*10)/10)+" g \u00b7 "+it.name,"ok");
   }).catch(function(){
     state.nutSearchBusy=false;state.nutResults=[];render();
     alert("Lecture impossible pour le moment. Saisis le produit à la main 🙂");
@@ -5349,9 +5338,14 @@ function bindNutrition(){
   var nameI=document.getElementById("nut-name"),qtyI=document.getElementById("nut-qty");
   function doAdd(){
     var n=(nameI.value||"").trim(),q=parseInt(qtyI.value,10)||0;
-    if(!n){nameI.focus();return;}
-    if(q<=0){qtyI.focus();return;}
-    if(nutAddFood(n,q))render();
+    if(!n){feedback("Indique un aliment","err");nameI.focus();return;}
+    if(q<=0){feedback("Indique la quantité","err");qtyI.focus();return;}
+    var av=nutToday(nutCfg(getAllData())).tot||0;
+    if(nutAddFood(n,q)){
+      var ap=nutToday(nutCfg(getAllData())).tot||0;
+      render();
+      feedback("+"+(Math.round((ap-av)*10)/10)+" g de protéines","ok");
+    }
   }
   if(addBtn)addBtn.addEventListener("click",doAdd);
   if(qtyI)qtyI.addEventListener("keypress",function(e){if(e.key==="Enter")doAdd();});
@@ -5396,7 +5390,7 @@ function bindNutrition(){
       if(!it)return;
       nutAddDirect(it.name,it.qty,it.prot);
       render();
-      if(navigator.vibrate)navigator.vibrate(25);
+      feedback("+"+it.prot+" g \u00b7 "+it.name,"ok");
     });
   }
   var dels=document.querySelectorAll(".nut-del");
@@ -5405,8 +5399,10 @@ function bindNutrition(){
       var ix=parseInt(this.getAttribute("data-i"),10);
       var day=nutToday(nutCfg(getAllData()));
       var foods=(day.foods||[]).slice();
+      var sup=foods[ix];
       foods.splice(ix,1);
       nutSaveDay({foods:foods});render();
+      feedback((sup?"\u2212"+sup.prot+" g \u00b7 ":"")+"retiré","undo");
     });
   }
 }
@@ -5540,7 +5536,7 @@ function bindFinance(){
     cfg.tirelire.versements=cfg.tirelire.versements||{};
     cfg.tirelire.versements[finMonthKey()]={m:montant,obj:T.capa,d:isoLocal()};
     finSaveCfg(cfg);render();
-    if(navigator.vibrate)navigator.vibrate([40,20,40]);
+    feedback("🐷 "+finFmt(montant,cfg.devise||"CHF")+" dans la tirelire","win");
   }
   var tlOk=document.getElementById("fin-tl-ok");
   if(tlOk)tlOk.addEventListener("click",function(){versement(finCalc(finCfg(getAllData())).capa);});
@@ -5595,7 +5591,7 @@ function bindFinance(){
       cfg.lastCalc=T;
       finSaveCfg(cfg);
       render();
-      if(navigator.vibrate)navigator.vibrate([40,20,40]);
+      feedback("🧮 Ton plan est calculé","win");
     });
   }
 }
@@ -5690,7 +5686,7 @@ function bindMain(name,start){
         var mission=getAllData()[200+today90];
         mission.status=r;mission.xp=xpVal;mission.iso=iso&&r!=="lost";
         saveDay(200+today90,mission);
-        if(r!=="lost"&&navigator.vibrate)navigator.vibrate([50,30,50]); // #11 récompense haptique
+        feedback(r==="lost"?"Mission manquée — demain on repart":"⚔️ Mission validée !",r==="lost"?"undo":"win");
         if(r!=="lost"){
           ov.innerHTML='<div style="font-size:72px;margin-bottom:14px">🔨</div>'+
             '<div style="color:#4CAF50;font-size:24px;font-weight:900;margin-bottom:10px">VICTOIRE DU JOUR VALIDÉE !</div>'+
@@ -5754,7 +5750,7 @@ function bindMain(name,start){
           var mission=getAllData()[200+today90];
           mission.status=r;mission.xp=xpVal;mission.iso=iso&&r!=="lost";
           saveDay(200+today90,mission);
-          if(r!=="lost"&&navigator.vibrate)navigator.vibrate([50,30,50]); // #11
+          feedback(r==="lost"?"Mission manquée — demain on repart":"⚔️ Mission validée !",r==="lost"?"undo":"win");
         if(r!=="lost"){
           ov.innerHTML='<div style="font-size:72px;margin-bottom:14px">🔨</div>'+
             '<div style="color:#4CAF50;font-size:24px;font-weight:900;margin-bottom:10px">VICTOIRE DU JOUR VALIDÉE !</div>'+
@@ -5851,7 +5847,7 @@ function bindMain(name,start){
   var qgT=document.getElementById("qg-terrain");
   if(qgT)qgT.addEventListener("click",function(){
     var q=getAllData()[400+today90]||{};
-    q.p=!q.p;saveDay(400+today90,q);render();
+    q.p=!q.p;saveDay(400+today90,q);render();feedback(q.p?"🧱 Brique posée":"Brique retirée",q.p?"ok":"undo");
     var hp=document.getElementById("qg-house");if(hp)hp.classList.add("qg-shake");
   });
   var qQuests=document.querySelectorAll(".qg-quest");
@@ -5860,14 +5856,16 @@ function bindMain(name,start){
       var n=this.getAttribute("data-q");
       var q=getAllData()[400+today90]||{};
       if(n==="1")q.s1=!q.s1;else q.s2=!q.s2;
+      var actif=(n==="1")?q.s1:q.s2;
       saveDay(400+today90,q);render();
+      feedback(actif?"🧱 Brique posée":"Brique retirée",actif?"ok":"undo");
       var hq=document.getElementById("qg-house");if(hq)hq.classList.add("qg-shake");
     });
   }
   var qgD=document.getElementById("qg-digital");
   if(qgD)qgD.addEventListener("click",function(){
     var q=getAllData()[400+today90]||{};
-    q.e=!q.e;saveDay(400+today90,q);render();
+    q.e=!q.e;saveDay(400+today90,q);render();feedback(q.e?"🧱 Brique posée":"Brique retirée",q.e?"ok":"undo");
     var he=document.getElementById("qg-house");if(he)he.classList.add("qg-shake");
   });
   // Dream autosave

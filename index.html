@@ -1077,9 +1077,14 @@ function applyTheme(allData){
   if(mt)mt.setAttribute("content",h?"#263038":"#33241F");
 }
 // 🎚️ Couleur de jauge : rouge à 0 %, vert à 100 %, en continu.
+// 🎚️ Rouge → orange → jaune → vert, en continu.
+// Le jaune tombe à mi-parcours, le vert franc n'arrive qu'au bout.
 function gaugeCol(pct){
   var p=Math.max(0,Math.min(100,parseFloat(pct)||0));
-  return "hsl("+Math.round(p*1.28)+",58%,45%)";
+  var h=p<=50?(p/50)*54:54+((p-50)/50)*76;   // 0=rouge · 54=jaune · 130=vert
+  var s=p<=50?72:72-((p-50)/50)*10;
+  var l=p<=50?47:47-((p-50)/50)*7;
+  return "hsl("+Math.round(h)+","+Math.round(s)+"%,"+Math.round(l)+"%)";
 }
 // Palettes en JS : les fenêtres partagées sont des documents à part,
 // elles n'héritent d'aucune variable de la page. On leur injecte la sienne.
@@ -1632,12 +1637,12 @@ function svgLineChart(values,color,opts){
     '<path d="'+path+'" fill="none" stroke="'+color+'" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>'+dot+'</svg>';
 }
 
-function svgRing(pct,color,size){
-  size=size||64;
-  var r=(size-8)/2, c=2*Math.PI*r, p=Math.min(Math.max(pct||0,0),1);
-  return '<svg width="'+size+'" height="'+size+'" style="transform:rotate(-90deg)">'+
-    '<circle cx="'+size/2+'" cy="'+size/2+'" r="'+r+'" fill="none" stroke="#EBEBEB" stroke-width="6"/>'+
-    '<circle cx="'+size/2+'" cy="'+size/2+'" r="'+r+'" fill="none" stroke="'+color+'" stroke-width="6" stroke-dasharray="'+(c*p).toFixed(1)+' '+c.toFixed(1)+'" stroke-linecap="round"/></svg>';
+function svgRing(pct,color,size,w){
+  size=size||64; w=w||6;
+  var r=(size-w-2)/2, c=2*Math.PI*r, p=Math.min(Math.max(pct||0,0),1);
+  return '<svg width="'+size+'" height="'+size+'" style="transform:rotate(-90deg);display:block">'+
+    '<circle cx="'+size/2+'" cy="'+size/2+'" r="'+r+'" fill="none" stroke="var(--soft2)" stroke-width="'+w+'"/>'+
+    '<circle cx="'+size/2+'" cy="'+size/2+'" r="'+r+'" fill="none" stroke="'+color+'" stroke-width="'+w+'" stroke-dasharray="'+(c*p).toFixed(1)+' '+c.toFixed(1)+'" stroke-linecap="round" style="transition:stroke-dasharray .7s cubic-bezier(.2,.75,.25,1),stroke .5s"/></svg>';
 }
 </script>
 <script>
@@ -2252,6 +2257,30 @@ function viewCalendar(name,start){
     '<div class="hdr-sub">'+esc(name)+' · '+progDays+' jours'+(BLOC>1?' · Bloc '+BLOC+'/4':'')+' <span id="sync-badge" style="font-size:11px"></span></div></div>'+
     '<div style="padding:16px 14px 0">';
 
+  // ⭕ CARTE HÉROS — la jauge en premier, en grand.
+  // Sa couleur suit le remplissage : rouge → orange → jaune → vert.
+  var etat=pct>=85?"Tu tiens le rythme":pct>=65?"Bien engagé":pct>=45?"À consolider":pct>=25?"Ça décroche":"À relancer";
+  h+='<div class="card" style="padding:24px 18px 20px;margin-bottom:16px;text-align:center">'+
+    '<div style="font-size:11px;font-weight:800;color:var(--mute);letter-spacing:1.4px;text-transform:uppercase;margin-bottom:16px">Ma progression</div>'+
+    '<div class="ring-wrap" style="margin:0 auto">'+svgRing(pct/100,pctColor,196,16)+
+    '<div class="ring-txt" style="flex-direction:column;gap:2px">'+
+    '<span style="font-size:54px;font-weight:900;letter-spacing:-2px;line-height:1;color:var(--ink)">'+pct+
+    '<span style="font-size:22px;letter-spacing:0">%</span></span>'+
+    '<span style="font-size:11.5px;font-weight:700;color:var(--mute)">de tes jours remplis</span></div></div>'+
+    '<div style="font-size:13.5px;font-weight:800;color:'+pctColor+';margin-top:14px">'+etat+'</div>'+
+    '<div style="display:flex;gap:7px;justify-content:center;flex-wrap:wrap;margin-top:14px">'+
+      '<span style="background:var(--soft2);border-radius:100px;padding:9px 15px;font-size:12.5px;font-weight:700;color:var(--ink2)">'+
+        streakBadge(streak).e+' <b style="color:'+(streak>=1?streakBadge(streak).c:"var(--mute)")+'">'+streak+'</b> jour'+(streak>1?'s':'')+' de série</span>'+
+      '<span style="background:var(--soft2);border-radius:100px;padding:9px 15px;font-size:12.5px;font-weight:700;color:var(--ink2)"><b>'+filled+'</b> remplis</span>'+
+      '<span style="background:var(--soft2);border-radius:100px;padding:9px 15px;font-size:12.5px;font-weight:700;color:var(--ink2)"><b>'+daysLeft+'</b> restants</span>'+
+    '</div>'+
+    '<div style="font-size:11.5px;color:var(--mute);font-weight:700;margin-top:13px">Jour '+Math.min(today90+1,progDays)+' sur '+progDays+'</div>'+
+    '<div class="legend" style="justify-content:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)">'+
+    '<span><i style="background:var(--ok)"></i>Complet</span>'+
+    '<span><i style="background:#FFD0B0"></i>Partiel</span>'+
+    '<span><i style="background:var(--bad)"></i>Manqué</span>'+
+    '<span><i style="background:var(--soft2)"></i>À venir</span></div></div>';
+
   // 🔔 Bannière rappel du soir — affichée UNE fois, disparaît après activation (slot 509)
   if(!(allData[509]&&allData[509].rappel)){
     h+='<div class="card" style="padding:14px 15px;margin-bottom:14px;border:2px solid var(--violet);background:#FBF7FE">'+
@@ -2267,19 +2296,6 @@ function viewCalendar(name,start){
       '<div style="font-size:12px;color:#555;line-height:1.65;margin-bottom:10px">Active un rappel <strong>chaque soir à 20h30</strong> pour ne jamais oublier de peser tes protéines. C\'est ta quête secondaire — atteins ton quota, valide ta journée.</div>'+
       '<button id="add-prot-reminder" class="big-btn" style="background:var(--ok-d);box-shadow:0 4px 14px var(--ok-d)44;margin-bottom:0;padding:13px 0;font-size:14px">Activer mon rappel protéines →</button></div>';
   }
-
-  // progress card
-  h+='<div class="card" style="display:flex;align-items:center;gap:16px;padding:16px 18px;margin-bottom:18px">'+
-    '<div class="ring-wrap">'+svgRing(pct/100,pctColor,64)+
-    '<div class="ring-txt" style="font-size:15px;color:'+K+'">'+pct+'%</div></div>'+
-    '<div><div style="font-weight:900;font-size:17px">Progression</div>'+
-    '<div style="font-size:12px;color:var(--mute);margin-top:3px">Jour '+Math.min(today90+1,progDays)+' sur '+progDays+'</div>'+
-    '<div style="font-size:13px;font-weight:900;margin-top:5px;color:'+(streak>=1?streakBadge(streak).c:"#BBB")+'">'+streakBadge(streak).e+' '+streak+' jour'+(streak>1?'s':'')+' d\'affilée</div>'+
-    '<div class="legend">'+
-    '<span><i style="background:var(--ok)"></i>Complet</span>'+
-    '<span><i style="background:#FFD0B0"></i>Partiel</span>'+
-    '<span><i style="background:var(--bad)"></i>Manqué</span>'+
-    '<span><i style="background:#EEF4FF"></i>À venir</span></div></div></div>';
 
   // GOAL CARD
   if(goal){

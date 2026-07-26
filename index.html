@@ -1072,6 +1072,7 @@ function applyTheme(allData){
   var cl=document.querySelectorAll(".app,.dark-screen");
   var h=clientTheme(allData)==="h";
   document.documentElement.classList.toggle("th-h",h);
+  __cvarCache={}; // le thème a pu changer : on relit les couleurs
   for(var i=0;i<cl.length;i++)cl[i].classList.toggle("th-h",h);
   var mt=document.querySelector('meta[name="theme-color"]');
   if(mt)mt.setAttribute("content",h?"#263038":"#33241F");
@@ -1511,15 +1512,15 @@ function svgPoidsChart(values,cible,opts){
   var g="";
   for(var k=0;k<=3;k++){
     var gy=pad.t+ih*(k/3),gv=mx-(rg*(k/3));
-    g+='<line x1="'+pad.l+'" y1="'+gy.toFixed(1)+'" x2="'+(W-pad.r)+'" y2="'+gy.toFixed(1)+'" stroke="var(--soft2)"/>'+
+    g+='<line x1="'+pad.l+'" y1="'+gy.toFixed(1)+'" x2="'+(W-pad.r)+'" y2="'+gy.toFixed(1)+'" stroke='+JSON.stringify(solid("var(--soft2)"))+'/>'+
       '<text x="'+(pad.l-6)+'" y="'+(gy+3).toFixed(1)+'" font-size="9" fill="#BBB" text-anchor="end">'+(Math.round(gv*10)/10)+'</text>';
   }
   // Ligne d'objectif
   var obj="";
   if(cible!=null&&cible&&cible>=mn&&cible<=mx){
     var oy=py(cible);
-    obj='<line x1="'+pad.l+'" y1="'+oy.toFixed(1)+'" x2="'+(W-pad.r)+'" y2="'+oy.toFixed(1)+'" stroke="var(--ok)" stroke-width="1.5" stroke-dasharray="5 4"/>'+
-      '<text x="'+(W-pad.r)+'" y="'+(oy-5).toFixed(1)+'" font-size="9" font-weight="700" fill="var(--ok)" text-anchor="end">objectif '+cible+' kg</text>';
+    obj='<line x1="'+pad.l+'" y1="'+oy.toFixed(1)+'" x2="'+(W-pad.r)+'" y2="'+oy.toFixed(1)+'" stroke='+JSON.stringify(solid("var(--ok)"))+' stroke-width="1.5" stroke-dasharray="5 4"/>'+
+      '<text x="'+(W-pad.r)+'" y="'+(oy-5).toFixed(1)+'" font-size="9" font-weight="700" fill='+JSON.stringify(solid("var(--ok)"))+' text-anchor="end">objectif '+cible+' kg</text>';
   }
   // Droite de tendance
   var trend="";
@@ -1527,7 +1528,7 @@ function svgPoidsChart(values,cible,opts){
   if(T&&T.n>=4){
     var y1=T.ord+T.pente*T.premier,y2=T.ord+T.pente*T.dernier;
     y1=Math.max(mn,Math.min(mx,y1));y2=Math.max(mn,Math.min(mx,y2));
-    trend='<line x1="'+px(T.premier).toFixed(1)+'" y1="'+py(y1).toFixed(1)+'" x2="'+px(T.dernier).toFixed(1)+'" y2="'+py(y2).toFixed(1)+'" stroke="var(--gold-d)" stroke-width="1.5" stroke-dasharray="3 3" opacity=".8"/>';
+    trend='<line x1="'+px(T.premier).toFixed(1)+'" y1="'+py(y1).toFixed(1)+'" x2="'+px(T.dernier).toFixed(1)+'" y2="'+py(y2).toFixed(1)+'" stroke='+JSON.stringify(solid("var(--gold-d)"))+' stroke-width="1.5" stroke-dasharray="3 3" opacity=".8"/>';
   }
   var d="",started=false,dots="";
   for(var i=0;i<n;i++){
@@ -1537,11 +1538,11 @@ function svgPoidsChart(values,cible,opts){
     started=true;
   }
   var last=-1;for(var z=n-1;z>=0;z--){if(values[z]!=null){last=z;break;}}
-  if(last>=0)dots='<circle cx="'+px(last).toFixed(1)+'" cy="'+py(values[last]).toFixed(1)+'" r="4" fill="var(--ink)"/>';
+  if(last>=0)dots='<circle cx="'+px(last).toFixed(1)+'" cy="'+py(values[last]).toFixed(1)+'" r="4" fill='+JSON.stringify(solid("var(--ink)"))+'/>';
   var step=Math.max(1,Math.ceil(n/5)),xl="";
   for(var x=0;x<n;x+=step)xl+='<text x="'+px(x).toFixed(1)+'" y="'+(H-6)+'" font-size="9" fill="#BBB" text-anchor="middle">J'+(x+1)+'</text>';
   return '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;display:block">'+g+obj+trend+xl+
-    '<path d="'+d+'" fill="none" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>'+dots+'</svg>';
+    '<path d="'+d+'" fill="none" stroke='+JSON.stringify(solid("var(--ink)"))+' stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>'+dots+'</svg>';
 }
 function svgMultiChart(sets,opts){
   opts=opts||{};
@@ -1557,7 +1558,7 @@ function svgMultiChart(sets,opts){
   var grid="";
   for(var g=0;g<=3;g++){
     var gy=pad.t+ih*(g/3);
-    grid+='<line x1="'+pad.l+'" y1="'+gy.toFixed(1)+'" x2="'+(W-pad.r)+'" y2="'+gy.toFixed(1)+'" stroke="var(--soft2)" stroke-width="1"/>';
+    grid+='<line x1="'+pad.l+'" y1="'+gy.toFixed(1)+'" x2="'+(W-pad.r)+'" y2="'+gy.toFixed(1)+'" stroke='+JSON.stringify(solid("var(--soft2)"))+' stroke-width="1"/>';
   }
   var step=Math.max(1,Math.ceil(n/6)),xlab="";
   for(var x=0;x<n;x+=step){
@@ -1595,6 +1596,7 @@ function svgMultiChart(sets,opts){
     '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;display:block">'+grid+xlab+paths+'</svg>';
 }
 function svgLineChart(values,color,opts){
+  color=solid(color);
   opts=opts||{};
   var W=opts.width||340, H=opts.height||140, pad={t:8,r:8,b:22,l:34};
   var valid=values.filter(function(v){return v!=null;});
@@ -1613,7 +1615,7 @@ function svgLineChart(values,color,opts){
   for(var g=0;g<=3;g++){
     var gy=pad.t+ih*(g/3);
     var gv=max-(range*(g/3));
-    grid+='<line x1="'+pad.l+'" y1="'+gy.toFixed(1)+'" x2="'+(W-pad.r)+'" y2="'+gy.toFixed(1)+'" stroke="var(--soft2)" stroke-width="1"/>';
+    grid+='<line x1="'+pad.l+'" y1="'+gy.toFixed(1)+'" x2="'+(W-pad.r)+'" y2="'+gy.toFixed(1)+'" stroke='+JSON.stringify(solid("var(--soft2)"))+' stroke-width="1"/>';
     grid+='<text x="'+(pad.l-6)+'" y="'+(gy+3).toFixed(1)+'" font-size="9" fill="#BBB" text-anchor="end">'+(Math.round(gv*10)/10)+'</text>';
   }
   var step=Math.max(1,Math.ceil(n/6));
@@ -1637,11 +1639,26 @@ function svgLineChart(values,color,opts){
     '<path d="'+path+'" fill="none" stroke="'+color+'" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>'+dot+'</svg>';
 }
 
+// Un attribut SVG (stroke, fill) n'accepte PAS var(--x) : il faut la valeur littérale.
+// On la lit une fois sur la racine du document et on la met en cache.
+var __cvarCache={};
+function solid(c){
+  if(typeof c!=="string")return c;
+  var m=c.match(/^var\((--[a-zA-Z0-9-]+)\)$/);
+  if(!m)return c;
+  var k=m[1];
+  if(__cvarCache[k])return __cvarCache[k];
+  var v="";
+  try{v=getComputedStyle(document.documentElement).getPropertyValue(k).trim();}catch(e){}
+  if(!v)v="#888888";
+  __cvarCache[k]=v;
+  return v;
+}
 function svgRing(pct,color,size,w){
-  size=size||64; w=w||6;
+  size=size||64; w=w||6; color=solid(color);
   var r=(size-w-2)/2, c=2*Math.PI*r, p=Math.min(Math.max(pct||0,0),1);
   return '<svg width="'+size+'" height="'+size+'" style="transform:rotate(-90deg);display:block">'+
-    '<circle cx="'+size/2+'" cy="'+size/2+'" r="'+r+'" fill="none" stroke="var(--soft2)" stroke-width="'+w+'"/>'+
+    '<circle cx="'+size/2+'" cy="'+size/2+'" r="'+r+'" fill="none" stroke='+JSON.stringify(solid("var(--soft2)"))+' stroke-width="'+w+'"/>'+
     '<circle cx="'+size/2+'" cy="'+size/2+'" r="'+r+'" fill="none" stroke="'+color+'" stroke-width="'+w+'" stroke-dasharray="'+(c*p).toFixed(1)+' '+c.toFixed(1)+'" stroke-linecap="round" style="transition:stroke-dasharray .7s cubic-bezier(.2,.75,.25,1),stroke .5s"/></svg>';
 }
 </script>
@@ -2454,7 +2471,7 @@ function viewCalendar(name,start){
       '<div style="color:#fff;font-weight:900;font-size:13px;margin-bottom:10px">🎯 '+esc(qgc.identity)+'</div>'+
       '<div style="text-align:center;position:relative;height:110px;margin-bottom:10px">'+
       '<svg width="150" height="110" style="position:absolute;left:50%;transform:translateX(-50%)">'+
-      '<circle cx="75" cy="60" r="'+lvl.radius+'" fill="rgba(139,195,74,.12)" stroke="var(--ok-l)" stroke-width="1.5" stroke-dasharray="4 4"/></svg>'+
+      '<circle cx="75" cy="60" r="'+lvl.radius+'" fill="rgba(139,195,74,.12)" stroke='+JSON.stringify(solid("var(--ok-l)"))+' stroke-width="1.5" stroke-dasharray="4 4"/></svg>'+
       '<div id="qg-house" style="position:absolute;left:50%;top:38px;transform:translateX(-50%);font-size:40px">'+lvl.icon+'</div></div>'+
       '<div style="text-align:center;color:#fff;font-weight:900;font-size:15px">'+esc(lvlName)+'</div>'+
       '<div style="text-align:center;color:var(--ok-l);font-size:11px;font-weight:700;margin:4px 0 12px">🧱 '+res.total+' brique'+(res.total>1?'s':'')+' posée'+(res.total>1?'s':'')+(nxtL?' · prochain niveau à '+nxtL.min+' briques':' · SOMMET ATTEINT')+'</div>'+

@@ -8,7 +8,7 @@
 /* ═══════════ THÈMES ═══════════
    Deux palettes choisies selon la fiche du client (femme / homme).
    Toutes les couleurs de l'app passent par ces variables. */
-.app,.dark-screen{
+:root,.app,.dark-screen{
   --card:#FFFFFF;
   --ink:#33241F; --ink2:#4A3A34;
   --brand:#E8735A; --brand-d:#C9503A; --brand2:#F4B678;
@@ -22,7 +22,7 @@
   --shadow:0 4px 14px rgba(196,132,110,.10);
   --shadow-l:0 10px 26px rgba(196,132,110,.14);
 }
-.app.th-h,.dark-screen.th-h{
+.th-h,.app.th-h,.dark-screen.th-h{
   --ink:#263038; --ink2:#37424C;
   --brand:#2E6FB7; --brand-d:#1B4C86; --brand2:#6FA8DC;
   --ok:#3E9E8F; --ok-d:#2C7A6E; --ok-l:#5CB8AA;
@@ -230,8 +230,8 @@ var FOODS={
 };
 // Paramètres du calculateur AM Coach (identiques au bilan slot 600)
 var NUT_PARAMS={
-  H:{protX:2.0,kcalX:32,imcMin:20.0},
-  F:{protX:1.8,kcalX:28,imcMin:19.0}
+  H:{protX:1.8,protMax:2.0,kcalX:32,imcMin:20.0},
+  F:{protX:1.6,protMax:1.8,kcalX:28,imcMin:19.0}
 };
 // Reconnaît un aliment dans la base et renvoie ses protéines pour une quantité donnée
 // Normalise pour comparer : minuscules, sans accents, sans ponctuation
@@ -314,10 +314,12 @@ function nutStreak(cfg){
 function nutPlan(sexe,pDepart,pCible){
   var P=NUT_PARAMS[sexe]||NUT_PARAMS.H;
   var prot=Math.round(P.protX*pCible);
+  var protMax=Math.round((P.protMax||P.protX)*pCible);
   var kcal=Math.round(P.kcalX*pCible);
   var perte=Math.round((pDepart-pCible)*10)/10;
   var duree=perte>0?Math.ceil(perte/0.8):0; // ~800 g / semaine
-  return {prot:prot,kcal:kcal,perte:perte,duree:duree,protX:P.protX,kcalX:P.kcalX};
+  return {prot:prot,protMax:protMax,kcal:kcal,perte:perte,duree:duree,
+          protX:P.protX,protMax_x:P.protMax||P.protX,kcalX:P.kcalX};
 }
 
 // ═══════════ 💰 QUÊTE FINANCE — QUESTIONNAIRE GUIDÉ ═══════════
@@ -1069,6 +1071,7 @@ function clientTheme(allData){
 function applyTheme(allData){
   var cl=document.querySelectorAll(".app,.dark-screen");
   var h=clientTheme(allData)==="h";
+  document.documentElement.classList.toggle("th-h",h);
   for(var i=0;i<cl.length;i++)cl[i].classList.toggle("th-h",h);
   var mt=document.querySelector('meta[name="theme-color"]');
   if(mt)mt.setAttribute("content",h?"#263038":"#33241F");
@@ -1077,6 +1080,23 @@ function applyTheme(allData){
 function gaugeCol(pct){
   var p=Math.max(0,Math.min(100,parseFloat(pct)||0));
   return "hsl("+Math.round(p*1.28)+",58%,45%)";
+}
+// Palettes en JS : les fenêtres partagées sont des documents à part,
+// elles n'héritent d'aucune variable de la page. On leur injecte la sienne.
+var TH_VARS={
+ f:{card:"#FFFFFF",ink:"#33241F",ink2:"#4A3A34",brand:"#E8735A","brand-d":"#C9503A",
+    brand2:"#F4B678",ok:"#5FBF9C","ok-d":"#3E8F74","ok-l":"#86D3B4",warn:"#F0A44E",
+    "warn-d":"#D4772E",amber:"#F4C56A",bad:"#C0574A",violet:"#B9A6DE",gold:"#E2B15C",
+    "gold-d":"#C0904A",mute:"#96786F",line:"#F0E2DA",soft:"#FBF4EF",soft2:"#F7EDE7",bg:"#FBF5F1"},
+ h:{card:"#FFFFFF",ink:"#263038",ink2:"#37424C",brand:"#2E6FB7","brand-d":"#1B4C86",
+    brand2:"#6FA8DC",ok:"#3E9E8F","ok-d":"#2C7A6E","ok-l":"#5CB8AA",warn:"#E08A3C",
+    "warn-d":"#B96A20",amber:"#E0AE4B",bad:"#96574E",violet:"#5B6BA8",gold:"#B99A4E",
+    "gold-d":"#9A7D38",mute:"#6F7E8A",line:"#E1E7EC",soft:"#F0F3F6",soft2:"#E7EDF3",bg:"#F0F3F6"}
+};
+function themeCSS(){
+  var t=TH_VARS[clientTheme(getAllData())]||TH_VARS.f,o=":root{";
+  for(var k in t){if(t.hasOwnProperty(k))o+="--"+k+":"+t[k]+";";}
+  return o+"}";
 }
 function esc(s){
   return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
@@ -1365,7 +1385,7 @@ function generateDiplome(name,startDate,allData){
   var filled=series.filter(function(s){return s.score!=null;}).length;
 
   var html='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>'+
-  '<title>Diplôme — '+esc(name)+'</title><style>'+
+  '<title>Diplôme — '+esc(name)+'</title><style>'+themeCSS()+
   '*{box-sizing:border-box;margin:0;padding:0}body{font-family:Georgia,"Times New Roman",serif;background:var(--soft);padding:20px}'+
   '.dip{max-width:620px;margin:0 auto;background:#fff;border:3px double var(--gold);padding:8px}'+
   '.inner{border:1.5px solid var(--gold);padding:44px 32px;text-align:center}'+
@@ -2532,6 +2552,8 @@ function viewCalendar(name,start){
   // ⚠️ Message du coach → déplacé dans la vue jour (épuration accueil)
 
   // 3 months (mois 2 et 3 verrouillés tant que le précédent n'est pas terminé)
+  // Ancre : le second appui sur Agenda amène ici
+  h+='<div id="cal-anchor" style="scroll-margin-top:8px"></div>';
   // Programme court (Reset 14 j...) : les 14 jours visibles, le reste cadenassé
   var nbMonths=3;
   for(var mi=0;mi<nbMonths;mi++){
@@ -3212,7 +3234,7 @@ function openRapport(name,start,period,dataOverride){
 
   var css="*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,'Helvetica Neue',sans-serif;background:var(--soft);color:var(--ink)}.pg{max-width:600px;margin:0 auto;background:#fff}.hdr{background:var(--ink);padding:24px 20px 18px}.brand{color:#fff;font-weight:900;font-size:17px;letter-spacing:2px;text-transform:uppercase;display:flex;align-items:center;gap:8px}.b{width:4px;height:22px;border-radius:2px}.sub{color:#666;font-size:11px;margin-top:5px;padding-left:14px}.hero{background:linear-gradient(135deg,var(--brand),#8B0000);padding:24px 20px;color:#fff}.hn{font-size:26px;font-weight:900;margin-bottom:3px}.hs{font-size:13px;opacity:.8;margin-bottom:6px}.hd{font-size:11px;opacity:.6}.kg{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:16px}.kpi{background:#fff;border-radius:12px;padding:14px;box-shadow:0 2px 6px rgba(0,0,0,.07);text-align:center}.kv{font-size:28px;font-weight:900;margin-bottom:3px}.kl{font-size:11px;color:#666;font-weight:700;text-transform:uppercase}.ks{font-size:11px;font-weight:700;margin-top:4px}.sec{padding:0 14px 14px}.st{display:flex;align-items:center;gap:8px;margin:14px 0 10px}.sb{width:3px;height:16px;border-radius:2px}.sl{font-weight:900;font-size:12px;text-transform:uppercase;letter-spacing:.8px}.ch{background:#fff;border-radius:12px;padding:12px;margin-bottom:8px;box-shadow:0 2px 6px rgba(0,0,0,.07)}.ct{font-size:11px;font-weight:800;color:#666;text-transform:uppercase;margin-bottom:6px}.hg{display:grid;grid-template-columns:1fr 1fr;gap:7px}.hc{background:#fff;border-radius:10px;padding:11px;box-shadow:0 2px 6px rgba(0,0,0,.07);display:flex;align-items:center;gap:8px}.hi{font-size:18px}.hnm{font-size:11px;color:#666;font-weight:700}.hv{font-size:15px;font-weight:900}.bc{background:#fff;border-radius:12px;padding:13px;margin-bottom:8px;box-shadow:0 2px 6px rgba(0,0,0,.07);border-left:4px solid var(--brand)}.bw{font-size:11px;color:var(--brand);font-weight:800;margin-bottom:7px;text-transform:uppercase}.bi{margin-bottom:5px}.bk{font-size:11px;color:#666;font-weight:700;text-transform:uppercase;margin-bottom:2px}.bt{font-size:12px;color:#333;line-height:1.5}.ftr{background:var(--ink);padding:20px;text-align:center;margin-top:14px}.fm{color:#666;font-size:11px;line-height:1.8}.fs{color:#fff;font-weight:900;font-size:13px;margin-top:8px}@media print{body{background:#fff}}";
 
-  var html="<!DOCTYPE html><html lang='fr'><head><meta charset='UTF-8'/><meta name='viewport' content='width=device-width,initial-scale=1'/><title>Rapport J"+period+" — "+esc(name)+"</title><style>"+css+"</style></head><body><div id='rapbar' style='position:sticky;top:0;z-index:999;background:var(--ink);padding:9px 10px;display:flex;gap:7px'><button onclick='rapShare()' style='flex:1;background:var(--brand2);color:#fff;border:0;border-radius:9px;padding:11px 6px;font-weight:800;font-size:13px'>📤 Partager</button><button onclick='rapPdf()' style='flex:1;background:var(--gold);color:#fff;border:0;border-radius:9px;padding:11px 6px;font-weight:800;font-size:13px'>🖨️ PDF</button><button onclick='window.close();setTimeout(function(){if(history.length>1)history.back();},250)' style='background:#333;color:#fff;border:0;border-radius:9px;padding:11px 13px;font-weight:800;font-size:13px'>✕</button></div><div class='pg'>";
+  var html="<!DOCTYPE html><html lang='fr'><head><meta charset='UTF-8'/><meta name='viewport' content='width=device-width,initial-scale=1'/><title>Rapport J"+period+" — "+esc(name)+"</title><style>"+themeCSS()+css+"</style></head><body><div id='rapbar' style='position:sticky;top:0;z-index:999;background:var(--ink);padding:9px 10px;display:flex;gap:7px'><button onclick='rapShare()' style='flex:1;background:var(--brand2);color:#fff;border:0;border-radius:9px;padding:11px 6px;font-weight:800;font-size:13px'>📤 Partager</button><button onclick='rapPdf()' style='flex:1;background:var(--gold);color:#fff;border:0;border-radius:9px;padding:11px 6px;font-weight:800;font-size:13px'>🖨️ PDF</button><button onclick='window.close();setTimeout(function(){if(history.length>1)history.back();},250)' style='background:#333;color:#fff;border:0;border-radius:9px;padding:11px 13px;font-weight:800;font-size:13px'>✕</button></div><div class='pg'>";
   html+="<div class='hdr'><div class='brand'><div class='b' style='background:var(--brand)'></div>AM Coach Genève<div class='b' style='background:var(--brand2)'></div></div><div class='sub'>TransfoPhysique · Rapport J"+period+"</div></div>";
   html+="<div class='hero'><div class='hn'>"+esc(name)+"</div><div class='hs'>"+period+" jours de transformation</div><div class='hd'>"+fmt(d0)+" → "+fmt(d1)+"</div></div>";
   html+="<div class='kg'>";
@@ -4065,10 +4087,10 @@ function loadCoachDataFromCloud(){
 function frNum(x){return String(Math.round(x*10)/10).replace(".",",");}
 // ═══════════ CALCULATEUR V2 — protections IMC, ratios variables, sexe/taille/âge ═══════════
 var CALC_SEUILS={
-  H:{imcMin:20.0,mgSante:12,mgReco:10,kcalX:32,protX:2.0,
+  H:{imcMin:20.0,mgSante:12,mgReco:10,kcalX:32,protX:1.8,protMax:2.0,
      ratios:{seul:0.60,encadre:0.75,bonus:0.85},
      rythmes:{seul:[0.5,0.8],encadre:[1.0,1.5],bonus:[1.5,2.0]}},
-  F:{imcMin:19.0,mgSante:18,mgReco:15,kcalX:28,protX:1.8,
+  F:{imcMin:19.0,mgSante:18,mgReco:15,kcalX:28,protX:1.6,protMax:1.8,
      ratios:{seul:0.55,encadre:0.70,bonus:0.80},
      rythmes:{seul:[0.3,0.5],encadre:[0.8,1.2],bonus:[1.2,1.6]}}
 };
@@ -4096,6 +4118,7 @@ function calcPlanV2(sexe,p0,mga,mgc,taille,age){
   var pEff=p0-Leff;
   res.Leff=Leff;res.pEff=pEff;
   res.prot=Math.round(S.protX*pEff);
+  res.protMax=Math.round((S.protMax||S.protX)*pEff);
   res.protRef=pEff;
   // ─── Avertissements ───
   if(mgc<S.mgReco){
@@ -4105,7 +4128,7 @@ function calcPlanV2(sexe,p0,mga,mgc,taille,age){
     res.warnings.push({lvl:"med",txt:"Cible sous le seuil santé ("+S.mgSante+" % "+(isF?"femme":"homme")+") : risques hormonaux et immunitaires"+(isF?", aménorrhée possible":"")+". Avis médical recommandé avant d'engager ce plan."});
   }
   if(age&&age>=40){
-    res.warnings.push({lvl:"age",txt:"Client 40+ : la sarcopénie accélère la fonte musculaire en déficit. Musculation NON NÉGOCIABLE + protéines à "+S.protX+" g/kg de poids cible, sinon la perte se fera sur le muscle."});
+    res.warnings.push({lvl:"age",txt:"Client 40+ : la sarcopénie accélère la fonte musculaire en déficit. La musculation devient le levier prioritaire, avec des protéines entre "+S.protX+" et "+(S.protMax||S.protX)+" g/kg de poids cible ("+res.prot+" à "+res.protMax+" g/jour ici). En dessous, la perte se fera davantage sur le muscle."});
   }
   if(obese){
     res.warnings.push({lvl:"info",txt:"IMC de départ "+imc0.toFixed(1)+" (≥ 30) : rythmes maximum majorés de 50 % — les premières semaines perdent naturellement plus vite."});
@@ -4367,7 +4390,7 @@ function openCalcReport(){
     '.pdfbar{position:fixed;left:0;right:0;bottom:0;padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:rgba(255,255,255,.94);border-top:1px solid #E5E5E5;display:flex;gap:10px}'+
     '.pdfbar button{flex:1;padding:14px;border:0;border-radius:12px;font-weight:900;font-size:14px}'+
     '@media print{.pdfbar,body>button{display:none!important}body{background:#fff;padding:0}}';
-  var html='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Bilan '+esc(prenom||"client")+' — AM Coach Genève</title><style>'+css+'</style></head><body>'+
+  var html='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Bilan '+esc(prenom||"client")+' — AM Coach Genève</title><style>'+themeCSS()+css+'</style></head><body>'+
     '<button onclick="window.close();setTimeout(function(){if(history.length>1)history.back();},250)" style="position:fixed;top:12px;right:12px;z-index:999;background:var(--ink);color:#fff;border:0;border-radius:20px;padding:9px 16px;font-weight:800;font-size:13px">✕ Fermer</button>'+
     '<div class="pg">'+
     '<div class="brand"><span class="bar br"></span><span>AM Coach Genève</span><span class="bar bb"></span></div>'+
@@ -4381,7 +4404,7 @@ function openCalcReport(){
     :'<div class="kv"><span>Poids plancher (protection IMC)</span><strong style="color:var(--bad)">'+(plan.adjP?plan.adjP.toFixed(1)+' kg — '+plan.adjL.toFixed(1)+' kg max, \u2248 '+plan.adjMgc.toFixed(1)+' %':'recomposition, pas de perte')+'</strong></div>')+
     planRowsHTMLV2(plan)+
     '<div class="kv"><span>Ta barre calorique</span><strong>'+kcal+' kcal / jour</strong></div>'+
-    '<div class="kv"><span>Tes protéines</span><strong>'+plan.prot+' g / jour ('+plan.S.protX+' g × kg cible)</strong></div>'+
+    '<div class="kv"><span>Tes protéines</span><strong>'+plan.prot+' à '+plan.protMax+' g / jour ('+plan.S.protX+'–'+(plan.S.protMax||plan.S.protX)+' g × kg cible)</strong></div>'+
     '</div>'+
     warnsHTML+
     (function(){
@@ -4402,7 +4425,7 @@ function openCalcReport(){
     '<div class="card">'+
     '<p><strong>Pourquoi trois scénarios pour la même perte ?</strong> Parce que ton corps ne perd pas que du gras quand tu maigris. Sur '+(plan.Leff||plan.L).toFixed(1)+' kg à perdre, la vraie question est : <strong>quelle part sera du gras, et quelle part du muscle ?</strong> Seul(e), environ '+Math.round(plan.S.ratios.seul*100)+' % de gras seulement — le reste part en muscle et en eau. Encadré(e), on monte à '+Math.round(plan.S.ratios.encadre*100)+' %, et jusqu\'à '+Math.round(plan.S.ratios.bonus*100)+' % en protocole pro. Le muscle, c\'est justement ce qui te donne la silhouette que tu vises et ce qui brûle des calories au repos.</p>'+
     '<p style="margin-top:10px"><strong>Seul(e), le rythme prudent est limité</strong> : sans suivi, ton corps se défend — métabolisme qui ralentit, faim qui monte, muscle qui fond, reprise qui se prépare. Perdre vite pour tout reprendre, ce n\'est pas perdre — c\'est reculer.</p>'+
-    '<p style="margin-top:10px"><strong>Encadré(e), on va plus vite ET on garde le muscle.</strong> Menus calibrés, protéines contrôlées ('+plan.prot+' g/jour), entraînement adapté et ajustements chaque semaine : c\'est exactement le travail d\'un professionnel — aller vite sans casser la machine. Seul(e), ne tente pas ce rythme.</p>'+
+    '<p style="margin-top:10px"><strong>Encadré(e), on va plus vite ET on garde le muscle.</strong> Menus calibrés, protéines contrôlées ('+plan.prot+' à '+plan.protMax+' g/jour), entraînement adapté et ajustements chaque semaine : c\'est exactement le travail d\'un professionnel — aller vite sans casser la machine. Seul(e), ne tente pas ce rythme.</p>'+
     '<p style="margin-top:10px"><strong>Ta barre calorique de '+kcal+' kcal</strong> est ton repère quotidien. Ce n\'est pas une punition, c\'est le niveau d\'énergie qui force ton corps à utiliser son gras comme carburant tout en protégeant ton muscle — à condition d\'y mettre tes '+plan.prot+' g de protéines et de continuer l\'entraînement.</p>'+
     '</div>'+
     '<h2>👀 À quoi ressemble ton objectif</h2>'+
@@ -4608,7 +4631,7 @@ function progressReport(slug,iA,iB){
     '.pdfbar{position:fixed;left:0;right:0;bottom:0;padding:10px 14px;background:rgba(255,255,255,.95);border-top:1px solid #E5E5E5}'+
     '.pdfbar button{width:100%;padding:12px 0;border-radius:10px;border:0;background:var(--ink);color:#fff;font-weight:900;font-size:13px}'+
     '@media print{.pdfbar{display:none}}';
-  var html='<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Progression '+esc(cName)+'</title><style>'+css+'</style></head><body>'+
+  var html='<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Progression '+esc(cName)+'</title><style>'+themeCSS()+css+'</style></head><body>'+
     '<div class="brand"><span class="bar br"></span>AM COACH GENÈVE<span class="bar bb"></span></div>'+
     '<div class="sub">Rapport de progression · Méthode Balance-360</div>'+
     '<h1>'+esc(cName)+' — Analyse '+(iA+1)+' → Analyse '+(iB+1)+'</h1>'+
@@ -4691,7 +4714,7 @@ function successCard(slug,iA,iB){
   for(var s=0;s<stats.length;s++){
     cells+='<div class="cell"><div class="cn" style="color:'+stats[s].c+'">'+esc(stats[s].n)+'</div><div class="cl">'+esc(stats[s].l)+'</div></div>';
   }
-  var html='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Réussite '+esc(prenom)+'</title><style>'+
+  var html='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Réussite '+esc(prenom)+'</title><style>'+themeCSS()+
     'body{margin:0;font-family:-apple-system,sans-serif;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;box-sizing:border-box}'+
     '.card{width:100%;max-width:380px;aspect-ratio:4/5;background:linear-gradient(160deg,var(--ink) 0%,#0d2513 100%);border-radius:24px;padding:32px 26px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between;border:1px solid #333}'+
     '.brand{display:flex;align-items:center;gap:8px;justify-content:center}'+
@@ -4751,7 +4774,7 @@ function bilanReport(slug,idx,mode){
     '.pdfbar{position:fixed;left:0;right:0;bottom:0;padding:10px 14px;background:rgba(255,255,255,.95);border-top:1px solid #E5E5E5}'+
     '.pdfbar button{width:100%;padding:13px;border:0;border-radius:12px;font-weight:900;font-size:14px;background:var(--ink);color:#fff}'+
     '@media print{.pdfbar,body>button{display:none!important}}';
-  var kh='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Analyse '+(idx+1)+' — '+esc(cName)+'</title><style>'+css+'</style></head><body>'+
+  var kh='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Analyse '+(idx+1)+' — '+esc(cName)+'</title><style>'+themeCSS()+css+'</style></head><body>'+
     '<button onclick="window.close();setTimeout(function(){if(history.length>1)history.back();},250)" style="position:fixed;top:10px;right:10px;z-index:999;background:var(--ink);color:#fff;border:0;border-radius:18px;padding:8px 14px;font-weight:800;font-size:12px">✕</button>'+
     '<div class="brand"><span class="bar br"></span><span>AM Coach Genève</span><span class="bar bb"></span></div>'+
     '<div class="sub">Analyse '+(idx+1)+' · '+esc(a.date||"")+' · '+esc(cName)+(prev?' · évolution vs analyse '+idx:'')+(isClient?'':' · version complète')+'</div>'+
@@ -5264,7 +5287,20 @@ function bindCoach(){
 function bindNav(){
   var navs=document.querySelectorAll("[data-nav]");
   for(var i=0;i<navs.length;i++){
-    navs[i].addEventListener("click",function(){state.view=this.getAttribute("data-nav");render();});
+    navs[i].addEventListener("click",function(){
+      var v=this.getAttribute("data-nav");
+      // Déjà sur l'onglet : le second appui descend au calendrier,
+      // le troisième ramène en haut. Comme sur iOS.
+      if(state.view===v&&v==="calendar"){
+        var a=document.getElementById("cal-anchor");
+        var haut=(window.scrollY||document.documentElement.scrollTop)<40;
+        if(a&&haut){a.scrollIntoView({behavior:"smooth",block:"start"});}
+        else{window.scrollTo({top:0,behavior:"smooth"});}
+        buzz("tap");
+        return;
+      }
+      state.view=v;render();
+    });
   }
 }
 
@@ -5895,7 +5931,7 @@ function bindMain(name,start){
   var _unusedPensee=function(){};
   function _openPenseeShareLocal(){}
   window.openPenseeShare=window.openPenseeShare||function(pTxt,dayNum){
-    var html='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Pensée du soir</title><style>'+
+    var html='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Pensée du soir</title><style>'+themeCSS()+
       'body{margin:0;font-family:-apple-system,sans-serif;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;box-sizing:border-box}'+
       '.card{width:100%;max-width:380px;aspect-ratio:4/5;background:linear-gradient(160deg,#1a1a2e 0%,#16213e 100%);border-radius:24px;padding:36px 28px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between;border:1px solid #2a2a4a}'+
       '.brand{display:flex;align-items:center;gap:8px}.b{width:4px;height:20px;border-radius:2px}'+
@@ -5926,7 +5962,7 @@ function bindMain(name,start){
     var grade2=currentGrade(xp2);
     var streak2=computeStreak(allD,today90);
     var stTxt=mission.status==="done"?"🟢 ZONE SÉCURISÉE":"🟡 ZONE CONTESTÉE";
-    var html='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Ma victoire</title><style>'+
+    var html='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Ma victoire</title><style>'+themeCSS()+
       'body{margin:0;font-family:-apple-system,sans-serif;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;box-sizing:border-box}'+
       '.card{width:100%;max-width:380px;aspect-ratio:4/5;background:linear-gradient(160deg,var(--ink) 0%,#2d1010 100%);border-radius:24px;padding:36px 28px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between;border:1px solid #333}'+
       '.brand{display:flex;align-items:center;gap:8px}'+
@@ -6049,10 +6085,7 @@ function bindMain(name,start){
     state.showGoalForm=false;
     render();
   });
-  var navs=document.querySelectorAll("[data-nav]");
-  for(var i=0;i<navs.length;i++){
-    navs[i].addEventListener("click",function(){state.view=this.getAttribute("data-nav");render();});
-  }
+  bindNav(); // un seul brancheur : celui qui gère aussi le double appui
   var months=document.querySelectorAll("[data-month]");
   for(var m=0;m<months.length;m++){
     months[m].addEventListener("click",function(){

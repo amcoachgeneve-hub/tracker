@@ -636,6 +636,42 @@ function ensureClientInCloud(name,startDate){
   }).catch(function(){});
 }
 
+// ═══════════ SYNCHRO CÔTÉ COACH ═══════════
+// loadFromCloud() s'arrête si !CLIENT : en mode coach, aucune donnée client
+// n'était jamais téléchargée. Le dashboard ne montrait que le cache local.
+var __coachLoaded={},__coachBusy=false;
+function coachLoadClient(slug,force,cb){
+  if(!slug){if(cb)cb();return;}
+  if(__coachLoaded[slug]&&!force){if(cb)cb();return;}
+  __coachLoaded[slug]=true;
+  sbFetch("tracking?client_slug=eq."+encodeURIComponent(slug)+"&select=day_index,data")
+    .then(function(r){return r.json();})
+    .then(function(rows){
+      if(rows&&rows.length){
+        var all=lsGet("amcoach_"+slug,{});
+        for(var i=0;i<rows.length;i++)all[rows[i].day_index]=rows[i].data;
+        lsSet("amcoach_"+slug,all);
+      }
+      if(cb)cb(); else render();
+    })
+    .catch(function(){if(cb)cb();});
+}
+function coachLoadAll(force){
+  if(__coachBusy)return;
+  var cl=lsGet("amcoach_clients",[]);
+  if(!cl.length)return;
+  var reste=0;
+  for(var i=0;i<cl.length;i++){if(force||!__coachLoaded[cl[i].slug])reste++;}
+  if(!reste)return;
+  __coachBusy=true;
+  var fait=0;
+  for(var j=0;j<cl.length;j++){
+    coachLoadClient(cl[j].slug,force,function(){
+      fait++;
+      if(fait>=cl.length){__coachBusy=false;render();}
+    });
+  }
+}
 function loadFromCloud(cb){
   if(!CLIENT){cb();return;}
   // Load client info + tracking data from Supabase
@@ -691,9 +727,10 @@ function getToday90(startDate){
   if(!startDate)return 0;
   // #12 : jour calculé sur la DATE CALENDAIRE locale (pas les millisecondes) —
   // un client qui voyage ne saute ni ne double jamais un jour
-  var s=new Date(startDate);
+  // Les deux dates sont comparées en jours calendaires, sans mélanger UTC et local.
+  var ds=String(startDate).slice(0,10).split("-");
+  var a=Date.UTC(+ds[0],(+ds[1]||1)-1,+ds[2]||1);
   var n=new Date();
-  var a=Date.UTC(s.getUTCFullYear(),s.getUTCMonth(),s.getUTCDate());
   var b=Date.UTC(n.getFullYear(),n.getMonth(),n.getDate());
   var diff=Math.round((b-a)/86400000);
   return Math.max(0,Math.min(diff,89));
@@ -2287,7 +2324,7 @@ function viewCalendar(name,start){
     '<div style="font-size:13.5px;font-weight:800;color:'+pctColor+';margin-top:14px">'+etat+'</div>'+
     '<div style="display:flex;gap:7px;justify-content:center;flex-wrap:wrap;margin-top:14px">'+
       '<span style="background:var(--soft2);border-radius:100px;padding:9px 15px;font-size:12.5px;font-weight:700;color:var(--ink2)">'+
-        streakBadge(streak).e+' <b style="color:'+(streak>=1?streakBadge(streak).c:"var(--mute)")+'">'+streak+'</b> jour'+(streak>1?'s':'')+' de série</span>'+
+        '<span style="font-size:20px;line-height:1;vertical-align:-3px">'+streakBadge(streak).e+'</span> <b style="color:'+(streak>=1?streakBadge(streak).c:"var(--mute)")+'">'+streak+'</b> jour'+(streak>1?'s':'')+' de série</span>'+
       '<span style="background:var(--soft2);border-radius:100px;padding:9px 15px;font-size:12.5px;font-weight:700;color:var(--ink2)"><b>'+filled+'</b> remplis</span>'+
       '<span style="background:var(--soft2);border-radius:100px;padding:9px 15px;font-size:12.5px;font-weight:700;color:var(--ink2)"><b>'+daysLeft+'</b> restants</span>'+
     '</div>'+
@@ -3533,6 +3570,7 @@ function coachClient(slug){
 // ═══════════ COACH DETAIL ═══════════
 function viewCoachDetail(){
   var clients=lsGet("amcoach_clients",[]);
+  if(state.coachDetail)coachLoadClient(state.coachDetail); // rafraîchit au premier affichage
   var c=null;
   for(var i=0;i<clients.length;i++){if(clients[i].slug===state.coachDetail){c=clients[i];break;}}
   if(!c){state.coachDetail=null;return viewCoachDash();}
@@ -3688,6 +3726,9 @@ function viewCoachDetail(){
   h+='<div style="display:flex;gap:8px">'+
     '<button id="nut-config" style="flex:1;font-size:11px;font-weight:800;padding:9px 0;border:1.5px solid var(--ok-d);border-radius:10px;background:#fff;color:var(--ok-d)">'+(nutOn?"✏️ Modifier le plan":"➕ Activer + définir le plan")+'</button>'+
     (nutOn?'<button id="nut-off" style="flex:1;font-size:11px;font-weight:800;padding:9px 0;border:1.5px solid var(--brand);border-radius:10px;background:#fff;color:var(--brand)">⛔ Désactiver</button>':'')+'</div></div>';
+
+  // 🔄 Actualiser depuis le cloud
+  h+='<button id="cd-refresh" style="width:100%;padding:12px 0;border-radius:12px;border:1.5px solid var(--line);background:var(--card);color:var(--brand2);font-weight:800;font-size:12.5px;margin-bottom:11px">🔄 Actualiser les données de '+esc(c.name)+'</button>';
 
   // 🎨 THÈME VISUEL — par défaut selon le sexe, réglable ici
   (function(){
@@ -3848,6 +3889,7 @@ function viewCoachDetail(){
 // ═══════════ COACH DASH ═══════════
 function viewCoachDash(){
   var clients=lsGet("amcoach_clients",[]);
+  coachLoadAll(false); // télécharge les données de tous les clients au premier affichage
   var h='<div class="app" style="max-width:480px">'+
     '<div class="hdr"><div class="hdr-brand"><div class="bar bar-r"></div>'+
     '<span class="hdr-title">Coach Dashboard</span><div class="bar bar-b"></div></div>'+
@@ -5047,6 +5089,17 @@ function bindCoach(){
     coachSaveSlot(slug,510,cfg);
     render();
   });
+  // 🔄 Forcer le rechargement depuis Supabase
+  var rf=document.getElementById("cd-refresh");
+  if(rf)rf.addEventListener("click",function(){
+    var slug=state.coachDetail;
+    this.textContent="⏳ Récupération...";
+    coachLoadClient(slug,true,function(){
+      feedback("🔄 Données à jour","ok");
+      render();
+    });
+  });
+
   // 🎨 Thème visuel du client
   var ths=document.querySelectorAll(".cd-th");
   for(var t0=0;t0<ths.length;t0++){

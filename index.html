@@ -792,7 +792,7 @@ var PENSEES=[
 "Nous ne pouvons pas diriger le vent, mais nous pouvons ajuster les voiles. — Proverbe marin",
 "Ce n'est pas la montagne que nous conquérons, mais nous-mêmes. — Edmund Hillary",
 "🎋 Le bambou chinois : 5 ans sous terre sans rien montrer. Puis 20 mètres en 6 semaines. Tes efforts invisibles construisent tes racines. Continue.",
-"Le corps suit la tête. La tête suit les habitudes. — Balance-360",
+"Le corps suit la tête. La tête suit les habitudes. — AM Transfo",
 "L'homme qui déplace une montagne commence par déplacer les petites pierres. — Confucius",
 "Tombe sept fois, relève-toi huit. — Proverbe japonais",
 "🐺 Les deux loups : en toi se battent un loup de peur et un loup de courage. Lequel gagne ? Celui que tu nourris chaque jour.",
@@ -812,7 +812,7 @@ var PENSEES=[
 "🏹 L'archer zen rate sa cible : il ne blâme ni le vent, ni l'arc. Il ajuste sa posture. Quand tu rates, ajuste — n'accuse pas.",
 "Rien ne pousse dans la zone de confort.",
 "Sois plus fort que ta meilleure excuse.",
-"La différence entre qui tu es et qui tu veux être ? Ce que tu fais. — Balance-360",
+"La différence entre qui tu es et qui tu veux être ? Ce que tu fais. — AM Transfo",
 "Un océan commence par une goutte. Une transformation commence par un jour.",
 "🐢 La tortue n'avance que lorsqu'elle sort la tête de sa carapace. Prendre un risque, c'est la seule façon d'avancer.",
 "Ne compte pas les jours. Fais que les jours comptent. — Muhammad Ali",
@@ -843,7 +843,7 @@ var PENSEES=[
 "Ce n'est pas parce que c'est difficile qu'on n'ose pas. C'est parce qu'on n'ose pas que c'est difficile. — Sénèque",
 "90 jours. C'est court dans une vie. C'est assez pour la changer.",
 "Le champion est celui qui se relève quand il ne peut pas. — Jack Dempsey",
-"Sois patient. Tout arrive à qui sait transpirer en attendant. — Balance-360",
+"Sois patient. Tout arrive à qui sait transpirer en attendant. — AM Transfo",
 "🎯 L'archer débutant vise la cible. Le maître devient la flèche. Ne pense plus au résultat — deviens le geste.",
 "Les gens ne remarquent pas tes efforts. Puis un jour, ils te demandent ton secret.",
 "Le corps accomplit ce que l'esprit croit.",
@@ -1451,7 +1451,7 @@ function generateDiplome(name,startDate,allData){
   '@media print{body{background:#fff;padding:0}}'+
   '</style></head><body><button onclick=\'window.close();setTimeout(function(){if(history.length>1)history.back();},250)\' style=\'position:fixed;top:12px;right:12px;z-index:999;background:var(--ink);color:#fff;border:0;border-radius:20px;padding:9px 16px;font-weight:800;font-size:13px\'>✕ Fermer</button><div class="dip"><div class="inner">'+
   '<div class="brand"><span class="b" style="background:var(--brand)"></span>AM COACH GENÈVE<span class="b" style="background:var(--brand2)"></span></div>'+
-  '<div class="sub">TransfoPhysique · Méthode Balance-360</div>'+
+  '<div class="sub">TransfoPhysique · Méthode AM Transfo Physique</div>'+
   '<div class="medal">🎓</div>'+
   '<div class="title">DIPLÔME AM TRANSFO</div>'+
   '<div class="subtitle">« Nouvelle version de toi-même »</div>'+
@@ -1711,7 +1711,7 @@ function routeSig(){
   return [
     IS_COACH?"coach":"client",
     state.coachAuthed?1:0,
-    state.coachCalc?1:0,
+    state.coachCalc?1:0, state.coachStats?1:0,
     state.coachDetail||"",
     state.cdTab||"",
     state.selDay===null||state.selDay===undefined?"":("day"+state.selDay),
@@ -1735,7 +1735,7 @@ function render(){
 function renderView(){
   setTimeout(function(){try{applyTheme(getAllData());}catch(e){}},0);
   var root=document.getElementById("root");
-  if(IS_COACH){root.innerHTML=state.coachAuthed?(state.coachCalc?viewCoachCalc():(state.coachDetail?(state.cdTab==="bilan"?viewCoachBilan():viewCoachDetail()):viewCoachDash())):viewCoachLogin();bindCoach();return;}
+  if(IS_COACH){root.innerHTML=state.coachAuthed?(state.coachStats?viewCoachStats():state.coachCalc?viewCoachCalc():(state.coachDetail?(state.cdTab==="bilan"?viewCoachBilan():viewCoachDetail()):viewCoachDash())):viewCoachLogin();bindCoach();return;}
   if(!CLIENT){root.innerHTML=viewNoClient();return;}
   var name=lsGetStr("amcoach_name_"+CLIENT);
   var start=lsGetStr("amcoach_start_"+CLIENT);
@@ -3887,6 +3887,134 @@ function viewCoachDetail(){
 }
 
 // ═══════════ COACH DASH ═══════════
+// ═══════════ 📊 ANALYTICS COACH ═══════════
+// Agrège tous les clients : rétention, abandons, résultats.
+function coachAnalytics(){
+  var cl=lsGet("amcoach_clients",[]);
+  var out={total:cl.length,clients:[],paliers:[],finis:0,actifs:0,abandons:0,
+           kgTotal:0,pertes:[],remplissage:[],series:[],jourAbandon:[]};
+  var auj=new Date();
+  for(var i=0;i<cl.length;i++){
+    var c=cl[i], d=lsGet("amcoach_"+c.slug,{});
+    var dur=progLen(c.start_date)||90;
+    var t90=getToday90(c.start_date);
+    // Dernier jour renseigné + nombre de jours remplis
+    var last=-1,remplis=0;
+    for(var k=0;k<dur;k++){
+      if(d[k]&&Object.keys(d[k]).length>0){remplis++;if(k>last)last=k;}
+    }
+    // Poids : premier et dernier renseignés
+    var p1=null,p2=null;
+    for(var w=0;w<dur;w++){if(d[w]&&d[w].poids){var v=parseFloat(d[w].poids);if(p1===null)p1=v;p2=v;}}
+    var perte=(p1!=null&&p2!=null)?Math.round((p1-p2)*10)/10:null;
+    // Statut : fini / actif / décroché (rien depuis 10 jours et programme non terminé)
+    var ecart=t90-last;
+    var fini=last>=dur-1||t90>=dur-1&&remplis>=dur*0.6;
+    var lache=!fini&&last>=0&&ecart>10;
+    if(fini)out.finis++; else if(lache)out.abandons++; else out.actifs++;
+    if(lache)out.jourAbandon.push(last+1);
+    if(perte!=null){out.pertes.push(perte);out.kgTotal+=perte;}
+    out.remplissage.push(dur>0?Math.round(remplis/Math.min(t90+1,dur)*100):0);
+    out.series.push(bestStreak(d,Math.min(dur-1,Math.max(0,t90))));
+    out.clients.push({nom:c.name,slug:c.slug,jour:Math.min(t90+1,dur),dernier:last+1,
+                      remplis:remplis,duree:dur,perte:perte,
+                      statut:fini?"fini":lache?"lache":"actif",inactifDepuis:ecart});
+  }
+  // Courbe de rétention : combien ont atteint chaque palier
+  var seuils=[7,14,30,60,90];
+  for(var s2=0;s2<seuils.length;s2++){
+    var n=0,elig=0;
+    for(var j=0;j<out.clients.length;j++){
+      var cc=out.clients[j];
+      if(cc.jour>=seuils[s2]){elig++;if(cc.dernier>=seuils[s2])n++;}
+    }
+    out.paliers.push({j:seuils[s2],atteint:n,eligibles:elig,
+                      pct:elig?Math.round(n/elig*100):null});
+  }
+  function moy(a){if(!a.length)return null;var t=0;for(var x=0;x<a.length;x++)t+=a[x];return Math.round(t/a.length*10)/10;}
+  out.perteMoy=moy(out.pertes);
+  out.remplMoy=moy(out.remplissage);
+  out.serieMoy=moy(out.series);
+  out.abandonMed=out.jourAbandon.length?out.jourAbandon.slice().sort(function(a,b){return a-b;})[Math.floor(out.jourAbandon.length/2)]:null;
+  out.meilleurePerte=out.pertes.length?Math.max.apply(null,out.pertes):null;
+  out.tauxFin=out.total?Math.round(out.finis/out.total*100):0;
+  return out;
+}
+function viewCoachStats(){
+  var A=coachAnalytics();
+  var h='<div class="app" style="max-width:480px">'+
+    '<div class="hdr"><div class="hdr-brand"><div class="bar bar-r"></div>'+
+    '<span class="hdr-title">Mes statistiques</span><div class="bar bar-b"></div></div>'+
+    '<div class="hdr-sub">'+A.total+' client'+(A.total>1?'s':'')+' suivis</div></div>'+
+    '<div style="padding:16px 14px 0">'+
+    '<button id="stats-back" class="big-btn" style="padding:12px 0;font-size:13px;background:var(--soft2);color:var(--ink);margin-bottom:14px">← Retour au tableau de bord</button>';
+
+  if(!A.total){
+    return h+'<div class="card" style="padding:20px;text-align:center;color:var(--mute)">Aucun client pour l\'instant.</div></div>';
+  }
+
+  // ── Vue d'ensemble
+  h+='<div class="kpi-row" style="margin-bottom:10px">'+
+    '<div class="kpi-card"><div class="kpi-val" style="color:var(--ok)">'+A.finis+'</div><div class="kpi-lbl">Programmes finis</div></div>'+
+    '<div class="kpi-card"><div class="kpi-val" style="color:var(--brand2)">'+A.actifs+'</div><div class="kpi-lbl">En cours</div></div></div>'+
+    '<div class="kpi-row" style="margin-bottom:16px">'+
+    '<div class="kpi-card"><div class="kpi-val" style="color:'+(A.abandons?"var(--warn-d)":"var(--mute)")+'">'+A.abandons+'</div><div class="kpi-lbl">Décrochés</div></div>'+
+    '<div class="kpi-card"><div class="kpi-val" style="color:'+gaugeCol(A.tauxFin)+'">'+A.tauxFin+'%</div><div class="kpi-lbl">Taux de complétion</div></div></div>';
+
+  // ── Où ils décrochent
+  h+='<div class="card" style="padding:16px">'+
+    '<div class="card-label">📉 Où ils décrochent</div>'+
+    '<div style="font-size:11.5px;color:var(--mute);margin-bottom:12px;line-height:1.5">Part des clients encore actifs à chaque palier, parmi ceux qui l\'ont atteint dans le temps.</div>';
+  for(var pi=0;pi<A.paliers.length;pi++){
+    var P=A.paliers[pi];
+    if(!P.eligibles){
+      h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:9px;opacity:.4">'+
+        '<span style="width:42px;font-weight:800;font-size:12.5px">J'+P.j+'</span>'+
+        '<span style="flex:1;font-size:11.5px;color:var(--mute)">pas encore de recul</span></div>';
+      continue;
+    }
+    h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:9px">'+
+      '<span style="width:42px;font-weight:800;font-size:12.5px">J'+P.j+'</span>'+
+      '<div style="flex:1;height:14px;border-radius:100px;background:var(--soft2);overflow:hidden">'+
+      '<div style="height:100%;width:'+P.pct+'%;border-radius:100px;background:'+gaugeCol(P.pct)+'"></div></div>'+
+      '<span style="width:76px;text-align:right;font-size:12px;font-weight:800;color:'+gaugeCol(P.pct)+'">'+P.pct+'% <span style="color:var(--mute);font-weight:600">('+P.atteint+'/'+P.eligibles+')</span></span></div>';
+  }
+  if(A.abandonMed)h+='<div style="margin-top:10px;padding-top:11px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink2)">🎯 Décrochage médian au <strong>jour '+A.abandonMed+'</strong> — c\'est là qu\'il faut relancer.</div>';
+  h+='</div>';
+
+  // ── Résultats (preuve sociale)
+  h+='<div class="card" style="padding:16px">'+
+    '<div class="card-label">🏆 Résultats clients</div>'+
+    '<div class="kpi-row" style="margin-bottom:10px">'+
+    '<div class="kpi-card" style="background:var(--soft2)"><div class="kpi-val" style="color:var(--ok-d)">'+(Math.round(A.kgTotal*10)/10)+'</div><div class="kpi-lbl">kg perdus au total</div></div>'+
+    '<div class="kpi-card" style="background:var(--soft2)"><div class="kpi-val" style="color:var(--ok-d)">'+(A.perteMoy!=null?A.perteMoy:"—")+'</div><div class="kpi-lbl">kg en moyenne</div></div></div>'+
+    '<div class="kpi-row">'+
+    '<div class="kpi-card" style="background:var(--soft2)"><div class="kpi-val">'+(A.meilleurePerte!=null?A.meilleurePerte:"—")+'</div><div class="kpi-lbl">meilleur résultat (kg)</div></div>'+
+    '<div class="kpi-card" style="background:var(--soft2)"><div class="kpi-val">'+(A.remplMoy!=null?A.remplMoy:0)+'%</div><div class="kpi-lbl">assiduité moyenne</div></div></div>'+
+    '<button id="stats-share" style="width:100%;margin-top:14px;padding:14px 0;border-radius:12px;border:0;background:#25D366;color:#fff;font-weight:900;font-size:13px">💬 Partager mes chiffres</button>'+
+    '<div style="font-size:10.5px;color:var(--mute);margin-top:8px;line-height:1.5">Chiffres agrégés, sans aucun nom — utilisables tels quels en preuve sociale.</div></div>';
+
+  // ── Détail par client
+  h+='<div class="card" style="padding:16px;margin-bottom:24px">'+
+    '<div class="card-label">👥 Client par client</div>';
+  var ordre=A.clients.slice().sort(function(a,b){return b.remplis-a.remplis;});
+  for(var ci=0;ci<ordre.length;ci++){
+    var C=ordre[ci];
+    var badge=C.statut==="fini"?{t:"Terminé",c:"var(--ok)"}:C.statut==="lache"?{t:"Décroché",c:"var(--warn-d)"}:{t:"En cours",c:"var(--brand2)"};
+    var pct=C.duree?Math.round(C.remplis/C.duree*100):0;
+    h+='<div style="display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid var(--line)">'+
+      '<div style="flex:1;min-width:0">'+
+      '<div style="font-weight:800;font-size:13.5px">'+esc(C.nom)+'</div>'+
+      '<div style="font-size:11px;color:var(--mute);font-weight:700">J'+C.jour+'/'+C.duree+' · '+C.remplis+' remplis'+
+      (C.perte!=null?' · '+(C.perte>0?'−':'+')+Math.abs(C.perte)+' kg':'')+
+      (C.statut==="lache"?' · silence depuis '+C.inactifDepuis+' j':'')+'</div>'+
+      '<div style="height:5px;border-radius:100px;background:var(--soft2);margin-top:5px;overflow:hidden">'+
+      '<div style="height:100%;width:'+pct+'%;background:'+gaugeCol(pct)+';border-radius:100px"></div></div></div>'+
+      '<span style="font-size:10px;font-weight:800;color:'+badge.c+';white-space:nowrap">'+badge.t+'</span></div>';
+  }
+  h+='</div></div>';
+  return h;
+}
 function viewCoachDash(){
   var clients=lsGet("amcoach_clients",[]);
   coachLoadAll(false); // télécharge les données de tous les clients au premier affichage
@@ -3897,7 +4025,8 @@ function viewCoachDash(){
     '<div style="padding:16px 14px 0">'+
     '<button id="form-toggle" class="big-btn'+(state.showForm?" gray":"")+'" style="padding:16px 0;font-size:14px">'+
     (state.showForm?"▲ Annuler":"+ Nouveau client")+'</button>'+
-    '<button id="calc-open" class="big-btn" style="padding:14px 0;font-size:14px;background:var(--brand2);margin-bottom:16px">🧮 Calculateur bilan</button>';
+    '<button id="calc-open" class="big-btn" style="padding:14px 0;font-size:14px;background:var(--brand2);margin-bottom:10px">🧮 Calculateur bilan</button>'+
+    '<button id="stats-open" class="big-btn" style="padding:14px 0;font-size:14px;background:var(--ink);margin-bottom:16px">📊 Mes statistiques</button>';
 
   if(state.showForm){
     h+='<div class="card" style="padding:18px 16px;margin-bottom:16px">'+
@@ -4347,7 +4476,7 @@ function viewCoachCalc(){
   var h='<div class="app" style="max-width:480px">'+
     '<div class="hdr"><div class="hdr-brand"><div class="bar bar-r"></div>'+
     '<span class="hdr-title">Calculateur bilan</span><div class="bar bar-b"></div></div>'+
-    '<div class="hdr-sub" style="color:#666;font-weight:400;font-size:12px">AM Coach Genève · Méthode Balance-360</div></div>'+
+    '<div class="hdr-sub" style="color:#666;font-weight:400;font-size:12px">AM Coach Genève · Méthode AM Transfo Physique</div></div>'+
     '<div style="padding:16px 14px 40px">'+
     '<button id="calc-back" class="big-btn gray" style="padding:12px 0;font-size:13px;margin-bottom:16px">← Retour au dashboard</button>'+
     '<div class="card" style="padding:18px 16px;margin-bottom:16px">'+
@@ -4469,7 +4598,7 @@ function openCalcReport(){
     '<button onclick="window.close();setTimeout(function(){if(history.length>1)history.back();},250)" style="position:fixed;top:12px;right:12px;z-index:999;background:var(--ink);color:#fff;border:0;border-radius:20px;padding:9px 16px;font-weight:800;font-size:13px">✕ Fermer</button>'+
     '<div class="pg">'+
     '<div class="brand"><span class="bar br"></span><span>AM Coach Genève</span><span class="bar bb"></span></div>'+
-    '<div class="sub">Bilan corporel · Méthode Balance-360</div>'+
+    '<div class="sub">Bilan corporel · Méthode AM Transfo Physique</div>'+
     '<h1>'+(prenom?esc(prenom)+', voici':'Voici')+' ton plan chiffré 🎯</h1>'+
     '<div class="card">'+
     '<div class="kv"><span>Poids actuel</span><strong>'+p0.toFixed(1)+' kg · '+mga.toFixed(0)+' % de masse grasse · IMC '+plan.imc0.toFixed(1)+'</strong></div>'+
@@ -4510,7 +4639,7 @@ function openCalcReport(){
     '<p>Perdre du gras, c\'est <strong>un travail</strong> — pas un sprint, pas un défi de motivation, un processus. Il y aura des semaines où la balance ne bougera pas alors que ton corps change : c\'est normal, le miroir et les mensurations comptent autant que le chiffre. Ce qui fait le résultat final, ce n\'est pas la perfection, c\'est <strong>la répétition</strong> : tes repas, tes séances, ton sommeil, cochés jour après jour.</p>'+
     '<div class="warn">⚠️ Ces chiffres sont une estimation pédagogique, pas une prescription médicale. Le plan s\'ajuste avec ton coach au fil des bilans, selon tes sensations et tes résultats réels.</div>'+
     '</div>'+
-    '<div class="foot">AM Coach Genève · Méthode Balance-360<br>La discipline devient automatique</div>'+
+    '<div class="foot">AM Coach Genève · Méthode AM Transfo Physique<br>La discipline devient automatique</div>'+
     '</div>'+
     '<div class="pdfbar"><button style="background:var(--ink);color:#fff" onclick="window.print()">📤 Enregistrer en PDF</button></div>'+
     '</body></html>';
@@ -4544,7 +4673,7 @@ function viewCoachBilan(){
     '<div class="hdr"><div style="display:flex;align-items:center;gap:12px">'+
     '<button id="bl-back" class="day-back">←</button>'+
     '<div style="flex:1"><div style="color:#fff;font-weight:900;font-size:16px">📋 Bilans — '+esc(cName)+'</div>'+
-    '<div style="color:#666;font-size:12px">Analyse '+(bl.length+1)+' · Méthode Balance-360</div></div></div></div>'+
+    '<div style="color:#666;font-size:12px">Analyse '+(bl.length+1)+' · Méthode AM Transfo Physique</div></div></div></div>'+
     '<div style="padding:16px 14px 40px">';
   if(bl.length){
     h+='<div class="card" style="padding:14px 16px;margin-bottom:14px"><div style="font-weight:900;font-size:13px;margin-bottom:8px">Analyses enregistrées</div>';
@@ -4616,7 +4745,7 @@ function viewCoachBilan(){
   }
   h+='<div style="font-weight:900;font-size:12px;color:var(--violet);margin:8px 0 8px">POURQUOI & CONTEXTE</div>';
   for(var qc=0;qc<BILAN_CONTEXTE.length;qc++){h+=bilanQ("bl-q-"+BILAN_CONTEXTE[qc][0],BILAN_CONTEXTE[qc][1],BILAN_CONTEXTE[qc][2]);}
-  h+='<div style="font-weight:900;font-size:12px;color:var(--violet);margin:8px 0 8px">BARÈME /10 — BALANCE-360</div>';
+  h+='<div style="font-weight:900;font-size:12px;color:var(--violet);margin:8px 0 8px">BARÈME /10 — AM TRANSFO</div>';
   for(var s3=0;s3<BILAN_SCORES.length;s3++){
     h+=bilanInput("bl-s-"+BILAN_SCORES[s3][0],(s3+1)+". "+BILAN_SCORES[s3][1].toUpperCase()+" (/10)","7");
   }
@@ -4708,7 +4837,7 @@ function progressReport(slug,iA,iB){
     '@media print{.pdfbar{display:none}}';
   var html='<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Progression '+esc(cName)+'</title><style>'+themeCSS()+css+'</style></head><body>'+
     '<div class="brand"><span class="bar br"></span>AM COACH GENÈVE<span class="bar bb"></span></div>'+
-    '<div class="sub">Rapport de progression · Méthode Balance-360</div>'+
+    '<div class="sub">Rapport de progression · Méthode AM Transfo Physique</div>'+
     '<h1>'+esc(cName)+' — Analyse '+(iA+1)+' → Analyse '+(iB+1)+'</h1>'+
     '<div style="text-align:center;font-size:11.5px;color:var(--mute)">'+esc(A.date||"?")+' → '+esc(B.date||"?")+(C.jours?' · '+C.jours+' jours':'')+'</div>';
   // ─── En un coup d'œil ───
@@ -4814,7 +4943,7 @@ function successCard(slug,iA,iB){
     '<div class="ti"><div class="t1">🏆 Réussite Challenge</div><div class="t2">'+esc(prenom)+'</div>'+
     (C.jours?'<div class="t3">en '+C.jours+' jours</div>':'')+'</div></div>'+
     '<div class="grid">'+cells+'</div>'+
-    '<div class="bot"><div class="tag">TRANSFO\'PHYSIQUE</div><div class="sub2">@amcoachsportif · Méthode Balance-360</div></div>'+
+    '<div class="bot"><div class="tag">TRANSFO\'PHYSIQUE</div><div class="sub2">@amcoachsportif · Méthode AM Transfo Physique</div></div>'+
     '</div>'+
     '<a class="ig" href="instagram://story-camera">📸 Ouvrir Instagram Story</a>'+
     '<div class="hint">1. Fais une capture d\'écran de la carte<br>2. Ouvre Instagram Story et poste-la 🔥</div>'+
@@ -4899,7 +5028,7 @@ function bilanReport(slug,idx,mode){
     var k2=BILAN_MESURES[mm2][0],val=(a.mesures||{})[k2],dst=(a.mdist||{})[k2];
     kh+='<div class="kv"><span>'+BILAN_MESURES[mm2][1]+(dst?' <span style="color:var(--mute);font-size:11px">(à '+esc(dst)+' cm)</span>':'')+'</span><strong>'+(val||"—")+(prev&&val?dv(val,(prev.mesures||{})[k2]):'')+'</strong></div>';
   }
-  kh+='</div><h2>Barème Balance-360 (/10)</h2><div class="grid2">';
+  kh+='</div><h2>Barème AM Transfo (/10)</h2><div class="grid2">';
   for(var ss=0;ss<BILAN_SCORES.length;ss++){
     var ks=BILAN_SCORES[ss][0],vs=(a.scores||{})[ks];
     kh+='<div class="kv"><span>'+BILAN_SCORES[ss][1]+'</span><strong>'+(vs||"—")+'/10'+(prev&&vs?dv(vs,(prev.scores||{})[ks]):'')+'</strong></div>';
@@ -4934,6 +5063,25 @@ function bindCoach(){
     cp.addEventListener("keydown",function(e){if(e.key==="Enter")tryLogin();});
     return;
   }
+  // 📊 Statistiques coach
+  var so=document.getElementById("stats-open");
+  if(so)so.addEventListener("click",function(){state.coachStats=true;render();});
+  var sb=document.getElementById("stats-back");
+  if(sb)sb.addEventListener("click",function(){state.coachStats=false;render();});
+  var ss=document.getElementById("stats-share");
+  if(ss)ss.addEventListener("click",function(){
+    var A=coachAnalytics();
+    var m="📊 *AM Coach Genève — mes résultats*\n\n"+
+      "👥 "+A.total+" client"+(A.total>1?"s":"")+" accompagnés\n"+
+      "🎓 "+A.finis+" programme"+(A.finis>1?"s":"")+" mené"+(A.finis>1?"s":"")+" à terme ("+A.tauxFin+" %)\n"+
+      (A.kgTotal>0?"⚖️ "+(Math.round(A.kgTotal*10)/10)+" kg perdus au total\n":"")+
+      (A.perteMoy!=null?"📉 "+A.perteMoy+" kg en moyenne par personne\n":"")+
+      (A.meilleurePerte!=null?"🏆 Meilleur résultat : "+A.meilleurePerte+" kg\n":"")+
+      (A.remplMoy!=null?"🔥 "+A.remplMoy+" % d'assiduité moyenne\n":"")+
+      "\n— Méthode AM Transfo Physique · 90 jours";
+    window.open("https://wa.me/?text="+encodeURIComponent(m),"_blank");
+  });
+
   // Calculateur bilan
   var co=document.getElementById("calc-open");
   if(co)co.addEventListener("click",function(){state.coachCalc=true;render();});

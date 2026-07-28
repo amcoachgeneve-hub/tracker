@@ -1733,7 +1733,7 @@ function render(){
   scrollTopIfRouteChanged();
 }
 function renderView(){
-  setTimeout(function(){try{applyTheme(getAllData());}catch(e){}},0);
+  setTimeout(function(){try{applyTheme(getAllData());ancrerNav();}catch(e){}},0);
   var root=document.getElementById("root");
   if(IS_COACH){root.innerHTML=state.coachAuthed?(state.coachStats?viewCoachStats():state.coachCalc?viewCoachCalc():(state.coachDetail?(state.cdTab==="bilan"?viewCoachBilan():viewCoachDetail()):viewCoachDash())):viewCoachLogin();bindCoach();return;}
   if(!CLIENT){root.innerHTML=viewNoClient();return;}
@@ -2503,7 +2503,17 @@ function viewCalendar(name,start){
     var nxtL=qgNext(res.total);
     var lvlName=lvl.min>=110?qgc.identity:lvl.name;
     var qToday=allData[400+today90]||{};
-    h+='<div class="card" style="margin-bottom:18px;background:linear-gradient(160deg,#0d1b0d,#1a2e1a);padding:18px;border:none">'+
+    var cb=comboStreak(allData,today90,hasBrique);
+    // 🌤️ Le ciel suit le combo : un décor qui change tous les jours, pas tous les 15
+    var CIEL=cb>=14?{g:"linear-gradient(160deg,#0B1030,#231B4A)",e:"🌟",t:"Nuit étoilée · légende"}
+            :cb>=7?{g:"linear-gradient(160deg,#10233A,#2E4A6E)",e:"🌈",t:"Arc-en-ciel · machine de guerre"}
+            :cb>=3?{g:"linear-gradient(160deg,#123A2A,#1E5A3A)",e:"☀️",t:"Grand soleil · belle dynamique"}
+            :cb>=1?{g:"linear-gradient(160deg,#152318,#283A2A)",e:"⛅",t:"Éclaircies · ça commence"}
+                  :{g:"linear-gradient(160deg,#161A1C,#262E31)",e:"🌧️",t:"Pluie · il faut construire"};
+    h+='<div class="card" style="margin-bottom:18px;background:'+CIEL.g+';padding:18px;border:none;position:relative;overflow:hidden">'+
+      '<div style="position:absolute;top:12px;right:14px;text-align:right">'+
+      '<div style="font-size:26px;line-height:1">'+CIEL.e+'</div>'+
+      '<div style="font-size:9px;font-weight:800;color:rgba(255,255,255,.5);margin-top:3px;max-width:96px;line-height:1.3">'+CIEL.t+'</div></div>'+
       '<div style="color:var(--ok-l);font-weight:800;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:2px">🏰 Mon identité en construction</div>'+
       '<div style="color:#fff;font-weight:900;font-size:13px;margin-bottom:10px">🎯 '+esc(qgc.identity)+'</div>'+
       '<div style="text-align:center;position:relative;height:110px;margin-bottom:10px">'+
@@ -2512,7 +2522,25 @@ function viewCalendar(name,start){
       '<div id="qg-house" style="position:absolute;left:50%;top:38px;transform:translateX(-50%);font-size:40px">'+lvl.icon+'</div></div>'+
       '<div style="text-align:center;color:#fff;font-weight:900;font-size:15px">'+esc(lvlName)+'</div>'+
       '<div style="text-align:center;color:var(--ok-l);font-size:11px;font-weight:700;margin:4px 0 12px">🧱 '+res.total+' brique'+(res.total>1?'s':'')+' posée'+(res.total>1?'s':'')+(nxtL?' · prochain niveau à '+nxtL.min+' briques':' · SOMMET ATTEINT')+'</div>'+
-      (function(){var bs2=comboStreak(allData,today90,hasBrique);return bs2>0?'<div style="text-align:center;font-size:12px;font-weight:900;margin:-6px 0 12px;color:'+streakBadge(bs2).c+'">COMBO '+streakBadge(bs2).e+' '+bs2+' jour'+(bs2>1?'s':'')+' de briques</div>':'';})()+
+      (function(){var bs2=cb;return bs2>0?'<div style="text-align:center;font-size:12px;font-weight:900;margin:-6px 0 12px;color:'+streakBadge(bs2).c+'">COMBO '+streakBadge(bs2).e+' '+bs2+' jour'+(bs2>1?'s':'')+' de briques</div>':'';})()+
+      (function(){
+        // 🧱 Jauge du jour : feedback immédiat, contrairement à l'icône qui ne bouge
+        // que tous les 8 à 20 jours. On voit le segment se remplir à chaque action.
+        var faits=(qToday.p?1:0)+(qToday.e?1:0)+(qToday.s1?1:0)+(qToday.s2?1:0);
+        var pos=4, segs='';
+        for(var g=0;g<pos;g++){
+          var on=g<faits;
+          segs+='<div style="flex:1;height:11px;border-radius:100px;background:'+(on?'linear-gradient(90deg,#8BC34A,#5FBF9C)':'rgba(255,255,255,.13)')+';transition:background .3s"></div>';
+        }
+        var reste=pos-faits;
+        return '<div style="background:rgba(0,0,0,.22);border-radius:14px;padding:12px 13px;margin-bottom:12px">'+
+          '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">'+
+          '<span style="color:#fff;font-weight:900;font-size:12.5px">🧱 Briques aujourd\'hui</span>'+
+          '<span style="color:'+(faits>=pos?'#8BC34A':'var(--ok-l)')+';font-weight:900;font-size:13px">'+faits+'/'+pos+'</span></div>'+
+          '<div style="display:flex;gap:5px">'+segs+'</div>'+
+          '<div style="color:'+(faits>=pos?'#8BC34A':'rgba(255,255,255,.55)')+';font-size:11px;font-weight:700;margin-top:8px">'+
+          (faits>=pos?'🎉 Journée complète — 4 briques posées':reste+' brique'+(reste>1?'s':'')+' à poser aujourd\'hui')+'</div></div>';
+      })()+
       '<div style="color:var(--ok-l);font-weight:800;font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">✅ Mes actions du jour — chaque action validée = 1 brique</div>'+
       '<button id="qg-terrain" style="width:100%;padding:13px 0;border-radius:11px;background:'+(qToday.p?"#2A3A2A":"#5D4037")+';color:'+(qToday.p?"#6A8A6A":"#fff")+';font-weight:900;font-size:13px;margin-bottom:8px">'+(qToday.p?"✅ "+esc(qgc.v1)+" — fait (re-tape pour annuler)":"⬜ "+esc(qgc.v1))+'</button>'+
       '<button id="qg-digital" style="width:100%;padding:13px 0;border-radius:11px;background:'+(qToday.e?"#2A3A2A":"var(--brand2)")+';color:'+(qToday.e?"#6A8A6A":"#fff")+';font-weight:900;font-size:13px">'+(qToday.e?"✅ "+esc(qgc.v2)+" — fait (re-tape pour annuler)":"⬜ "+esc(qgc.v2))+'</button>'+
@@ -3727,6 +3755,13 @@ function viewCoachDetail(){
     '<button id="nut-config" style="flex:1;font-size:11px;font-weight:800;padding:9px 0;border:1.5px solid var(--ok-d);border-radius:10px;background:#fff;color:var(--ok-d)">'+(nutOn?"✏️ Modifier le plan":"➕ Activer + définir le plan")+'</button>'+
     (nutOn?'<button id="nut-off" style="flex:1;font-size:11px;font-weight:800;padding:9px 0;border:1.5px solid var(--brand);border-radius:10px;background:#fff;color:var(--brand)">⛔ Désactiver</button>':'')+'</div></div>';
 
+  // 📊 Compter ou non dans les statistiques
+  (function(){
+    var hs=!!c.horsStats;
+    h+='<button id="cd-stats-toggle" style="width:100%;padding:12px 0;border-radius:12px;border:1.5px solid '+(hs?"var(--warn-d)":"var(--line)")+';background:'+(hs?"var(--soft2)":"var(--card)")+';color:'+(hs?"var(--warn-d)":"var(--mute)")+';font-weight:800;font-size:12.5px;margin-bottom:11px">'+
+      (hs?'🚫 Exclu de mes statistiques — le remettre':'📊 Compté dans mes statistiques — l\'exclure')+'</button>';
+  })();
+
   // 🔄 Actualiser depuis le cloud
   h+='<button id="cd-refresh" style="width:100%;padding:12px 0;border-radius:12px;border:1.5px solid var(--line);background:var(--card);color:var(--brand2);font-weight:800;font-size:12.5px;margin-bottom:11px">🔄 Actualiser les données de '+esc(c.name)+'</button>';
 
@@ -3890,8 +3925,10 @@ function viewCoachDetail(){
 // ═══════════ 📊 ANALYTICS COACH ═══════════
 // Agrège tous les clients : rétention, abandons, résultats.
 function coachAnalytics(){
-  var cl=lsGet("amcoach_clients",[]);
-  var out={total:cl.length,clients:[],paliers:[],finis:0,actifs:0,abandons:0,
+  var tous=lsGet("amcoach_clients",[]);
+  // Tests et clients non payants : exclus des KPI, mais leurs données restent
+  var cl=tous.filter(function(c){return !c.horsStats;});
+  var out={exclus:tous.length-cl.length,total:cl.length,clients:[],paliers:[],finis:0,actifs:0,abandons:0,
            kgTotal:0,pertes:[],remplissage:[],series:[],jourAbandon:[]};
   var auj=new Date();
   for(var i=0;i<cl.length;i++){
@@ -3945,7 +3982,8 @@ function viewCoachStats(){
   var h='<div class="app" style="max-width:480px">'+
     '<div class="hdr"><div class="hdr-brand"><div class="bar bar-r"></div>'+
     '<span class="hdr-title">Mes statistiques</span><div class="bar bar-b"></div></div>'+
-    '<div class="hdr-sub">'+A.total+' client'+(A.total>1?'s':'')+' suivis</div></div>'+
+    '<div class="hdr-sub">'+A.total+' client'+(A.total>1?'s':'')+' compté'+(A.total>1?'s':'')+
+      (A.exclus?' · '+A.exclus+' exclu'+(A.exclus>1?'s':''):'')+'</div></div>'+
     '<div style="padding:16px 14px 0">'+
     '<button id="stats-back" class="big-btn" style="padding:12px 0;font-size:13px;background:var(--soft2);color:var(--ink);margin-bottom:14px">← Retour au tableau de bord</button>';
 
@@ -5237,6 +5275,20 @@ function bindCoach(){
     coachSaveSlot(slug,510,cfg);
     render();
   });
+  // 📊 Basculer la prise en compte dans les stats
+  var stg=document.getElementById("cd-stats-toggle");
+  if(stg)stg.addEventListener("click",function(){
+    var slug=state.coachDetail;
+    var cl=lsGet("amcoach_clients",[]);
+    for(var i=0;i<cl.length;i++){
+      if(cl[i].slug===slug){cl[i].horsStats=!cl[i].horsStats;
+        feedback(cl[i].horsStats?"🚫 Exclu des statistiques":"📊 Compté dans les statistiques",cl[i].horsStats?"undo":"ok");
+        break;}
+    }
+    lsSet("amcoach_clients",cl);
+    render();
+  });
+
   // 🔄 Forcer le rechargement depuis Supabase
   var rf=document.getElementById("cd-refresh");
   if(rf)rf.addEventListener("click",function(){
@@ -5518,6 +5570,42 @@ function bindCoach(){
 }
 
 // ═══════════ NAV BINDING (réutilisable) ═══════════
+// 📱 Barre du bas toujours visible, même en zoomant.
+// iOS positionne les éléments fixes par rapport à la page, pas à ce qu'on voit :
+// dès qu'on pince pour zoomer, la barre part hors de l'écran. On la recale.
+function ancrerNav(){
+  var vv=window.visualViewport;
+  if(!vv)return;
+  var nav=document.querySelector(".nav");
+  if(!nav)return;
+  var ech=vv.scale||1;
+  if(ech<=1.02){
+    nav.style.transform="translateX(-50%)";
+    nav.style.width="";
+    return;
+  }
+  // Zoomé : on replace la barre dans la zone réellement visible et on la remet à l'échelle
+  var dy=(vv.height+vv.offsetTop)-window.innerHeight;
+  nav.style.transformOrigin="bottom center";
+  nav.style.transform="translateX(-50%) translateY("+dy.toFixed(0)+"px) scale("+(1/ech).toFixed(3)+")";
+}
+if(window.visualViewport){
+  window.visualViewport.addEventListener("resize",ancrerNav);
+  window.visualViewport.addEventListener("scroll",ancrerNav);
+}
+// Remise à l'échelle : on rejoue la balise viewport, seule méthode qui marche sur iOS
+function dezoomer(){
+  var m=document.querySelector('meta[name="viewport"]');
+  if(!m)return false;
+  var av=m.getAttribute("content");
+  m.setAttribute("content","width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no");
+  setTimeout(function(){m.setAttribute("content",av);ancrerNav();},320);
+  return true;
+}
+function estZoome(){
+  var vv=window.visualViewport;
+  return !!(vv&&vv.scale>1.05);
+}
 function bindNav(){
   var navs=document.querySelectorAll("[data-nav]");
   for(var i=0;i<navs.length;i++){
@@ -5526,11 +5614,13 @@ function bindNav(){
       // Déjà sur l'onglet : le second appui descend au calendrier,
       // le troisième ramène en haut. Comme sur iOS.
       if(state.view===v&&v==="calendar"){
+        buzz("tap");
+        // 1er appui zoomé : on dézoome · 2e : on remonte en haut · 3e : on descend au calendrier
+        if(estZoome()){dezoomer();return;}
         var a=document.getElementById("cal-anchor");
         var haut=(window.scrollY||document.documentElement.scrollTop)<40;
-        if(a&&haut){a.scrollIntoView({behavior:"smooth",block:"start"});}
+        if(haut&&a){a.scrollIntoView({behavior:"smooth",block:"start"});}
         else{window.scrollTo({top:0,behavior:"smooth"});}
-        buzz("tap");
         return;
       }
       state.view=v;render();
@@ -6245,7 +6335,7 @@ function bindMain(name,start){
   var qgT=document.getElementById("qg-terrain");
   if(qgT)qgT.addEventListener("click",function(){
     var q=getAllData()[400+today90]||{};
-    q.p=!q.p;saveDay(400+today90,q);render();feedback(q.p?"🧱 Brique posée":"Brique retirée",q.p?"ok":"undo");
+    q.p=!q.p;saveDay(400+today90,q);render();feedback(q.p?"🧱 Brique posée":"Brique retirée",q.p?"ok":"undo");if(q.p){var hh=document.getElementById("qg-house");if(hh){hh.style.transition="transform .18s cubic-bezier(.2,1.6,.4,1)";hh.style.transform="translateX(-50%) scale(1.22)";setTimeout(function(){hh.style.transform="translateX(-50%) scale(1)";},190);}}
     var hp=document.getElementById("qg-house");if(hp)hp.classList.add("qg-shake");
   });
   var qQuests=document.querySelectorAll(".qg-quest");
@@ -6257,13 +6347,17 @@ function bindMain(name,start){
       var actif=(n==="1")?q.s1:q.s2;
       saveDay(400+today90,q);render();
       feedback(actif?"🧱 Brique posée":"Brique retirée",actif?"ok":"undo");
-      var hq=document.getElementById("qg-house");if(hq)hq.classList.add("qg-shake");
+      var hq=document.getElementById("qg-house");
+      if(hq){hq.classList.add("qg-shake");
+        if(actif){hq.style.transition="transform .18s cubic-bezier(.2,1.6,.4,1)";
+          hq.style.transform="translateX(-50%) scale(1.22)";
+          setTimeout(function(){hq.style.transform="translateX(-50%) scale(1)";},190);}}
     });
   }
   var qgD=document.getElementById("qg-digital");
   if(qgD)qgD.addEventListener("click",function(){
     var q=getAllData()[400+today90]||{};
-    q.e=!q.e;saveDay(400+today90,q);render();feedback(q.e?"🧱 Brique posée":"Brique retirée",q.e?"ok":"undo");
+    q.e=!q.e;saveDay(400+today90,q);render();feedback(q.e?"🧱 Brique posée":"Brique retirée",q.e?"ok":"undo");if(q.e){var hh=document.getElementById("qg-house");if(hh){hh.style.transition="transform .18s cubic-bezier(.2,1.6,.4,1)";hh.style.transform="translateX(-50%) scale(1.22)";setTimeout(function(){hh.style.transform="translateX(-50%) scale(1)";},190);}}
     var he=document.getElementById("qg-house");if(he)he.classList.add("qg-shake");
   });
   // Dream autosave

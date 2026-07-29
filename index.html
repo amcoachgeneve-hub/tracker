@@ -952,6 +952,18 @@ var CHALLENGES=[
   {id:"ecran", e:"📵", n:"Pas d'écran après 22 h", j:7, d:"Téléphone posé après 22 h"},
   {id:"sport", e:"🏋️", n:"Sport tous les jours", j:7, d:"Une séance chaque jour, même courte"}
 ];
+// Lundi prochain, pour proposer un départ propre en début de semaine
+function chLundiProchain(){
+  var d=new Date(), j=d.getDay();
+  d.setDate(d.getDate()+((8-j)%7||7));
+  return isoLocal(d);
+}
+function chJoursAvant(debut){
+  var a=String(debut).slice(0,10).split("-");
+  var A=Date.UTC(+a[0],(+a[1]||1)-1,+a[2]||1);
+  var n=new Date(), B=Date.UTC(n.getFullYear(),n.getMonth(),n.getDate());
+  return Math.round((A-B)/86400000);
+}
 function chCfg(allData){var c=(allData&&allData[515])||null;return (c&&c.on)?c:null;}
 function chBadges(allData){return (allData&&allData[516])||[];}
 function chJours(c){
@@ -2354,7 +2366,7 @@ function viewCalendar(name,start){
     '<div style="font-size:13.5px;font-weight:800;color:'+pctColor+';margin-top:14px">'+etat+'</div>'+
     '<div style="display:flex;gap:7px;justify-content:center;flex-wrap:wrap;margin-top:14px">'+
       '<span style="background:var(--soft2);border-radius:100px;padding:9px 15px;font-size:12.5px;font-weight:700;color:var(--ink2)">'+
-        '<span style="font-size:20px;line-height:1;vertical-align:-3px">'+streakBadge(streak).e+'</span> <b style="color:'+(streak>=1?streakBadge(streak).c:"var(--mute)")+'">'+streak+'</b> jour'+(streak>1?'s':'')+' de série</span>'+
+        '<span style="font-size:30px;line-height:1;vertical-align:-8px;filter:drop-shadow(0 2px 5px rgba(0,0,0,.18))">'+streakBadge(streak).e+'</span> <b style="font-size:16px;color:'+(streak>=1?streakBadge(streak).c:"var(--mute)")+'">'+streak+'</b> jour'+(streak>1?'s':'')+' de série</span>'+
       '<span style="background:var(--soft2);border-radius:100px;padding:9px 15px;font-size:12.5px;font-weight:700;color:var(--ink2)"><b>'+filled+'</b> remplis</span>'+
       '<span style="background:var(--soft2);border-radius:100px;padding:9px 15px;font-size:12.5px;font-weight:700;color:var(--ink2)"><b>'+daysLeft+'</b> restants</span>'+
     '</div>'+
@@ -2391,7 +2403,10 @@ function viewCalendar(name,start){
       h+='<div style="font-weight:900;font-size:16px;color:var(--ok)">🏆 OBJECTIF ATTEINT !</div>'+
          '<div style="font-size:13px;color:#333;margin-top:6px;line-height:1.6">Tu as mérité ta récompense :<br><strong>'+esc(goal.reward||"—")+'</strong></div>';
     }else{
-      h+='<div style="font-weight:900;font-size:12px;color:#666;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">🎯 '+(shortProg?'Objectif '+progDays+' jours':'Objectif Mois '+month)+' — '+goal.target+' kg</div>';
+      h+='<div style="display:flex;align-items:center;gap:11px;margin-bottom:9px">'+
+        '<span style="font-size:26px;line-height:1">🎯</span>'+
+        '<div style="flex:1"><div style="font-weight:800;font-size:10px;color:var(--mute);letter-spacing:1.4px;text-transform:uppercase">'+(shortProg?'Objectif '+progDays+' jours':'Objectif mois '+month)+'</div>'+
+        '<div style="font-weight:900;font-size:26px;color:var(--ink);letter-spacing:-.8px;line-height:1.05;margin-top:1px">'+goal.target+'<span style="font-size:15px;color:var(--mute);margin-left:2px">kg</span></div></div></div>';
       if(diff!=null){
         h+='<div style="font-weight:900;font-size:17px;color:'+K+'">Plus que '+diff+' kg'+(shortProg?' <span style="font-size:13px;color:var(--warn-d);font-weight:800">· ⏳ '+daysLeft+' jour'+(daysLeft>1?'s':'')+' restant'+(daysLeft>1?'s':'')+'</span>':'')+'</div>';
       }
@@ -2469,9 +2484,13 @@ function viewCalendar(name,start){
 
   h+='<div class="card" style="margin-bottom:18px;background:'+K+';padding:16px 18px">';
   // grade bar
-  h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'+
-    '<span style="color:#fff;font-weight:900;font-size:13px">'+grade.icon+' '+grade.name+'</span>'+
-    '<span style="color:var(--gold);font-weight:900;font-size:13px">'+xp+' XP</span></div>'+
+  h+='<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">'+
+    '<span style="font-size:34px;line-height:1;filter:drop-shadow(0 3px 8px rgba(0,0,0,.5))">'+grade.icon+'</span>'+
+    '<div style="flex:1;min-width:0">'+
+    '<div style="color:#fff;font-weight:900;font-size:20px;letter-spacing:-.3px;line-height:1.1">'+grade.name+'</div>'+
+    '<div style="color:rgba(255,255,255,.4);font-size:10px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;margin-top:2px">Mon grade</div></div>'+
+    '<div style="text-align:right"><div style="color:var(--gold);font-weight:900;font-size:22px;line-height:1">'+xp+'</div>'+
+    '<div style="color:rgba(255,255,255,.35);font-size:9.5px;font-weight:800;letter-spacing:1.4px">XP</div></div></div>'+
   (function(){var os=comboStreak(allData,today90,missionWon);return os>0?'<div style="font-size:11px;font-weight:900;margin:-6px 0 10px;color:'+streakBadge(os).c+'">COMBO '+streakBadge(os).e+' '+os+' mission'+(os>1?'s':'')+' d\'affilée</div>':'';})();
   if(nxt){
     var prev=grade.min, span=nxt.min-prev, prog=Math.round((xp-prev)/span*100);
@@ -2553,7 +2572,22 @@ function viewCalendar(name,start){
     }else if(E.fini){
       h+='<div style="text-align:center;color:rgba(255,255,255,.6);font-size:12.5px;font-weight:700;padding:8px 0">Challenge terminé — '+E.valides+' jours sur '+ch.jours+'</div>';
     }else if(E.jourIdx<0){
-      h+='<div style="text-align:center;color:rgba(255,255,255,.6);font-size:12.5px;font-weight:700;padding:8px 0">Démarre le '+new Date(ch.debut+"T12:00:00").toLocaleDateString("fr-FR")+'</div>';
+      // Pas encore commencé : compte à rebours, et un message spécial la veille
+      var av=chJoursAvant(ch.debut);
+      var dl=new Date(ch.debut+"T12:00:00").toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"});
+      if(av===1){
+        h+='<div style="text-align:center;background:rgba(255,193,7,.15);border:1.5px solid rgba(255,193,7,.4);border-radius:14px;padding:16px">'+
+          '<div style="font-size:26px;line-height:1">⏰</div>'+
+          '<div style="color:#FFD86B;font-weight:900;font-size:15px;margin-top:6px">C\'est demain !</div>'+
+          '<div style="color:rgba(255,255,255,.7);font-size:12.5px;line-height:1.5;margin-top:5px">Prépare-toi pour tes '+ch.jours+' jours de challenge 💪<br>'+
+          (ch.d?esc(ch.d):'')+'</div></div>';
+      }else if(av>1){
+        h+='<div style="text-align:center;background:rgba(255,255,255,.07);border-radius:14px;padding:14px">'+
+          '<div style="color:#fff;font-weight:900;font-size:15px">Départ dans '+av+' jours</div>'+
+          '<div style="color:rgba(255,255,255,.5);font-size:12px;font-weight:700;margin-top:3px;text-transform:capitalize">'+dl+'</div></div>';
+      }else{
+        h+='<div style="text-align:center;color:rgba(255,255,255,.6);font-size:12.5px;font-weight:700;padding:8px 0">Démarre le '+dl+'</div>';
+      }
     }else{
       h+='<button id="ch-valider" style="width:100%;padding:15px 0;border-radius:12px;border:0;font-weight:900;font-size:14px;'+
         (E.fait?'background:rgba(255,255,255,.14);color:rgba(255,255,255,.75)':'background:#8BC34A;color:#0F2016')+'">'+
@@ -5507,11 +5541,25 @@ function bindCoach(){
     render();
   });
   // 🎯 Déclencher un challenge sur ce client
-  function lancerChallenge(e,n,j,d){
+  function lancerChallenge(e,n,j,d,debut){
     var slug=state.coachDetail;
-    coachSaveSlot(slug,515,{on:true,e:e,n:n,jours:j,d:d,debut:isoLocal(),done:{}});
-    feedback("🎯 "+n+" lancé","win");
+    coachSaveSlot(slug,515,{on:true,e:e,n:n,jours:j,d:d,debut:debut||isoLocal(),done:{}});
+    var av=chJoursAvant(debut||isoLocal());
+    feedback(av>0?"🎯 "+n+" programmé dans "+av+" j":"🎯 "+n+" lancé","win");
     render();
+  }
+  // Demande la date de départ : aujourd'hui par défaut, lundi prochain suggéré
+  function demanderDepart(){
+    var lundi=chLundiProchain();
+    var r=prompt("Départ du challenge :\n\n• Laisse VIDE pour démarrer aujourd'hui\n• Tape L pour lundi prochain ("+
+      new Date(lundi+"T12:00:00").toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})+")\n• Ou une date au format AAAA-MM-JJ","");
+    if(r===null)return null;
+    r=r.trim();
+    if(!r)return isoLocal();
+    if(/^l$/i.test(r))return lundi;
+    if(/^\d{4}-\d{2}-\d{2}$/.test(r))return r;
+    alert("Date non comprise — départ fixé à aujourd'hui.");
+    return isoLocal();
   }
   var gos=document.querySelectorAll(".ch-go");
   for(var g0=0;g0<gos.length;g0++){
@@ -5519,8 +5567,10 @@ function bindCoach(){
       var C=CHALLENGES[parseInt(this.getAttribute("data-i"),10)];
       if(!C)return;
       var cc=coachClient(state.coachDetail);
-      if(!confirm("Lancer « "+C.n+" » sur "+((cc&&cc.name)||"ce client")+" ?\n"+C.j+" jours, à partir d'aujourd'hui."))return;
-      lancerChallenge(C.e,C.n,C.j,C.d);
+      if(!confirm("Lancer « "+C.n+" » sur "+((cc&&cc.name)||"ce client")+" ?\n"+C.j+" jours."))return;
+      var dep=demanderDepart();
+      if(dep===null)return;
+      lancerChallenge(C.e,C.n,C.j,C.d,dep);
     });
   }
   var chp=document.getElementById("ch-perso");
@@ -5530,7 +5580,9 @@ function bindCoach(){
     var e=prompt("Un emoji pour l'illustrer :","🔥")||"🔥";
     var j=parseInt(prompt("Combien de jours ?","7"),10)||7;
     var d=prompt("Une phrase de consigne (facultatif) :","")||"";
-    lancerChallenge(e.trim().slice(0,4),n.trim().slice(0,42),Math.max(1,Math.min(90,j)),d.trim().slice(0,90));
+    var dep2=demanderDepart();
+    if(dep2===null)return;
+    lancerChallenge(e.trim().slice(0,4),n.trim().slice(0,42),Math.max(1,Math.min(90,j)),d.trim().slice(0,90),dep2);
   });
   var chs=document.getElementById("ch-stop");
   if(chs)chs.addEventListener("click",function(){

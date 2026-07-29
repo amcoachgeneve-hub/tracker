@@ -941,6 +941,36 @@ var QG_LEVELS=[
   {min:70,icon:"🏯",name:"La Référence",radius:58},
   {min:110,icon:"👑",name:"",radius:72} // = identité du client
 ];
+// ═══════════ 🎯 CHALLENGES COURTS ═══════════
+// Le J90 est loin. Un challenge de 7 jours donne une récompense atteignable.
+// Slot 515 = challenge en cours · slot 516 = badges décrochés.
+var CHALLENGES=[
+  {id:"mono",  e:"🥗", n:"Mono-diète",        j:7,  d:"Un aliment simple par repas, sans extra"},
+  {id:"pas",   e:"👟", n:"10 000 pas / jour", j:7,  d:"Chaque jour, 10 000 pas minimum"},
+  {id:"sucre", e:"🚫", n:"Zéro sucre ajouté", j:7,  d:"Aucun sucre ajouté pendant 7 jours"},
+  {id:"eau",   e:"💧", n:"3 litres d'eau",    j:7,  d:"3 litres par jour, tous les jours"},
+  {id:"ecran", e:"📵", n:"Pas d'écran après 22 h", j:7, d:"Téléphone posé après 22 h"},
+  {id:"sport", e:"🏋️", n:"Sport tous les jours", j:7, d:"Une séance chaque jour, même courte"}
+];
+function chCfg(allData){var c=(allData&&allData[515])||null;return (c&&c.on)?c:null;}
+function chBadges(allData){return (allData&&allData[516])||[];}
+function chJours(c){
+  // Liste des dates du challenge, du début à la fin
+  var out=[],d=new Date(c.debut+"T12:00:00");
+  for(var i=0;i<c.jours;i++){out.push(isoLocal(d));d.setDate(d.getDate()+1);}
+  return out;
+}
+function chEtat(c){
+  var js=chJours(c),done=c.done||{},n=0,auj=isoLocal(),idx=-1;
+  for(var i=0;i<js.length;i++){
+    if(done[js[i]])n++;
+    if(js[i]===auj)idx=i;
+  }
+  var fini=js[js.length-1]<auj;
+  return {jours:js,valides:n,jourIdx:idx,ajd:idx>=0?js[idx]:null,
+          fait:idx>=0&&!!done[js[idx]],fini:fini,
+          reussi:n>=c.jours,pct:Math.round(n/c.jours*100)};
+}
 function qgConfig(allData){return allData[502]||null;}
 var QUESTS={
   finances:{icon:"💰",name:"Le Coffre-Fort",hack:"10€ de côté ou 1 achat impulsif refusé"},
@@ -2493,6 +2523,47 @@ function viewCalendar(name,start){
 
   // COUNTDOWN overlay + CHRONO handled in bind via dynamic overlay
 
+  // 🎯 CHALLENGE EN COURS
+  (function(){
+    var ch=chCfg(allData);
+    if(!ch)return;
+    var E=chEtat(ch);
+    var cases='';
+    for(var i=0;i<E.jours.length;i++){
+      var ok=(ch.done||{})[E.jours[i]];
+      var auj=i===E.jourIdx;
+      cases+='<div style="flex:1;aspect-ratio:1;border-radius:11px;display:flex;align-items:center;justify-content:center;'+
+        'font-size:15px;font-weight:900;background:'+(ok?"linear-gradient(145deg,#8BC34A,#5FBF9C)":auj?"rgba(255,255,255,.16)":"rgba(255,255,255,.07)")+';'+
+        (auj&&!ok?"box-shadow:inset 0 0 0 2px rgba(255,255,255,.5);":"")+
+        'color:'+(ok?"#0F2016":"rgba(255,255,255,.45)")+'">'+(ok?"✓":(i+1))+'</div>';
+    }
+    var restant=ch.jours-E.valides;
+    h+='<div class="card" style="background:linear-gradient(155deg,#1B2A3A,#2E4560);border:none;padding:18px;margin-bottom:16px">'+
+      '<div style="display:flex;align-items:center;gap:11px;margin-bottom:4px">'+
+      '<span style="font-size:26px;line-height:1">'+ch.e+'</span>'+
+      '<div style="flex:1"><div style="color:#fff;font-weight:900;font-size:16px">'+esc(ch.n)+'</div>'+
+      '<div style="color:rgba(255,255,255,.6);font-size:11.5px;font-weight:700">Challenge '+ch.jours+' jours · '+E.valides+'/'+ch.jours+' validés</div></div>'+
+      '<span style="font-size:19px;font-weight:900;color:'+gaugeCol(E.pct)+'">'+E.pct+'%</span></div>'+
+      (ch.d?'<div style="color:rgba(255,255,255,.62);font-size:12px;line-height:1.45;margin:8px 0 12px">'+esc(ch.d)+'</div>':'<div style="height:10px"></div>')+
+      '<div style="display:flex;gap:5px;margin-bottom:13px">'+cases+'</div>';
+    if(E.reussi){
+      h+='<div style="text-align:center;background:rgba(139,195,74,.16);border-radius:12px;padding:13px"><div style="font-size:24px">🏅</div>'+
+        '<div style="color:#A5DE6E;font-weight:900;font-size:14px;margin-top:3px">Challenge réussi !</div>'+
+        '<div style="color:rgba(255,255,255,.55);font-size:11.5px;margin-top:2px">Badge débloqué — bravo</div></div>';
+    }else if(E.fini){
+      h+='<div style="text-align:center;color:rgba(255,255,255,.6);font-size:12.5px;font-weight:700;padding:8px 0">Challenge terminé — '+E.valides+' jours sur '+ch.jours+'</div>';
+    }else if(E.jourIdx<0){
+      h+='<div style="text-align:center;color:rgba(255,255,255,.6);font-size:12.5px;font-weight:700;padding:8px 0">Démarre le '+new Date(ch.debut+"T12:00:00").toLocaleDateString("fr-FR")+'</div>';
+    }else{
+      h+='<button id="ch-valider" style="width:100%;padding:15px 0;border-radius:12px;border:0;font-weight:900;font-size:14px;'+
+        (E.fait?'background:rgba(255,255,255,.14);color:rgba(255,255,255,.75)':'background:#8BC34A;color:#0F2016')+'">'+
+        (E.fait?"✓ Validé aujourd'hui — annuler":"Valider ma journée")+'</button>'+
+        '<div style="text-align:center;color:rgba(255,255,255,.5);font-size:11px;font-weight:700;margin-top:9px">'+
+        (restant>0?'Encore '+restant+' jour'+(restant>1?'s':'')+' pour décrocher le badge':'')+'</div>';
+    }
+    h+='</div>';
+  })();
+
   // 🏰 FORTERESSE D'IDENTITÉ (personnalisée par client)
   var qgc=qgConfig(allData);
   if(!qgc){
@@ -2526,8 +2597,14 @@ function viewCalendar(name,start){
       (function(){
         // 🧱 Jauge du jour : feedback immédiat, contrairement à l'icône qui ne bouge
         // que tous les 8 à 20 jours. On voit le segment se remplir à chaque action.
-        var faits=(qToday.p?1:0)+(qToday.e?1:0)+(qToday.s1?1:0)+(qToday.s2?1:0);
-        var pos=4, segs='';
+        // Le maximum dépend de ce qui est configuré : 2 actions + les quêtes actives
+        var pos=2;
+        if(qgc.q1&&QUESTS[qgc.q1])pos++;
+        if(qgc.q2&&QUESTS[qgc.q2])pos++;
+        var faits=(qToday.p?1:0)+(qToday.e?1:0)+
+                  ((qgc.q1&&QUESTS[qgc.q1]&&qToday.s1)?1:0)+
+                  ((qgc.q2&&QUESTS[qgc.q2]&&qToday.s2)?1:0);
+        var segs='';
         for(var g=0;g<pos;g++){
           var on=g<faits;
           segs+='<div style="flex:1;height:11px;border-radius:100px;background:'+(on?'linear-gradient(90deg,#8BC34A,#5FBF9C)':'rgba(255,255,255,.13)')+';transition:background .3s"></div>';
@@ -3261,6 +3338,21 @@ function viewStats(name){
       {icon:"📅",name:"Premier Mois",cond:rempli>=28,desc:"28 jours remplis"},
       {icon:"🎓",name:"Transformation",cond:rempli>=84,desc:"84 jours remplis"}
     ];
+    // 🏅 Badges de challenges décrochés
+    (function(){
+      var bd=chBadges(allData);
+      if(!bd.length)return;
+      var chips='';
+      for(var q=0;q<bd.length&&q<9;q++){
+        chips+='<div style="background:var(--card);border:2px solid var(--gold);border-radius:14px;padding:11px 8px;text-align:center;box-shadow:var(--shadow)">'+
+          '<div style="font-size:22px">'+bd[q].e+'</div>'+
+          '<div style="font-size:10px;font-weight:900;margin-top:4px;line-height:1.25">'+esc(bd[q].n)+'</div>'+
+          '<div style="font-size:9.5px;color:var(--mute);font-weight:700;margin-top:2px">'+bd[q].jours+' j ✓</div></div>';
+      }
+      h+='<div style="display:flex;align-items:center;gap:8px;margin:18px 0 10px"><div style="width:3px;height:18px;background:var(--gold);border-radius:2px"></div>'+
+        '<span style="font-weight:900;font-size:14px;text-transform:uppercase;letter-spacing:1px">🏅 Challenges réussis</span></div>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">'+chips+'</div>';
+    })();
     h+='<div style="display:flex;align-items:center;gap:8px;margin:18px 0 10px"><div style="width:3px;height:18px;background:var(--gold);border-radius:2px"></div>'+
       '<span style="font-weight:900;font-size:14px;text-transform:uppercase;letter-spacing:1px">🏆 Trophées</span></div>'+
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px">';
@@ -3755,6 +3847,35 @@ function viewCoachDetail(){
     '<button id="nut-config" style="flex:1;font-size:11px;font-weight:800;padding:9px 0;border:1.5px solid var(--ok-d);border-radius:10px;background:#fff;color:var(--ok-d)">'+(nutOn?"✏️ Modifier le plan":"➕ Activer + définir le plan")+'</button>'+
     (nutOn?'<button id="nut-off" style="flex:1;font-size:11px;font-weight:800;padding:9px 0;border:1.5px solid var(--brand);border-radius:10px;background:#fff;color:var(--brand)">⛔ Désactiver</button>':'')+'</div></div>';
 
+  // 🎯 CHALLENGE — déclenché par le coach
+  (function(){
+    var ch=chCfg(allData);
+    h+='<div class="card" style="padding:14px 15px">'+
+      '<div style="font-weight:800;font-size:13px;margin-bottom:9px">🎯 Challenge court</div>';
+    if(ch){
+      var E=chEtat(ch);
+      h+='<div style="background:var(--soft2);border-radius:12px;padding:12px;margin-bottom:9px">'+
+        '<div style="font-weight:900;font-size:14px">'+ch.e+' '+esc(ch.n)+'</div>'+
+        '<div style="font-size:11.5px;color:var(--mute);font-weight:700;margin-top:3px">'+
+        E.valides+'/'+ch.jours+' jours validés · '+E.pct+' %'+(E.reussi?' · 🏅 réussi':E.fini?' · terminé':'')+'</div>'+
+        '<div style="height:8px;border-radius:100px;background:var(--card);margin-top:8px;overflow:hidden">'+
+        '<div style="height:100%;width:'+E.pct+'%;background:'+gaugeCol(E.pct)+';border-radius:100px"></div></div></div>'+
+        '<button id="ch-stop" style="width:100%;padding:11px 0;border-radius:11px;border:1.5px solid var(--line);background:var(--card);color:var(--mute);font-weight:800;font-size:12px">Arrêter ce challenge</button>';
+    }else{
+      h+='<div style="font-size:11.5px;color:var(--mute);margin-bottom:10px;line-height:1.5">Un objectif court pour relancer la motivation sans attendre le jour 90.</div>';
+      for(var ci=0;ci<CHALLENGES.length;ci++){
+        var C=CHALLENGES[ci];
+        h+='<button class="ch-go" data-i="'+ci+'" style="width:100%;text-align:left;display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);margin-bottom:6px">'+
+          '<span style="font-size:19px">'+C.e+'</span>'+
+          '<span style="flex:1"><span style="display:block;font-weight:800;font-size:13px;color:var(--ink)">'+C.n+'</span>'+
+          '<span style="display:block;font-size:11px;color:var(--mute);font-weight:700">'+C.j+' jours · '+C.d+'</span></span>'+
+          '<span style="color:var(--brand);font-weight:900;font-size:16px">＋</span></button>';
+      }
+      h+='<button id="ch-perso" style="width:100%;padding:12px 0;border-radius:12px;border:1.5px dashed var(--brand2);background:var(--card);color:var(--brand2);font-weight:800;font-size:12.5px;margin-top:4px">✏️ Challenge personnalisé</button>';
+    }
+    h+='</div>';
+  })();
+
   // 📊 Compter ou non dans les statistiques
   (function(){
     var hs=!!c.horsStats;
@@ -3985,7 +4106,7 @@ function viewCoachStats(){
     '<div class="hdr-sub">'+A.total+' client'+(A.total>1?'s':'')+' compté'+(A.total>1?'s':'')+
       (A.exclus?' · '+A.exclus+' exclu'+(A.exclus>1?'s':''):'')+'</div></div>'+
     '<div style="padding:16px 14px 0">'+
-    '<button id="stats-back" class="big-btn" style="padding:12px 0;font-size:13px;background:var(--soft2);color:var(--ink);margin-bottom:14px">← Retour au tableau de bord</button>';
+    '<button id="stats-back" class="big-btn" style="padding:13px 0;font-size:13px;background:var(--ink);color:#fff;margin-bottom:14px">← Retour au tableau de bord</button>';
 
   if(!A.total){
     return h+'<div class="card" style="padding:20px;text-align:center;color:var(--mute)">Aucun client pour l\'instant.</div></div>';
@@ -4029,7 +4150,8 @@ function viewCoachStats(){
     '<div class="kpi-row">'+
     '<div class="kpi-card" style="background:var(--soft2)"><div class="kpi-val">'+(A.meilleurePerte!=null?A.meilleurePerte:"—")+'</div><div class="kpi-lbl">meilleur résultat (kg)</div></div>'+
     '<div class="kpi-card" style="background:var(--soft2)"><div class="kpi-val">'+(A.remplMoy!=null?A.remplMoy:0)+'%</div><div class="kpi-lbl">assiduité moyenne</div></div></div>'+
-    '<button id="stats-share" style="width:100%;margin-top:14px;padding:14px 0;border-radius:12px;border:0;background:#25D366;color:#fff;font-weight:900;font-size:13px">💬 Partager mes chiffres</button>'+
+    '<button id="stats-card" style="width:100%;margin-top:14px;padding:14px 0;border-radius:12px;border:0;background:var(--ink);color:#fff;font-weight:900;font-size:13px">🖼️ Carte pour les réseaux</button>'+
+    '<button id="stats-share" style="width:100%;margin-top:8px;padding:14px 0;border-radius:12px;border:0;background:#25D366;color:#fff;font-weight:900;font-size:13px">💬 Partager mes chiffres</button>'+
     '<div style="font-size:10.5px;color:var(--mute);margin-top:8px;line-height:1.5">Chiffres agrégés, sans aucun nom — utilisables tels quels en preuve sociale.</div></div>';
 
   // ── Détail par client
@@ -5106,6 +5228,47 @@ function bindCoach(){
   if(so)so.addEventListener("click",function(){state.coachStats=true;render();});
   var sb=document.getElementById("stats-back");
   if(sb)sb.addEventListener("click",function(){state.coachStats=false;render();});
+  var sc=document.getElementById("stats-card");
+  if(sc)sc.addEventListener("click",function(){
+    var A=coachAnalytics();
+    var w=window.open("","_blank");
+    if(!w){alert("Autorise les fenêtres pour générer la carte");return;}
+    function bloc(v,l){return '<div style="text-align:center"><div style="font-size:44px;font-weight:900;letter-spacing:-1.5px;line-height:1">'+v+'</div>'+
+      '<div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#8A96A3;margin-top:6px">'+l+'</div></div>';}
+    var html='<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8">'+
+      '<meta name="viewport" content="width=device-width,initial-scale=1">'+
+      '<title>Mes résultats</title><style>'+themeCSS()+
+      'html,body{margin:0;background:#07090B;font-family:ui-rounded,-apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased}'+
+      '.bar{position:sticky;top:0;background:#111;padding:10px;display:flex;gap:8px;z-index:9}'+
+      '.bar button{flex:1;border:0;border-radius:9px;padding:12px 0;font-weight:800;font-size:13px;font-family:inherit}'+
+      '.wrap{padding:18px}'+
+      '.card{max-width:400px;margin:0 auto;background:linear-gradient(165deg,#0F1620,#1B2836);border-radius:28px;padding:32px 26px;color:#fff;box-shadow:0 24px 60px rgba(0,0,0,.5)}'+
+      '.hd{display:flex;align-items:center;gap:8px;margin-bottom:26px}'+
+      '.hd i{width:4px;height:20px;border-radius:2px;display:block}'+
+      '.hd span{font-weight:900;font-size:13px;letter-spacing:3px}'+
+      '.grid{display:grid;grid-template-columns:1fr 1fr;gap:26px 12px;margin-bottom:26px}'+
+      '.ft{border-top:1px solid rgba(255,255,255,.1);padding-top:18px;text-align:center}'+
+      '.ft b{display:block;font-size:13px;font-weight:900;letter-spacing:1.5px}'+
+      '.ft s{display:block;text-decoration:none;font-size:10.5px;color:#7C8794;margin-top:5px;letter-spacing:1px}'+
+      '</style></head><body>'+
+      '<div class="bar"><button onclick="window.print()" style="background:#C9A227;color:#111">🖨️ Enregistrer</button>'+
+      '<button onclick="window.close()" style="background:#333;color:#fff">✕ Fermer</button></div>'+
+      '<div class="wrap"><div class="card">'+
+      '<div class="hd"><i style="background:#E4032E"></i><i style="background:#2A6CB0"></i>'+
+      '<span>AM COACH GENÈVE</span></div>'+
+      '<div class="grid">'+
+        bloc(A.total,"clients accompagnés")+
+        bloc(A.tauxFin+"%","vont au bout")+
+        bloc((Math.round(A.kgTotal*10)/10),"kg perdus au total")+
+        bloc((A.perteMoy!=null?A.perteMoy:"—"),"kg en moyenne")+
+      '</div>'+
+      (A.meilleurePerte!=null?'<div style="text-align:center;background:rgba(201,162,39,.14);border-radius:16px;padding:14px;margin-bottom:22px">'+
+        '<div style="font-size:11px;letter-spacing:2px;color:#C9A227;font-weight:800">MEILLEUR RÉSULTAT</div>'+
+        '<div style="font-size:30px;font-weight:900;margin-top:4px">−'+A.meilleurePerte+' kg</div></div>':'')+
+      '<div class="ft"><b>MÉTHODE AM TRANSFO PHYSIQUE</b><s>@AMCOACHSPORTIF · 90 JOURS</s></div>'+
+      '</div><div style="text-align:center;color:#5C6773;font-size:11.5px;margin-top:16px">📸 Fais une capture de cette carte et poste-la</div></div></body></html>';
+    w.document.write(html); w.document.close();
+  });
   var ss=document.getElementById("stats-share");
   if(ss)ss.addEventListener("click",function(){
     var A=coachAnalytics();
@@ -5275,6 +5438,40 @@ function bindCoach(){
     coachSaveSlot(slug,510,cfg);
     render();
   });
+  // 🎯 Déclencher un challenge sur ce client
+  function lancerChallenge(e,n,j,d){
+    var slug=state.coachDetail;
+    coachSaveSlot(slug,515,{on:true,e:e,n:n,jours:j,d:d,debut:isoLocal(),done:{}});
+    feedback("🎯 "+n+" lancé","win");
+    render();
+  }
+  var gos=document.querySelectorAll(".ch-go");
+  for(var g0=0;g0<gos.length;g0++){
+    gos[g0].addEventListener("click",function(){
+      var C=CHALLENGES[parseInt(this.getAttribute("data-i"),10)];
+      if(!C)return;
+      var cc=coachClient(state.coachDetail);
+      if(!confirm("Lancer « "+C.n+" » sur "+((cc&&cc.name)||"ce client")+" ?\n"+C.j+" jours, à partir d'aujourd'hui."))return;
+      lancerChallenge(C.e,C.n,C.j,C.d);
+    });
+  }
+  var chp=document.getElementById("ch-perso");
+  if(chp)chp.addEventListener("click",function(){
+    var n=prompt("Nom du challenge :\n(ex : 3 séances de gainage par jour)");
+    if(!n||!n.trim())return;
+    var e=prompt("Un emoji pour l'illustrer :","🔥")||"🔥";
+    var j=parseInt(prompt("Combien de jours ?","7"),10)||7;
+    var d=prompt("Une phrase de consigne (facultatif) :","")||"";
+    lancerChallenge(e.trim().slice(0,4),n.trim().slice(0,42),Math.max(1,Math.min(90,j)),d.trim().slice(0,90));
+  });
+  var chs=document.getElementById("ch-stop");
+  if(chs)chs.addEventListener("click",function(){
+    if(!confirm("Arrêter le challenge en cours ?"))return;
+    coachSaveSlot(state.coachDetail,515,{on:false});
+    feedback("Challenge arrêté","undo");
+    render();
+  });
+
   // 📊 Basculer la prise en compte dans les stats
   var stg=document.getElementById("cd-stats-toggle");
   if(stg)stg.addEventListener("click",function(){
@@ -6413,6 +6610,30 @@ function bindMain(name,start){
     state.showGoalForm=false;
     render();
   });
+  // 🎯 Validation du challenge
+  var chv=document.getElementById("ch-valider");
+  if(chv)chv.addEventListener("click",function(){
+    var all=getAllData(), ch=all[515];
+    if(!ch)return;
+    var E=chEtat(ch);
+    if(!E.ajd)return;
+    ch.done=ch.done||{};
+    if(ch.done[E.ajd]){delete ch.done[E.ajd];saveDay(515,ch);render();feedback("Journée retirée","undo");return;}
+    ch.done[E.ajd]=true;
+    saveDay(515,ch);
+    var E2=chEtat(ch);
+    if(E2.reussi){
+      var bd=chBadges(getAllData()).slice();
+      bd.unshift({e:ch.e,n:ch.n,jours:ch.jours,fin:isoLocal()});
+      saveDay(516,bd);
+      render();
+      feedback("🏅 "+ch.n+" — challenge réussi !","win");
+    }else{
+      render();
+      feedback("✓ Jour "+(E2.valides)+"/"+ch.jours,"ok");
+    }
+  });
+
   bindNav(); // un seul brancheur : celui qui gère aussi le double appui
   var months=document.querySelectorAll("[data-month]");
   for(var m=0;m<months.length;m++){

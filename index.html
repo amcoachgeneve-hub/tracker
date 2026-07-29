@@ -1785,7 +1785,35 @@ function renderView(){
   // 🔑 Contrôle d'accès (slot 504)
   var lastAct=getAllData()[505];
   var todayIso=isoLocal();
-  if(CLIENT&&(!lastAct||lastAct.d!==todayIso)){saveDay(505,{d:todayIso});}
+  var acc0=getAllData()[504]||{};
+  // 🔒 Verrou de silence : plus de N jours sans ouvrir l'app.
+  // Le seuil est réglable par le coach (0 = désactivé), 7 jours par défaut.
+  var seuilSil=(acc0.silence===undefined?7:acc0.silence);
+  var joursSil=0;
+  if(lastAct&&lastAct.d)joursSil=Math.floor((new Date(todayIso)-new Date(lastAct.d))/86400000);
+  var verrouSil=!!(CLIENT&&seuilSil>0&&lastAct&&lastAct.d&&joursSil>seuilSil);
+  // On n'enregistre la visite QUE si l'accès n'est pas verrouillé :
+  // sinon le simple fait d'ouvrir l'app lèverait le verrou tout seul.
+  if(CLIENT&&!verrouSil&&(!lastAct||lastAct.d!==todayIso)){saveDay(505,{d:todayIso});}
+  if(verrouSil){
+    var vD=getAllData(),vT=getToday90(start);
+    var vRem=0;for(var vi=0;vi<=vT&&vi<90;vi++){if(vD[vi]&&Object.keys(vD[vi]).length>0)vRem++;}
+    root.innerHTML='<div class="dark-screen">'+
+      '<div class="dark-brand"><div class="bar bar-r"></div><span>AM Coach</span><div class="bar bar-b"></div></div>'+
+      '<div style="font-size:46px;margin:22px 0 10px">🔒</div>'+
+      '<div style="color:#fff;font-weight:900;font-size:20px;margin-bottom:12px;text-align:center">Ton accès est en pause</div>'+
+      '<div style="color:#8A8A8A;font-size:13.5px;line-height:1.8;max-width:310px;text-align:center;margin-bottom:22px">'+
+      'Tu es restée silencieuse pendant <strong style="color:#fff">'+joursSil+' jours</strong>.<br>'+
+      'Ton suivi ne fonctionne que si tu le remplis — c\'est pour ça qu\'il se met en pause.</div>'+
+      '<div style="background:rgba(255,255,255,.07);border-radius:16px;padding:15px 18px;text-align:center;margin-bottom:22px">'+
+      '<div style="color:#fff;font-weight:900;font-size:22px">'+vRem+' jour'+(vRem>1?'s':'')+'</div>'+
+      '<div style="color:#7A7A7A;font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;margin-top:3px">déjà construits</div></div>'+
+      '<div style="color:#fff;font-size:14.5px;font-weight:800;text-align:center;line-height:1.6">Contacte ton coach<br>pour réactiver ton accès 💪</div>'+
+      '<a href="https://wa.me/41779075273?text='+encodeURIComponent("Bonjour Akli, mon accès est en pause, je souhaite reprendre 💪")+'" '+
+      'style="margin-top:20px;display:inline-block;background:#25D366;color:#fff;text-decoration:none;padding:15px 26px;border-radius:100px;font-weight:900;font-size:14px">💬 Écrire à mon coach</a>'+
+      '</div>';
+    return;
+  }
   var acc=getAllData()[504];
   if(acc&&(acc.off||(acc.end&&isoLocal()>acc.end))){
     var aD=getAllData(),aT=getToday90(start);
@@ -2357,7 +2385,7 @@ function viewCalendar(name,start){
   // Sa couleur suit le remplissage : rouge → orange → jaune → vert.
   var etat=pct>=85?"Tu tiens le rythme":pct>=65?"Bien engagé":pct>=45?"À consolider":pct>=25?"Ça décroche":"À relancer";
   h+='<div class="card" style="padding:24px 18px 20px;margin-bottom:16px;text-align:center">'+
-    '<div style="font-size:11px;font-weight:800;color:var(--mute);letter-spacing:1.4px;text-transform:uppercase;margin-bottom:16px">Ma progression</div>'+
+    '<div style="font-size:20px;font-weight:900;color:var(--ink);letter-spacing:-.3px;margin-bottom:16px">Ma progression</div>'+
     '<div class="ring-wrap" style="margin:0 auto">'+svgRing(pct/100,pctColor,196,16)+
     '<div class="ring-txt" style="flex-direction:column;gap:2px">'+
     '<span style="font-size:54px;font-weight:900;letter-spacing:-2px;line-height:1;color:var(--ink)">'+pct+
@@ -2405,7 +2433,7 @@ function viewCalendar(name,start){
     }else{
       h+='<div style="display:flex;align-items:center;gap:11px;margin-bottom:9px">'+
         '<span style="font-size:26px;line-height:1">🎯</span>'+
-        '<div style="flex:1"><div style="font-weight:800;font-size:10px;color:var(--mute);letter-spacing:1.4px;text-transform:uppercase">'+(shortProg?'Objectif '+progDays+' jours':'Objectif mois '+month)+'</div>'+
+        '<div style="flex:1"><div style="font-weight:900;font-size:20px;color:var(--ink);letter-spacing:-.3px;line-height:1.15">'+(shortProg?'Objectif '+progDays+' jours':'Objectif du mois '+month)+'</div>'+
         '<div style="font-weight:900;font-size:26px;color:var(--ink);letter-spacing:-.8px;line-height:1.05;margin-top:1px">'+goal.target+'<span style="font-size:15px;color:var(--mute);margin-left:2px">kg</span></div></div></div>';
       if(diff!=null){
         h+='<div style="font-weight:900;font-size:17px;color:'+K+'">Plus que '+diff+' kg'+(shortProg?' <span style="font-size:13px;color:var(--warn-d);font-weight:800">· ⏳ '+daysLeft+' jour'+(daysLeft>1?'s':'')+' restant'+(daysLeft>1?'s':'')+'</span>':'')+'</div>';
@@ -3903,6 +3931,41 @@ function viewCoachDetail(){
     '<button id="nut-config" style="flex:1;font-size:11px;font-weight:800;padding:9px 0;border:1.5px solid var(--ok-d);border-radius:10px;background:#fff;color:var(--ok-d)">'+(nutOn?"✏️ Modifier le plan":"➕ Activer + définir le plan")+'</button>'+
     (nutOn?'<button id="nut-off" style="flex:1;font-size:11px;font-weight:800;padding:9px 0;border:1.5px solid var(--brand);border-radius:10px;background:#fff;color:var(--brand)">⛔ Désactiver</button>':'')+'</div></div>';
 
+  // ⏳ Bilan final à faire ?
+  (function(){
+    var b6=allData[600]||{}, cl6=[];
+    for(var k6 in b6){if(b6.hasOwnProperty(k6)&&b6[k6]&&b6[k6].poids)cl6.push(k6);}
+    var t6=getToday90(c.start_date), dur6=progLen(c.start_date)||90;
+    var objFixe=false;
+    for(var k7 in b6){if(b6.hasOwnProperty(k7)&&b6[k7]&&b6[k7].poidsCible)objFixe=true;}
+    if(!objFixe||cl6.length>=2)return;
+    if(t6<dur6-10)return;
+    h+='<div class="card" style="padding:13px 15px;border-left:4px solid var(--warn-d)">'+
+      '<div style="font-weight:800;font-size:13px;margin-bottom:4px">⏳ Bilan final à faire</div>'+
+      '<div style="font-size:12px;color:var(--mute);line-height:1.5">Jour '+Math.min(t6+1,dur6)+' sur '+dur6+
+      '. Tant que le bilan final n\'est pas saisi, '+esc(c.name)+' ne compte pas dans tes résultats.</div></div>';
+  })();
+
+  // 🔒 VERROU DE SILENCE
+  (function(){
+    var ac=allData[504]||{};
+    var seuil=(ac.silence===undefined?7:ac.silence);
+    var la=allData[505]&&allData[505].d;
+    var sil=la?Math.floor((new Date(isoLocal())-new Date(la))/86400000):null;
+    var verrou=!!(seuil>0&&la&&sil>seuil);
+    h+='<div class="card" style="padding:14px 15px'+(verrou?';border-left:4px solid var(--bad)':'')+'">'+
+      '<div style="font-weight:800;font-size:13px;margin-bottom:7px">🔒 Verrou de silence</div>'+
+      '<div style="font-size:12px;color:'+(verrou?"var(--bad)":"var(--mute)")+';font-weight:700;line-height:1.5;margin-bottom:10px">'+
+      (verrou?'⛔ Accès verrouillé — '+sil+' jours sans ouvrir l\'app'
+             :(seuil>0?(la?'Dernière ouverture il y a '+sil+' jour'+(sil>1?'s':'')+' · verrouillage à '+seuil+' jours'
+                          :'Jamais ouverte — le verrou s\'activera après la première visite')
+                     :'Désactivé pour ce client'))+'</div>'+
+      '<div style="display:flex;gap:7px">'+
+      (verrou?'<button id="cd-unlock" style="flex:1;padding:12px 0;border-radius:12px;border:0;background:var(--ok-d);color:#fff;font-weight:900;font-size:12.5px">🔓 Réactiver l\'accès</button>':'')+
+      '<button id="cd-seuil" style="'+(verrou?'flex:0 0 108px':'flex:1')+';padding:12px 0;border-radius:12px;border:1.5px solid var(--line);background:var(--card);color:var(--mute);font-weight:800;font-size:12.5px">⚙️ '+(seuil>0?seuil+' jours':'Activer')+'</button>'+
+      '</div></div>';
+  })();
+
   // 🎯 CHALLENGE — déclenché par le coach
   (function(){
     var ch=chCfg(allData);
@@ -4105,7 +4168,7 @@ function coachAnalytics(){
   var tous=lsGet("amcoach_clients",[]);
   // Tests et clients non payants : exclus des KPI, mais leurs données restent
   var cl=tous.filter(function(c){return !c.horsStats;});
-  var out={exclus:tous.length-cl.length,total:cl.length,objectifs:[],objAtteints:0,clients:[],paliers:[],finis:0,actifs:0,abandons:0,
+  var out={exclus:tous.length-cl.length,total:cl.length,objectifs:[],objAtteints:0,enAttente:0,clients:[],paliers:[],finis:0,actifs:0,abandons:0,
            kgTotal:0,pertes:[],remplissage:[],series:[],jourAbandon:[]};
   var auj=new Date();
   for(var i=0;i<cl.length;i++){
@@ -4121,19 +4184,30 @@ function coachAnalytics(){
     var p1=null,p2=null;
     for(var w=0;w<dur;w++){if(d[w]&&d[w].poids){var v=parseFloat(d[w].poids);if(p1===null)p1=v;p2=v;}}
     var perte=(p1!=null&&p2!=null)?Math.round((p1-p2)*10)/10:null;
-    // 🎯 Objectif du bilan : poids de départ et poids cible saisis par le coach
-    var b6=d[600]||{}, prem=null;
-    for(var bk in b6){if(b6.hasOwnProperty(bk)){var bb=b6[bk];
-      if(bb&&bb.poids&&bb.poidsCible&&(!prem||String(bk)<String(prem.k)))prem={k:bk,o:bb};}}
-    var obj=null;
-    if(prem&&p2!=null){
-      var dep=parseFloat(prem.o.poids), cib=parseFloat(prem.o.poidsCible);
-      if(dep&&cib&&dep>cib){
-        var vise=Math.round((dep-cib)*10)/10;
-        var fait=Math.round((dep-p2)*10)/10;
-        obj={depart:dep,cible:cib,vise:vise,fait:fait,actuel:p2,
-             pct:Math.min(200,Math.round(fait/vise*100)),
-             atteint:p2<=cib, bonus:p2<cib?Math.round((cib-p2)*10)/10:0};
+    // 🎯 Résultat : évalué UNIQUEMENT au bilan final, jamais sur une pesée du jour.
+    // Un client au jour 20 n'a pas « raté » son objectif — il n'est pas encore évalué.
+    var b6=d[600]||{}, cles=[];
+    for(var bk in b6){if(b6.hasOwnProperty(bk)&&b6[bk])cles.push(bk);}
+    cles.sort();
+    var prem=null,dern=null;
+    for(var ck=0;ck<cles.length;ck++){
+      var bb=b6[cles[ck]];
+      if(!prem&&bb.poids&&bb.poidsCible)prem={k:cles[ck],o:bb};
+      if(bb.poids)dern={k:cles[ck],o:bb};
+    }
+    var obj=null, enAttente=false;
+    if(prem){
+      if(dern&&dern.k!==prem.k){
+        var dep=parseFloat(prem.o.poids), cib=parseFloat(prem.o.poidsCible), fin=parseFloat(dern.o.poids);
+        if(dep&&cib&&fin&&dep>cib){
+          var vise=Math.round((dep-cib)*10)/10;
+          var fait=Math.round((dep-fin)*10)/10;
+          obj={depart:dep,cible:cib,vise:vise,fait:fait,final:fin,dateBilan:dern.k,
+               pct:Math.min(200,Math.round(fait/vise*100)),
+               atteint:fin<=cib, bonus:fin<cib?Math.round((cib-fin)*10)/10:0};
+        }
+      }else{
+        enAttente=true; // objectif fixé, bilan final pas encore fait
       }
     }
     // Statut : fini / actif / décroché (rien depuis 10 jours et programme non terminé)
@@ -4142,12 +4216,14 @@ function coachAnalytics(){
     var lache=!fini&&last>=0&&ecart>10;
     if(fini)out.finis++; else if(lache)out.abandons++; else out.actifs++;
     if(lache)out.jourAbandon.push(last+1);
-    if(perte!=null){out.pertes.push(perte);out.kgTotal+=perte;}
+    // Seuls les résultats validés au bilan alimentent les KPI de résultat
+    if(obj){out.pertes.push(obj.fait);out.kgTotal+=obj.fait;}
     out.remplissage.push(dur>0?Math.round(remplis/Math.min(t90+1,dur)*100):0);
     out.series.push(bestStreak(d,Math.min(dur-1,Math.max(0,t90))));
     if(obj){out.objectifs.push(obj);if(obj.atteint)out.objAtteints++;}
+    if(enAttente)out.enAttente++;
     out.clients.push({nom:c.name,slug:c.slug,jour:Math.min(t90+1,dur),dernier:last+1,
-                      remplis:remplis,duree:dur,perte:perte,obj:obj,
+                      remplis:remplis,duree:dur,perte:perte,obj:obj,enAttente:enAttente,
                       statut:fini?"fini":lache?"lache":"actif",inactifDepuis:ecart});
   }
   // Courbe de rétention : combien ont atteint chaque palier
@@ -4165,6 +4241,7 @@ function coachAnalytics(){
   out.perteMoy=moy(out.pertes);
   out.remplMoy=moy(out.remplissage);
   out.serieMoy=moy(out.series);
+  out.serieMax=out.series.length?Math.max.apply(null,out.series):null;
   out.abandonMed=out.jourAbandon.length?out.jourAbandon.slice().sort(function(a,b){return a-b;})[Math.floor(out.jourAbandon.length/2)]:null;
   out.meilleurePerte=out.pertes.length?Math.max.apply(null,out.pertes):null;
   out.tauxFin=out.total?Math.round(out.finis/out.total*100):0;
@@ -4236,8 +4313,10 @@ function viewCoachStats(){
       '<div style="height:10px;border-radius:100px;background:var(--card);overflow:hidden">'+
       '<div style="height:100%;width:'+A.tauxObj+'%;background:'+gaugeCol(A.tauxObj)+';border-radius:100px"></div></div>'+
       '<div style="font-size:11.5px;color:var(--mute);font-weight:700;margin-top:8px">'+
-      A.objAtteints+' sur '+A.objTotal+' · progression moyenne '+A.objPctMoy+' % de la cible'+
-      (A.bonusTotal>0?' · '+A.bonusTotal+' kg de bonus au-delà':'')+'</div></div>':'')+
+      A.objAtteints+' sur '+A.objTotal+' évalué'+(A.objTotal>1?'s':'')+' au bilan final · progression moyenne '+A.objPctMoy+' % de la cible'+
+      (A.bonusTotal>0?' · '+A.bonusTotal+' kg de bonus':'')+'</div></div>':'')+
+    (A.enAttente?'<div style="margin-top:10px;background:var(--soft2);border-radius:12px;padding:11px 13px;font-size:12px;color:var(--mute);font-weight:700;line-height:1.5">⏳ '+
+      A.enAttente+' client'+(A.enAttente>1?'s ont':' a')+' un objectif fixé mais pas encore de bilan final — '+(A.enAttente>1?'ils ne comptent':'il ne compte')+' pas encore dans les résultats.</div>':'')+
     '<button id="stats-card" style="width:100%;margin-top:14px;padding:14px 0;border-radius:12px;border:0;background:var(--ink);color:#fff;font-weight:900;font-size:13px">🖼️ Carte pour les réseaux</button>'+
     '<button id="stats-share" style="width:100%;margin-top:8px;padding:14px 0;border-radius:12px;border:0;background:#25D366;color:#fff;font-weight:900;font-size:13px">💬 Partager mes chiffres</button>'+
     '<div style="font-size:10.5px;color:var(--mute);margin-top:8px;line-height:1.5">Chiffres agrégés, sans aucun nom — utilisables tels quels en preuve sociale.</div></div>';
@@ -4255,7 +4334,8 @@ function viewCoachStats(){
       '<div style="font-weight:800;font-size:13.5px">'+esc(C.nom)+'</div>'+
       '<div style="font-size:11px;color:var(--mute);font-weight:700">J'+C.jour+'/'+C.duree+' · '+C.remplis+' remplis'+
       (C.perte!=null?' · '+(C.perte>0?'−':'+')+Math.abs(C.perte)+' kg':'')+
-      (C.obj?(C.obj.atteint?' · 🎯 objectif atteint'+(C.obj.bonus>0?' +'+C.obj.bonus+' kg bonus':''):' · 🎯 '+C.obj.pct+'% de la cible'):'')+
+      (C.obj?(C.obj.atteint?' · 🎯 objectif atteint'+(C.obj.bonus>0?' +'+C.obj.bonus+' kg bonus':''):' · 🎯 '+C.obj.pct+'% de la cible')
+            :(C.enAttente?' · ⏳ bilan final à faire':''))+
       (C.statut==="lache"?' · silence depuis '+C.inactifDepuis+' j':'')+'</div>'+
       '<div style="height:5px;border-radius:100px;background:var(--soft2);margin-top:5px;overflow:hidden">'+
       '<div style="height:100%;width:'+pct+'%;background:'+gaugeCol(pct)+';border-radius:100px"></div></div></div>'+
@@ -5357,15 +5437,22 @@ function bindCoach(){
       '<div class="wrap"><div class="card">'+
       '<div class="hd"><i style="background:#E4032E"></i><i style="background:#2A6CB0"></i>'+
       '<span>AM COACH GENÈVE</span></div>'+
-      '<div class="grid">'+
-        bloc(A.total,"clients accompagnés")+
-        bloc((A.tauxObj!=null?A.tauxObj+"%":A.tauxFin+"%"),(A.tauxObj!=null?"objectifs atteints":"vont au bout"))+
-        bloc((Math.round(A.kgTotal*10)/10),"kg perdus au total")+
-        bloc((A.perteMoy!=null?A.perteMoy:"—"),"kg en moyenne")+
-      '</div>'+
-      (A.meilleurePerte!=null?'<div style="text-align:center;background:rgba(201,162,39,.14);border-radius:16px;padding:14px;margin-bottom:22px">'+
-        '<div style="font-size:11px;letter-spacing:2px;color:#C9A227;font-weight:800">MEILLEUR RÉSULTAT</div>'+
-        '<div style="font-size:30px;font-weight:900;margin-top:4px">−'+A.meilleurePerte+' kg</div></div>':'')+
+      // On ne montre QUE ce qui est flatteur et honnête : un zéro ou un chiffre
+      // qui trahit le faible volume dessert plus qu'il ne prouve.
+      (function(){
+        var t=[];
+        if(A.tauxObj!=null&&A.tauxObj>0)t.push([A.tauxObj+"%","objectifs atteints"]);
+        if(A.perteMoy!=null&&A.perteMoy>0)t.push([A.perteMoy,"kg perdus en moyenne"]);
+        if(A.remplMoy!=null&&A.remplMoy>0)t.push([A.remplMoy+"%","d'assiduité"]);
+        if(A.serieMax!=null&&A.serieMax>=7)t.push([A.serieMax,"jours d'affilée"]);
+        if(A.tauxFin>0)t.push([A.tauxFin+"%","vont au bout"]);
+        if(A.total>=4)t.push([A.total,"clients accompagnés"]);
+        if(A.kgTotal>3&&A.total>=3)t.push([(Math.round(A.kgTotal*10)/10),"kg perdus au total"]);
+        if(!t.length)return '<div style="text-align:center;color:#8A96A3;font-size:13px;line-height:1.7;padding:20px 0">Pas encore assez de recul<br>pour publier des chiffres.</div>';
+        var g='<div class="grid">';
+        for(var i=0;i<t.length&&i<4;i++)g+=bloc(t[i][0],t[i][1]);
+        return g+'</div>';
+      })()+
       '<div class="ft"><b>MÉTHODE AM TRANSFO PHYSIQUE</b><s>@AMCOACHSPORTIF · 90 JOURS</s></div>'+
       '</div><div style="text-align:center;color:#5C6773;font-size:11.5px;margin-top:16px">📸 Fais une capture de cette carte et poste-la</div></div></body></html>';
     w.document.write(html); w.document.close();
@@ -5540,6 +5627,29 @@ function bindCoach(){
     coachSaveSlot(slug,510,cfg);
     render();
   });
+  // 🔒 Réactiver l'accès / régler le seuil
+  var unl=document.getElementById("cd-unlock");
+  if(unl)unl.addEventListener("click",function(){
+    var slug=state.coachDetail;
+    coachSaveSlot(slug,505,{d:isoLocal()});
+    feedback("🔓 Accès réactivé","win");
+    render();
+  });
+  var sel=document.getElementById("cd-seuil");
+  if(sel)sel.addEventListener("click",function(){
+    var slug=state.coachDetail;
+    var ac=lsGet("amcoach_"+slug,{})[504]||{};
+    var cur=(ac.silence===undefined?7:ac.silence);
+    var r=prompt("Verrouiller l'accès après combien de jours sans ouvrir l'app ?\n\n0 = jamais verrouiller\nRecommandé : 7",String(cur));
+    if(r===null)return;
+    var v=parseInt(r,10);
+    if(isNaN(v)||v<0){alert("Nombre non valide");return;}
+    ac.silence=Math.min(60,v);
+    coachSaveSlot(slug,504,ac);
+    feedback(v>0?"⚙️ Verrou à "+ac.silence+" jours":"⚙️ Verrou désactivé","ok");
+    render();
+  });
+
   // 🎯 Déclencher un challenge sur ce client
   function lancerChallenge(e,n,j,d,debut){
     var slug=state.coachDetail;

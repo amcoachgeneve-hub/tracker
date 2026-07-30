@@ -42,6 +42,17 @@ button,input,textarea{font-family:inherit;font-size:inherit}
 button{cursor:pointer;border:none;background:none}
 input,textarea{outline:none}
 .app{max-width:430px;margin:0 auto;min-height:100vh;padding-bottom:80px;background:var(--sky);background-attachment:local;color:var(--ink)}
+/* 📱→💻 Tablette : on élargit la colonne. Le !important est nécessaire car
+   les vues coach fixent leur max-width en style en ligne. */
+@media (min-width:760px){
+  .app{max-width:720px !important;padding-bottom:96px}
+  .nav{max-width:720px}
+  .card{padding:18px 20px}
+}
+@media (min-width:1100px){
+  .app{max-width:900px !important}
+  .nav{max-width:900px}
+}
 
 /* HEADER */
 .hdr{background:var(--ink);padding:20px 18px 16px;position:sticky;top:0;z-index:50;border-radius:0 0 22px 22px}
@@ -2356,6 +2367,202 @@ function viewFinance(name,start){
   return h;
 }
 
+// ═══════════ BLOCS DÉPLACÉS DANS LA VUE DU JOUR ═══════════
+// Akli voulait décharger l'accueil : la mission et l'identité vivent
+// désormais dans la journée, là où tout se coche.
+function blocMission(allData,today90,start){
+  var h='';
+  // ⚡ ONE THING — MISSION DU JOUR
+  var mission=getMission(allData,today90);  var xp=totalXP(allData);
+  var grade=currentGrade(xp);
+  var nxt=nextGrade(xp);
+
+  h+='<div class="card" style="margin-bottom:18px;background:'+K+';padding:16px 18px">';
+  // grade bar
+  h+='<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">'+
+    '<span style="font-size:34px;line-height:1;filter:drop-shadow(0 3px 8px rgba(0,0,0,.5))">'+grade.icon+'</span>'+
+    '<div style="flex:1;min-width:0">'+
+    '<div style="color:#fff;font-weight:900;font-size:20px;letter-spacing:-.3px;line-height:1.1">'+grade.name+'</div>'+
+    '<div style="color:rgba(255,255,255,.4);font-size:10px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;margin-top:2px">Mon grade</div></div>'+
+    '<div style="text-align:right"><div style="color:var(--gold);font-weight:900;font-size:22px;line-height:1">'+xp+'</div>'+
+    '<div style="color:rgba(255,255,255,.35);font-size:9.5px;font-weight:800;letter-spacing:1.4px">XP</div></div></div>'+
+  (function(){var os=comboStreak(allData,today90,missionWon);return os>0?'<div style="font-size:11px;font-weight:900;margin:-6px 0 10px;color:'+streakBadge(os).c+'">COMBO '+streakBadge(os).e+' '+os+' mission'+(os>1?'s':'')+' d\'affilée</div>':'';})();
+  if(nxt){
+    var prev=grade.min, span=nxt.min-prev, prog=Math.round((xp-prev)/span*100);
+    h+='<div style="height:5px;background:#333;border-radius:3px;margin-bottom:12px"><div class="'+(mission&&(mission.status==="done"||mission.status==="half")?"xp-glow":"")+'" style="height:5px;border-radius:3px;background:var(--gold);width:'+prog+'%"></div></div>'+
+      '<div style="font-size:11px;color:#666;margin-bottom:12px">'+nxt.icon+' '+nxt.name+' à '+nxt.min+' XP</div>';
+  }
+  if(!mission){
+    h+='<button id="ot-new" style="width:100%;padding:14px 0;border-radius:12px;background:'+R+';color:#fff;font-weight:900;font-size:13px;letter-spacing:1px;text-transform:uppercase">⚡ Définir ma mission du jour</button>';
+  }else if(mission.status==="pending"){
+    h+='<div style="color:#666;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">⚡ Ta mission du jour — '+esc(mission.hour||"")+'</div>'+
+      '<div style="color:#fff;font-weight:900;font-size:16px;margin-bottom:12px">'+esc(mission.task)+'</div>'+
+      '<button id="ot-go" style="width:100%;padding:15px 0;border-radius:12px;background:'+R+';color:#fff;font-weight:900;font-size:15px;letter-spacing:2px">🚀 5-4-3-2-1 GO</button>'+
+      '<button id="ot-quick" style="width:100%;margin-top:8px;padding:11px 0;border-radius:10px;background:var(--ink2);color:var(--ok);font-weight:800;font-size:12px">✓ Déjà accomplie — valider</button>'+
+      '<a href="'+gcalLink(mission.task,isoLocal(),mission.hour)+'" target="_blank" style="display:block;text-align:center;color:#666;font-size:11px;font-weight:700;margin-top:10px;text-decoration:none">📅 Ajouter à Google Agenda</a>';
+  }else{
+    var stMap={done:["🟢 ZONE SÉCURISÉE","+"+(mission.xp||0)+" XP","var(--ok)"],half:["🟡 ZONE CONTESTÉE","+"+(mission.xp||0)+" XP","var(--amber)"],lost:["⚪ ZONE PERDUE","0 XP","#888"]};
+    var st=stMap[mission.status]||stMap.lost;
+    h+='<div style="color:#666;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">⚡ Mission du jour</div>'+
+      '<div style="color:#fff;font-weight:800;font-size:14px;margin-bottom:8px">'+esc(mission.task)+'</div>'+
+      '<div style="font-weight:900;font-size:13px;color:'+st[2]+'">'+st[0]+' · '+st[1]+(mission.iso?" · 🧘 +25":"")+'</div>';
+    if(mission.status!=="lost"){
+      h+='<button id="ot-share" style="width:100%;margin-top:12px;padding:12px 0;border-radius:10px;background:var(--ink2);color:#fff;font-weight:800;font-size:12px">📤 Partager ma victoire</button>';
+    }
+  }
+  // mission de demain (préparée la veille)
+  if(today90<89){
+    var tomorrow=getMission(allData,today90+1);
+    if(tomorrow&&tomorrow.status==="pending"){
+      h+='<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--ink2);font-size:11px;color:#666">🌙 Demain : <span style="color:#CCC;font-weight:700">'+esc(tomorrow.task)+'</span> à '+esc(tomorrow.hour||"")+'</div>';
+    }else if(mission&&mission.status!=="pending"){
+      h+='<button id="ot-tomorrow" style="width:100%;margin-top:12px;padding:12px 0;border-radius:10px;background:var(--ink2);color:var(--gold);font-weight:800;font-size:12px">🌙 Préparer ma conquête de demain</button>';
+    }
+  }
+  h+='</div>';
+
+  // FORM mission (aujourd'hui ou demain)
+  if(state.otForm){
+    var isT=state.otForm==="tomorrow";
+    h+='<div class="card" style="margin-bottom:18px;padding:18px 16px">'+
+      '<div style="font-weight:900;font-size:14px;margin-bottom:6px">⚡ '+(isT?"Ma conquête de demain":"Ma mission du jour")+'</div>'+
+      '<div style="font-size:12px;color:#666;line-height:1.75;margin-bottom:8px">Pourquoi la préparer <strong>la veille au soir</strong> ? Parce qu\'une décision prise le matin se négocie — ton cerveau trouve toujours une excuse au réveil. Une décision prise la veille est déjà tranchée : tu dors avec, ton cerveau la programme pendant la nuit, et au réveil il ne reste que l\'exécution.</div>'+
+      '<div style="font-size:12px;color:#666;line-height:1.75;margin-bottom:14px">Choisis <strong>la tâche que tu redoutes le plus</strong> — celle que tu repousses. 5 à 10 minutes suffisent : le but n\'est pas de tout finir, c\'est de briser la résistance. Une heure fixe. <strong>Zéro négociation.</strong> L\'action précède l\'émotion.</div>'+
+      '<div style="font-weight:800;font-size:11px;color:#666;margin-bottom:6px">LA FRICTION À CONQUÉRIR</div>'+
+      '<input id="ot-task" class="num-input" style="font-weight:400;font-size:15px;margin-bottom:12px" placeholder="ex: passer la porte de la salle et donner 1 conseil"/>'+
+      '<div style="font-weight:800;font-size:11px;color:#666;margin-bottom:6px">HEURE D\'ENGAGEMENT</div>'+
+      '<input id="ot-hour" type="time" class="num-input" style="margin-bottom:14px" value="09:00"/>'+
+      '<button id="ot-save" style="width:100%;padding:14px 0;border-radius:12px;background:'+R+';color:#fff;font-weight:900;font-size:14px">Verrouiller la mission 🔒</button></div>';
+  }
+
+  // COUNTDOWN overlay + CHRONO handled in bind via dynamic overlay
+
+  return h;
+}
+function blocForteresse(allData,today90,start){
+  var h='';
+  // 🏰 FORTERESSE D'IDENTITÉ (personnalisée par client)
+  var qgc=qgConfig(allData);
+  if(!qgc){
+    h+='<button id="qg-setup" class="card" style="width:calc(100% - 28px);margin-bottom:18px;border:2px dashed #A5C99A;background:#F4FAF2;text-align:center;padding:16px;cursor:pointer;font-weight:800;font-size:14px;color:#4A7A3A">🏰 Définir mon identité cible →</button>';
+  }else{
+    var res=qgRes(allData,today90);
+    var lvl=qgLevel(res.total);
+    var nxtL=qgNext(res.total);
+    var lvlName=lvl.min>=110?qgc.identity:lvl.name;
+    var qToday=allData[400+today90]||{};
+    var cb=comboStreak(allData,today90,hasBrique);
+    // 🌤️ Le ciel suit le combo : un décor qui change tous les jours, pas tous les 15
+    var CIEL=cb>=14?{g:"linear-gradient(160deg,#0B1030,#231B4A)",e:"🌟",t:"Nuit étoilée · légende"}
+            :cb>=7?{g:"linear-gradient(160deg,#10233A,#2E4A6E)",e:"🌈",t:"Arc-en-ciel · machine de guerre"}
+            :cb>=3?{g:"linear-gradient(160deg,#123A2A,#1E5A3A)",e:"☀️",t:"Grand soleil · belle dynamique"}
+            :cb>=1?{g:"linear-gradient(160deg,#152318,#283A2A)",e:"⛅",t:"Éclaircies · ça commence"}
+                  :{g:"linear-gradient(160deg,#161A1C,#262E31)",e:"🌧️",t:"Pluie · il faut construire"};
+    h+='<div class="card" style="margin-bottom:18px;background:'+CIEL.g+';padding:18px;border:none;position:relative;overflow:hidden">'+
+      '<div style="position:absolute;top:12px;right:14px;text-align:right">'+
+      '<div style="font-size:26px;line-height:1">'+CIEL.e+'</div>'+
+      '<div style="font-size:9px;font-weight:800;color:rgba(255,255,255,.5);margin-top:3px;max-width:96px;line-height:1.3">'+CIEL.t+'</div></div>'+
+      '<div style="color:rgba(255,255,255,.5);font-weight:800;font-size:10px;letter-spacing:2.2px;text-transform:uppercase">Mon identité</div>'+
+      '<div style="color:#fff;font-weight:900;font-size:19px;line-height:1.25;margin:5px 0 0;max-width:74%">'+esc(qgc.identity)+'</div>'+
+      // Le niveau, en grand, avec un halo doux et un anneau de progression vers le palier suivant
+      (function(){
+        var av=nxtL?Math.max(0,Math.min(1,(res.total-lvl.min)/Math.max(1,nxtL.min-lvl.min))):1;
+        var Rr=52, C2=2*Math.PI*Rr;
+        return '<div style="text-align:center;position:relative;height:148px;margin:16px 0 2px">'+
+          '<div style="position:absolute;left:50%;top:8px;transform:translateX(-50%);width:132px;height:132px;border-radius:50%;background:radial-gradient(circle,rgba(139,195,74,.22),transparent 68%)"></div>'+
+          '<svg width="132" height="132" style="position:absolute;left:50%;top:8px;transform:translateX(-50%) rotate(-90deg)">'+
+          '<circle cx="66" cy="66" r="'+Rr+'" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="5"/>'+
+          '<circle cx="66" cy="66" r="'+Rr+'" fill="none" stroke='+JSON.stringify(solid("var(--ok-l)"))+' stroke-width="5" stroke-linecap="round" stroke-dasharray="'+(C2*av).toFixed(1)+' '+C2.toFixed(1)+'"/></svg>'+
+          '<div id="qg-house" style="position:absolute;left:50%;top:44px;transform:translateX(-50%);font-size:56px;filter:drop-shadow(0 6px 14px rgba(0,0,0,.45))">'+lvl.icon+'</div>'+
+          '<div style="position:absolute;left:0;right:0;bottom:2px">'+
+          '<div style="color:#fff;font-weight:900;font-size:17px;letter-spacing:-.2px">'+esc(lvlName)+'</div>'+
+          '<div style="color:rgba(255,255,255,.45);font-size:11px;font-weight:700;margin-top:2px">'+
+          (nxtL?'plus que '+(nxtL.min-res.total)+' brique'+((nxtL.min-res.total)>1?'s':'')+' pour '+esc(nxtL.name):'sommet atteint')+'</div></div></div>';
+      })()+
+      // Deux compteurs côte à côte, plus lisibles que deux lignes de texte
+      '<div style="display:flex;gap:8px;margin:14px 0 13px">'+
+      '<div style="flex:1;background:rgba(255,255,255,.07);border-radius:14px;padding:11px 8px;text-align:center">'+
+      '<div style="color:#fff;font-weight:900;font-size:20px;line-height:1">'+res.total+'</div>'+
+      '<div style="color:rgba(255,255,255,.45);font-size:9.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;margin-top:4px">briques posées</div></div>'+
+      '<div style="flex:1;background:rgba(255,255,255,.07);border-radius:14px;padding:11px 8px;text-align:center">'+
+      '<div style="font-weight:900;font-size:20px;line-height:1;color:'+(cb>0?streakBadge(cb).c:"rgba(255,255,255,.35)")+'">'+(cb>0?streakBadge(cb).e+' '+cb:'—')+'</div>'+
+      '<div style="color:rgba(255,255,255,.45);font-size:9.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;margin-top:4px">jours d\'affilée</div></div></div>'+
+      (function(){
+        // 🧱 Jauge du jour : feedback immédiat, contrairement à l'icône qui ne bouge
+        // que tous les 8 à 20 jours. On voit le segment se remplir à chaque action.
+        // Le maximum dépend de ce qui est configuré : 2 actions + les quêtes actives
+        var pos=2;
+        if(qgc.q1&&QUESTS[qgc.q1])pos++;
+        if(qgc.q2&&QUESTS[qgc.q2])pos++;
+        var faits=(qToday.p?1:0)+(qToday.e?1:0)+
+                  ((qgc.q1&&QUESTS[qgc.q1]&&qToday.s1)?1:0)+
+                  ((qgc.q2&&QUESTS[qgc.q2]&&qToday.s2)?1:0);
+        var segs='';
+        for(var g=0;g<pos;g++){
+          var on=g<faits;
+          segs+='<div style="flex:1;height:11px;border-radius:100px;background:'+(on?'linear-gradient(90deg,#8BC34A,#5FBF9C)':'rgba(255,255,255,.13)')+';transition:background .3s"></div>';
+        }
+        var reste=pos-faits;
+        return '<div style="background:rgba(0,0,0,.22);border-radius:14px;padding:12px 13px;margin-bottom:12px">'+
+          '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">'+
+          '<span style="color:#fff;font-weight:900;font-size:12.5px">🧱 Briques aujourd\'hui</span>'+
+          '<span style="color:'+(faits>=pos?'#8BC34A':'var(--ok-l)')+';font-weight:900;font-size:13px">'+faits+'/'+pos+'</span></div>'+
+          '<div style="display:flex;gap:5px">'+segs+'</div>'+
+          '<div style="color:'+(faits>=pos?'#8BC34A':'rgba(255,255,255,.55)')+';font-size:11px;font-weight:700;margin-top:8px">'+
+          (faits>=pos?'🎉 Journée complète — 4 briques posées':reste+' brique'+(reste>1?'s':'')+' à poser aujourd\'hui')+'</div></div>';
+      })()+
+      '<div style="color:rgba(255,255,255,.42);font-weight:800;font-size:10px;letter-spacing:1.6px;text-transform:uppercase;margin-bottom:9px">Mes actions du jour</div>'+
+      '<button id="qg-terrain" style="width:100%;display:flex;align-items:center;gap:11px;text-align:left;padding:14px 14px;border-radius:15px;border:1.5px solid '+(qToday.p?"rgba(139,195,74,.5)":"rgba(255,255,255,.12)")+';background:'+(qToday.p?"rgba(139,195,74,.14)":"rgba(255,255,255,.05)")+';color:#fff;font-weight:800;font-size:13.5px;margin-bottom:8px">'+
+        '<span style="width:24px;height:24px;border-radius:8px;flex:0 0 24px;display:flex;align-items:center;justify-content:center;font-size:14px;background:'+(qToday.p?solid("var(--ok-l)"):"rgba(255,255,255,.1)")+';color:'+(qToday.p?"#12240F":"transparent")+'">✓</span>'+
+        '<span style="flex:1'+(qToday.p?";opacity:.6":"")+'">'+esc(qgc.v1)+'</span></button>'+
+      '<button id="qg-digital" style="width:100%;display:flex;align-items:center;gap:11px;text-align:left;padding:14px 14px;border-radius:15px;border:1.5px solid '+(qToday.e?"rgba(139,195,74,.5)":"rgba(255,255,255,.12)")+';background:'+(qToday.e?"rgba(139,195,74,.14)":"rgba(255,255,255,.05)")+';color:#fff;font-weight:800;font-size:13.5px">'+
+        '<span style="width:24px;height:24px;border-radius:8px;flex:0 0 24px;display:flex;align-items:center;justify-content:center;font-size:14px;background:'+(qToday.e?solid("var(--ok-l)"):"rgba(255,255,255,.1)")+';color:'+(qToday.e?"#12240F":"transparent")+'">✓</span>'+
+        '<span style="flex:1'+(qToday.e?";opacity:.6":"")+'">'+esc(qgc.v2)+'</span></button>'+
+      (function(){
+        var qh="";
+        var qs=[qgc.q1,qgc.q2];
+        for(var qi=0;qi<2;qi++){
+          var qk=qs[qi];
+          if(!qk||!QUESTS[qk])continue;
+          var Q=QUESTS[qk];
+          var done=qi===0?qToday.s1:qToday.s2;
+          qh+='<button class="qg-quest" data-q="'+(qi+1)+'" style="width:100%;margin-top:8px;display:flex;align-items:center;gap:11px;text-align:left;padding:14px;border-radius:15px;border:1.5px solid '+(done?"rgba(139,195,74,.5)":"rgba(232,197,71,.28)")+';background:'+(done?"rgba(139,195,74,.14)":"rgba(232,197,71,.09)")+';font-weight:800;font-size:13.5px;color:'+(done?"#fff":"#E8C547")+'">'+
+            '<span style="width:24px;height:24px;border-radius:8px;flex:0 0 24px;display:flex;align-items:center;justify-content:center;font-size:14px;background:'+(done?solid("var(--ok-l)"):"rgba(232,197,71,.16)")+';color:'+(done?"#12240F":"transparent")+'">✓</span>'+
+            '<span style="flex:1'+(done?";opacity:.6":"")+'">'+Q.icon+' '+Q.name+'</span></button>';
+        }
+        return qh;
+      })()+
+      '<button id="qg-edit" style="width:100%;margin-top:8px;font-size:11px;color:#5A7A5A;padding:4px 0">✏️ modifier mon identité</button></div>';
+  }
+  if(state.qgForm){
+    var q0=qgc||{};
+    h+='<div class="card" style="margin-bottom:18px;padding:18px 16px">'+
+      '<div style="font-weight:900;font-size:14px;margin-bottom:6px">🎯 Qui veux-tu devenir ?</div>'+
+      '<div style="font-size:12px;color:#666;line-height:1.75;margin-bottom:8px">Tu ne changes pas en te fixant des objectifs. Tu changes en <strong>devenant quelqu\'un d\'autre</strong>.</div>'+
+      '<div style="font-size:12px;color:#666;line-height:1.75;margin-bottom:8px">La preuve : à qui on propose une cigarette, deux réponses possibles. <em>« Non merci, j\'essaie d\'arrêter »</em> — cette personne se voit encore comme un fumeur qui lutte. <em>« Non merci, je ne fume pas »</em> — celle-là a changé d\'identité. Elle ne résiste plus : elle EST autre chose. Pareil pour le sport : « j\'essaie de m\'y mettre » contre « je suis sportif ». Le premier lutte, le second vit.</div>'+
+      '<div style="font-size:12px;color:#666;line-height:1.75;margin-bottom:14px">Comment on bascule ? <strong>Par les briques.</strong> Chaque action quotidienne pose une brique de ta nouvelle identité : chaque séance faite est une brique « je suis sportif », chaque repas préparé une brique « je prends soin de moi ». Une brique seule ne fait rien — mais l\'accumulation construit la forteresse. <strong>Deviens la personne, et les résultats suivront.</strong> <span style="color:#666">(James Clear, Atomic Habits)</span></div>'+
+      '<div style="font-weight:800;font-size:11px;color:#666;margin-bottom:6px">MON IDENTITÉ CIBLE</div>'+
+      '<input id="qg-identity" class="num-input" style="font-weight:400;font-size:15px;margin-bottom:12px" placeholder="ex: Père en pleine santé, Athlète discipliné..." value="'+esc(q0.identity||"")+'"/>'+
+      '<div style="font-weight:800;font-size:11px;color:#666;margin-bottom:6px">ACTION QUOTIDIENNE N°1 (terrain)</div>'+
+      '<input id="qg-v1" class="num-input" style="font-weight:400;font-size:14px;margin-bottom:12px" placeholder="ex: Faire ma séance de sport" value="'+esc(q0.v1||"")+'"/>'+
+      '<div style="font-weight:800;font-size:11px;color:#666;margin-bottom:6px">ACTION QUOTIDIENNE N°2 (action clé)</div>'+
+      '<input id="qg-v2" class="num-input" style="font-weight:400;font-size:14px;margin-bottom:14px" placeholder="ex: Préparer mes repas de demain" value="'+esc(q0.v2||"")+'"/>'+
+      '<div style="font-weight:800;font-size:11px;color:#666;margin-bottom:8px">⚔️ MA QUÊTE SECONDAIRE DU BLOC (1 seule — cible ta plus grande faiblesse)</div>'+
+      (function(){
+        var qh="";
+        for(var qk in QUESTS){
+          var Q=QUESTS[qk];
+          var checked=q0.q1===qk||q0.q2===qk;
+          qh+='<label style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--soft2);cursor:pointer"><input type="radio" name="qg-quest" class="qg-quest-cb" value="'+qk+'" '+(checked?'checked':'')+' style="width:20px;height:20px;accent-color:'+R+';flex-shrink:0;margin-top:2px"/><span><strong style="font-size:13px">'+Q.icon+' '+Q.name+'</strong><br><span style="font-size:11px;color:var(--mute)">'+Q.hack+'</span></span></label>';
+        }
+        return qh;
+      })()+
+      '<div style="height:14px"></div>'+
+      '<button id="qg-save" style="width:100%;padding:14px 0;border-radius:12px;background:'+R+';color:#fff;font-weight:900;font-size:14px">Verrouiller mon identité 🔒</button></div>';
+  }
+
+  return h;
+}
 // ═══════════ CALENDAR ═══════════
 function viewCalendar(name,start){
   var allData=getAllData();
@@ -2505,71 +2712,6 @@ function viewCalendar(name,start){
     h+='<div style="padding:0 14px;margin:0 0 14px"><button id="bday-edit" style="width:100%;padding:13px 0;border-radius:12px;border:2px dashed #F0B6B6;background:#FFF7F7;color:var(--brand);font-weight:800;font-size:13px">🎂 Ajouter mon anniversaire</button></div>';
   }
 
-  // ⚡ ONE THING — MISSION DU JOUR
-  var mission=getMission(allData,today90);  var xp=totalXP(allData);
-  var grade=currentGrade(xp);
-  var nxt=nextGrade(xp);
-
-  h+='<div class="card" style="margin-bottom:18px;background:'+K+';padding:16px 18px">';
-  // grade bar
-  h+='<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">'+
-    '<span style="font-size:34px;line-height:1;filter:drop-shadow(0 3px 8px rgba(0,0,0,.5))">'+grade.icon+'</span>'+
-    '<div style="flex:1;min-width:0">'+
-    '<div style="color:#fff;font-weight:900;font-size:20px;letter-spacing:-.3px;line-height:1.1">'+grade.name+'</div>'+
-    '<div style="color:rgba(255,255,255,.4);font-size:10px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;margin-top:2px">Mon grade</div></div>'+
-    '<div style="text-align:right"><div style="color:var(--gold);font-weight:900;font-size:22px;line-height:1">'+xp+'</div>'+
-    '<div style="color:rgba(255,255,255,.35);font-size:9.5px;font-weight:800;letter-spacing:1.4px">XP</div></div></div>'+
-  (function(){var os=comboStreak(allData,today90,missionWon);return os>0?'<div style="font-size:11px;font-weight:900;margin:-6px 0 10px;color:'+streakBadge(os).c+'">COMBO '+streakBadge(os).e+' '+os+' mission'+(os>1?'s':'')+' d\'affilée</div>':'';})();
-  if(nxt){
-    var prev=grade.min, span=nxt.min-prev, prog=Math.round((xp-prev)/span*100);
-    h+='<div style="height:5px;background:#333;border-radius:3px;margin-bottom:12px"><div class="'+(mission&&(mission.status==="done"||mission.status==="half")?"xp-glow":"")+'" style="height:5px;border-radius:3px;background:var(--gold);width:'+prog+'%"></div></div>'+
-      '<div style="font-size:11px;color:#666;margin-bottom:12px">'+nxt.icon+' '+nxt.name+' à '+nxt.min+' XP</div>';
-  }
-  if(!mission){
-    h+='<button id="ot-new" style="width:100%;padding:14px 0;border-radius:12px;background:'+R+';color:#fff;font-weight:900;font-size:13px;letter-spacing:1px;text-transform:uppercase">⚡ Définir ma mission du jour</button>';
-  }else if(mission.status==="pending"){
-    h+='<div style="color:#666;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">⚡ Ta mission du jour — '+esc(mission.hour||"")+'</div>'+
-      '<div style="color:#fff;font-weight:900;font-size:16px;margin-bottom:12px">'+esc(mission.task)+'</div>'+
-      '<button id="ot-go" style="width:100%;padding:15px 0;border-radius:12px;background:'+R+';color:#fff;font-weight:900;font-size:15px;letter-spacing:2px">🚀 5-4-3-2-1 GO</button>'+
-      '<button id="ot-quick" style="width:100%;margin-top:8px;padding:11px 0;border-radius:10px;background:var(--ink2);color:var(--ok);font-weight:800;font-size:12px">✓ Déjà accomplie — valider</button>'+
-      '<a href="'+gcalLink(mission.task,isoLocal(),mission.hour)+'" target="_blank" style="display:block;text-align:center;color:#666;font-size:11px;font-weight:700;margin-top:10px;text-decoration:none">📅 Ajouter à Google Agenda</a>';
-  }else{
-    var stMap={done:["🟢 ZONE SÉCURISÉE","+"+(mission.xp||0)+" XP","var(--ok)"],half:["🟡 ZONE CONTESTÉE","+"+(mission.xp||0)+" XP","var(--amber)"],lost:["⚪ ZONE PERDUE","0 XP","#888"]};
-    var st=stMap[mission.status]||stMap.lost;
-    h+='<div style="color:#666;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">⚡ Mission du jour</div>'+
-      '<div style="color:#fff;font-weight:800;font-size:14px;margin-bottom:8px">'+esc(mission.task)+'</div>'+
-      '<div style="font-weight:900;font-size:13px;color:'+st[2]+'">'+st[0]+' · '+st[1]+(mission.iso?" · 🧘 +25":"")+'</div>';
-    if(mission.status!=="lost"){
-      h+='<button id="ot-share" style="width:100%;margin-top:12px;padding:12px 0;border-radius:10px;background:var(--ink2);color:#fff;font-weight:800;font-size:12px">📤 Partager ma victoire</button>';
-    }
-  }
-  // mission de demain (préparée la veille)
-  if(today90<89){
-    var tomorrow=getMission(allData,today90+1);
-    if(tomorrow&&tomorrow.status==="pending"){
-      h+='<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--ink2);font-size:11px;color:#666">🌙 Demain : <span style="color:#CCC;font-weight:700">'+esc(tomorrow.task)+'</span> à '+esc(tomorrow.hour||"")+'</div>';
-    }else if(mission&&mission.status!=="pending"){
-      h+='<button id="ot-tomorrow" style="width:100%;margin-top:12px;padding:12px 0;border-radius:10px;background:var(--ink2);color:var(--gold);font-weight:800;font-size:12px">🌙 Préparer ma conquête de demain</button>';
-    }
-  }
-  h+='</div>';
-
-  // FORM mission (aujourd'hui ou demain)
-  if(state.otForm){
-    var isT=state.otForm==="tomorrow";
-    h+='<div class="card" style="margin-bottom:18px;padding:18px 16px">'+
-      '<div style="font-weight:900;font-size:14px;margin-bottom:6px">⚡ '+(isT?"Ma conquête de demain":"Ma mission du jour")+'</div>'+
-      '<div style="font-size:12px;color:#666;line-height:1.75;margin-bottom:8px">Pourquoi la préparer <strong>la veille au soir</strong> ? Parce qu\'une décision prise le matin se négocie — ton cerveau trouve toujours une excuse au réveil. Une décision prise la veille est déjà tranchée : tu dors avec, ton cerveau la programme pendant la nuit, et au réveil il ne reste que l\'exécution.</div>'+
-      '<div style="font-size:12px;color:#666;line-height:1.75;margin-bottom:14px">Choisis <strong>la tâche que tu redoutes le plus</strong> — celle que tu repousses. 5 à 10 minutes suffisent : le but n\'est pas de tout finir, c\'est de briser la résistance. Une heure fixe. <strong>Zéro négociation.</strong> L\'action précède l\'émotion.</div>'+
-      '<div style="font-weight:800;font-size:11px;color:#666;margin-bottom:6px">LA FRICTION À CONQUÉRIR</div>'+
-      '<input id="ot-task" class="num-input" style="font-weight:400;font-size:15px;margin-bottom:12px" placeholder="ex: passer la porte de la salle et donner 1 conseil"/>'+
-      '<div style="font-weight:800;font-size:11px;color:#666;margin-bottom:6px">HEURE D\'ENGAGEMENT</div>'+
-      '<input id="ot-hour" type="time" class="num-input" style="margin-bottom:14px" value="09:00"/>'+
-      '<button id="ot-save" style="width:100%;padding:14px 0;border-radius:12px;background:'+R+';color:#fff;font-weight:900;font-size:14px">Verrouiller la mission 🔒</button></div>';
-  }
-
-  // COUNTDOWN overlay + CHRONO handled in bind via dynamic overlay
-
   // 🎯 CHALLENGE EN COURS
   (function(){
     var ch=chCfg(allData);
@@ -2625,126 +2767,6 @@ function viewCalendar(name,start){
     }
     h+='</div>';
   })();
-
-  // 🏰 FORTERESSE D'IDENTITÉ (personnalisée par client)
-  var qgc=qgConfig(allData);
-  if(!qgc){
-    h+='<button id="qg-setup" class="card" style="width:calc(100% - 28px);margin-bottom:18px;border:2px dashed #A5C99A;background:#F4FAF2;text-align:center;padding:16px;cursor:pointer;font-weight:800;font-size:14px;color:#4A7A3A">🏰 Définir mon identité cible →</button>';
-  }else{
-    var res=qgRes(allData,today90);
-    var lvl=qgLevel(res.total);
-    var nxtL=qgNext(res.total);
-    var lvlName=lvl.min>=110?qgc.identity:lvl.name;
-    var qToday=allData[400+today90]||{};
-    var cb=comboStreak(allData,today90,hasBrique);
-    // 🌤️ Le ciel suit le combo : un décor qui change tous les jours, pas tous les 15
-    var CIEL=cb>=14?{g:"linear-gradient(160deg,#0B1030,#231B4A)",e:"🌟",t:"Nuit étoilée · légende"}
-            :cb>=7?{g:"linear-gradient(160deg,#10233A,#2E4A6E)",e:"🌈",t:"Arc-en-ciel · machine de guerre"}
-            :cb>=3?{g:"linear-gradient(160deg,#123A2A,#1E5A3A)",e:"☀️",t:"Grand soleil · belle dynamique"}
-            :cb>=1?{g:"linear-gradient(160deg,#152318,#283A2A)",e:"⛅",t:"Éclaircies · ça commence"}
-                  :{g:"linear-gradient(160deg,#161A1C,#262E31)",e:"🌧️",t:"Pluie · il faut construire"};
-    h+='<div class="card" style="margin-bottom:18px;background:'+CIEL.g+';padding:18px;border:none;position:relative;overflow:hidden">'+
-      '<div style="position:absolute;top:12px;right:14px;text-align:right">'+
-      '<div style="font-size:26px;line-height:1">'+CIEL.e+'</div>'+
-      '<div style="font-size:9px;font-weight:800;color:rgba(255,255,255,.5);margin-top:3px;max-width:96px;line-height:1.3">'+CIEL.t+'</div></div>'+
-      '<div style="color:rgba(255,255,255,.5);font-weight:800;font-size:10px;letter-spacing:2.2px;text-transform:uppercase">Mon identité</div>'+
-      '<div style="color:#fff;font-weight:900;font-size:19px;line-height:1.25;margin:5px 0 0;max-width:74%">'+esc(qgc.identity)+'</div>'+
-      // Le niveau, en grand, avec un halo doux et un anneau de progression vers le palier suivant
-      (function(){
-        var av=nxtL?Math.max(0,Math.min(1,(res.total-lvl.min)/Math.max(1,nxtL.min-lvl.min))):1;
-        var Rr=52, C2=2*Math.PI*Rr;
-        return '<div style="text-align:center;position:relative;height:148px;margin:16px 0 2px">'+
-          '<div style="position:absolute;left:50%;top:8px;transform:translateX(-50%);width:132px;height:132px;border-radius:50%;background:radial-gradient(circle,rgba(139,195,74,.22),transparent 68%)"></div>'+
-          '<svg width="132" height="132" style="position:absolute;left:50%;top:8px;transform:translateX(-50%) rotate(-90deg)">'+
-          '<circle cx="66" cy="66" r="'+Rr+'" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="5"/>'+
-          '<circle cx="66" cy="66" r="'+Rr+'" fill="none" stroke='+JSON.stringify(solid("var(--ok-l)"))+' stroke-width="5" stroke-linecap="round" stroke-dasharray="'+(C2*av).toFixed(1)+' '+C2.toFixed(1)+'"/></svg>'+
-          '<div id="qg-house" style="position:absolute;left:50%;top:44px;transform:translateX(-50%);font-size:56px;filter:drop-shadow(0 6px 14px rgba(0,0,0,.45))">'+lvl.icon+'</div>'+
-          '<div style="position:absolute;left:0;right:0;bottom:2px">'+
-          '<div style="color:#fff;font-weight:900;font-size:17px;letter-spacing:-.2px">'+esc(lvlName)+'</div>'+
-          '<div style="color:rgba(255,255,255,.45);font-size:11px;font-weight:700;margin-top:2px">'+
-          (nxtL?'plus que '+(nxtL.min-res.total)+' brique'+((nxtL.min-res.total)>1?'s':'')+' pour '+esc(nxtL.name):'sommet atteint')+'</div></div></div>';
-      })()+
-      // Deux compteurs côte à côte, plus lisibles que deux lignes de texte
-      '<div style="display:flex;gap:8px;margin:14px 0 13px">'+
-      '<div style="flex:1;background:rgba(255,255,255,.07);border-radius:14px;padding:11px 8px;text-align:center">'+
-      '<div style="color:#fff;font-weight:900;font-size:20px;line-height:1">'+res.total+'</div>'+
-      '<div style="color:rgba(255,255,255,.45);font-size:9.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;margin-top:4px">briques posées</div></div>'+
-      '<div style="flex:1;background:rgba(255,255,255,.07);border-radius:14px;padding:11px 8px;text-align:center">'+
-      '<div style="font-weight:900;font-size:20px;line-height:1;color:'+(cb>0?streakBadge(cb).c:"rgba(255,255,255,.35)")+'">'+(cb>0?streakBadge(cb).e+' '+cb:'—')+'</div>'+
-      '<div style="color:rgba(255,255,255,.45);font-size:9.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;margin-top:4px">jours d\'affilée</div></div></div>'+
-      (function(){
-        // 🧱 Jauge du jour : feedback immédiat, contrairement à l'icône qui ne bouge
-        // que tous les 8 à 20 jours. On voit le segment se remplir à chaque action.
-        // Le maximum dépend de ce qui est configuré : 2 actions + les quêtes actives
-        var pos=2;
-        if(qgc.q1&&QUESTS[qgc.q1])pos++;
-        if(qgc.q2&&QUESTS[qgc.q2])pos++;
-        var faits=(qToday.p?1:0)+(qToday.e?1:0)+
-                  ((qgc.q1&&QUESTS[qgc.q1]&&qToday.s1)?1:0)+
-                  ((qgc.q2&&QUESTS[qgc.q2]&&qToday.s2)?1:0);
-        var segs='';
-        for(var g=0;g<pos;g++){
-          var on=g<faits;
-          segs+='<div style="flex:1;height:11px;border-radius:100px;background:'+(on?'linear-gradient(90deg,#8BC34A,#5FBF9C)':'rgba(255,255,255,.13)')+';transition:background .3s"></div>';
-        }
-        var reste=pos-faits;
-        return '<div style="background:rgba(0,0,0,.22);border-radius:14px;padding:12px 13px;margin-bottom:12px">'+
-          '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">'+
-          '<span style="color:#fff;font-weight:900;font-size:12.5px">🧱 Briques aujourd\'hui</span>'+
-          '<span style="color:'+(faits>=pos?'#8BC34A':'var(--ok-l)')+';font-weight:900;font-size:13px">'+faits+'/'+pos+'</span></div>'+
-          '<div style="display:flex;gap:5px">'+segs+'</div>'+
-          '<div style="color:'+(faits>=pos?'#8BC34A':'rgba(255,255,255,.55)')+';font-size:11px;font-weight:700;margin-top:8px">'+
-          (faits>=pos?'🎉 Journée complète — 4 briques posées':reste+' brique'+(reste>1?'s':'')+' à poser aujourd\'hui')+'</div></div>';
-      })()+
-      '<div style="color:rgba(255,255,255,.42);font-weight:800;font-size:10px;letter-spacing:1.6px;text-transform:uppercase;margin-bottom:9px">Mes actions du jour</div>'+
-      '<button id="qg-terrain" style="width:100%;display:flex;align-items:center;gap:11px;text-align:left;padding:14px 14px;border-radius:15px;border:1.5px solid '+(qToday.p?"rgba(139,195,74,.5)":"rgba(255,255,255,.12)")+';background:'+(qToday.p?"rgba(139,195,74,.14)":"rgba(255,255,255,.05)")+';color:#fff;font-weight:800;font-size:13.5px;margin-bottom:8px">'+
-        '<span style="width:24px;height:24px;border-radius:8px;flex:0 0 24px;display:flex;align-items:center;justify-content:center;font-size:14px;background:'+(qToday.p?solid("var(--ok-l)"):"rgba(255,255,255,.1)")+';color:'+(qToday.p?"#12240F":"transparent")+'">✓</span>'+
-        '<span style="flex:1'+(qToday.p?";opacity:.6":"")+'">'+esc(qgc.v1)+'</span></button>'+
-      '<button id="qg-digital" style="width:100%;display:flex;align-items:center;gap:11px;text-align:left;padding:14px 14px;border-radius:15px;border:1.5px solid '+(qToday.e?"rgba(139,195,74,.5)":"rgba(255,255,255,.12)")+';background:'+(qToday.e?"rgba(139,195,74,.14)":"rgba(255,255,255,.05)")+';color:#fff;font-weight:800;font-size:13.5px">'+
-        '<span style="width:24px;height:24px;border-radius:8px;flex:0 0 24px;display:flex;align-items:center;justify-content:center;font-size:14px;background:'+(qToday.e?solid("var(--ok-l)"):"rgba(255,255,255,.1)")+';color:'+(qToday.e?"#12240F":"transparent")+'">✓</span>'+
-        '<span style="flex:1'+(qToday.e?";opacity:.6":"")+'">'+esc(qgc.v2)+'</span></button>'+
-      (function(){
-        var qh="";
-        var qs=[qgc.q1,qgc.q2];
-        for(var qi=0;qi<2;qi++){
-          var qk=qs[qi];
-          if(!qk||!QUESTS[qk])continue;
-          var Q=QUESTS[qk];
-          var done=qi===0?qToday.s1:qToday.s2;
-          qh+='<button class="qg-quest" data-q="'+(qi+1)+'" style="width:100%;margin-top:8px;display:flex;align-items:center;gap:11px;text-align:left;padding:14px;border-radius:15px;border:1.5px solid '+(done?"rgba(139,195,74,.5)":"rgba(232,197,71,.28)")+';background:'+(done?"rgba(139,195,74,.14)":"rgba(232,197,71,.09)")+';font-weight:800;font-size:13.5px;color:'+(done?"#fff":"#E8C547")+'">'+
-            '<span style="width:24px;height:24px;border-radius:8px;flex:0 0 24px;display:flex;align-items:center;justify-content:center;font-size:14px;background:'+(done?solid("var(--ok-l)"):"rgba(232,197,71,.16)")+';color:'+(done?"#12240F":"transparent")+'">✓</span>'+
-            '<span style="flex:1'+(done?";opacity:.6":"")+'">'+Q.icon+' '+Q.name+'</span></button>';
-        }
-        return qh;
-      })()+
-      '<button id="qg-edit" style="width:100%;margin-top:8px;font-size:11px;color:#5A7A5A;padding:4px 0">✏️ modifier mon identité</button></div>';
-  }
-  if(state.qgForm){
-    var q0=qgc||{};
-    h+='<div class="card" style="margin-bottom:18px;padding:18px 16px">'+
-      '<div style="font-weight:900;font-size:14px;margin-bottom:6px">🎯 Qui veux-tu devenir ?</div>'+
-      '<div style="font-size:12px;color:#666;line-height:1.75;margin-bottom:8px">Tu ne changes pas en te fixant des objectifs. Tu changes en <strong>devenant quelqu\'un d\'autre</strong>.</div>'+
-      '<div style="font-size:12px;color:#666;line-height:1.75;margin-bottom:8px">La preuve : à qui on propose une cigarette, deux réponses possibles. <em>« Non merci, j\'essaie d\'arrêter »</em> — cette personne se voit encore comme un fumeur qui lutte. <em>« Non merci, je ne fume pas »</em> — celle-là a changé d\'identité. Elle ne résiste plus : elle EST autre chose. Pareil pour le sport : « j\'essaie de m\'y mettre » contre « je suis sportif ». Le premier lutte, le second vit.</div>'+
-      '<div style="font-size:12px;color:#666;line-height:1.75;margin-bottom:14px">Comment on bascule ? <strong>Par les briques.</strong> Chaque action quotidienne pose une brique de ta nouvelle identité : chaque séance faite est une brique « je suis sportif », chaque repas préparé une brique « je prends soin de moi ». Une brique seule ne fait rien — mais l\'accumulation construit la forteresse. <strong>Deviens la personne, et les résultats suivront.</strong> <span style="color:#666">(James Clear, Atomic Habits)</span></div>'+
-      '<div style="font-weight:800;font-size:11px;color:#666;margin-bottom:6px">MON IDENTITÉ CIBLE</div>'+
-      '<input id="qg-identity" class="num-input" style="font-weight:400;font-size:15px;margin-bottom:12px" placeholder="ex: Père en pleine santé, Athlète discipliné..." value="'+esc(q0.identity||"")+'"/>'+
-      '<div style="font-weight:800;font-size:11px;color:#666;margin-bottom:6px">ACTION QUOTIDIENNE N°1 (terrain)</div>'+
-      '<input id="qg-v1" class="num-input" style="font-weight:400;font-size:14px;margin-bottom:12px" placeholder="ex: Faire ma séance de sport" value="'+esc(q0.v1||"")+'"/>'+
-      '<div style="font-weight:800;font-size:11px;color:#666;margin-bottom:6px">ACTION QUOTIDIENNE N°2 (action clé)</div>'+
-      '<input id="qg-v2" class="num-input" style="font-weight:400;font-size:14px;margin-bottom:14px" placeholder="ex: Préparer mes repas de demain" value="'+esc(q0.v2||"")+'"/>'+
-      '<div style="font-weight:800;font-size:11px;color:#666;margin-bottom:8px">⚔️ MA QUÊTE SECONDAIRE DU BLOC (1 seule — cible ta plus grande faiblesse)</div>'+
-      (function(){
-        var qh="";
-        for(var qk in QUESTS){
-          var Q=QUESTS[qk];
-          var checked=q0.q1===qk||q0.q2===qk;
-          qh+='<label style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--soft2);cursor:pointer"><input type="radio" name="qg-quest" class="qg-quest-cb" value="'+qk+'" '+(checked?'checked':'')+' style="width:20px;height:20px;accent-color:'+R+';flex-shrink:0;margin-top:2px"/><span><strong style="font-size:13px">'+Q.icon+' '+Q.name+'</strong><br><span style="font-size:11px;color:var(--mute)">'+Q.hack+'</span></span></label>';
-        }
-        return qh;
-      })()+
-      '<div style="height:14px"></div>'+
-      '<button id="qg-save" style="width:100%;padding:14px 0;border-radius:12px;background:'+R+';color:#fff;font-weight:900;font-size:14px">Verrouiller mon identité 🔒</button></div>';
-  }
 
   // 🌙 Pensée du soir → déplacée dans la vue jour (épuration accueil)
 
@@ -2978,6 +3000,13 @@ function viewDay(name,start){
   }
   h+='</div>';
 
+  // ⚡ MISSION + 🏰 IDENTITÉ — uniquement sur la journée en cours :
+  // afficher la mission du jour sur une date passée n'aurait aucun sens.
+  if(idx===today90){
+    h+=blocMission(allData,today90,start);
+    h+=blocForteresse(allData,today90,start);
+  }
+
   // 🧠 MINDSET DU JOUR
   var ms=d.mindset||{};
   h+='<div style="margin-top:16px"><div class="card-label">🧠 MINDSET DU JOUR — 3 questions, 3 minutes</div>'+
@@ -3051,7 +3080,236 @@ function viewDay(name,start){
   return h+'</div></div>';
 }
 
+function bindBlocsJour(name,start){
+  var allData=getAllData();
+  var today90=getToday90(start);
+  // ⚡ ONE THING
+  var otNew=document.getElementById("ot-new");
+  if(otNew)otNew.addEventListener("click",function(){state.otForm="today";render();});
+  var otTom=document.getElementById("ot-tomorrow");
+  if(otTom)otTom.addEventListener("click",function(){state.otForm="tomorrow";render();});
+  var otSave=document.getElementById("ot-save");
+  if(otSave)otSave.addEventListener("click",function(){
+    var task=document.getElementById("ot-task").value.trim();
+    var hour=document.getElementById("ot-hour").value;
+    if(!task)return;
+    var idx=state.otForm==="tomorrow"?today90+1:today90;
+    saveDay(200+idx,{task:task,hour:hour,status:"pending",xp:0,iso:false});
+    state.otForm=false;
+    render();
+  });
+  var otQuick=document.getElementById("ot-quick");
+  if(otQuick)otQuick.addEventListener("click",function(){
+    var ov=document.createElement("div");
+    ov.id="ot-overlay";
+    ov.style.cssText="position:fixed;inset:0;background:var(--ink);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px";
+    document.body.appendChild(ov);
+    ov.innerHTML='<div style="color:#fff;font-size:20px;font-weight:900;margin-bottom:6px">Bilan de conquête</div>'+
+      '<div style="color:#666;font-size:13px;margin-bottom:30px">Mission accomplie hors app</div>'+
+      '<button class="ot-result" data-r="done" style="width:100%;max-width:320px;padding:16px;border-radius:14px;background:var(--ok);color:#fff;font-weight:900;font-size:14px;margin-bottom:10px;text-align:left;border:none;cursor:pointer">🟢 ZONE SÉCURISÉE — j\'ai tout donné<span style="float:right">+100 XP</span></button>'+
+      '<button class="ot-result" data-r="half" style="width:100%;max-width:320px;padding:16px;border-radius:14px;background:var(--amber);color:#fff;font-weight:900;font-size:14px;margin-bottom:10px;text-align:left;border:none;cursor:pointer">🟡 ZONE CONTESTÉE — fait à moitié<span style="float:right">+50 XP</span></button>'+
+      '<button class="ot-result" data-r="lost" style="width:100%;max-width:320px;padding:16px;border-radius:14px;background:#444;color:#ccc;font-weight:900;font-size:14px;margin-bottom:24px;text-align:left;border:none;cursor:pointer">⚪ ZONE PERDUE — pas réussi<span style="float:right">0 XP</span></button>'+
+      '<label style="display:flex;align-items:center;gap:10px;color:#666;font-size:12px;max-width:320px;margin:0 auto"><input type="checkbox" id="ot-iso" style="width:20px;height:20px;accent-color:var(--gold)"/> Je m\'engage : 30 min sans écran ni sucre après cet effort (+25 XP)</label>';
+    var btns=ov.querySelectorAll(".ot-result");
+    for(var b2=0;b2<btns.length;b2++){
+      btns[b2].addEventListener("click",function(){
+        var r=this.getAttribute("data-r");
+        var xpMap={done:100,half:50,lost:0};
+        var iso=document.getElementById("ot-iso").checked;
+        var xpVal=xpMap[r]+(iso&&r!=="lost"?25:0);
+        var mission=getAllData()[200+today90];
+        mission.status=r;mission.xp=xpVal;mission.iso=iso&&r!=="lost";
+        saveDay(200+today90,mission);
+        feedback(r==="lost"?"Mission manquée — demain on repart":"⚔️ Mission validée !",r==="lost"?"undo":"win");
+        if(r!=="lost"){
+          ov.innerHTML='<div style="font-size:72px;margin-bottom:14px">🔨</div>'+
+            '<div style="color:var(--ok);font-size:24px;font-weight:900;margin-bottom:10px">VICTOIRE DU JOUR VALIDÉE !</div>'+
+            '<div style="color:#fff;font-size:16px;font-weight:800">+'+xpVal+' XP ajoutés à ta conquête</div>'+
+            '<div style="color:#888;font-size:12px;margin-top:14px">Une brique de plus vers ton identité 🧱</div>';
+          setTimeout(function(){document.body.removeChild(ov);render();},1800);
+        }else{document.body.removeChild(ov);render();}
+      });
+    }
+  });
+  var otGo=document.getElementById("ot-go");
+  if(otGo)otGo.addEventListener("click",function(){
+    // Overlay countdown 5→1 puis chrono
+    var ov=document.createElement("div");
+    ov.id="ot-overlay";
+    ov.style.cssText="position:fixed;inset:0;background:var(--ink);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px";
+    document.body.appendChild(ov);
+    var count=5;
+    function showCount(){
+      if(count>0){
+        ov.innerHTML='<div style="color:#888;font-size:13px;font-weight:800;letter-spacing:2px;text-transform:uppercase;margin-bottom:20px">Zéro négociation</div>'+
+          '<div style="color:var(--brand);font-size:120px;font-weight:900;line-height:1">'+count+'</div>';
+        count--;
+        setTimeout(showCount,1000);
+      }else{
+        startChrono();
+      }
+    }
+    function startChrono(){
+      var sec=0;
+      var mission=getAllData()[200+today90];
+      ov.innerHTML='<div style="color:var(--ok);font-size:56px;font-weight:900;margin-bottom:10px">GO 🚀</div>'+
+        '<div style="color:#fff;font-size:16px;font-weight:800;margin-bottom:30px;max-width:300px">'+esc(mission.task)+'</div>'+
+        '<div id="ot-timer" style="color:#fff;font-size:64px;font-weight:900;font-variant-numeric:tabular-nums">00:00</div>'+
+        '<div style="color:#666;font-size:12px;margin:10px 0 40px">Objectif : 5 à 10 minutes</div>'+
+        '<button id="ot-finish" style="width:100%;max-width:300px;padding:18px 0;border-radius:14px;background:var(--brand);color:#fff;font-weight:900;font-size:15px;letter-spacing:1px">MISSION TERMINÉE ✓</button>';
+      var tm=setInterval(function(){
+        sec++;
+        var el=document.getElementById("ot-timer");
+        if(el)el.textContent=("0"+Math.floor(sec/60)).slice(-2)+":"+("0"+sec%60).slice(-2);
+      },1000);
+      document.getElementById("ot-finish").addEventListener("click",function(){
+        clearInterval(tm);
+        showBilan(sec);
+      });
+    }
+    function showBilan(sec){
+      ov.innerHTML='<div style="color:#fff;font-size:20px;font-weight:900;margin-bottom:6px">Bilan de conquête</div>'+
+        '<div style="color:#666;font-size:13px;margin-bottom:30px">'+Math.floor(sec/60)+' min '+(sec%60)+' s de combat</div>'+
+        '<button class="ot-result" data-r="done" style="width:100%;max-width:320px;padding:16px;border-radius:14px;background:var(--ok);color:#fff;font-weight:900;font-size:14px;margin-bottom:10px;text-align:left">🟢 ZONE SÉCURISÉE — j\'ai tout donné<span style="float:right">+100 XP</span></button>'+
+        '<button class="ot-result" data-r="half" style="width:100%;max-width:320px;padding:16px;border-radius:14px;background:var(--amber);color:#fff;font-weight:900;font-size:14px;margin-bottom:10px;text-align:left">🟡 ZONE CONTESTÉE — fait à moitié<span style="float:right">+50 XP</span></button>'+
+        '<button class="ot-result" data-r="lost" style="width:100%;max-width:320px;padding:16px;border-radius:14px;background:#444;color:#ccc;font-weight:900;font-size:14px;margin-bottom:24px;text-align:left">⚪ ZONE PERDUE — pas réussi<span style="float:right">0 XP</span></button>'+
+        '<label style="display:flex;align-items:center;gap:10px;color:#666;font-size:12px;max-width:320px;margin:0 auto"><input type="checkbox" id="ot-iso" style="width:20px;height:20px;accent-color:var(--gold)"/> Je m\'engage : 30 min sans écran ni sucre après cet effort (+25 XP)</label>';
+      var btns=ov.querySelectorAll(".ot-result");
+      for(var b=0;b<btns.length;b++){
+        btns[b].addEventListener("click",function(){
+          var r=this.getAttribute("data-r");
+          var xpMap={done:100,half:50,lost:0};
+          var iso=document.getElementById("ot-iso").checked;
+          var xpVal=xpMap[r]+(iso&&r!=="lost"?25:0);
+          var mission=getAllData()[200+today90];
+          mission.status=r;mission.xp=xpVal;mission.iso=iso&&r!=="lost";
+          saveDay(200+today90,mission);
+          feedback(r==="lost"?"Mission manquée — demain on repart":"⚔️ Mission validée !",r==="lost"?"undo":"win");
+        if(r!=="lost"){
+          ov.innerHTML='<div style="font-size:72px;margin-bottom:14px">🔨</div>'+
+            '<div style="color:var(--ok);font-size:24px;font-weight:900;margin-bottom:10px">VICTOIRE DU JOUR VALIDÉE !</div>'+
+            '<div style="color:#fff;font-size:16px;font-weight:800">+'+xpVal+' XP ajoutés à ta conquête</div>'+
+            '<div style="color:#888;font-size:12px;margin-top:14px">Une brique de plus vers ton identité 🧱</div>';
+          setTimeout(function(){document.body.removeChild(ov);render();},1800);
+        }else{document.body.removeChild(ov);render();}
+        });
+      }
+    }
+    showCount();
+  });
+  // (partage pensée : géré dans bindDay via openPenseeShare)
+  var _unusedPensee=function(){};
+  function _openPenseeShareLocal(){}
+  window.openPenseeShare=window.openPenseeShare||function(pTxt,dayNum){
+    var html='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Pensée du soir</title><style>'+themeCSS()+
+      'body{margin:0;font-family:-apple-system,sans-serif;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;box-sizing:border-box}'+
+      '.card{width:100%;max-width:380px;aspect-ratio:4/5;background:linear-gradient(160deg,#1a1a2e 0%,#16213e 100%);border-radius:24px;padding:36px 28px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between;border:1px solid #2a2a4a}'+
+      '.brand{display:flex;align-items:center;gap:8px}.b{width:4px;height:20px;border-radius:2px}'+
+      '.bn{color:#fff;font-weight:900;font-size:14px;letter-spacing:2px}'+
+      '.mid{text-align:center}.moon{font-size:34px;margin-bottom:14px}'+
+      '.lbl{color:var(--gold);font-weight:800;font-size:11px;letter-spacing:3px;text-transform:uppercase;margin-bottom:18px}'+
+      '.q{color:var(--line);font-size:17px;line-height:1.9;font-style:italic}'+
+      '.bot{text-align:center}.tag{color:#fff;font-weight:900;font-size:13px;letter-spacing:1px}'+
+      '.sub2{color:#666;font-size:11px;margin-top:4px;letter-spacing:1px;text-transform:uppercase}'+
+      '.hint{color:#666;font-size:12px;text-align:center;margin-top:18px;line-height:1.6}'+
+      '</style></head><body><button onclick=\'window.close();setTimeout(function(){if(history.length>1)history.back();},250)\' style=\'position:fixed;top:12px;right:12px;z-index:999;background:var(--ink);color:#fff;border:0;border-radius:20px;padding:9px 16px;font-weight:800;font-size:13px\'>✕ Fermer</button>'+
+      '<div class="card">'+
+      '<div class="brand"><div class="b" style="background:var(--brand)"></div><span class="bn">AM COACH GENÈVE</span><div class="b" style="background:var(--brand2)"></div></div>'+
+      '<div class="mid"><div class="moon">🌙</div><div class="lbl">La pensée du soir — Jour '+dayNum+'</div>'+
+      '<div class="q">'+esc(pTxt)+'</div></div>'+
+      '<div class="bot"><div class="tag">TRANSFO\'PHYSIQUE · 90 JOURS</div><div class="sub2">@amcoachsportif</div></div>'+
+      '</div>'+
+      '<div class="hint">📸 Capture d\'écran → partage en story 🌙</div>'+
+      '</body></html>';
+    var win=window.open("","_blank");
+    if(win){win.document.write(html);win.document.close();}
+  };
+  var otShare=document.getElementById("ot-share");
+  if(otShare)otShare.addEventListener("click",function(){
+    var allD=getAllData();
+    var mission=allD[200+today90];
+    var xp2=totalXP(allD);
+    var grade2=currentGrade(xp2);
+    var streak2=computeStreak(allD,today90);
+    var stTxt=mission.status==="done"?"🟢 ZONE SÉCURISÉE":"🟡 ZONE CONTESTÉE";
+    var html='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Ma victoire</title><style>'+themeCSS()+
+      'body{margin:0;font-family:-apple-system,sans-serif;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;box-sizing:border-box}'+
+      '.card{width:100%;max-width:380px;aspect-ratio:4/5;background:linear-gradient(160deg,var(--ink) 0%,#2d1010 100%);border-radius:24px;padding:36px 28px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between;border:1px solid #333}'+
+      '.brand{display:flex;align-items:center;gap:8px}'+
+      '.b{width:4px;height:20px;border-radius:2px}'+
+      '.bn{color:#fff;font-weight:900;font-size:14px;letter-spacing:2px}'+
+      '.mid{text-align:center}'+
+      '.gi{font-size:56px;margin-bottom:8px}'+
+      '.gn{color:var(--gold);font-weight:900;font-size:26px;letter-spacing:1px;text-transform:uppercase}'+
+      '.xp{color:#fff;font-weight:900;font-size:17px;margin-top:6px}'+
+      '.st{color:var(--ok);font-weight:900;font-size:13px;margin-top:14px;letter-spacing:1px}'+
+      '.day{color:#666;font-size:12px;margin-top:4px;font-weight:700}'+
+      '.bot{text-align:center}'+
+      '.tag{color:#fff;font-weight:900;font-size:13px;letter-spacing:1px}'+
+      '.sub2{color:#666;font-size:11px;margin-top:4px;letter-spacing:1px;text-transform:uppercase}'+
+      '.hint{color:#666;font-size:12px;text-align:center;margin-top:18px;line-height:1.6}'+
+      '</style></head><body><button onclick=\'window.close();setTimeout(function(){if(history.length>1)history.back();},250)\' style=\'position:fixed;top:12px;right:12px;z-index:999;background:var(--ink);color:#fff;border:0;border-radius:20px;padding:9px 16px;font-weight:800;font-size:13px\'>✕ Fermer</button>'+
+      '<div class="card">'+
+      '<div class="brand"><div class="b" style="background:var(--brand)"></div><span class="bn">AM COACH GENÈVE</span><div class="b" style="background:var(--brand2)"></div></div>'+
+      '<div class="mid"><div class="gi">'+grade2.icon+'</div><div class="gn">'+grade2.name+'</div><div class="xp">'+xp2+' XP</div>'+
+      '<div class="st">'+stTxt+'</div>'+
+      '<div class="day">Jour '+(today90+1)+'/90 · 🔥 '+streak2+' jours d\'affilée</div></div>'+
+      '<div class="bot"><div class="tag">TRANSFO\'PHYSIQUE</div><div class="sub2">@amcoachsportif · 90 jours</div></div>'+
+      '</div>'+
+      '<div class="hint">📸 Fais une capture d\'écran de cette carte<br>et poste-la en story 💪</div>'+
+      '</body></html>';
+    var win=window.open("","_blank");
+    if(win){win.document.write(html);win.document.close();}
+  });
+  // QG setup/edit
+  var qgSetup=document.getElementById("qg-setup");
+  if(qgSetup)qgSetup.addEventListener("click",function(){state.qgForm=true;render();});
+  var qgEdit=document.getElementById("qg-edit");
+  if(qgEdit)qgEdit.addEventListener("click",function(){state.qgForm=true;render();});
+  var qgSave=document.getElementById("qg-save");
+  if(qgSave)qgSave.addEventListener("click",function(){
+    var idn=document.getElementById("qg-identity").value.trim();
+    var v1=document.getElementById("qg-v1").value.trim();
+    var v2=document.getElementById("qg-v2").value.trim();
+    if(!idn||!v1||!v2)return;
+    var cb=document.querySelector(".qg-quest-cb:checked");
+    saveDay(502,{identity:idn,v1:v1,v2:v2,q1:cb?cb.value:null,q2:null});
+    state.qgForm=false;
+    render();
+  });
+  // QG buttons
+  var qgT=document.getElementById("qg-terrain");
+  if(qgT)qgT.addEventListener("click",function(){
+    var q=getAllData()[400+today90]||{};
+    q.p=!q.p;saveDay(400+today90,q);render();feedback(q.p?"🧱 Brique posée":"Brique retirée",q.p?"ok":"undo");if(q.p){var hh=document.getElementById("qg-house");if(hh){hh.style.transition="transform .18s cubic-bezier(.2,1.6,.4,1)";hh.style.transform="translateX(-50%) scale(1.22)";setTimeout(function(){hh.style.transform="translateX(-50%) scale(1)";},190);}}
+    var hp=document.getElementById("qg-house");if(hp)hp.classList.add("qg-shake");
+  });
+  var qQuests=document.querySelectorAll(".qg-quest");
+  for(var qq=0;qq<qQuests.length;qq++){
+    qQuests[qq].addEventListener("click",function(){
+      var n=this.getAttribute("data-q");
+      var q=getAllData()[400+today90]||{};
+      if(n==="1")q.s1=!q.s1;else q.s2=!q.s2;
+      var actif=(n==="1")?q.s1:q.s2;
+      saveDay(400+today90,q);render();
+      feedback(actif?"🧱 Brique posée":"Brique retirée",actif?"ok":"undo");
+      var hq=document.getElementById("qg-house");
+      if(hq){hq.classList.add("qg-shake");
+        if(actif){hq.style.transition="transform .18s cubic-bezier(.2,1.6,.4,1)";
+          hq.style.transform="translateX(-50%) scale(1.22)";
+          setTimeout(function(){hq.style.transform="translateX(-50%) scale(1)";},190);}}
+    });
+  }
+  var qgD=document.getElementById("qg-digital");
+  if(qgD)qgD.addEventListener("click",function(){
+    var q=getAllData()[400+today90]||{};
+    q.e=!q.e;saveDay(400+today90,q);render();feedback(q.e?"🧱 Brique posée":"Brique retirée",q.e?"ok":"undo");if(q.e){var hh=document.getElementById("qg-house");if(hh){hh.style.transition="transform .18s cubic-bezier(.2,1.6,.4,1)";hh.style.transform="translateX(-50%) scale(1.22)";setTimeout(function(){hh.style.transform="translateX(-50%) scale(1)";},190);}}
+    var he=document.getElementById("qg-house");if(he)he.classList.add("qg-shake");
+  });
+}
 function bindDay(name,start){
+  // Les boutons de la mission et de l'identité vivent maintenant ici aussi
+  try{bindBlocsJour(name,start);}catch(e){}
   var idxP=state.selDay;
   var pSh=document.getElementById("pensee-share");
   if(pSh)pSh.addEventListener("click",function(){
@@ -6571,229 +6829,8 @@ function bindMain(name,start){
   var allData=getAllData();
   var today90=getToday90(start);
   var month=currentMonth(today90);
-  // ⚡ ONE THING
-  var otNew=document.getElementById("ot-new");
-  if(otNew)otNew.addEventListener("click",function(){state.otForm="today";render();});
-  var otTom=document.getElementById("ot-tomorrow");
-  if(otTom)otTom.addEventListener("click",function(){state.otForm="tomorrow";render();});
-  var otSave=document.getElementById("ot-save");
-  if(otSave)otSave.addEventListener("click",function(){
-    var task=document.getElementById("ot-task").value.trim();
-    var hour=document.getElementById("ot-hour").value;
-    if(!task)return;
-    var idx=state.otForm==="tomorrow"?today90+1:today90;
-    saveDay(200+idx,{task:task,hour:hour,status:"pending",xp:0,iso:false});
-    state.otForm=false;
-    render();
-  });
-  var otQuick=document.getElementById("ot-quick");
-  if(otQuick)otQuick.addEventListener("click",function(){
-    var ov=document.createElement("div");
-    ov.id="ot-overlay";
-    ov.style.cssText="position:fixed;inset:0;background:var(--ink);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px";
-    document.body.appendChild(ov);
-    ov.innerHTML='<div style="color:#fff;font-size:20px;font-weight:900;margin-bottom:6px">Bilan de conquête</div>'+
-      '<div style="color:#666;font-size:13px;margin-bottom:30px">Mission accomplie hors app</div>'+
-      '<button class="ot-result" data-r="done" style="width:100%;max-width:320px;padding:16px;border-radius:14px;background:var(--ok);color:#fff;font-weight:900;font-size:14px;margin-bottom:10px;text-align:left;border:none;cursor:pointer">🟢 ZONE SÉCURISÉE — j\'ai tout donné<span style="float:right">+100 XP</span></button>'+
-      '<button class="ot-result" data-r="half" style="width:100%;max-width:320px;padding:16px;border-radius:14px;background:var(--amber);color:#fff;font-weight:900;font-size:14px;margin-bottom:10px;text-align:left;border:none;cursor:pointer">🟡 ZONE CONTESTÉE — fait à moitié<span style="float:right">+50 XP</span></button>'+
-      '<button class="ot-result" data-r="lost" style="width:100%;max-width:320px;padding:16px;border-radius:14px;background:#444;color:#ccc;font-weight:900;font-size:14px;margin-bottom:24px;text-align:left;border:none;cursor:pointer">⚪ ZONE PERDUE — pas réussi<span style="float:right">0 XP</span></button>'+
-      '<label style="display:flex;align-items:center;gap:10px;color:#666;font-size:12px;max-width:320px;margin:0 auto"><input type="checkbox" id="ot-iso" style="width:20px;height:20px;accent-color:var(--gold)"/> Je m\'engage : 30 min sans écran ni sucre après cet effort (+25 XP)</label>';
-    var btns=ov.querySelectorAll(".ot-result");
-    for(var b2=0;b2<btns.length;b2++){
-      btns[b2].addEventListener("click",function(){
-        var r=this.getAttribute("data-r");
-        var xpMap={done:100,half:50,lost:0};
-        var iso=document.getElementById("ot-iso").checked;
-        var xpVal=xpMap[r]+(iso&&r!=="lost"?25:0);
-        var mission=getAllData()[200+today90];
-        mission.status=r;mission.xp=xpVal;mission.iso=iso&&r!=="lost";
-        saveDay(200+today90,mission);
-        feedback(r==="lost"?"Mission manquée — demain on repart":"⚔️ Mission validée !",r==="lost"?"undo":"win");
-        if(r!=="lost"){
-          ov.innerHTML='<div style="font-size:72px;margin-bottom:14px">🔨</div>'+
-            '<div style="color:var(--ok);font-size:24px;font-weight:900;margin-bottom:10px">VICTOIRE DU JOUR VALIDÉE !</div>'+
-            '<div style="color:#fff;font-size:16px;font-weight:800">+'+xpVal+' XP ajoutés à ta conquête</div>'+
-            '<div style="color:#888;font-size:12px;margin-top:14px">Une brique de plus vers ton identité 🧱</div>';
-          setTimeout(function(){document.body.removeChild(ov);render();},1800);
-        }else{document.body.removeChild(ov);render();}
-      });
-    }
-  });
-  var otGo=document.getElementById("ot-go");
-  if(otGo)otGo.addEventListener("click",function(){
-    // Overlay countdown 5→1 puis chrono
-    var ov=document.createElement("div");
-    ov.id="ot-overlay";
-    ov.style.cssText="position:fixed;inset:0;background:var(--ink);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px";
-    document.body.appendChild(ov);
-    var count=5;
-    function showCount(){
-      if(count>0){
-        ov.innerHTML='<div style="color:#888;font-size:13px;font-weight:800;letter-spacing:2px;text-transform:uppercase;margin-bottom:20px">Zéro négociation</div>'+
-          '<div style="color:var(--brand);font-size:120px;font-weight:900;line-height:1">'+count+'</div>';
-        count--;
-        setTimeout(showCount,1000);
-      }else{
-        startChrono();
-      }
-    }
-    function startChrono(){
-      var sec=0;
-      var mission=getAllData()[200+today90];
-      ov.innerHTML='<div style="color:var(--ok);font-size:56px;font-weight:900;margin-bottom:10px">GO 🚀</div>'+
-        '<div style="color:#fff;font-size:16px;font-weight:800;margin-bottom:30px;max-width:300px">'+esc(mission.task)+'</div>'+
-        '<div id="ot-timer" style="color:#fff;font-size:64px;font-weight:900;font-variant-numeric:tabular-nums">00:00</div>'+
-        '<div style="color:#666;font-size:12px;margin:10px 0 40px">Objectif : 5 à 10 minutes</div>'+
-        '<button id="ot-finish" style="width:100%;max-width:300px;padding:18px 0;border-radius:14px;background:var(--brand);color:#fff;font-weight:900;font-size:15px;letter-spacing:1px">MISSION TERMINÉE ✓</button>';
-      var tm=setInterval(function(){
-        sec++;
-        var el=document.getElementById("ot-timer");
-        if(el)el.textContent=("0"+Math.floor(sec/60)).slice(-2)+":"+("0"+sec%60).slice(-2);
-      },1000);
-      document.getElementById("ot-finish").addEventListener("click",function(){
-        clearInterval(tm);
-        showBilan(sec);
-      });
-    }
-    function showBilan(sec){
-      ov.innerHTML='<div style="color:#fff;font-size:20px;font-weight:900;margin-bottom:6px">Bilan de conquête</div>'+
-        '<div style="color:#666;font-size:13px;margin-bottom:30px">'+Math.floor(sec/60)+' min '+(sec%60)+' s de combat</div>'+
-        '<button class="ot-result" data-r="done" style="width:100%;max-width:320px;padding:16px;border-radius:14px;background:var(--ok);color:#fff;font-weight:900;font-size:14px;margin-bottom:10px;text-align:left">🟢 ZONE SÉCURISÉE — j\'ai tout donné<span style="float:right">+100 XP</span></button>'+
-        '<button class="ot-result" data-r="half" style="width:100%;max-width:320px;padding:16px;border-radius:14px;background:var(--amber);color:#fff;font-weight:900;font-size:14px;margin-bottom:10px;text-align:left">🟡 ZONE CONTESTÉE — fait à moitié<span style="float:right">+50 XP</span></button>'+
-        '<button class="ot-result" data-r="lost" style="width:100%;max-width:320px;padding:16px;border-radius:14px;background:#444;color:#ccc;font-weight:900;font-size:14px;margin-bottom:24px;text-align:left">⚪ ZONE PERDUE — pas réussi<span style="float:right">0 XP</span></button>'+
-        '<label style="display:flex;align-items:center;gap:10px;color:#666;font-size:12px;max-width:320px;margin:0 auto"><input type="checkbox" id="ot-iso" style="width:20px;height:20px;accent-color:var(--gold)"/> Je m\'engage : 30 min sans écran ni sucre après cet effort (+25 XP)</label>';
-      var btns=ov.querySelectorAll(".ot-result");
-      for(var b=0;b<btns.length;b++){
-        btns[b].addEventListener("click",function(){
-          var r=this.getAttribute("data-r");
-          var xpMap={done:100,half:50,lost:0};
-          var iso=document.getElementById("ot-iso").checked;
-          var xpVal=xpMap[r]+(iso&&r!=="lost"?25:0);
-          var mission=getAllData()[200+today90];
-          mission.status=r;mission.xp=xpVal;mission.iso=iso&&r!=="lost";
-          saveDay(200+today90,mission);
-          feedback(r==="lost"?"Mission manquée — demain on repart":"⚔️ Mission validée !",r==="lost"?"undo":"win");
-        if(r!=="lost"){
-          ov.innerHTML='<div style="font-size:72px;margin-bottom:14px">🔨</div>'+
-            '<div style="color:var(--ok);font-size:24px;font-weight:900;margin-bottom:10px">VICTOIRE DU JOUR VALIDÉE !</div>'+
-            '<div style="color:#fff;font-size:16px;font-weight:800">+'+xpVal+' XP ajoutés à ta conquête</div>'+
-            '<div style="color:#888;font-size:12px;margin-top:14px">Une brique de plus vers ton identité 🧱</div>';
-          setTimeout(function(){document.body.removeChild(ov);render();},1800);
-        }else{document.body.removeChild(ov);render();}
-        });
-      }
-    }
-    showCount();
-  });
-  // (partage pensée : géré dans bindDay via openPenseeShare)
-  var _unusedPensee=function(){};
-  function _openPenseeShareLocal(){}
-  window.openPenseeShare=window.openPenseeShare||function(pTxt,dayNum){
-    var html='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Pensée du soir</title><style>'+themeCSS()+
-      'body{margin:0;font-family:-apple-system,sans-serif;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;box-sizing:border-box}'+
-      '.card{width:100%;max-width:380px;aspect-ratio:4/5;background:linear-gradient(160deg,#1a1a2e 0%,#16213e 100%);border-radius:24px;padding:36px 28px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between;border:1px solid #2a2a4a}'+
-      '.brand{display:flex;align-items:center;gap:8px}.b{width:4px;height:20px;border-radius:2px}'+
-      '.bn{color:#fff;font-weight:900;font-size:14px;letter-spacing:2px}'+
-      '.mid{text-align:center}.moon{font-size:34px;margin-bottom:14px}'+
-      '.lbl{color:var(--gold);font-weight:800;font-size:11px;letter-spacing:3px;text-transform:uppercase;margin-bottom:18px}'+
-      '.q{color:var(--line);font-size:17px;line-height:1.9;font-style:italic}'+
-      '.bot{text-align:center}.tag{color:#fff;font-weight:900;font-size:13px;letter-spacing:1px}'+
-      '.sub2{color:#666;font-size:11px;margin-top:4px;letter-spacing:1px;text-transform:uppercase}'+
-      '.hint{color:#666;font-size:12px;text-align:center;margin-top:18px;line-height:1.6}'+
-      '</style></head><body><button onclick=\'window.close();setTimeout(function(){if(history.length>1)history.back();},250)\' style=\'position:fixed;top:12px;right:12px;z-index:999;background:var(--ink);color:#fff;border:0;border-radius:20px;padding:9px 16px;font-weight:800;font-size:13px\'>✕ Fermer</button>'+
-      '<div class="card">'+
-      '<div class="brand"><div class="b" style="background:var(--brand)"></div><span class="bn">AM COACH GENÈVE</span><div class="b" style="background:var(--brand2)"></div></div>'+
-      '<div class="mid"><div class="moon">🌙</div><div class="lbl">La pensée du soir — Jour '+dayNum+'</div>'+
-      '<div class="q">'+esc(pTxt)+'</div></div>'+
-      '<div class="bot"><div class="tag">TRANSFO\'PHYSIQUE · 90 JOURS</div><div class="sub2">@amcoachsportif</div></div>'+
-      '</div>'+
-      '<div class="hint">📸 Capture d\'écran → partage en story 🌙</div>'+
-      '</body></html>';
-    var win=window.open("","_blank");
-    if(win){win.document.write(html);win.document.close();}
-  };
-  var otShare=document.getElementById("ot-share");
-  if(otShare)otShare.addEventListener("click",function(){
-    var allD=getAllData();
-    var mission=allD[200+today90];
-    var xp2=totalXP(allD);
-    var grade2=currentGrade(xp2);
-    var streak2=computeStreak(allD,today90);
-    var stTxt=mission.status==="done"?"🟢 ZONE SÉCURISÉE":"🟡 ZONE CONTESTÉE";
-    var html='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Ma victoire</title><style>'+themeCSS()+
-      'body{margin:0;font-family:-apple-system,sans-serif;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;box-sizing:border-box}'+
-      '.card{width:100%;max-width:380px;aspect-ratio:4/5;background:linear-gradient(160deg,var(--ink) 0%,#2d1010 100%);border-radius:24px;padding:36px 28px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between;border:1px solid #333}'+
-      '.brand{display:flex;align-items:center;gap:8px}'+
-      '.b{width:4px;height:20px;border-radius:2px}'+
-      '.bn{color:#fff;font-weight:900;font-size:14px;letter-spacing:2px}'+
-      '.mid{text-align:center}'+
-      '.gi{font-size:56px;margin-bottom:8px}'+
-      '.gn{color:var(--gold);font-weight:900;font-size:26px;letter-spacing:1px;text-transform:uppercase}'+
-      '.xp{color:#fff;font-weight:900;font-size:17px;margin-top:6px}'+
-      '.st{color:var(--ok);font-weight:900;font-size:13px;margin-top:14px;letter-spacing:1px}'+
-      '.day{color:#666;font-size:12px;margin-top:4px;font-weight:700}'+
-      '.bot{text-align:center}'+
-      '.tag{color:#fff;font-weight:900;font-size:13px;letter-spacing:1px}'+
-      '.sub2{color:#666;font-size:11px;margin-top:4px;letter-spacing:1px;text-transform:uppercase}'+
-      '.hint{color:#666;font-size:12px;text-align:center;margin-top:18px;line-height:1.6}'+
-      '</style></head><body><button onclick=\'window.close();setTimeout(function(){if(history.length>1)history.back();},250)\' style=\'position:fixed;top:12px;right:12px;z-index:999;background:var(--ink);color:#fff;border:0;border-radius:20px;padding:9px 16px;font-weight:800;font-size:13px\'>✕ Fermer</button>'+
-      '<div class="card">'+
-      '<div class="brand"><div class="b" style="background:var(--brand)"></div><span class="bn">AM COACH GENÈVE</span><div class="b" style="background:var(--brand2)"></div></div>'+
-      '<div class="mid"><div class="gi">'+grade2.icon+'</div><div class="gn">'+grade2.name+'</div><div class="xp">'+xp2+' XP</div>'+
-      '<div class="st">'+stTxt+'</div>'+
-      '<div class="day">Jour '+(today90+1)+'/90 · 🔥 '+streak2+' jours d\'affilée</div></div>'+
-      '<div class="bot"><div class="tag">TRANSFO\'PHYSIQUE</div><div class="sub2">@amcoachsportif · 90 jours</div></div>'+
-      '</div>'+
-      '<div class="hint">📸 Fais une capture d\'écran de cette carte<br>et poste-la en story 💪</div>'+
-      '</body></html>';
-    var win=window.open("","_blank");
-    if(win){win.document.write(html);win.document.close();}
-  });
-  // QG setup/edit
-  var qgSetup=document.getElementById("qg-setup");
-  if(qgSetup)qgSetup.addEventListener("click",function(){state.qgForm=true;render();});
-  var qgEdit=document.getElementById("qg-edit");
-  if(qgEdit)qgEdit.addEventListener("click",function(){state.qgForm=true;render();});
-  var qgSave=document.getElementById("qg-save");
-  if(qgSave)qgSave.addEventListener("click",function(){
-    var idn=document.getElementById("qg-identity").value.trim();
-    var v1=document.getElementById("qg-v1").value.trim();
-    var v2=document.getElementById("qg-v2").value.trim();
-    if(!idn||!v1||!v2)return;
-    var cb=document.querySelector(".qg-quest-cb:checked");
-    saveDay(502,{identity:idn,v1:v1,v2:v2,q1:cb?cb.value:null,q2:null});
-    state.qgForm=false;
-    render();
-  });
-  // QG buttons
-  var qgT=document.getElementById("qg-terrain");
-  if(qgT)qgT.addEventListener("click",function(){
-    var q=getAllData()[400+today90]||{};
-    q.p=!q.p;saveDay(400+today90,q);render();feedback(q.p?"🧱 Brique posée":"Brique retirée",q.p?"ok":"undo");if(q.p){var hh=document.getElementById("qg-house");if(hh){hh.style.transition="transform .18s cubic-bezier(.2,1.6,.4,1)";hh.style.transform="translateX(-50%) scale(1.22)";setTimeout(function(){hh.style.transform="translateX(-50%) scale(1)";},190);}}
-    var hp=document.getElementById("qg-house");if(hp)hp.classList.add("qg-shake");
-  });
-  var qQuests=document.querySelectorAll(".qg-quest");
-  for(var qq=0;qq<qQuests.length;qq++){
-    qQuests[qq].addEventListener("click",function(){
-      var n=this.getAttribute("data-q");
-      var q=getAllData()[400+today90]||{};
-      if(n==="1")q.s1=!q.s1;else q.s2=!q.s2;
-      var actif=(n==="1")?q.s1:q.s2;
-      saveDay(400+today90,q);render();
-      feedback(actif?"🧱 Brique posée":"Brique retirée",actif?"ok":"undo");
-      var hq=document.getElementById("qg-house");
-      if(hq){hq.classList.add("qg-shake");
-        if(actif){hq.style.transition="transform .18s cubic-bezier(.2,1.6,.4,1)";
-          hq.style.transform="translateX(-50%) scale(1.22)";
-          setTimeout(function(){hq.style.transform="translateX(-50%) scale(1)";},190);}}
-    });
-  }
-  var qgD=document.getElementById("qg-digital");
-  if(qgD)qgD.addEventListener("click",function(){
-    var q=getAllData()[400+today90]||{};
-    q.e=!q.e;saveDay(400+today90,q);render();feedback(q.e?"🧱 Brique posée":"Brique retirée",q.e?"ok":"undo");if(q.e){var hh=document.getElementById("qg-house");if(hh){hh.style.transition="transform .18s cubic-bezier(.2,1.6,.4,1)";hh.style.transform="translateX(-50%) scale(1.22)";setTimeout(function(){hh.style.transform="translateX(-50%) scale(1)";},190);}}
-    var he=document.getElementById("qg-house");if(he)he.classList.add("qg-shake");
-  });
+  bindBlocsJour(name,start);
+
   // Dream autosave
   var dbS=document.getElementById("db-semaine"), dbV=document.getElementById("db-vie");
   if(dbS&&dbV){

@@ -4602,6 +4602,45 @@ function viewCoachStats(){
   h+='</div></div>';
   return h;
 }
+// ═══════════ 🚦 BAROMÈTRE D'ADHÉRENCE ═══════════
+// Point 5 du rapport : donner au coach un résumé immédiat de qui va bien
+// et de qui décroche, sans ouvrir cinq fiches.
+function coachPouls(){
+  var cl=lsGet("amcoach_clients",[]);
+  var out={vert:[],orange:[],rouge:[],fini:[],tous:[]};
+  for(var i=0;i<cl.length;i++){
+    var c=cl[i], d=lsGet("amcoach_"+c.slug,{});
+    var dur=progLen(c.start_date)||90;
+    var t90=getToday90(c.start_date);
+    var remplis=0,last=-1;
+    for(var k=0;k<dur&&k<=t90;k++){
+      if(d[k]&&Object.keys(d[k]).length>0){remplis++;if(k>last)last=k;}
+    }
+    var jours=Math.min(t90+1,dur);
+    var assidu=jours>0?Math.round(remplis/jours*100):0;
+    // Silence : d'abord la dernière ouverture réelle, sinon le dernier jour rempli
+    var la=d[505]&&d[505].d;
+    var sil=la?Math.floor((new Date(isoLocal())-new Date(la))/86400000):(last>=0?t90-last:jours);
+    var fini=t90>=dur-1;
+    var etat,motif;
+    if(fini){etat="fini";motif="Programme terminé";}
+    else if(sil>=7){etat="rouge";motif="Silence depuis "+sil+" jours";}
+    else if(assidu<40&&jours>=5){etat="rouge";motif="Assiduité "+assidu+" %";}
+    else if(sil>=3){etat="orange";motif="Rien depuis "+sil+" jours";}
+    else if(assidu<70&&jours>=5){etat="orange";motif="Assiduité "+assidu+" %";}
+    else {etat="vert";motif=sil<=1?"À jour":"Rien depuis "+sil+" j";}
+    var o={nom:c.name,slug:c.slug,jour:jours,duree:dur,assidu:assidu,silence:sil,
+           etat:etat,motif:motif,horsStats:!!c.horsStats};
+    out[etat].push(o); out.tous.push(o);
+  }
+  // Les plus urgents d'abord
+  var ordre={rouge:0,orange:1,vert:2,fini:3};
+  out.tous.sort(function(a,b){
+    if(ordre[a.etat]!==ordre[b.etat])return ordre[a.etat]-ordre[b.etat];
+    return b.silence-a.silence;
+  });
+  return out;
+}
 function viewCoachDash(){
   var clients=lsGet("amcoach_clients",[]);
   coachLoadAll(false); // télécharge les données de tous les clients au premier affichage
@@ -4614,6 +4653,42 @@ function viewCoachDash(){
     (state.showForm?"▲ Annuler":"+ Nouveau client")+'</button>'+
     '<button id="calc-open" class="big-btn" style="padding:14px 0;font-size:14px;background:var(--brand2);margin-bottom:10px">🧮 Calculateur bilan</button>'+
     '<button id="stats-open" class="big-btn" style="padding:14px 0;font-size:14px;background:var(--ink);margin-bottom:16px">📊 Mes statistiques</button>';
+
+  // 🚦 Qui va bien, qui décroche — en un coup d'œil
+  (function(){
+    var P=coachPouls();
+    if(!P.tous.length)return;
+    var COUL={rouge:{p:"🔴",c:"var(--bad)",t:"à relancer"},
+              orange:{p:"🟠",c:"var(--warn-d)",t:"à surveiller"},
+              vert:{p:"🟢",c:"var(--ok-d)",t:"en forme"},
+              fini:{p:"⚫",c:"var(--mute)",t:"terminé"}};
+    var resume='';
+    ["rouge","orange","vert","fini"].forEach(function(k){
+      if(!P[k].length)return;
+      resume+='<span style="background:var(--soft2);border-radius:100px;padding:7px 13px;font-size:12.5px;font-weight:800;color:'+COUL[k].c+'">'+
+        COUL[k].p+' '+P[k].length+' '+COUL[k].t+'</span>';
+    });
+    var lignes='';
+    for(var i=0;i<P.tous.length;i++){
+      var o=P.tous[i], C=COUL[o.etat];
+      lignes+='<button class="pouls-go" data-s="'+o.slug+'" style="width:100%;display:flex;align-items:center;gap:11px;text-align:left;background:none;border:0;border-top:1px solid var(--line);padding:11px 0">'+
+        '<span style="font-size:13px;line-height:1">'+C.p+'</span>'+
+        '<span style="flex:1;min-width:0">'+
+        '<span style="display:block;font-weight:800;font-size:13.5px;color:var(--ink)">'+esc(o.nom)+
+        (o.horsStats?' <span style="font-size:9.5px;color:var(--mute);font-weight:700">· hors stats</span>':'')+'</span>'+
+        '<span style="display:block;font-size:11px;color:'+C.c+';font-weight:700;margin-top:1px">'+o.motif+'</span></span>'+
+        '<span style="text-align:right;white-space:nowrap">'+
+        '<span style="display:block;font-weight:900;font-size:14px;color:'+gaugeCol(o.assidu)+'">'+o.assidu+'%</span>'+
+        '<span style="display:block;font-size:10px;color:var(--mute);font-weight:700">J'+o.jour+'/'+o.duree+'</span></span></button>';
+    }
+    h+='<div class="card" style="padding:16px 17px;margin-bottom:16px">'+
+      '<div style="font-weight:900;font-size:16px;margin-bottom:11px">🚦 Le pouls de mes clients</div>'+
+      '<div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:4px">'+resume+'</div>'+
+      lignes+
+      (P.rouge.length?'<div style="margin-top:12px;background:var(--soft2);border-radius:12px;padding:11px 13px;font-size:12px;color:var(--ink2);font-weight:700;line-height:1.5">💬 '+
+        P.rouge.length+' personne'+(P.rouge.length>1?'s':'')+' à relancer aujourd\'hui — commence par '+esc(P.rouge[0].nom)+'.</div>':'')+
+      '</div>';
+  })();
 
   if(state.showForm){
     h+='<div class="card" style="padding:18px 16px;margin-bottom:16px">'+
@@ -5662,6 +5737,16 @@ function bindCoach(){
     cp.addEventListener("keydown",function(e){if(e.key==="Enter")tryLogin();});
     return;
   }
+  // 🚦 Ouvrir une fiche depuis le pouls
+  var pgo=document.querySelectorAll(".pouls-go");
+  for(var pi2=0;pi2<pgo.length;pi2++){
+    pgo[pi2].addEventListener("click",function(){
+      state.coachDetail=this.getAttribute("data-s");
+      state.cdTab="";
+      render();
+    });
+  }
+
   // 📊 Statistiques coach
   var so=document.getElementById("stats-open");
   if(so)so.addEventListener("click",function(){state.coachStats=true;render();});

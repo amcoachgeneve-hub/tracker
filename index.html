@@ -944,14 +944,47 @@ function pickPensee(allData,today90){
 // ═══════════ ONE THING — CONQUÊTE ═══════════
 // Missions stockées en day_index 200+dayIdx : {task,hour,status:"pending|done|half|lost",xp,iso}
 // ═══════════ FORTERESSE (QG coach) ═══════════
-var QG_LEVELS=[
-  {min:0,icon:"🏚️",name:"L'Invisible",radius:8},
-  {min:8,icon:"🛖",name:"Le Départ",radius:18},
-  {min:20,icon:"🏘️",name:"En Construction",radius:30},
-  {min:40,icon:"🏰",name:"Reconnu des Proches",radius:44},
-  {min:70,icon:"🏯",name:"La Référence",radius:58},
-  {min:110,icon:"👑",name:"",radius:72} // = identité du client
-];
+// Échelle resserrée au début : un palier tous les 3-5 briques les premiers jours,
+// puis des écarts qui s'élargissent. Avant, il fallait 20 briques pour voir bouger
+// l'icône une deuxième fois — trop lointain, aucun retour à court terme.
+// 🌍 Quatre univers de progression. Le client choisit celui qui lui parle :
+// une mère de famille ne se reconnaît pas dans un campement et une forteresse.
+// Chaque échelle a les mêmes 11 seuils, seuls les noms et les icônes changent.
+var QG_SEUILS=[0,3,7,12,18,26,36,50,68,90,120];
+var QG_UNIVERS={
+  construction:{nom:"La Construction",sous:"Bâtir pierre après pierre",
+    l:[["🏚️","Le Terrain"],["⛺","Le Campement"],["🛖","La Cabane"],["🏕️","Les Fondations"],
+       ["🏠","Les Premiers Murs"],["🏘️","Le Quartier"],["🏛️","Le Pilier"],["🏰","La Forteresse"],
+       ["🏯","La Citadelle"],["🗼","Le Phare"],["👑",""]]},
+  ascension:{nom:"L'Ascension",sous:"Monter marche après marche",
+    l:[["🥾","Le Départ"],["🌲","Le Sentier"],["⛺","Le Camp de base"],["🥾","La Montée"],
+       ["🏔️","Le Premier Col"],["🧗","La Paroi"],["🌄","La Crête"],["⛰️","Le Sommet"],
+       ["🦅","Les Hauteurs"],["🌌","Au-dessus des nuages"],["👑",""]]},
+  croissance:{nom:"La Croissance",sous:"Grandir jour après jour",
+    l:[["🌰","La Graine"],["🌱","La Pousse"],["🍃","Les Premières Feuilles"],["🪴","Le Plant"],
+       ["🌿","La Tige"],["🌳","Le Jeune Arbre"],["🌲","L'Arbre"],["🍎","Les Premiers Fruits"],
+       ["🌸","La Pleine Floraison"],["🌻","Le Rayonnement"],["👑",""]]},
+  forge:{nom:"La Forge",sous:"Se transformer par le feu",
+    l:[["🪨","Le Minerai"],["🔥","La Braise"],["♨️","La Chauffe"],["🔨","Le Premier Coup"],
+       ["⚒️","Le Martelage"],["🗡️","La Lame brute"],["✨","Le Polissage"],["⚔️","L'Arme"],
+       ["🛡️","L'Armure"],["🏆","Le Chef-d'œuvre"],["👑",""]]}
+};
+// Construit l'échelle du client à partir de son univers
+function qgEchelle(allData){
+  var c=(allData&&allData[502])||{};
+  var u=QG_UNIVERS[c.univers]||QG_UNIVERS.construction;
+  var out=[];
+  for(var i=0;i<QG_SEUILS.length;i++){
+    out.push({min:QG_SEUILS[i],icon:u.l[i][0],name:u.l[i][1],radius:8+i*6.4});
+  }
+  return out;
+}
+// Échelle par défaut, conservée pour la compatibilité
+var QG_LEVELS=(function(){
+  var u=QG_UNIVERS.construction,o=[];
+  for(var i=0;i<QG_SEUILS.length;i++)o.push({min:QG_SEUILS[i],icon:u.l[i][0],name:u.l[i][1],radius:8+i*6.4});
+  return o;
+})();
 // ═══════════ 🎯 CHALLENGES COURTS ═══════════
 // Le J90 est loin. Un challenge de 7 jours donne une récompense atteignable.
 // Slot 515 = challenge en cours · slot 516 = badges décrochés.
@@ -1009,13 +1042,14 @@ function qgRes(allData,today90){
   }
   return {p:p,e:e,total:p+e};
 }
-function qgLevel(total){
-  var l=QG_LEVELS[0];
-  for(var i=0;i<QG_LEVELS.length;i++){if(total>=QG_LEVELS[i].min)l=QG_LEVELS[i];}
+function qgLevel(total,ech){
+  var L=ech||QG_LEVELS, l=L[0];
+  for(var i=0;i<L.length;i++){if(total>=L[i].min)l=L[i];}
   return l;
 }
-function qgNext(total){
-  for(var i=0;i<QG_LEVELS.length;i++){if(total<QG_LEVELS[i].min)return QG_LEVELS[i];}
+function qgNext(total,ech){
+  var L=ech||QG_LEVELS;
+  for(var i=0;i<L.length;i++){if(total<L[i].min)return L[i];}
   return null;
 }
 
@@ -2447,9 +2481,10 @@ function blocForteresse(allData,today90,start){
     h+='<button id="qg-setup" class="card" style="width:calc(100% - 28px);margin-bottom:18px;border:2px dashed #A5C99A;background:#F4FAF2;text-align:center;padding:16px;cursor:pointer;font-weight:800;font-size:14px;color:#4A7A3A">🏰 Définir mon identité cible →</button>';
   }else{
     var res=qgRes(allData,today90);
-    var lvl=qgLevel(res.total);
-    var nxtL=qgNext(res.total);
-    var lvlName=lvl.min>=110?qgc.identity:lvl.name;
+    var ECH=qgEchelle(allData);
+    var lvl=qgLevel(res.total,ECH);
+    var nxtL=qgNext(res.total,ECH);
+    var lvlName=lvl.min>=120?qgc.identity:lvl.name;
     var qToday=allData[400+today90]||{};
     var cb=comboStreak(allData,today90,hasBrique);
     // 🌤️ Le ciel suit le combo : un décor qui change tous les jours, pas tous les 15
@@ -2543,6 +2578,20 @@ function blocForteresse(allData,today90,start){
       '<div style="font-size:12px;color:#666;line-height:1.75;margin-bottom:14px">Comment on bascule ? <strong>Par les briques.</strong> Chaque action quotidienne pose une brique de ta nouvelle identité : chaque séance faite est une brique « je suis sportif », chaque repas préparé une brique « je prends soin de moi ». Une brique seule ne fait rien — mais l\'accumulation construit la forteresse. <strong>Deviens la personne, et les résultats suivront.</strong> <span style="color:#666">(James Clear, Atomic Habits)</span></div>'+
       '<div style="font-weight:800;font-size:11px;color:#666;margin-bottom:6px">MON IDENTITÉ CIBLE</div>'+
       '<input id="qg-identity" class="num-input" style="font-weight:400;font-size:15px;margin-bottom:12px" placeholder="ex: Père en pleine santé, Athlète discipliné..." value="'+esc(q0.identity||"")+'"/>'+
+      '<div style="font-weight:800;font-size:11px;color:#666;margin-bottom:6px">🌍 MON UNIVERS DE PROGRESSION</div>'+
+      (function(){
+        var cur=q0.univers||"construction",uh='<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:14px">';
+        for(var uk in QG_UNIVERS){
+          if(!QG_UNIVERS.hasOwnProperty(uk))continue;
+          var U=QG_UNIVERS[uk],on=cur===uk;
+          uh+='<button type="button" class="qg-univ" data-u="'+uk+'" style="text-align:left;padding:11px 12px;border-radius:14px;cursor:pointer;'+
+            'border:2px solid '+(on?"var(--ok-d)":"var(--line)")+';background:'+(on?"var(--soft2)":"var(--card)")+'">'+
+            '<span style="font-size:19px">'+U.l[0][0]+U.l[5][0]+U.l[10][0]+'</span>'+
+            '<span style="display:block;font-weight:900;font-size:12.5px;margin-top:4px;color:var(--ink)">'+U.nom+'</span>'+
+            '<span style="display:block;font-size:10.5px;color:var(--mute);font-weight:700;line-height:1.35">'+U.sous+'</span></button>';
+        }
+        return uh+'</div><input type="hidden" id="qg-univers" value="'+cur+'"/>';
+      })()+
       '<div style="font-weight:800;font-size:11px;color:#666;margin-bottom:6px">ACTION QUOTIDIENNE N°1 (terrain)</div>'+
       '<input id="qg-v1" class="num-input" style="font-weight:400;font-size:14px;margin-bottom:12px" placeholder="ex: Faire ma séance de sport" value="'+esc(q0.v1||"")+'"/>'+
       '<div style="font-weight:800;font-size:11px;color:#666;margin-bottom:6px">ACTION QUOTIDIENNE N°2 (action clé)</div>'+
@@ -3266,14 +3315,29 @@ function bindBlocsJour(name,start){
   if(qgSetup)qgSetup.addEventListener("click",function(){state.qgForm=true;render();});
   var qgEdit=document.getElementById("qg-edit");
   if(qgEdit)qgEdit.addEventListener("click",function(){state.qgForm=true;render();});
+  var univs=document.querySelectorAll(".qg-univ");
+  for(var u0=0;u0<univs.length;u0++){
+    univs[u0].addEventListener("click",function(){
+      var uv2=document.getElementById("qg-univers");
+      if(uv2)uv2.value=this.getAttribute("data-u");
+      for(var z=0;z<univs.length;z++){
+        var on=univs[z]===this;
+        univs[z].style.borderColor=on?solid("var(--ok-d)"):solid("var(--line)");
+        univs[z].style.background=on?solid("var(--soft2)"):solid("var(--card)");
+      }
+      buzz("tap");
+    });
+  }
   var qgSave=document.getElementById("qg-save");
   if(qgSave)qgSave.addEventListener("click",function(){
+    var uv=document.getElementById("qg-univers");
     var idn=document.getElementById("qg-identity").value.trim();
     var v1=document.getElementById("qg-v1").value.trim();
     var v2=document.getElementById("qg-v2").value.trim();
     if(!idn||!v1||!v2)return;
     var cb=document.querySelector(".qg-quest-cb:checked");
-    saveDay(502,{identity:idn,v1:v1,v2:v2,q1:cb?cb.value:null,q2:null});
+    saveDay(502,{identity:idn,v1:v1,v2:v2,q1:cb?cb.value:null,q2:null,
+                 univers:(uv&&uv.value)||"construction"});
     state.qgForm=false;
     render();
   });
@@ -3674,7 +3738,7 @@ function viewStats(name){
       {icon:"🦾",name:"Machine de Guerre",cond:bs>=45,desc:"45 jours d'affilée"},
       {icon:"🧱",name:"Premier Mur",cond:res.total>=8,desc:"8 briques posées"},
       {icon:"🏗️",name:"Bâtisseur",cond:res.total>=40,desc:"40 briques posées"},
-      {icon:"👑",name:"Citadelle",cond:res.total>=110,desc:"110 briques posées"},
+      {icon:"👑",name:"Citadelle",cond:res.total>=120,desc:"120 briques posées"},
       {icon:"🟢",name:"Conquérant",cond:wins>=10,desc:"10 zones sécurisées"},
       {icon:"🏴",name:"Seigneur de Guerre",cond:wins>=30,desc:"30 zones sécurisées"},
       {icon:"📅",name:"Premier Mois",cond:rempli>=28,desc:"28 jours remplis"},

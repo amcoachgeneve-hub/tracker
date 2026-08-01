@@ -1034,6 +1034,26 @@ var QUESTS={
   addictions:{icon:"🛡️",name:"Le Bouclier",hack:"Quota respecté (cigarettes, cafés, écrans...)"},
   lecture:{icon:"📖",name:"Le Grimoire",hack:"2 pages de lecture minimum"}
 };
+// 🔻 Score VIVANT : le niveau se tient, il ne se décroche pas.
+// Chaque journée entièrement vide de la dernière quinzaine retire une brique,
+// avec deux jours tolérés — maladie, imprévu, vraie coupure.
+// Les briques posées (l'historique) ne bougent jamais : seul le niveau descend.
+function qgVivant(allData,today90){
+  var res=qgRes(allData,today90);
+  var vides=0, fenetre=0;
+  // On regarde les 14 jours précédant aujourd'hui : la journée en cours
+  // n'est pas encore finie, on ne la compte pas comme manquée.
+  for(var i=Math.max(0,today90-14);i<today90;i++){
+    fenetre++;
+    var q=allData[400+i]||{};
+    var n=(q.p?1:0)+(q.e?1:0)+(q.s1?1:0)+(q.s2?1:0);
+    if(n===0)vides++;
+  }
+  var tolerance=2;
+  var penalite=Math.max(0,vides-tolerance);
+  return {total:res.total, vides:vides, fenetre:fenetre, tolerance:tolerance,
+          penalite:penalite, vivant:Math.max(0,res.total-penalite)};
+}
 function qgRes(allData,today90){
   var p=0,e=0;
   for(var i=0;i<=today90;i++){
@@ -2481,9 +2501,12 @@ function blocForteresse(allData,today90,start){
     h+='<button id="qg-setup" class="card" style="width:calc(100% - 28px);margin-bottom:18px;border:2px dashed #A5C99A;background:#F4FAF2;text-align:center;padding:16px;cursor:pointer;font-weight:800;font-size:14px;color:#4A7A3A">🏰 Définir mon identité cible →</button>';
   }else{
     var res=qgRes(allData,today90);
+    var VIV=qgVivant(allData,today90);
     var ECH=qgEchelle(allData);
-    var lvl=qgLevel(res.total,ECH);
-    var nxtL=qgNext(res.total,ECH);
+    var lvl=qgLevel(VIV.vivant,ECH);
+    var nxtL=qgNext(VIV.vivant,ECH);
+    var lvlMax=qgLevel(res.total,ECH);       // le plus haut jamais atteint
+    var redescendu=lvlMax.min>lvl.min;
     var lvlName=lvl.min>=120?qgc.identity:lvl.name;
     var qToday=allData[400+today90]||{};
     var cb=comboStreak(allData,today90,hasBrique);
@@ -2501,7 +2524,7 @@ function blocForteresse(allData,today90,start){
       '<div style="color:#fff;font-weight:900;font-size:19px;line-height:1.25;margin:5px 0 0;max-width:74%">'+esc(qgc.identity)+'</div>'+
       // Le niveau, en grand, avec un halo doux et un anneau de progression vers le palier suivant
       (function(){
-        var av=nxtL?Math.max(0,Math.min(1,(res.total-lvl.min)/Math.max(1,nxtL.min-lvl.min))):1;
+        var av=nxtL?Math.max(0,Math.min(1,(VIV.vivant-lvl.min)/Math.max(1,nxtL.min-lvl.min))):1;
         var Rr=52, C2=2*Math.PI*Rr;
         return '<div style="text-align:center;position:relative;height:148px;margin:16px 0 2px">'+
           '<div style="position:absolute;left:50%;top:8px;transform:translateX(-50%);width:132px;height:132px;border-radius:50%;background:radial-gradient(circle,rgba(139,195,74,.22),transparent 68%)"></div>'+
@@ -2512,8 +2535,15 @@ function blocForteresse(allData,today90,start){
           '<div style="position:absolute;left:0;right:0;bottom:2px">'+
           '<div style="color:#fff;font-weight:900;font-size:17px;letter-spacing:-.2px">'+esc(lvlName)+'</div>'+
           '<div style="color:rgba(255,255,255,.45);font-size:11px;font-weight:700;margin-top:2px">'+
-          (nxtL?'plus que '+(nxtL.min-res.total)+' brique'+((nxtL.min-res.total)>1?'s':'')+' pour '+esc(nxtL.name):'sommet atteint')+'</div></div></div>';
+          (nxtL?'plus que '+(nxtL.min-VIV.vivant)+' brique'+((nxtL.min-VIV.vivant)>1?'s':'')+' pour '+esc(nxtL.name):'sommet tenu — à retenir chaque jour')+'</div></div></div>';
       })()+
+      // 🔻 Le niveau se tient : on prévient quand il glisse
+      (VIV.penalite>0?'<div style="background:rgba(255,152,0,.14);border:1px solid rgba(255,152,0,.35);border-radius:14px;padding:12px 13px;margin-top:14px">'+
+        '<div style="color:#FFC46B;font-weight:900;font-size:12.5px">'+(redescendu?'🔻 Tu es redescendu de niveau':'⚠️ Ton niveau glisse')+'</div>'+
+        '<div style="color:rgba(255,255,255,.62);font-size:11.5px;line-height:1.5;margin-top:4px">'+
+        VIV.vides+' jour'+(VIV.vides>1?'s':'')+' sans rien poser sur les '+VIV.fenetre+' derniers — '+VIV.penalite+' brique'+(VIV.penalite>1?'s':'')+' retirée'+(VIV.penalite>1?'s':'')+'.'+
+        (redescendu?'<br>Tu étais '+esc(lvlMax.name||qgc.identity)+'. On y retourne en reprenant dès aujourd\'hui.':'')+
+        '</div></div>':'')+
       // Deux compteurs côte à côte, plus lisibles que deux lignes de texte
       '<div style="display:flex;gap:8px;margin:14px 0 13px">'+
       '<div style="flex:1;background:rgba(255,255,255,.07);border-radius:14px;padding:11px 8px;text-align:center">'+
@@ -2660,6 +2690,39 @@ function viewCalendar(name,start){
     '<span><i style="background:#FFD0B0"></i>Partiel</span>'+
     '<span><i style="background:var(--bad)"></i>Manqué</span>'+
     '<span><i style="background:var(--soft2)"></i>À venir</span></div></div>';
+
+  // 🧠 ALERTE MINDSET — le socle de tout le reste.
+  // Sans les 3 phrases, on ne voit ni ce qui va, ni ce qui bloque :
+  // ni le client ni le coach n'ont de matière pour ajuster.
+  (function(){
+    var fin=Math.min(today90,89);
+    var deb=Math.max(0,fin-13);
+    var jours=0,faits=0,partiels=0;
+    for(var i=deb;i<=fin;i++){
+      if(i>fin)break;
+      jours++;
+      var m=(allData[i]&&allData[i].mindset)||null;
+      if(m&&m.fier&&m.positif&&m.negatif)faits++;
+      else if(m&&(m.fier||m.positif||m.negatif))partiels++;
+    }
+    if(jours<4)return;                       // trop tôt pour juger
+    var pct=Math.round(faits/jours*100);
+    if(pct>=60)return;                       // rien à signaler
+    var fort=pct<30;
+    h+='<div class="card" style="padding:15px 16px;border-left:4px solid '+(fort?"var(--bad)":"var(--warn-d)")+';margin-bottom:12px">'+
+      '<div style="display:flex;align-items:flex-start;gap:11px">'+
+      '<span style="font-size:22px;line-height:1.1">🧠</span>'+
+      '<div style="flex:1">'+
+      '<div style="font-weight:900;font-size:14px;color:'+(fort?"var(--bad)":"var(--warn-d)")+'">'+
+      (fort?'Ton mindset est le grand absent':'Ton mindset décroche')+'</div>'+
+      '<div style="font-size:12.5px;color:var(--mid,var(--mute));line-height:1.55;margin-top:5px">'+
+      (faits===0
+        ? 'Tu n\'as rempli tes 3 phrases <strong>aucun jour</strong> sur les '+jours+' derniers.'
+        : 'Tu les as remplies <strong>'+faits+' jour'+(faits>1?'s':'')+' sur '+jours+'</strong>'+(partiels?' ('+partiels+' journée'+(partiels>1?'s':'')+' à moitié)':'')+'.')+
+      '<br>C\'est pourtant là que tu vois ce qui te tire vers le haut et ce qui te freine. Sans ces trois lignes, on avance à l\'aveugle.</div>'+
+      '<button id="mind-go" style="margin-top:11px;padding:11px 18px;border-radius:100px;border:0;background:'+(fort?"var(--bad)":"var(--warn-d)")+';color:#fff;font-weight:900;font-size:12.5px">✍️ Les écrire maintenant</button>'+
+      '</div></div></div>';
+  })();
 
   // 🔔 Bannière rappel du soir — affichée UNE fois, disparaît après activation (slot 509)
   if(!(allData[509]&&allData[509].rappel)){
@@ -6978,6 +7041,13 @@ function bindMain(name,start){
   var allData=getAllData();
   var today90=getToday90(start);
   var month=currentMonth(today90);
+  // 🧠 Aller écrire son mindset
+  var mgo=document.getElementById("mind-go");
+  if(mgo)mgo.addEventListener("click",function(){
+    state.selDay=getToday90(start);
+    render();
+    feedback("✍️ À toi de jouer","ok");
+  });
   bindBlocsJour(name,start);
 
   // Dream autosave

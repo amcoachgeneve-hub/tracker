@@ -322,14 +322,38 @@ function nutStreak(cfg){
   return {cur:cur,best:Math.max(best,cur),todayOk:todayOk};
 }
 // Calcule le plan (prot/kcal/durée) depuis poids départ → cible
-function nutPlan(sexe,pDepart,pCible){
+// mMaigre : masse maigre en kg, mesurée au bilan (poids × (1 − %MG)).
+// C'est la bonne référence : les protéines nourrissent le muscle, pas le gras.
+// Sans bilan, on retombe sur le poids cible — moins juste, mais toujours prudent.
+// Masse maigre lue dans le dernier bilan qui a poids + %MG
+function nutMasseMaigre(allData){
+  var b=(allData&&allData[600])||{}, list=b.list||[];
+  for(var i=list.length-1;i>=0;i--){
+    var a=list[i];
+    if(a&&a.poids&&a.mg){
+      var pd=parseFloat(a.poids), mg=parseFloat(a.mg);
+      if(pd>0&&mg>0&&mg<70)return Math.round(pd*(1-mg/100)*10)/10;
+    }
+  }
+  return null;
+}
+function nutPlan(sexe,pDepart,pCible,mMaigre){
   var P=NUT_PARAMS[sexe]||NUT_PARAMS.H;
-  var prot=Math.round(P.protX*pCible);
-  var protMax=Math.round((P.protMax||P.protX)*pCible);
+  var ref, base;
+  if(mMaigre&&mMaigre>0){
+    // Sur masse maigre, les besoins sont plus élevés par kg : ~2,3–2,6 g/kg
+    ref=mMaigre; base="maigre";
+    var lo=P.protX*1.3, hi=(P.protMax||P.protX)*1.3;
+    var prot=Math.round(lo*ref), protMax=Math.round(hi*ref);
+  }else{
+    ref=pCible; base="cible";
+    var prot=Math.round(P.protX*ref), protMax=Math.round((P.protMax||P.protX)*ref);
+  }
   var kcal=Math.round(P.kcalX*pCible);
   var perte=Math.round((pDepart-pCible)*10)/10;
   var duree=perte>0?Math.ceil(perte/0.8):0; // ~800 g / semaine
   return {prot:prot,protMax:protMax,kcal:kcal,perte:perte,duree:duree,
+          base:base,ref:Math.round(ref*10)/10,
           protX:P.protX,protMax_x:P.protMax||P.protX,kcalX:P.kcalX};
 }
 
@@ -2691,6 +2715,49 @@ function viewCalendar(name,start){
     '<span><i style="background:var(--bad)"></i>Manqué</span>'+
     '<span><i style="background:var(--soft2)"></i>À venir</span></div></div>';
 
+  // ▶️ ENTRÉE DU JOUR — depuis que la mission et l'identité ont quitté l'accueil,
+  // il faut une porte évidente pour y aller. Sinon la cliente ne les voit plus.
+  (function(){
+    var t=Math.min(today90,89);
+    if(t<0||today90>=progDays)return;
+    var dj=allData[t]||{};
+    var hb=dj.habits||{};
+    var nbH=HABITS.length+(allData[506]&&allData[506].name?1:0);
+    var faitH=0;
+    for(var z=0;z<HABITS.length;z++)if(hb[HABITS[z].id])faitH++;
+    if(allData[506]&&allData[506].name&&hb.perso)faitH++;
+    var q=allData[400+t]||{};
+    var qgc0=allData[502];
+    var briques=(q.p?1:0)+(q.e?1:0)+(q.s1?1:0)+(q.s2?1:0);
+    var mis=allData[200+t];
+    var misOk=mis&&mis.status==="done";
+    var mind=dj.mindset;
+    var mindOk=!!(mind&&mind.fier&&mind.positif&&mind.negatif);
+    var mesOk=!!(dj.poids||dj.sommeilH);
+    var total=4, faits=(faitH>=Math.ceil(nbH/2)?1:0)+(misOk?1:0)+(mindOk?1:0)+(mesOk?1:0);
+    var pct=Math.round(faits/total*100);
+    function pastille(ok,txt){
+      return '<span style="background:'+(ok?"rgba(255,255,255,.18)":"rgba(255,255,255,.07)")+';border-radius:100px;padding:6px 11px;font-size:11.5px;font-weight:800;color:'+(ok?"#fff":"rgba(255,255,255,.45)")+'">'+(ok?"✓ ":"")+txt+'</span>';
+    }
+    h+='<button id="go-jour" style="width:100%;text-align:left;border:0;cursor:pointer;background:linear-gradient(150deg,'+solid("var(--ink)")+','+solid("var(--ink2)")+');border-radius:20px;padding:18px 17px;margin-bottom:12px;box-shadow:var(--shadow-l)">'+
+      '<div style="display:flex;align-items:center;gap:12px">'+
+      '<div style="flex:1">'+
+      '<div style="color:rgba(255,255,255,.5);font-size:10px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase">Ma journée</div>'+
+      '<div style="color:#fff;font-weight:900;font-size:19px;line-height:1.2;margin-top:2px">'+
+      (faits>=total?'Journée complète 🎉':faits===0?'Rien de coché aujourd\'hui':'Il te reste '+(total-faits)+' chose'+((total-faits)>1?'s':'')+' à faire')+'</div></div>'+
+      '<div style="text-align:right"><div style="color:'+gaugeCol(pct)+';font-weight:900;font-size:24px;line-height:1">'+pct+'%</div>'+
+      '<div style="color:rgba(255,255,255,.35);font-size:10px;font-weight:800">jour '+(t+1)+'</div></div></div>'+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:13px">'+
+      pastille(mesOk,"Mesures")+
+      pastille(faitH>=Math.ceil(nbH/2),"Habitudes "+faitH+"/"+nbH)+
+      pastille(misOk,"Mission")+
+      (qgc0?pastille(briques>0,"Identité"):"")+
+      pastille(mindOk,"Mindset")+
+      '</div>'+
+      '<div style="color:rgba(255,255,255,.42);font-size:11.5px;font-weight:700;margin-top:12px">Appuie pour ouvrir ta journée →</div>'+
+      '</button>';
+  })();
+
   // 🧠 ALERTE MINDSET — le socle de tout le reste.
   // Sans les 3 phrases, on ne voit ni ce qui va, ni ce qui bloque :
   // ni le client ni le coach n'ont de matière pour ajuster.
@@ -3112,11 +3179,14 @@ function viewDay(name,start){
   }
   h+='</div>';
 
-  // ⚡ MISSION + 🏰 IDENTITÉ — uniquement sur la journée en cours :
-  // afficher la mission du jour sur une date passée n'aurait aucun sens.
-  if(idx===today90){
-    h+=blocMission(allData,today90,start);
-    h+=blocForteresse(allData,today90,start);
+  // ⚡ MISSION + 🏰 IDENTITÉ — sur la journée active uniquement.
+  // On borne au dernier jour du programme : sans ça, un client au-delà de la fin
+  // (ou sur un programme court de 14 jours) ne les verrait JAMAIS, puisque
+  // son today90 dépasserait tous les jours affichables dans le calendrier.
+  var dernierJour=Math.max(0,Math.min(today90,(progLen(start)||90)-1));
+  if(idx===dernierJour){
+    h+=blocMission(allData,dernierJour,start);
+    h+=blocForteresse(allData,dernierJour,start);
   }
 
   // 🧠 MINDSET DU JOUR
@@ -3186,7 +3256,8 @@ function viewDay(name,start){
         '<div class="txt-label">🤛 Difficulté</div><textarea id="b-blocage" class="txt-area" placeholder="Le plus dur...">'+esc(b.blocage||"")+'</textarea>'+
         '<div class="txt-label">💬 Ressenti général</div><textarea id="b-ressenti" class="txt-area" placeholder="Corps, tête, énergie...">'+esc(b.ressenti||"")+'</textarea>'+
         '<div class="txt-label">❓ Question pour Akli</div><textarea id="b-question" class="txt-area" placeholder="Ce que tu veux me dire...">'+esc(b.question||"")+'</textarea>'+
-        '</div><button id="bilan-save" class="big-btn">Enregistrer ✓</button>';
+        '</div><div id="bl-draft-info" style="text-align:center;font-size:11px;color:var(--mute);font-weight:700;margin-bottom:9px"></div>'+
+        '<button id="bilan-save" class="big-btn">'+(state.blEdit?'Mettre à jour ✓':'Enregistrer ✓')+'</button>';
     }
   }
   return h+'</div></div>';
@@ -4291,7 +4362,7 @@ function viewCoachDetail(){
     '<div style="font-weight:800;font-size:13px;margin-bottom:4px">🍗 Suivi protéines <span style="font-size:11px;font-weight:700;color:'+(nutOn?"var(--ok)":"#999")+'">— '+(nutOn?"ACTIVÉ":"désactivé")+'</span></div>'+
     '<div style="font-size:11px;color:var(--mute);margin-bottom:10px;line-height:1.5">Onglet 🍗 + quête quotidienne + rappel du soir chez le client. À activer seulement pour ceux dont tu veux surveiller les protéines.</div>';
   if(nutOn){
-    var np=nutPlan(nut.sexe||"H",nut.pDepart||0,nut.pCible||0);
+    var np=nutPlan(nut.sexe||"H",nut.pDepart||0,nut.pCible||0,nutMasseMaigre(allData));
     h+='<div style="background:#F1F8E9;border-radius:10px;padding:11px 12px;margin-bottom:10px;font-size:12px;line-height:1.7">'+
       '<div><strong>Objectif :</strong> '+(nut.pDepart||"?")+' kg → '+(nut.pCible||"?")+' kg ('+(nut.sexe==="F"?"femme":"homme")+')</div>'+
       '<div><strong>💪 Protéines :</strong> '+(nut.prot||np.prot)+' g/jour · <strong>🔥</strong> '+(nut.kcal||np.kcal)+' kcal/jour</div>'+
@@ -5452,17 +5523,59 @@ function coachSaveSlot(slug,idx,data){
   var all=lsGet("amcoach_"+slug,{});all[idx]=data;lsSet("amcoach_"+slug,all);
   sbFetch("tracking?on_conflict=client_slug,day_index",{method:"POST",prefer:"resolution=merge-duplicates",body:{client_slug:slug,day_index:idx,data:data}}).catch(function(){});
 }
-var BILAN_MESURES=[["brasD","Bras droit",1],["brasG","Bras gauche",1],["poitrine","Poitrine",0],["nombril","Nombril",0],["ventre","Ventre",0],["fessiers","Fessiers/Hanches",0],["jambeD","Jambe droite",1],["jambeG","Jambe gauche",1],["molletD","Mollet droit",1],["molletG","Mollet gauche",1]];
+var BILAN_MESURES=[["brasD","Bras droit",1],["brasG","Bras gauche",1],["poitrine","Poitrine",0],["nombril","Nombril",0],["ventre","Ventre",1],["fessiers","Fessiers/Hanches",0],["jambeD","Jambe droite",1],["jambeG","Jambe gauche",1],["molletD","Mollet droit",1],["molletG","Mollet gauche",1]];
 var BILAN_SCORES=[["puissance","Puissance personnelle — action ou excuse ?"],["vitalite","Vitalité — énergie physique ou épuisement ?"],["temps","Le temps — maîtrise ou gaspillage ?"],["emotions","Gestion émotionnelle — conséquences mental/alimentation, fringales ?"]];
 var BILAN_CONTEXTE=[["pourquoi","1. Raison — POURQUOI c'est important ?","area"],["ressenti","Comment tu te sentirais avec cet objectif réussi ? Et si tu l'as, quel est l'objectif suivant ?","area"],["freins","2. Qu'est-ce qui pourrait t'empêcher de faire ce challenge et d'atteindre ton objectif ? (finances, entourage, environnement...)","area"],["prof","3. Profession et stress ?","text"],["horaires","4. Horaires de travail ?","text"],["fatphy","5. Fatigue physique de 1 à 10 — si en dessous de 6, pourquoi ?","text"],["fatmen","6. Fatigue mentale de 1 à 10 — si en dessous de 6, pourquoi ?","text"]];
 var BILAN_SEMAINE=["semaine","Bilan semaine — lundi à dimanche","area"];
 var BILAN_HAB=[["h1","1° À quelle heure vous levez-vous ?"],["h2","2° Faites-vous un petit déjeuner ?"],["h3","3° De quoi est composé ce petit déjeuner ?"],["h4","4° Vous sentez-vous fatigué dans la matinée ?"],["h5","5° Mangez-vous en matinée ?"],["h6","6° À quelle heure déjeunez-vous ?"],["h7","7° De quoi est composé votre déjeuner ?"],["h8","8° Êtes-vous fatigué dans l'après-midi ?"],["h9","9° Avez-vous faim dans l'après-midi ?"],["h10","10° Faites-vous un goûter ?"],["h11","11° À quelle heure mangez-vous le soir ?"],["h12","12° Que mangez-vous le soir ?"],["h13","13° Vous couchez-vous rapidement après manger ?"],["h14","14° Remangez-vous avant de dormir ?"],["h15","15° Vivez-vous en couple / avec des enfants ?"],["h16","16° Mangez-vous avec ces personnes ?"],["h17","17° Est-ce vous qui préparez votre repas ?"],["h18","18° Sortez-vous souvent en soirée ?"],["h19","19° Buvez-vous de l'alcool ?"],["h20","20° Buvez-vous des sodas ?"],["h21","21° Combien de litres d'eau buvez-vous ?"],["h22","22° Buvez-vous du café ? Combien par jour ?"],["h23","23° Fumez-vous (cigarettes) ? Combien ?"],["h24","24° Combien de temps par jour sur les réseaux sociaux ?"]];
-function bilanQ(id,label,type){
-  if(type==="area")return '<div class="card-label" style="text-transform:none;letter-spacing:.3px">'+label+'</div><textarea id="'+id+'" class="num-input" rows="2" style="margin-bottom:10px;resize:vertical"></textarea>';
-  return '<div class="card-label" style="text-transform:none;letter-spacing:.3px">'+label+'</div><input id="'+id+'" class="num-input" type="text" style="margin-bottom:10px"/>';
+function bilanQ(id,label,type,val){
+  var v=(val===undefined||val===null)?"":String(val);
+  if(type==="area")return '<div class="card-label" style="text-transform:none;letter-spacing:.3px">'+label+'</div><textarea id="'+id+'" class="num-input" rows="2" style="margin-bottom:10px;resize:vertical">'+esc(v)+'</textarea>';
+  return '<div class="card-label" style="text-transform:none;letter-spacing:.3px">'+label+'</div><input id="'+id+'" class="num-input" type="text"'+(v?' value="'+esc(v)+'"':'')+' style="margin-bottom:10px"/>';
 }
-function bilanInput(id,label,ph,type){
-  return '<div class="card-label">'+label+'</div><input id="'+id+'" class="num-input" type="'+(type||"number")+'" '+(type==="text"?'':'step="0.1" inputmode="decimal"')+' placeholder="'+(ph||"")+'" style="margin-bottom:10px"/>';
+function bilanInput(id,label,ph,type,val){
+  return '<div class="card-label">'+label+'</div><input id="'+id+'" class="num-input" type="'+(type||"number")+'" '+(type==="text"?'':'step="0.1" inputmode="decimal"')+' placeholder="'+(ph||"")+'"'+
+    (val!==undefined&&val!==null&&val!==""?' value="'+esc(String(val))+'"':'')+' style="margin-bottom:10px"/>';
+}
+// ═══════════ 💾 BROUILLON DE BILAN ═══════════
+// Un bilan se remplit en plusieurs fois, parfois pendant la séance.
+// Tout ce qui est tapé est sauvegardé au fil de l'eau : fermer l'app ne perd rien.
+function blDraftKey(slug){return "amcoach_bldraft_"+slug;}
+function blDraftLire(slug){return lsGet(blDraftKey(slug),null);}
+function blDraftEffacer(slug){try{localStorage.removeItem(blDraftKey(slug));}catch(e){}}
+var __blTimer=null;
+function blDraftSauver(){
+  var slug=state.coachDetail;
+  if(!slug||state.blJusteEnregistre)return;
+  var d={champs:{},maj:new Date().toISOString(),edit:state.blEdit||null};
+  var n=document.querySelectorAll("#bl-form input,#bl-form textarea,#bl-form select");
+  for(var i=0;i<n.length;i++){
+    if(!n[i].id)continue;
+    d.champs[n[i].id]=n[i].value;
+  }
+  // Boutons à état (sexe, profil de stockage)
+  d.sexe=state.blSexe||null; d.profil=state.blProfil||null;
+  lsSet(blDraftKey(slug),d);
+  var ind=document.getElementById("bl-draft-info");
+  if(ind)ind.textContent="💾 Brouillon enregistré à "+new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+}
+function blDraftPlanifier(){
+  if(__blTimer)clearTimeout(__blTimer);
+  __blTimer=setTimeout(blDraftSauver,600);
+}
+function blDraftRestaurer(){
+  var slug=state.coachDetail;
+  var d=blDraftLire(slug);
+  if(!d||!d.champs)return false;
+  var n=0;
+  for(var id in d.champs){
+    if(!d.champs.hasOwnProperty(id))continue;
+    var el=document.getElementById(id);
+    if(el&&d.champs[id]!==""){el.value=d.champs[id];n++;}
+  }
+  if(d.sexe)state.blSexe=d.sexe;
+  if(d.profil)state.blProfil=d.profil;
+  return n>0;
 }
 function viewCoachBilan(){
   var slug=state.coachDetail;
@@ -5482,7 +5595,8 @@ function viewCoachBilan(){
         '<span style="font-size:12.5px;font-weight:700">Analyse '+(b+1)+' — '+esc(bl[b].date||"?")+(bl[b].poids?' · '+bl[b].poids+' kg':'')+(bl[b].mg?' · '+bl[b].mg+' %MG':'')+'</span>'+
         '<span style="display:flex;gap:6px">'+
         '<button class="bl-report" data-i="'+b+'" data-mode="client" style="font-size:11px;font-weight:800;color:#fff;padding:5px 10px;border:0;border-radius:14px;background:var(--ok)">📤 Client</button>'+
-        '<button class="bl-report" data-i="'+b+'" data-mode="full" style="font-size:11px;font-weight:800;color:var(--brand2);padding:5px 10px;border:1.5px solid var(--brand2);border-radius:14px;background:#fff">📄 Complet</button></span></div>';
+        '<button class="bl-report" data-i="'+b+'" data-mode="full" style="font-size:11px;font-weight:800;color:var(--brand2);padding:5px 10px;border:1.5px solid var(--brand2);border-radius:14px;background:#fff">📄 Complet</button>'+
+        '<button class="bl-edit" data-i="'+b+'" style="font-size:11px;font-weight:800;color:var(--mute);padding:5px 10px;border:1.5px solid var(--line);border-radius:14px;background:#fff">✏️</button></span></div>';
     }
     h+='</div>';
     // 📊 Comparaison / progression (dès 2 analyses)
@@ -5507,15 +5621,30 @@ function viewCoachBilan(){
   }
   var today=new Date();
   var dstr=("0"+today.getDate()).slice(-2)+"/"+("0"+(today.getMonth()+1)).slice(-2)+"/"+today.getFullYear();
-  h+='<div class="card" style="padding:16px;margin-bottom:14px">'+
-    '<div style="font-weight:900;font-size:14px;margin-bottom:12px">➕ Nouvelle analyse</div>'+
-    '<div style="display:flex;gap:8px"><div style="flex:1"><div class="card-label">DATE</div><input id="bl-date" class="num-input" type="text" value="'+dstr+'" style="margin-bottom:10px"/></div>'+
-    '<div style="flex:1">'+bilanInput("bl-age","ÂGE","45")+'</div></div>'+
+  var __dr=blDraftLire(state.coachDetail);
+  // ✏️ Mode modification : on repart des valeurs enregistrées
+  var __ed=(state.blEdit!=null&&bl[state.blEdit])?bl[state.blEdit]:null;
+  function pv(k,def){
+    if(!__ed)return def===undefined?"":def;
+    var v=__ed[k];
+    return (v===undefined||v===null)?"":String(v);
+  }
+  h+='<div class="card" id="bl-form" style="padding:16px;margin-bottom:14px">'+
+    '<div style="display:flex;align-items:center;gap:9px;margin-bottom:12px">'+
+    '<div style="flex:1;font-weight:900;font-size:14px">'+(state.blEdit?'✏️ Modifier l\'analyse':'➕ Nouvelle analyse')+'</div>'+
+    (state.blEdit?'<button id="bl-cancel" style="font-size:11px;font-weight:800;color:var(--mute);background:none;border:0;padding:4px 8px">Annuler</button>':'')+'</div>'+
+    (__dr?'<div style="background:#FFF8E8;border:1px solid #F0D9A0;border-radius:12px;padding:11px 13px;margin-bottom:12px">'+
+      '<div style="font-size:12.5px;font-weight:800;color:#8A6A2F">💾 Brouillon retrouvé</div>'+
+      '<div style="font-size:11.5px;color:#8A6A2F;margin-top:3px;line-height:1.45">Tu avais commencé cette analyse le '+
+      new Date(__dr.maj).toLocaleDateString("fr-FR")+' à '+new Date(__dr.maj).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})+'. Les champs sont pré-remplis.</div>'+
+      '<button id="bl-draft-clear" style="margin-top:8px;font-size:11px;font-weight:800;color:#8A6A2F;background:#fff;border:1px solid #F0D9A0;border-radius:8px;padding:6px 11px">🗑️ Repartir de zéro</button></div>':'')+
+    '<div style="display:flex;gap:8px"><div style="flex:1"><div class="card-label">DATE</div><input id="bl-date" class="num-input" type="text" value="'+(__ed&&__ed.date?esc(__ed.date):dstr)+'" style="margin-bottom:10px"/></div>'+
+    '<div style="flex:1">'+bilanInput("bl-age","ÂGE","45",null,pv("age"))+'</div></div>'+
     '<div style="font-weight:900;font-size:12px;color:var(--violet);margin:8px 0 8px">COMPOSITION CORPORELLE</div>'+
-    '<div style="display:flex;gap:8px"><div style="flex:1">'+bilanInput("bl-poids","POIDS DE DÉPART (KG)","86")+'</div><div style="flex:1">'+bilanInput("bl-taille","TAILLE (CM)","178")+'</div></div>'+
-    bilanInput("bl-poidscible","🎯 POIDS CIBLE À 90 JOURS","78")+
-    '<div style="display:flex;gap:8px"><div style="flex:1">'+bilanInput("bl-mg","% M. GRASSE","20")+'</div><div style="flex:1">'+bilanInput("bl-mm","% M. MUSCULAIRE","38")+'</div></div>'+
-    '<div style="display:flex;gap:8px"><div style="flex:1">'+bilanInput("bl-gv","GRAISSE VISCÉRALE","8")+'</div><div style="flex:1">'+bilanInput("bl-kcal","MÉTABOLISME (KCAL)","1800")+'</div></div>'+
+    '<div style="display:flex;gap:8px"><div style="flex:1">'+bilanInput("bl-poids","POIDS DE DÉPART (KG)","86",null,pv("poids"))+'</div><div style="flex:1">'+bilanInput("bl-taille","TAILLE (CM)","178",null,pv("taille"))+'</div></div>'+
+    bilanInput("bl-poidscible","🎯 POIDS CIBLE À 90 JOURS","78",null,pv("poidsCible"))+
+    '<div style="display:flex;gap:8px"><div style="flex:1">'+bilanInput("bl-mg","% M. GRASSE","20",null,pv("mg"))+'</div><div style="flex:1">'+bilanInput("bl-mm","% M. MUSCULAIRE","38",null,pv("mm"))+'</div></div>'+
+    '<div style="display:flex;gap:8px"><div style="flex:1">'+bilanInput("bl-gv","GRAISSE VISCÉRALE","8",null,pv("gv"))+'</div><div style="flex:1">'+bilanInput("bl-kcal","MÉTABOLISME (KCAL)","1800",null,pv("kcal"))+'</div></div>'+
     '<div style="font-weight:900;font-size:12px;color:var(--brand2);margin:8px 0 8px">🧮 CALCUL OBJECTIF (utilise poids + % MG ci-dessus)</div>'+
     '<div class="card-label">SEXE</div>'+
     '<div style="display:flex;gap:8px;margin-bottom:10px">'+
@@ -5529,32 +5658,34 @@ function viewCoachBilan(){
       '<button type="button" class="bl-profil big-btn'+((state.blProfil||"mixte")==="mixte"?"":" gray")+'" data-profil="mixte" style="flex:1;padding:10px 0;font-size:12px'+((state.blProfil||"mixte")==="mixte"?";background:var(--violet)":"")+'">🔄 Mixte</button>'+
     '</div>'+
     '<div style="font-size:11px;color:var(--mute);line-height:1.5;margin-bottom:10px">Le tour de taille utilisé pour l\'analyse est la mesure « Nombril » ci-dessous.</div>'+
-    bilanInput("bl-mgc","% MASSE GRASSE CIBLE","25")+
+    bilanInput("bl-mgc","% MASSE GRASSE CIBLE","25",null,pv("mgc"))+
     '<div id="bl-plan-out"></div>'+
     '<div style="font-weight:900;font-size:12px;color:var(--violet);margin:8px 0 8px">OBJECTIFS & PROBLÈMES PHYSIQUES</div>'+
-    bilanInput("bl-obj1","OBJECTIF 1","","text")+bilanInput("bl-obj2","OBJECTIF 2","","text")+bilanInput("bl-obj3","OBJECTIF 3","","text")+
+    bilanInput("bl-obj1","OBJECTIF 1","","text",pv("obj1"))+bilanInput("bl-obj2","OBJECTIF 2","","text",pv("obj2"))+bilanInput("bl-obj3","OBJECTIF 3","","text",pv("obj3"))+
     '<div class="card-label">PROBLÈMES PHYSIQUES</div><textarea id="bl-pb" class="num-input" rows="2" style="margin-bottom:10px;resize:vertical"></textarea>'+
     '<div style="font-weight:900;font-size:12px;color:var(--violet);margin:8px 0 8px">MESURES CORPORELLES (CM)</div>';
   h+='<div style="font-size:11px;color:var(--mute);margin-bottom:8px">Bras / jambes / mollets : le tour (cm) + la distance de repère (coude ou rotule) pour reprendre toujours la même mesure au bilan suivant.</div>';
   for(var m2=0;m2<BILAN_MESURES.length;m2++){
     var bm2=BILAN_MESURES[m2];
     if(bm2[2]){
-      h+='<div style="display:flex;gap:8px"><div style="flex:1.2">'+bilanInput("bl-m-"+bm2[0],bm2[1].toUpperCase()+" (CM)","")+'</div><div style="flex:1">'+bilanInput("bl-d-"+bm2[0],"DISTANCE (CM)","")+'</div></div>';
+      h+='<div style="display:flex;gap:8px"><div style="flex:1.2">'+bilanInput("bl-m-"+bm2[0],bm2[1].toUpperCase()+" (CM)","",null,__ed&&__ed.mesures?__ed.mesures[bm2[0]]:"")+'</div><div style="flex:1">'+bilanInput("bl-d-"+bm2[0],"DISTANCE (CM)","",null,__ed&&__ed.mdist?__ed.mdist[bm2[0]]:"")+'</div></div>';
     }else{
-      h+=bilanInput("bl-m-"+bm2[0],bm2[1].toUpperCase()+" (CM)","");
+      h+=bilanInput("bl-m-"+bm2[0],bm2[1].toUpperCase()+" (CM)","",null,__ed&&__ed.mesures?__ed.mesures[bm2[0]]:"");
     }
   }
   h+='<div style="font-weight:900;font-size:12px;color:var(--violet);margin:8px 0 8px">POURQUOI & CONTEXTE</div>';
-  for(var qc=0;qc<BILAN_CONTEXTE.length;qc++){h+=bilanQ("bl-q-"+BILAN_CONTEXTE[qc][0],BILAN_CONTEXTE[qc][1],BILAN_CONTEXTE[qc][2]);}
+  for(var qc=0;qc<BILAN_CONTEXTE.length;qc++){h+=bilanQ("bl-q-"+BILAN_CONTEXTE[qc][0],BILAN_CONTEXTE[qc][1],BILAN_CONTEXTE[qc][2],__ed&&__ed.q?__ed.q[BILAN_CONTEXTE[qc][0]]:"");}
   h+='<div style="font-weight:900;font-size:12px;color:var(--violet);margin:8px 0 8px">BARÈME /10 — AM TRANSFO</div>';
   for(var s3=0;s3<BILAN_SCORES.length;s3++){
-    h+=bilanInput("bl-s-"+BILAN_SCORES[s3][0],(s3+1)+". "+BILAN_SCORES[s3][1].toUpperCase()+" (/10)","7");
+    h+=bilanInput("bl-s-"+BILAN_SCORES[s3][0],(s3+1)+". "+BILAN_SCORES[s3][1].toUpperCase()+" (/10)","7",null,__ed&&__ed.scores?__ed.scores[BILAN_SCORES[s3][0]]:"");
   }
-  h+=bilanQ("bl-q-"+BILAN_SEMAINE[0],BILAN_SEMAINE[1],BILAN_SEMAINE[2]);
+  h+=bilanQ("bl-q-"+BILAN_SEMAINE[0],BILAN_SEMAINE[1],BILAN_SEMAINE[2],__ed&&__ed.q?__ed.q[BILAN_SEMAINE[0]]:"");
   h+='<div style="font-weight:900;font-size:12px;color:var(--violet);margin:8px 0 8px">HABITUDES ALIMENTAIRES</div>';
-  for(var hq=0;hq<BILAN_HAB.length;hq++){h+=bilanQ("bl-q-"+BILAN_HAB[hq][0],BILAN_HAB[hq][1],"area");}
+  for(var hq=0;hq<BILAN_HAB.length;hq++){h+=bilanQ("bl-q-"+BILAN_HAB[hq][0],BILAN_HAB[hq][1],"area",__ed&&__ed.q?__ed.q[BILAN_HAB[hq][0]]:"");}
   h+=
-    '<button id="bl-save" class="big-btn" style="padding:15px 0;font-size:14px">💾 Enregistrer l&#39;analyse '+(bl.length+1)+'</button>'+
+    '<div id="bl-draft-info" style="text-align:center;font-size:11px;color:var(--mute);font-weight:700;margin-bottom:9px"></div>'+
+    '<button id="bl-save" class="big-btn" style="padding:15px 0;font-size:14px">'+
+    (state.blEdit!=null?'✏️ Mettre à jour l&#39;analyse '+(state.blEdit+1):'💾 Enregistrer l&#39;analyse '+(bl.length+1))+'</button>'+
     '</div></div></div>';
   return h;
 }
@@ -6079,7 +6210,7 @@ function bindCoach(){
     if(pc===null)return;
     pd=parseFloat(pd)||0;pc=parseFloat(pc)||0;
     if(!pd||!pc){alert("Poids invalides.");return;}
-    var plan=nutPlan(sexe,pd,pc);
+    var plan=nutPlan(sexe,pd,pc,nutMasseMaigre(lsGet("amcoach_"+state.coachDetail,{})));
     var cfg=lsGet("amcoach_"+slug,{})[510]||{};
     cfg.on=true;cfg.sexe=sexe;cfg.pDepart=pd;cfg.pCible=pc;
     cfg.prot=plan.prot;cfg.kcal=plan.kcal;cfg.duree=plan.duree;
@@ -6390,6 +6521,42 @@ function bindCoach(){
     });
   });
   if(document.getElementById("bl-plan-out"))blPlanCompute();
+  // 💾 Brouillon : on restaure puis on enregistre à chaque frappe
+  var blForm=document.getElementById("bl-form");
+  if(blForm){
+    if(!state.blEdit)blDraftRestaurer();
+    var ch=blForm.querySelectorAll("input,textarea,select");
+    for(var bi=0;bi<ch.length;bi++){
+      ch[bi].addEventListener("input",blDraftPlanifier);
+      ch[bi].addEventListener("change",blDraftPlanifier);
+    }
+    // Filet de sécurité : on écrit avant que la page disparaisse
+    window.addEventListener("pagehide",function(){try{blDraftSauver();}catch(e){}},{once:true});
+  }
+  var blClr=document.getElementById("bl-draft-clear");
+  if(blClr)blClr.addEventListener("click",function(){
+    if(!confirm("Effacer le brouillon et repartir d'une analyse vide ?"))return;
+    blDraftEffacer(state.coachDetail);
+    feedback("Brouillon effacé","undo");
+    render();
+  });
+  var blCancel=document.getElementById("bl-cancel");
+  if(blCancel)blCancel.addEventListener("click",function(){
+    state.blEdit=null; render();
+  });
+  // ✏️ Reprendre une analyse déjà enregistrée
+  var blEd=document.querySelectorAll(".bl-edit");
+  for(var be=0;be<blEd.length;be++){
+    blEd[be].addEventListener("click",function(){
+      state.blEdit=parseInt(this.getAttribute("data-i"),10);
+      blDraftEffacer(state.coachDetail);
+      render();
+      setTimeout(function(){
+        var f=document.getElementById("bl-form");
+        if(f)f.scrollIntoView({behavior:"smooth",block:"start"});
+      },200);
+    });
+  }
   var blSave=document.getElementById("bl-save");
   if(blSave)blSave.addEventListener("click",function(){
     function gv2(id){var el=document.getElementById(id);return el?el.value.trim():"";}
@@ -6405,9 +6572,18 @@ function bindCoach(){
     if(!a.poids&&!a.obj1){alert("Renseigne au moins le poids ou un objectif.");return;}
     var slug=state.coachDetail;
     var b6=lsGet("amcoach_"+slug,{})[600]||{};
-    var list=b6.list||[];list.push(a);
+    var list=(b6.list||[]).slice();
+    var pos;
+    if(state.blEdit!=null&&list[state.blEdit]){list[state.blEdit]=a;pos=state.blEdit;}
+    else {list.push(a);pos=list.length-1;}
     coachSaveSlot(slug,600,{list:list});
-    bilanReport(slug,list.length-1,"full");
+    blDraftEffacer(slug);
+    state.blJusteEnregistre=true;
+    setTimeout(function(){state.blJusteEnregistre=false;},1500);
+    var modif=state.blEdit!=null;
+    state.blEdit=null;
+    feedback(modif?"✏️ Analyse mise à jour":"💾 Analyse enregistrée","win");
+    bilanReport(slug,pos,"full");
     render();
   });
   var cdBday=document.getElementById("cd-bday");
@@ -7041,6 +7217,13 @@ function bindMain(name,start){
   var allData=getAllData();
   var today90=getToday90(start);
   var month=currentMonth(today90);
+  // ▶️ Ouvrir la journée en cours
+  var gj=document.getElementById("go-jour");
+  if(gj)gj.addEventListener("click",function(){
+    state.selDay=Math.max(0,Math.min(getToday90(start),(progLen(start)||90)-1));
+    render();
+  });
+
   // 🧠 Aller écrire son mindset
   var mgo=document.getElementById("mind-go");
   if(mgo)mgo.addEventListener("click",function(){

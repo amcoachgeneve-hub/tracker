@@ -373,11 +373,17 @@ var MENU_PHASES=[
 var MENU_RESET={cle:"14jours",num:"Reset",nom:"Reset 14 jours",jours:14,
   desc:"14 jours pour relancer la perte de poids."};
 function menuCfg(data){return (data&&data[517])||{};}
-function menuActif(data){
+// L'onglet apparaît dès l'activation, même si le démarrage est dans plusieurs
+// jours : le client doit pouvoir lire ses menus et faire ses courses avant.
+function menuActif(data){return !!menuCfg(data).on;}
+// Jours restants avant le démarrage (0 si déjà commencé)
+function menuAvantDebut(data){
   var m=menuCfg(data);
-  if(!m.on)return false;
-  if(!m.debut)return true;
-  return isoLocal()>=m.debut;
+  if(!m.debut)return 0;
+  var a=String(m.debut).slice(0,10).split("-");
+  var A=Date.UTC(+a[0],(+a[1]||1)-1,+a[2]||1);
+  var n=new Date(), B=Date.UTC(n.getFullYear(),n.getMonth(),n.getDate());
+  return Math.max(0,Math.round((A-B)/86400000));
 }
 function menuJour(data){
   var m=menuCfg(data);
@@ -2299,15 +2305,31 @@ function viewMenus(name,start){
     '<div class="hdr-sub">'+esc(name)+(m.debut?' · jour '+(menuJour(allData)+1):'')+'</div></div>'+
     '<div style="padding:16px 14px 0">';
 
+  // ⏳ Pas encore démarré : on annonce la date et on invite à préparer
+  var avant=menuAvantDebut(allData);
+  if(avant>0){
+    var dl=new Date(m.debut+"T12:00:00").toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"});
+    h+='<div class="card" style="padding:18px 17px;border-left:4px solid var(--warn-d);margin-bottom:14px">'+
+      '<div style="display:flex;align-items:flex-start;gap:12px">'+
+      '<span style="font-size:26px;line-height:1.05">'+(avant===1?'⏰':'📅')+'</span>'+
+      '<div style="flex:1">'+
+      '<div style="font-weight:900;font-size:16px;color:var(--warn-d)">'+
+      (avant===1?'Tes menus démarrent demain !':'Tes menus démarrent dans '+avant+' jours')+'</div>'+
+      '<div style="font-size:12.5px;color:var(--mid,var(--mute));line-height:1.55;margin-top:5px;text-transform:capitalize">'+dl+'</div>'+
+      '<div style="font-size:12.5px;color:var(--mid,var(--mute));line-height:1.55;margin-top:6px">Lis-les dès maintenant et fais tes courses : le jour J, tu n\'auras plus qu\'à suivre.</div>'+
+      '</div></div></div>';
+  }
+
   // Phase en cours, en grand, avec le bouton qui ouvre le vrai menu
   h+='<div class="card" style="background:linear-gradient(150deg,'+solid("var(--ok-d)")+','+solid("var(--ok)")+');border:none;padding:20px 18px;color:#fff;margin-bottom:14px">'+
     '<div style="font-size:10.5px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:rgba(255,255,255,.7)">'+esc(P.p.num)+'</div>'+
     '<div style="font-weight:900;font-size:22px;line-height:1.2;margin-top:3px">'+esc(P.p.nom)+'</div>'+
     '<div style="font-size:13px;color:rgba(255,255,255,.85);line-height:1.5;margin-top:7px">'+esc(P.p.desc)+'</div>'+
-    '<div style="margin-top:14px"><div style="height:8px;border-radius:100px;background:rgba(255,255,255,.22);overflow:hidden">'+
-    '<div style="height:100%;width:'+Math.round((P.jour+1)/P.total*100)+'%;background:#fff;border-radius:100px"></div></div>'+
-    '<div style="font-size:11.5px;font-weight:700;color:rgba(255,255,255,.75);margin-top:5px">Jour '+(P.jour+1)+' sur '+P.total+' de cette phase</div></div>'+
-    '<a href="'+menuURL(P.p.cle)+'" style="display:block;text-align:center;margin-top:16px;background:#fff;color:'+solid("var(--ok-d)")+';text-decoration:none;padding:15px 0;border-radius:100px;font-weight:900;font-size:15px">🍽️ Ouvrir mes repas du jour</a>'+
+    (avant>0?'<div style="margin-top:14px;font-size:11.5px;font-weight:700;color:rgba(255,255,255,.75)">Première phase · '+P.total+' jours</div>'
+            :'<div style="margin-top:14px"><div style="height:8px;border-radius:100px;background:rgba(255,255,255,.22);overflow:hidden">'+
+              '<div style="height:100%;width:'+Math.round((P.jour+1)/P.total*100)+'%;background:#fff;border-radius:100px"></div></div>'+
+              '<div style="font-size:11.5px;font-weight:700;color:rgba(255,255,255,.75);margin-top:5px">Jour '+(P.jour+1)+' sur '+P.total+' de cette phase</div></div>')+
+    '<a href="'+menuURL(P.p.cle)+'" style="display:block;text-align:center;margin-top:16px;background:#fff;color:'+solid("var(--ok-d)")+';text-decoration:none;padding:15px 0;border-radius:100px;font-weight:900;font-size:15px">'+(avant>0?'👀 Découvrir mes repas':'🍽️ Ouvrir mes repas du jour')+'</a>'+
     '</div>';
 
   // 🛒 La phase suivante vient de s'ouvrir : on le signale, c'est le moment des courses
@@ -4574,7 +4596,9 @@ function viewCoachDetail(){
       var P=menuPhase(allData);
       h+='<div style="background:var(--soft2);border-radius:12px;padding:11px 12px;margin-bottom:9px;font-size:12px;line-height:1.65">'+
         '<strong>'+esc(P.p.num)+' — '+esc(P.p.nom)+'</strong><br>'+
-        'Jour '+(P.jour+1)+'/'+P.total+' · démarré le '+(mc.debut?new Date(mc.debut+"T12:00:00").toLocaleDateString("fr-FR"):"—")+
+        (menuAvantDebut(allData)>0
+          ? '⏳ Démarre dans '+menuAvantDebut(allData)+' jour'+(menuAvantDebut(allData)>1?'s':'')+' — la cliente voit déjà ses menus pour se préparer'
+          : 'Jour '+(P.jour+1)+'/'+P.total+' · démarré le '+(mc.debut?new Date(mc.debut+"T12:00:00").toLocaleDateString("fr-FR"):"—"))+
         (P.forcee?'<br><span style="color:var(--warn-d);font-weight:700">Phase forcée manuellement</span>':'')+
         '</div>'+
         '<a href="'+menuURL(P.p.cle)+'" style="display:block;text-align:center;text-decoration:none;padding:11px 0;border-radius:11px;border:1.5px solid var(--ok);background:var(--card);color:var(--ok-d);font-weight:800;font-size:12.5px;margin-bottom:6px">👁️ Voir ce menu</a>'+

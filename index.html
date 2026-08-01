@@ -359,12 +359,19 @@ function nutPlan(sexe,pDepart,pCible,mMaigre){
 
 // ═══════════ 💰 QUÊTE FINANCE — QUESTIONNAIRE GUIDÉ ═══════════
 // ═══════════ 🍽️ MENUS (slot 517) ═══════════
-// Onglet déblocable comme les protéines et la finance, avec date de démarrage.
-var MENU_PHASES_DEF=[
-  {nom:"Phase 1 — Nettoyage",jours:14,but:"On retire ce qui bloque et on stabilise l'énergie"},
-  {nom:"Phase 2 — Construction",jours:30,but:"On installe les bons réflexes et on nourrit le muscle"},
-  {nom:"Phase 3 — Ancrage",jours:46,but:"Ça devient ta façon de manger, sans y penser"}
+// Les menus vivent dans menu.html, déjà en ligne : 3 phases de 28 jours
+// (equilibre, acceleration, cyclage) + un Reset 14 jours.
+// Ici on ne fait qu'aiguiller vers la bonne phase au bon moment.
+var MENU_PHASES=[
+  {cle:"equilibre",   num:"Phase 1", nom:"Équilibre — Les Fondations", jours:28,
+   desc:"Assiette 1/3 glucides · 1/3 protéines · 1/3 fibres, midi et soir."},
+  {cle:"acceleration",num:"Phase 2", nom:"Accélération", jours:28,
+   desc:"Midi : glucides + protéines + fibres. Soir : protéines + fibres."},
+  {cle:"cyclage",     num:"Phase 3", nom:"Cyclage", jours:28,
+   desc:"Jours sans glucides et jours glucides bas, selon le calendrier."}
 ];
+var MENU_RESET={cle:"14jours",num:"Reset",nom:"Reset 14 jours",jours:14,
+  desc:"14 jours pour relancer la perte de poids."};
 function menuCfg(data){return (data&&data[517])||{};}
 function menuActif(data){
   var m=menuCfg(data);
@@ -380,17 +387,40 @@ function menuJour(data){
   var n=new Date(), B=Date.UTC(n.getFullYear(),n.getMonth(),n.getDate());
   return Math.max(0,Math.round((B-A)/86400000));
 }
-// La phase courante dépend des jours écoulés depuis le démarrage
+// Phase courante : soit forcée par le coach, soit déduite des jours écoulés
 function menuPhase(data){
-  var m=menuCfg(data), ph=m.phases||[];
-  if(!ph.length)return null;
-  var j=menuJour(data), cum=0;
-  for(var i=0;i<ph.length;i++){
-    var dur=parseInt(ph[i].jours,10)||0;
-    if(j<cum+dur)return {idx:i,phase:ph[i],jourDansPhase:j-cum,total:dur};
-    cum+=dur;
+  var m=menuCfg(data);
+  if(m.reset)return {p:MENU_RESET,idx:0,jour:Math.min(menuJour(data),MENU_RESET.jours-1),total:MENU_RESET.jours,liste:[MENU_RESET]};
+  if(m.phaseForcee){
+    for(var f=0;f<MENU_PHASES.length;f++){
+      if(MENU_PHASES[f].cle===m.phaseForcee)
+        return {p:MENU_PHASES[f],idx:f,jour:menuJour(data)%28,total:28,liste:MENU_PHASES,forcee:true};
+    }
   }
-  return {idx:ph.length-1,phase:ph[ph.length-1],jourDansPhase:0,total:0,fini:true};
+  var j=menuJour(data), cum=0;
+  for(var i=0;i<MENU_PHASES.length;i++){
+    if(j<cum+MENU_PHASES[i].jours)
+      return {p:MENU_PHASES[i],idx:i,jour:j-cum,total:MENU_PHASES[i].jours,liste:MENU_PHASES};
+    cum+=MENU_PHASES[i].jours;
+  }
+  var last=MENU_PHASES[MENU_PHASES.length-1];
+  return {p:last,idx:MENU_PHASES.length-1,jour:last.jours-1,total:last.jours,liste:MENU_PHASES,fini:true};
+}
+// Déverrouillage identique à menu.html : UNLOCK_AT=[0,24,52].
+// La phase suivante s'ouvre 4 jours avant la fin de la précédente,
+// pour laisser le temps de lire les repas et de faire ses courses.
+var MENU_UNLOCK=[0,24,52];
+function menuPhaseOuverte(data,i){
+  var m=menuCfg(data);
+  if(m.reset)return i===0;
+  if(m.phaseForcee)return true;   // le coach a forcé : tout est consultable
+  return menuJour(data)>=(MENU_UNLOCK[i]||0);
+}
+function menuJoursAvantOuverture(data,i){
+  return Math.max(0,(MENU_UNLOCK[i]||0)-menuJour(data));
+}
+function menuURL(cle){
+  return location.origin+location.pathname.replace(/[^\/]*$/,"")+"menu.html?menu="+encodeURIComponent(cle);
 }
 function finCfg(data){return (data&&data[512])||{};}
 function finFmt(n,dev){
@@ -1306,6 +1336,61 @@ function themeCSS(){
   for(var k in t){if(t.hasOwnProperty(k))o+="--"+k+":"+t[k]+";";}
   return o+"}";
 }
+// ═══════════ 📅 SÉLECTEUR DE DATE ═══════════
+// Saisir une date au clavier est trop lent : on ouvre le calendrier natif.
+// cb reçoit la date au format AAAA-MM-JJ, ou null si annulé.
+function pickDate(titre,valeurISO,cb,options){
+  options=options||{};
+  var ov=document.createElement("div");
+  ov.style.cssText="position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;justify-content:center";
+  var boutons="";
+  if(options.raccourcis!==false){
+    boutons='<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">'+
+      '<button type="button" class="pd-r" data-o="0" style="flex:1;min-width:88px;padding:9px 4px;border-radius:10px;border:1.5px solid '+solid("var(--line)")+';background:#fff;font-weight:800;font-size:12px;color:'+solid("var(--ink)")+'">Aujourd\'hui</button>'+
+      '<button type="button" class="pd-r" data-o="1" style="flex:1;min-width:88px;padding:9px 4px;border-radius:10px;border:1.5px solid '+solid("var(--line)")+';background:#fff;font-weight:800;font-size:12px;color:'+solid("var(--ink)")+'">Demain</button>'+
+      '<button type="button" class="pd-r" data-o="lundi" style="flex:1;min-width:88px;padding:9px 4px;border-radius:10px;border:1.5px solid '+solid("var(--line)")+';background:#fff;font-weight:800;font-size:12px;color:'+solid("var(--ink)")+'">Lundi prochain</button></div>';
+  }
+  ov.innerHTML='<div style="background:'+solid("var(--card)")+';width:100%;max-width:430px;border-radius:22px 22px 0 0;padding:20px 18px calc(22px + env(safe-area-inset-bottom))">'+
+    '<div style="font-weight:900;font-size:16px;margin-bottom:4px;color:'+solid("var(--ink)")+'">'+esc(titre||"Choisir une date")+'</div>'+
+    (options.aide?'<div style="font-size:12px;color:'+solid("var(--mute)")+';line-height:1.45;margin-bottom:12px">'+esc(options.aide)+'</div>':'<div style="height:12px"></div>')+
+    boutons+
+    '<input id="pd-input" type="date" value="'+(valeurISO||"")+'" style="width:100%;padding:15px 14px;border-radius:14px;border:1.5px solid '+solid("var(--line)")+';font-size:17px;font-weight:800;font-family:inherit;background:'+solid("var(--soft)")+';color:'+solid("var(--ink)")+';margin-bottom:14px"/>'+
+    '<div style="display:flex;gap:9px">'+
+    '<button type="button" id="pd-cancel" style="flex:0 0 106px;padding:14px 0;border-radius:100px;border:1.5px solid '+solid("var(--line)")+';background:#fff;color:'+solid("var(--mute)")+';font-weight:800;font-size:13.5px">Annuler</button>'+
+    '<button type="button" id="pd-ok" style="flex:1;padding:14px 0;border-radius:100px;border:0;background:'+solid("var(--brand)")+';color:#fff;font-weight:900;font-size:14px">Valider</button></div></div>';
+  document.body.appendChild(ov);
+  var inp=ov.querySelector("#pd-input");
+  function fermer(v){if(ov.parentNode)ov.parentNode.removeChild(ov);cb(v);}
+  ov.querySelector("#pd-cancel").addEventListener("click",function(){fermer(null);});
+  ov.querySelector("#pd-ok").addEventListener("click",function(){
+    if(!inp.value){buzz("err");return;}
+    fermer(inp.value);
+  });
+  ov.addEventListener("click",function(e){if(e.target===ov)fermer(null);});
+  var rs=ov.querySelectorAll(".pd-r");
+  for(var i=0;i<rs.length;i++){
+    rs[i].addEventListener("click",function(){
+      var o=this.getAttribute("data-o"), d=new Date();
+      if(o==="lundi"){var j=d.getDay();d.setDate(d.getDate()+((8-j)%7||7));}
+      else d.setDate(d.getDate()+(parseInt(o,10)||0));
+      inp.value=isoLocal(d);
+      buzz("tap");
+    });
+  }
+  // Sur iOS, un appel direct ouvre le calendrier tout de suite
+  setTimeout(function(){try{inp.focus();if(inp.showPicker)inp.showPicker();}catch(e){}},120);
+}
+// Conversions entre AAAA-MM-JJ (technique) et JJ/MM/AAAA (affiché)
+function isoVersFr(iso){
+  var m=String(iso||"").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m?m[3]+"/"+m[2]+"/"+m[1]:"";
+}
+function frVersIso(fr){
+  var m=String(fr||"").match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+  if(!m)return "";
+  var an=m[3].length===2?("20"+m[3]):m[3];
+  return an+"-"+("0"+m[2]).slice(-2)+"-"+("0"+m[1]).slice(-2);
+}
 function esc(s){
   return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
 }
@@ -2213,34 +2298,56 @@ function viewMenus(name,start){
     '<span class="hdr-title">Mes menus</span><div class="bar bar-b"></div></div>'+
     '<div class="hdr-sub">'+esc(name)+(m.debut?' · jour '+(menuJour(allData)+1):'')+'</div></div>'+
     '<div style="padding:16px 14px 0">';
-  if(!P){
-    return h+'<div class="card" style="padding:24px;text-align:center">'+
-      '<div style="font-size:36px">🍽️</div>'+
-      '<div style="font-weight:900;font-size:17px;margin-top:8px">Tes menus arrivent</div>'+
-      '<div style="font-size:13px;color:var(--mute);line-height:1.6;margin-top:6px">Ton coach prépare ton plan alimentaire. Il apparaîtra ici dès qu\'il sera prêt.</div></div></div>';
-  }
-  var ph=P.phase;
-  h+='<div class="card" style="background:linear-gradient(150deg,'+solid("var(--ok-d)")+','+solid("var(--ok)")+');border:none;padding:18px;color:#fff;margin-bottom:14px">'+
-    '<div style="font-size:10.5px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:rgba(255,255,255,.7)">Phase '+(P.idx+1)+' sur '+(m.phases||[]).length+'</div>'+
-    '<div style="font-weight:900;font-size:21px;line-height:1.2;margin-top:3px">'+esc(ph.nom||"Ma phase")+'</div>'+
-    (ph.but?'<div style="font-size:13px;color:rgba(255,255,255,.85);line-height:1.5;margin-top:6px">'+esc(ph.but)+'</div>':'')+
-    (P.total?'<div style="margin-top:12px"><div style="height:8px;border-radius:100px;background:rgba(255,255,255,.22);overflow:hidden">'+
-      '<div style="height:100%;width:'+Math.round((P.jourDansPhase+1)/P.total*100)+'%;background:#fff;border-radius:100px"></div></div>'+
-      '<div style="font-size:11.5px;font-weight:700;color:rgba(255,255,255,.75);margin-top:5px">Jour '+(P.jourDansPhase+1)+' sur '+P.total+' de cette phase</div></div>':'')+
+
+  // Phase en cours, en grand, avec le bouton qui ouvre le vrai menu
+  h+='<div class="card" style="background:linear-gradient(150deg,'+solid("var(--ok-d)")+','+solid("var(--ok)")+');border:none;padding:20px 18px;color:#fff;margin-bottom:14px">'+
+    '<div style="font-size:10.5px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:rgba(255,255,255,.7)">'+esc(P.p.num)+'</div>'+
+    '<div style="font-weight:900;font-size:22px;line-height:1.2;margin-top:3px">'+esc(P.p.nom)+'</div>'+
+    '<div style="font-size:13px;color:rgba(255,255,255,.85);line-height:1.5;margin-top:7px">'+esc(P.p.desc)+'</div>'+
+    '<div style="margin-top:14px"><div style="height:8px;border-radius:100px;background:rgba(255,255,255,.22);overflow:hidden">'+
+    '<div style="height:100%;width:'+Math.round((P.jour+1)/P.total*100)+'%;background:#fff;border-radius:100px"></div></div>'+
+    '<div style="font-size:11.5px;font-weight:700;color:rgba(255,255,255,.75);margin-top:5px">Jour '+(P.jour+1)+' sur '+P.total+' de cette phase</div></div>'+
+    '<a href="'+menuURL(P.p.cle)+'" style="display:block;text-align:center;margin-top:16px;background:#fff;color:'+solid("var(--ok-d)")+';text-decoration:none;padding:15px 0;border-radius:100px;font-weight:900;font-size:15px">🍽️ Ouvrir mes repas du jour</a>'+
     '</div>';
-  var repas=ph.repas||[];
-  if(!repas.length){
-    h+='<div class="card" style="padding:18px;text-align:center;color:var(--mute);font-size:13px">Les repas de cette phase seront ajoutés bientôt.</div>';
-  }else{
-    for(var r=0;r<repas.length;r++){
-      var R=repas[r];
-      h+='<div class="card" style="padding:16px 17px">'+
-        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">'+
-        '<span style="font-size:20px">'+(R.icone||"🍽️")+'</span>'+
-        '<span style="font-weight:900;font-size:15px;flex:1">'+esc(R.titre||"Repas")+'</span>'+
-        (R.heure?'<span style="font-size:11.5px;font-weight:800;color:var(--mute)">'+esc(R.heure)+'</span>':'')+'</div>'+
-        '<div style="font-size:13.5px;line-height:1.65;color:var(--ink2);white-space:pre-line">'+esc(R.contenu||"")+'</div></div>';
+
+  // 🛒 La phase suivante vient de s'ouvrir : on le signale, c'est le moment des courses
+  if(!m.reset&&P.idx+1<P.liste.length&&menuPhaseOuverte(allData,P.idx+1)){
+    var suiv=P.liste[P.idx+1];
+    var reste=P.total-P.jour-1;
+    h+='<div class="card" style="padding:15px 16px;border-left:4px solid var(--warn-d);margin-bottom:14px">'+
+      '<div style="display:flex;align-items:flex-start;gap:11px">'+
+      '<span style="font-size:22px;line-height:1.15">🛒</span>'+
+      '<div style="flex:1">'+
+      '<div style="font-weight:900;font-size:14px;color:var(--warn-d)">'+esc(suiv.nom)+' est débloquée</div>'+
+      '<div style="font-size:12.5px;color:var(--mid,var(--mute));line-height:1.55;margin-top:4px">'+
+      (reste>0?'Encore '+reste+' jour'+(reste>1?'s':'')+' dans ta phase actuelle. ':'')+
+      'Prends de l\'avance : lis les repas et fais tes courses.</div>'+
+      '<a href="'+menuURL(suiv.cle)+'" style="display:inline-block;margin-top:10px;background:var(--warn-d);color:#fff;text-decoration:none;padding:10px 18px;border-radius:100px;font-weight:900;font-size:12.5px">Voir la phase suivante →</a>'+
+      '</div></div></div>';
+  }
+
+  // Les autres phases, consultables ou verrouillées
+  if(!m.reset&&P.liste.length>1){
+    h+='<div class="card" style="padding:15px 16px">'+
+      '<div class="card-label">📖 Mes trois phases</div>';
+    for(var i=0;i<P.liste.length;i++){
+      var X=P.liste[i], ouv=menuPhaseOuverte(allData,i);
+      var etat=i<P.idx?"terminée":i===P.idx?"en cours":(ouv?"🛒 ouverte — prépare tes courses":"🔒 dans "+menuJoursAvantOuverture(allData,i)+" jour"+(menuJoursAvantOuverture(allData,i)>1?"s":""));
+      var coul=i===P.idx?"var(--ok-d)":(ouv&&i>P.idx?"var(--warn-d)":"var(--mute)");
+      if(ouv){
+        h+='<a href="'+menuURL(X.cle)+'" style="display:flex;align-items:center;gap:11px;text-decoration:none;padding:11px 0;border-bottom:1px solid var(--line)">'+
+          '<span style="width:26px;height:26px;border-radius:50%;flex:0 0 26px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;background:'+(i===P.idx?solid("var(--ok)"):solid("var(--soft2)"))+';color:'+(i===P.idx?"#fff":solid("var(--mute)"))+'">'+(i+1)+'</span>'+
+          '<span style="flex:1"><span style="display:block;font-weight:800;font-size:13.5px;color:var(--ink)">'+esc(X.nom)+'</span>'+
+          '<span style="display:block;font-size:11px;font-weight:700;color:'+coul+'">'+X.jours+' jours · '+etat+'</span></span>'+
+          '<span style="color:var(--mute);font-size:16px">›</span></a>';
+      }else{
+        h+='<div style="display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--line);opacity:.5">'+
+          '<span style="width:26px;height:26px;border-radius:50%;flex:0 0 26px;display:flex;align-items:center;justify-content:center;font-size:12px;background:'+solid("var(--soft2)")+'">🔒</span>'+
+          '<span style="flex:1"><span style="display:block;font-weight:800;font-size:13.5px;color:var(--mute)">'+esc(X.nom)+'</span>'+
+          '<span style="display:block;font-size:11px;font-weight:700;color:var(--mute)">'+etat+'</span></span></div>';
+      }
     }
+    h+='</div>';
   }
   if(m.note){
     h+='<div class="card" style="padding:15px 16px;border-left:4px solid var(--brand2)">'+
@@ -4456,26 +4563,26 @@ function viewCoachDetail(){
       '</div></div>';
   })();
 
-  // 🍽️ MENUS — onglet déblocable avec date de démarrage
+  // 🍽️ MENUS — aiguillage vers menu.html (3 phases de 28 j ou Reset 14 j)
   (function(){
     var mc=allData[517]||{};
     var dur=progLen(c.start_date)||90;
     var essai14=dur<=14;
     h+='<div class="card" style="padding:14px 15px'+(mc.on?';border-left:4px solid var(--ok)':'')+'">'+
-      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">'+
-      '<span style="font-weight:800;font-size:13px;flex:1">🍽️ Menus '+(mc.on?'<span style="color:var(--ok-d);font-size:11px">— ACTIVÉ</span>':'')+'</span></div>';
+      '<div style="font-weight:800;font-size:13px;margin-bottom:7px">🍽️ Menus '+(mc.on?'<span style="color:var(--ok-d);font-size:11px">— ACTIVÉ</span>':'')+'</div>';
     if(mc.on){
-      var nbPh=(mc.phases||[]).length;
-      var enCours=menuPhase(allData);
-      h+='<div style="background:var(--soft2);border-radius:12px;padding:11px 12px;margin-bottom:9px;font-size:12px;line-height:1.6">'+
-        '<strong>Démarrage :</strong> '+(mc.debut?new Date(mc.debut+"T12:00:00").toLocaleDateString("fr-FR"):"immédiat")+'<br>'+
-        '<strong>'+nbPh+' phase'+(nbPh>1?'s':'')+'</strong>'+(enCours&&enCours.phase?' · en cours : '+esc(enCours.phase.nom||""):'')+
+      var P=menuPhase(allData);
+      h+='<div style="background:var(--soft2);border-radius:12px;padding:11px 12px;margin-bottom:9px;font-size:12px;line-height:1.65">'+
+        '<strong>'+esc(P.p.num)+' — '+esc(P.p.nom)+'</strong><br>'+
+        'Jour '+(P.jour+1)+'/'+P.total+' · démarré le '+(mc.debut?new Date(mc.debut+"T12:00:00").toLocaleDateString("fr-FR"):"—")+
+        (P.forcee?'<br><span style="color:var(--warn-d);font-weight:700">Phase forcée manuellement</span>':'')+
         '</div>'+
-        '<button class="mn-edit" style="width:100%;padding:11px 0;border-radius:11px;border:1.5px solid var(--ok);background:var(--card);color:var(--ok-d);font-weight:800;font-size:12.5px;margin-bottom:6px">✏️ Modifier les phases et repas</button>'+
+        '<a href="'+menuURL(P.p.cle)+'" style="display:block;text-align:center;text-decoration:none;padding:11px 0;border-radius:11px;border:1.5px solid var(--ok);background:var(--card);color:var(--ok-d);font-weight:800;font-size:12.5px;margin-bottom:6px">👁️ Voir ce menu</a>'+
+        '<button id="mn-phase" style="width:100%;padding:11px 0;border-radius:11px;border:1.5px solid var(--line);background:var(--card);color:var(--mute);font-weight:800;font-size:12px;margin-bottom:6px">🔀 Forcer une phase</button>'+
         '<button id="mn-off" style="width:100%;padding:11px 0;border-radius:11px;border:1.5px solid var(--line);background:var(--card);color:var(--mute);font-weight:800;font-size:12px">⛔ Désactiver</button>';
     }else{
-      h+='<div style="font-size:11.5px;color:var(--mute);line-height:1.5;margin-bottom:10px">Onglet 🍽️ chez le client, avec ses phases et ses repas.'+
-        (essai14?' <strong>Programme 14 jours : activation automatique conseillée.</strong>':'')+'</div>'+
+      h+='<div style="font-size:11.5px;color:var(--mute);line-height:1.5;margin-bottom:10px">Ouvre l\'onglet 🍽️ chez '+esc(c.name)+' et l\'envoie vers ses menus. '+
+        (essai14?'<strong>Programme court : le Reset 14 jours sera proposé.</strong>':'Trois phases de 28 jours, enchaînées automatiquement.')+'</div>'+
         '<button id="mn-on" style="width:100%;padding:12px 0;border-radius:12px;border:0;background:var(--ok-d);color:#fff;font-weight:900;font-size:13px">🍽️ Activer les menus</button>';
     }
     h+='</div>';
@@ -5716,9 +5823,9 @@ function viewCoachBilan(){
     '<div style="flex:1">'+bilanInput("bl-nom","NOM","","text",pv("nom"))+'</div></div>'+
     '<div style="display:flex;gap:8px"><div style="flex:1">'+bilanInput("bl-age","ÂGE","45",null,pv("age"))+'</div>'+
     '<div style="flex:1">'+bilanInput("bl-taille","TAILLE (CM)","178",null,pv("taille"))+'</div></div>'+
-    bilanInput("bl-naiss","DATE DE NAISSANCE (JJ/MM/AAAA)","","text",pv("naiss")||__bdayTracker)+
+    '<div class="card-label">DATE DE NAISSANCE</div><input id="bl-naiss" class="num-input" type="date" value="'+esc(frVersIso(pv("naiss")||__bdayTracker))+'" style="margin-bottom:10px"/>'+
     '<div style="font-size:10.5px;color:var(--mute);font-weight:700;margin:-4px 0 12px;line-height:1.4">Reportée dans le tracker de la cliente si elle y manque.</div>'+
-    '<div class="card-label">DATE DE L\'ANALYSE</div><input id="bl-date" class="num-input" type="text" value="'+(__ed&&__ed.date?esc(__ed.date):dstr)+'" style="margin-bottom:12px"/>'+
+    '<div class="card-label">DATE DE L\'ANALYSE</div><input id="bl-date" class="num-input" type="date" value="'+esc(frVersIso((__ed&&__ed.date)||dstr)||isoLocal())+'" style="margin-bottom:12px"/>'+
     '<div style="font-weight:900;font-size:12px;color:var(--violet);margin:8px 0 8px">OBJECTIFS & PROBLÈMES PHYSIQUES</div>'+
     bilanInput("bl-obj1","OBJECTIF 1","","text",pv("obj1"))+bilanInput("bl-obj2","OBJECTIF 2","","text",pv("obj2"))+bilanInput("bl-obj3","OBJECTIF 3","","text",pv("obj3"))+
     '<div class="card-label">PROBLÈMES PHYSIQUES</div><textarea id="bl-pb" class="num-input" rows="2" style="margin-bottom:10px;resize:vertical"></textarea>';
@@ -6221,11 +6328,9 @@ function bindCoach(){
   if(cdBack)cdBack.addEventListener("click",function(){state.coachDetail=null;render();});
   var cdStart=document.getElementById("cd-start");
   if(cdStart)cdStart.addEventListener("click",function(){
-    var v=prompt("Nouvelle date de départ (JJ/MM/AAAA) :","");
-    if(!v)return;
-    var mm=v.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
-    if(!mm){alert("Format : JJ/MM/AAAA");return;}
-    var nd=mm[3]+"-"+("0"+mm[2]).slice(-2)+"-"+("0"+mm[1]).slice(-2);
+    var __cc=coachClient(state.coachDetail);
+    pickDate("Nouvelle date de départ",(__cc&&__cc.start_date)||isoLocal(),function(nd){
+    if(!nd)return;
     var slug=state.coachDetail;
     var cls=lsGet("amcoach_clients",[]);
     var cName=slug;
@@ -6233,7 +6338,9 @@ function bindCoach(){
     lsSet("amcoach_clients",cls);
     try{localStorage.setItem("amcoach_start_"+slug,nd);}catch(e){}
     sbFetch("clients?on_conflict=slug",{method:"POST",prefer:"resolution=merge-duplicates",body:{slug:slug,name:cName,start_date:nd}}).catch(function(){});
+    feedback("📅 Date de départ mise à jour","ok");
     render();
+    });
   });
   function saveAcc(acc){
     var slug=state.coachDetail;
@@ -6245,13 +6352,15 @@ function bindCoach(){
   }
   var accEnd=document.getElementById("acc-end");
   if(accEnd)accEnd.addEventListener("click",function(){
-    var v=prompt("Date de fin d'accès (JJ/MM/AAAA) :","");
-    if(!v)return;
-    var mm=v.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
-    if(!mm){alert("Format : JJ/MM/AAAA");return;}
-    var acc=lsGet("amcoach_"+state.coachDetail,{})[504]||{};
-    acc.end=mm[3]+"-"+("0"+mm[2]).slice(-2)+"-"+("0"+mm[1]).slice(-2);
-    saveAcc(acc);
+    var __ac=(lsGet("amcoach_"+state.coachDetail,{})[504])||{};
+    pickDate("Fin d'accès",__ac.until||isoLocal(),function(nd){
+      if(!nd)return;
+      var a2=(lsGet("amcoach_"+state.coachDetail,{})[504])||{};
+      a2.until=nd;
+      saveAcc(a2);
+      feedback("📅 Accès jusqu'au "+isoVersFr(nd),"ok");
+      render();
+    },{aide:"Au-delà, la cliente ne pourra plus ouvrir son tracker."});
   });
   var accInf=document.getElementById("acc-inf");
   if(accInf)accInf.addEventListener("click",function(){
@@ -6335,29 +6444,41 @@ function bindCoach(){
     render();
   });
 
-  // 🍽️ Activer / configurer les menus
+  // 🍽️ Activer les menus / forcer une phase
   var mnOn=document.getElementById("mn-on");
   if(mnOn)mnOn.addEventListener("click",function(){
     var slug=state.coachDetail;
     var cc=coachClient(slug);
     var dur=progLen(cc&&cc.start_date)||90;
-    var def=(dur<=14)?isoLocal():null;
-    var r=prompt("Date de démarrage des menus :\n\n• Vide = aujourd'hui\n• AAAA-MM-JJ pour une date précise",def||isoLocal());
-    if(r===null)return;
-    r=r.trim()||isoLocal();
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(r)){alert("Format attendu : AAAA-MM-JJ");return;}
-    // Trois phases par défaut, à remplir ensuite
-    var phases=[];
-    for(var i=0;i<MENU_PHASES_DEF.length;i++){
-      phases.push({nom:MENU_PHASES_DEF[i].nom,jours:MENU_PHASES_DEF[i].jours,but:MENU_PHASES_DEF[i].but,repas:[]});
+    var reset=false;
+    if(dur<=14){
+      reset=confirm("Programme de "+dur+" jours.\n\nOK = menu Reset 14 jours\nAnnuler = les 3 phases de 28 jours");
     }
-    coachSaveSlot(slug,517,{on:true,debut:r,phases:phases,note:""});
-    feedback("🍽️ Menus activés","win");
+    pickDate("Démarrage des menus",isoLocal(),function(r){
+      if(!r)return;
+      coachSaveSlot(slug,517,{on:true,debut:r,reset:reset,phaseForcee:null,note:""});
+      feedback(reset?"🍽️ Reset 14 jours activé":"🍽️ Menus activés","win");
+      render();
+    },{aide:"À partir de quand la cliente voit ses menus."});
+  });
+  var mnPh=document.getElementById("mn-phase");
+  if(mnPh)mnPh.addEventListener("click",function(){
+    var slug=state.coachDetail;
+    var mc=lsGet("amcoach_"+slug,{})[517]||{};
+    var lst=MENU_PHASES.map(function(x,i){return (i+1)+". "+x.nom;}).join("\n");
+    var r=prompt("Forcer une phase ?\n\n"+lst+"\n4. Reset 14 jours\n\n0 = revenir au calcul automatique\n\nTape un numéro :","0");
+    if(r===null)return;
+    var n=parseInt(r,10);
+    if(n===0){mc.phaseForcee=null;mc.reset=false;feedback("Retour au calcul automatique","ok");}
+    else if(n===4){mc.reset=true;mc.phaseForcee=null;feedback("🍽️ Reset 14 jours","ok");}
+    else if(MENU_PHASES[n-1]){mc.reset=false;mc.phaseForcee=MENU_PHASES[n-1].cle;feedback("🔀 "+MENU_PHASES[n-1].nom,"ok");}
+    else{alert("Numéro invalide");return;}
+    coachSaveSlot(slug,517,mc);
     render();
   });
   var mnOff=document.getElementById("mn-off");
   if(mnOff)mnOff.addEventListener("click",function(){
-    if(!confirm("Désactiver l'onglet menus ? Les phases seront conservées."))return;
+    if(!confirm("Désactiver l'onglet menus ?"))return;
     var slug=state.coachDetail;
     var mc=lsGet("amcoach_"+slug,{})[517]||{};
     mc.on=false;
@@ -6365,46 +6486,6 @@ function bindCoach(){
     feedback("Menus désactivés","undo");
     render();
   });
-  var mnEd=document.querySelectorAll(".mn-edit");
-  for(var me=0;me<mnEd.length;me++){
-    mnEd[me].addEventListener("click",function(){
-      var slug=state.coachDetail;
-      var mc=lsGet("amcoach_"+slug,{})[517]||{};
-      var ph=mc.phases||[];
-      var lst=ph.map(function(x,i){return (i+1)+". "+x.nom+" ("+x.jours+" j, "+((x.repas||[]).length)+" repas)";}).join("\n");
-      var n=prompt("Quelle phase modifier ?\n\n"+lst+"\n\nTape son numéro :","1");
-      if(n===null)return;
-      var idx=parseInt(n,10)-1;
-      if(isNaN(idx)||!ph[idx]){alert("Numéro invalide");return;}
-      var P=ph[idx];
-      var nom=prompt("Nom de la phase :",P.nom||"");
-      if(nom===null)return;
-      var j=prompt("Durée en jours :",String(P.jours||14));
-      if(j===null)return;
-      var but=prompt("But de la phase (une phrase) :",P.but||"")||"";
-      var txt=(P.repas||[]).map(function(r){return (r.titre||"")+" | "+(r.contenu||"").replace(/\n/g," / ");}).join("\n");
-      var rep=prompt("Repas — une ligne par repas, au format :\nTitre | contenu\n\nExemple :\nPetit-déjeuner | 3 œufs + 1 fruit\nDéjeuner | 150 g poulet + légumes",txt);
-      if(rep===null)return;
-      var repas=[];
-      rep.split("\n").forEach(function(l){
-        l=l.trim(); if(!l)return;
-        var pos=l.indexOf("|");
-        var t=pos>0?l.slice(0,pos).trim():l;
-        var ct=pos>0?l.slice(pos+1).trim():"";
-        var ic="🍽️";
-        if(/petit|matin|déj.*matin/i.test(t))ic="🌅";
-        else if(/déjeun|midi/i.test(t))ic="☀️";
-        else if(/dîner|soir/i.test(t))ic="🌙";
-        else if(/collation|snack|goûter/i.test(t))ic="🍎";
-        repas.push({titre:t,contenu:ct,icone:ic});
-      });
-      ph[idx]={nom:nom.trim(),jours:parseInt(j,10)||14,but:but.trim(),repas:repas};
-      mc.phases=ph;
-      coachSaveSlot(slug,517,mc);
-      feedback("✏️ Phase "+(idx+1)+" enregistrée","ok");
-      render();
-    });
-  }
 
   // 🎯 Déclencher un challenge sur ce client
   function lancerChallenge(e,n,j,d,debut){
@@ -6415,17 +6496,8 @@ function bindCoach(){
     render();
   }
   // Demande la date de départ : aujourd'hui par défaut, lundi prochain suggéré
-  function demanderDepart(){
-    var lundi=chLundiProchain();
-    var r=prompt("Départ du challenge :\n\n• Laisse VIDE pour démarrer aujourd'hui\n• Tape L pour lundi prochain ("+
-      new Date(lundi+"T12:00:00").toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})+")\n• Ou une date au format AAAA-MM-JJ","");
-    if(r===null)return null;
-    r=r.trim();
-    if(!r)return isoLocal();
-    if(/^l$/i.test(r))return lundi;
-    if(/^\d{4}-\d{2}-\d{2}$/.test(r))return r;
-    alert("Date non comprise — départ fixé à aujourd'hui.");
-    return isoLocal();
+  function demanderDepart(cb){
+    pickDate("Départ du challenge",isoLocal(),cb,{aide:"Le challenge démarre ce jour-là. La veille, la cliente reçoit un message de préparation."});
   }
   var gos=document.querySelectorAll(".ch-go");
   for(var g0=0;g0<gos.length;g0++){
@@ -6434,9 +6506,10 @@ function bindCoach(){
       if(!C)return;
       var cc=coachClient(state.coachDetail);
       if(!confirm("Lancer « "+C.n+" » sur "+((cc&&cc.name)||"ce client")+" ?\n"+C.j+" jours."))return;
-      var dep=demanderDepart();
-      if(dep===null)return;
-      lancerChallenge(C.e,C.n,C.j,C.d,dep);
+      demanderDepart(function(dep){
+        if(!dep)return;
+        lancerChallenge(C.e,C.n,C.j,C.d,dep);
+      });
     });
   }
   var chp=document.getElementById("ch-perso");
@@ -6446,9 +6519,10 @@ function bindCoach(){
     var e=prompt("Un emoji pour l'illustrer :","🔥")||"🔥";
     var j=parseInt(prompt("Combien de jours ?","7"),10)||7;
     var d=prompt("Une phrase de consigne (facultatif) :","")||"";
-    var dep2=demanderDepart();
-    if(dep2===null)return;
-    lancerChallenge(e.trim().slice(0,4),n.trim().slice(0,42),Math.max(1,Math.min(90,j)),d.trim().slice(0,90),dep2);
+    demanderDepart(function(dep2){
+      if(!dep2)return;
+      lancerChallenge(e.trim().slice(0,4),n.trim().slice(0,42),Math.max(1,Math.min(90,j)),d.trim().slice(0,90),dep2);
+    });
   });
   var chs=document.getElementById("ch-stop");
   if(chs)chs.addEventListener("click",function(){
@@ -6741,8 +6815,8 @@ function bindCoach(){
   var blSave=document.getElementById("bl-save");
   if(blSave)blSave.addEventListener("click",function(){
     function gv2(id){var el=document.getElementById(id);return el?el.value.trim():"";}
-    var a={date:gv2("bl-date"),age:gv2("bl-age"),sexe:(state.blSexe||"F"),profil:(state.blProfil||"mixte"),mgc:gv2("bl-mgc"),poids:gv2("bl-poids"),poidsCible:gv2("bl-poidscible"),taille:gv2("bl-taille"),
-      prenom:gv2("bl-prenom"),nom:gv2("bl-nom"),naiss:gv2("bl-naiss"),
+    var a={date:isoVersFr(gv2("bl-date"))||gv2("bl-date"),age:gv2("bl-age"),sexe:(state.blSexe||"F"),profil:(state.blProfil||"mixte"),mgc:gv2("bl-mgc"),poids:gv2("bl-poids"),poidsCible:gv2("bl-poidscible"),taille:gv2("bl-taille"),
+      prenom:gv2("bl-prenom"),nom:gv2("bl-nom"),naiss:isoVersFr(gv2("bl-naiss"))||gv2("bl-naiss"),
       persoKg:gv2("bl-perso-kg"),persoMois:gv2("bl-perso-mois"),mg:gv2("bl-mg"),mm:gv2("bl-mm"),gv:gv2("bl-gv"),kcal:gv2("bl-kcal"),
       obj1:gv2("bl-obj1"),obj2:gv2("bl-obj2"),obj3:gv2("bl-obj3"),pb:gv2("bl-pb"),mesures:{},mdist:{},scores:{},q:{}};
     for(var bm=0;bm<BILAN_MESURES.length;bm++){
@@ -6783,7 +6857,16 @@ function bindCoach(){
   });
   var cdBday=document.getElementById("cd-bday");
   if(cdBday)cdBday.addEventListener("click",function(){
-    var v=prompt("Date d'anniversaire du client (JJ/MM ou JJ/MM/AAAA) :","");
+    var __bd0=(lsGet("amcoach_"+state.coachDetail,{})[503])||{};
+    pickDate("Anniversaire du client",frVersIso(__bd0.bday)||"",function(iso){
+      if(!iso)return;
+      var m2=iso.split("-");
+      coachSaveSlot(state.coachDetail,503,{bday:m2[2]+"/"+m2[1]+"/"+m2[0]});
+      feedback("🎂 Anniversaire enregistré","ok");
+      render();
+    },{raccourcis:false,aide:"Un message spécial apparaîtra ce jour-là dans son tracker."});
+    return;
+    var v=null;
     if(!v)return;
     var mm=v.match(/^(\d{1,2})[\/\-.](\d{1,2})(?:[\/\-.](\d{4}))?$/);
     if(!mm){alert("Format : JJ/MM ou JJ/MM/AAAA");return;}

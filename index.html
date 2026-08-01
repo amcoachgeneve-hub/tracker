@@ -5169,9 +5169,18 @@ function calcPlanV2(sexe,p0,mga,mgc,taille,age){
   var Leff=res.blocked?(res.adjL||0):res.L;
   var pEff=p0-Leff;
   res.Leff=Leff;res.pEff=pEff;
-  res.prot=Math.round(S.protX*pEff);
-  res.protMax=Math.round((S.protMax||S.protX)*pEff);
-  res.protRef=pEff;
+  // Les protéines se calculent sur la MASSE MAIGRE (le muscle à nourrir),
+  // jamais sur le poids cible — c'était l'erreur signalée par Akli.
+  var maigreRef=(p0&&mga)?p0*(1-mga/100):null;
+  if(maigreRef&&maigreRef>0){
+    res.prot=Math.round(S.protX*1.3*maigreRef);
+    res.protMax=Math.round((S.protMax||S.protX)*1.3*maigreRef);
+    res.protRef=maigreRef; res.protBase="masse maigre";
+  }else{
+    res.prot=Math.round(S.protX*pEff);
+    res.protMax=Math.round((S.protMax||S.protX)*pEff);
+    res.protRef=pEff; res.protBase="poids cible";
+  }
   // ─── Avertissements ───
   if(mgc<S.mgReco){
     res.warnings.push({lvl:"comp",txt:"Cible "+mgc+" % = zone COMPÉTITION ("+(isF?"< 15 % femme":"< 10 % homme")+"). Non durable, réservé à une préparation encadrée de courte durée."});
@@ -5180,7 +5189,7 @@ function calcPlanV2(sexe,p0,mga,mgc,taille,age){
     res.warnings.push({lvl:"med",txt:"Cible sous le seuil santé ("+S.mgSante+" % "+(isF?"femme":"homme")+") : risques hormonaux et immunitaires"+(isF?", aménorrhée possible":"")+". Avis médical recommandé avant d'engager ce plan."});
   }
   if(age&&age>=40){
-    res.warnings.push({lvl:"age",txt:"Client 40+ : la sarcopénie accélère la fonte musculaire en déficit. La musculation devient le levier prioritaire, avec des protéines entre "+S.protX+" et "+(S.protMax||S.protX)+" g/kg de poids cible ("+res.prot+" à "+res.protMax+" g/jour ici). En dessous, la perte se fera davantage sur le muscle."});
+    res.warnings.push({lvl:"age",txt:"Client 40+ : la sarcopénie accélère la fonte musculaire en déficit. La musculation devient le levier prioritaire, avec des protéines entre "+S.protX+" et "+(S.protMax||S.protX)+" g/kg de masse maigre ("+res.prot+" à "+res.protMax+" g/jour ici). En dessous, la perte se fera davantage sur le muscle."});
   }
   if(obese){
     res.warnings.push({lvl:"info",txt:"IMC de départ "+imc0.toFixed(1)+" (≥ 30) : rythmes maximum majorés de 50 % — les premières semaines perdent naturellement plus vite."});
@@ -5249,7 +5258,7 @@ function planCardHTMLV2(res,mgc){
   }
   for(var i=0;i<res.scenarios.length;i++)h+=scenarioRowV2(res.scenarios[i]);
   h+='<div style="padding-top:10px;font-size:12.5px;line-height:1.8">'+
-    '💪 <strong>Protéines : '+res.prot+' g/jour</strong> <span style="color:var(--mute)">('+res.S.protX+' g × '+res.protRef.toFixed(1)+' kg de poids cible)</span></div>';
+    '💪 <strong>Protéines : '+res.prot+' à '+res.protMax+' g/jour</strong> <span style="color:var(--mute)">(calculé sur '+res.protRef.toFixed(1)+' kg de '+(res.protBase||"poids cible")+')</span></div>';
   h+=reperesVisuelsHTMLV2(res.isF?"F":"H",mgc)+'</div>';
   h+=avertissementsHTML(res);
   return h;
@@ -5501,6 +5510,7 @@ function coachSaveSlot(slug,idx,data){
   sbFetch("tracking?on_conflict=client_slug,day_index",{method:"POST",prefer:"resolution=merge-duplicates",body:{client_slug:slug,day_index:idx,data:data}}).catch(function(){});
 }
 var BILAN_MESURES=[["brasD","Bras droit",1],["brasG","Bras gauche",1],["poitrine","Poitrine",0],["nombril","Nombril",0],["ventre","Ventre",1],["fessiers","Fessiers/Hanches",0],["jambeD","Jambe droite",1],["jambeG","Jambe gauche",1],["molletD","Mollet droit",1],["molletG","Mollet gauche",1]];
+// Le barème n'est pas une note : ce sont des questions ouvertes.
 var BILAN_SCORES=[["puissance","Puissance personnelle — action ou excuse ?"],["vitalite","Vitalité — énergie physique ou épuisement ?"],["temps","Le temps — maîtrise ou gaspillage ?"],["emotions","Gestion émotionnelle — conséquences mental/alimentation, fringales ?"]];
 var BILAN_CONTEXTE=[["pourquoi","1. Raison — POURQUOI c'est important ?","area"],["ressenti","Comment tu te sentirais avec cet objectif réussi ? Et si tu l'as, quel est l'objectif suivant ?","area"],["freins","2. Qu'est-ce qui pourrait t'empêcher de faire ce challenge et d'atteindre ton objectif ? (finances, entourage, environnement...)","area"],["prof","3. Profession et stress ?","text"],["horaires","4. Horaires de travail ?","text"],["fatphy","5. Fatigue physique de 1 à 10 — si en dessous de 6, pourquoi ?","text"],["fatmen","6. Fatigue mentale de 1 à 10 — si en dessous de 6, pourquoi ?","text"]];
 var BILAN_SEMAINE=["semaine","Bilan semaine — lundi à dimanche","area"];
@@ -5632,11 +5642,10 @@ function viewCoachBilan(){
     '<div class="card-label">PROBLÈMES PHYSIQUES</div><textarea id="bl-pb" class="num-input" rows="2" style="margin-bottom:10px;resize:vertical"></textarea>';
   h+='<div style="font-weight:900;font-size:12px;color:var(--violet);margin:8px 0 8px">POURQUOI & CONTEXTE</div>';
   for(var qc=0;qc<BILAN_CONTEXTE.length;qc++){h+=bilanQ("bl-q-"+BILAN_CONTEXTE[qc][0],BILAN_CONTEXTE[qc][1],BILAN_CONTEXTE[qc][2],__ed&&__ed.q?__ed.q[BILAN_CONTEXTE[qc][0]]:"");}
-  h+='<div style="font-weight:900;font-size:12px;color:var(--violet);margin:8px 0 8px">BARÈME /10 — AM TRANSFO</div>';
+  h+='<div style="font-weight:900;font-size:12px;color:var(--violet);margin:8px 0 8px">BARÈME AM TRANSFO</div>';
   for(var s3=0;s3<BILAN_SCORES.length;s3++){
-    h+=bilanInput("bl-s-"+BILAN_SCORES[s3][0],(s3+1)+". "+BILAN_SCORES[s3][1].toUpperCase()+" (/10)","7",null,__ed&&__ed.scores?__ed.scores[BILAN_SCORES[s3][0]]:"");
+    h+=bilanQ("bl-s-"+BILAN_SCORES[s3][0],(s3+1)+". "+BILAN_SCORES[s3][1],"area",__ed&&__ed.scores?__ed.scores[BILAN_SCORES[s3][0]]:"");
   }
-  h+=bilanQ("bl-q-"+BILAN_SEMAINE[0],BILAN_SEMAINE[1],BILAN_SEMAINE[2],__ed&&__ed.q?__ed.q[BILAN_SEMAINE[0]]:"");
   h+='<div style="font-weight:900;font-size:12px;color:var(--violet);margin:8px 0 8px">HABITUDES ALIMENTAIRES</div>';
   for(var hq=0;hq<BILAN_HAB.length;hq++){h+=bilanQ("bl-q-"+BILAN_HAB[hq][0],BILAN_HAB[hq][1],"area",__ed&&__ed.q?__ed.q[BILAN_HAB[hq][0]]:"");}
   h+='<div style="font-weight:900;font-size:12px;color:var(--violet);margin:8px 0 8px">COMPOSITION CORPORELLE</div>'+
@@ -5658,8 +5667,7 @@ function viewCoachBilan(){
     '</div>'+
     '<div style="font-size:11px;color:var(--mute);line-height:1.5;margin-bottom:10px">Le tour de taille utilisé pour l\'analyse est la mesure « Nombril » ci-dessous.</div>'+
     bilanInput("bl-mgc","% MASSE GRASSE CIBLE","25",null,pv("mgc"))+
-    '<button type="button" id="bl-calc" class="big-btn" style="padding:13px 0;font-size:13.5px;background:var(--brand2);margin-bottom:10px">🧮 Calculer</button>'+
-    '<div id="bl-calc-out" style="margin-bottom:12px"></div>'+
+    '<button type="button" id="bl-calc" class="big-btn" style="padding:13px 0;font-size:13.5px;background:var(--brand2);margin-bottom:12px">🧮 Calculer</button>'+
     '<div style="background:var(--soft2);border-radius:14px;padding:13px;margin:4px 0 12px">'+
     '<div style="font-weight:900;font-size:11.5px;margin-bottom:3px">🎯 OBJECTIF PERSONNALISÉ (facultatif)</div>'+
     '<div style="font-size:11px;color:var(--mute);font-weight:700;line-height:1.45;margin-bottom:9px">Laisse vide si les calculs automatiques conviennent. Sinon fixe toi-même le poids à perdre et la durée.</div>'+
@@ -5954,12 +5962,12 @@ function bilanReport(slug,idx,mode){
     var k2=BILAN_MESURES[mm2][0],val=(a.mesures||{})[k2],dst=(a.mdist||{})[k2];
     kh+='<div class="kv"><span>'+BILAN_MESURES[mm2][1]+(dst?' <span style="color:var(--mute);font-size:11px">(à '+esc(dst)+' cm)</span>':'')+'</span><strong>'+(val||"—")+(prev&&val?dv(val,(prev.mesures||{})[k2]):'')+'</strong></div>';
   }
-  kh+='</div><h2>Barème AM Transfo (/10)</h2><div class="grid2">';
+  kh+='</div><h2>Barème AM Transfo</h2>';
   for(var ss=0;ss<BILAN_SCORES.length;ss++){
     var ks=BILAN_SCORES[ss][0],vs=(a.scores||{})[ks];
-    kh+='<div class="kv"><span>'+BILAN_SCORES[ss][1]+'</span><strong>'+(vs||"—")+'/10'+(prev&&vs?dv(vs,(prev.scores||{})[ks]):'')+'</strong></div>';
+    if(!vs)continue;
+    kh+='<div class="blk"><strong>'+esc(BILAN_SCORES[ss][1])+'</strong><br>'+esc(vs)+'</div>';
   }
-  kh+='</div>';
   function qa(list,title){
     var block='',any=false;
     for(var z=0;z<list.length;z++){
@@ -6570,30 +6578,11 @@ function bindCoach(){
   majPerso();
   var blCalc=document.getElementById("bl-calc");
   if(blCalc)blCalc.addEventListener("click",function(){
-    var pd=nv2("bl-poids"), mga=nv2("bl-mg"), mgc=nv2("bl-mgc"), tll=nv2("bl-taille");
-    var out=document.getElementById("bl-calc-out");
-    if(!out)return;
-    if(!pd||!mga||!mgc){
-      out.innerHTML='<div style="background:#FFF3F0;border:1px solid #FFD5CC;border-radius:12px;padding:11px 13px;font-size:12.5px;color:var(--bad);font-weight:700">Renseigne le poids, le % de masse grasse et le % cible.</div>';
-      buzz("err");return;
-    }
-    var maigre=pd*(1-mga/100), cible=Math.round(maigre/(1-mgc/100)*10)/10;
-    var perte=Math.round((pd-cible)*10)/10, sem=perte>0?Math.ceil(perte/0.7):0;
-    var imc=tll>0?Math.round(pd/Math.pow(tll/100,2)*10)/10:null;
-    var imcC=tll>0?Math.round(cible/Math.pow(tll/100,2)*10)/10:null;
-    var P=NUT_PARAMS[state.blSexe||"F"]||NUT_PARAMS.F;
-    var pLo=Math.round(P.protX*1.3*maigre), pHi=Math.round((P.protMax||P.protX)*1.3*maigre);
-    function li(l,v){return '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line)"><span style="font-size:12.5px;color:var(--mute);font-weight:700">'+l+'</span><strong style="font-size:13.5px">'+v+'</strong></div>';}
-    out.innerHTML='<div style="background:#EFF6EF;border:1.5px solid var(--ok);border-radius:14px;padding:13px 14px">'+
-      '<div style="font-weight:900;font-size:12.5px;color:var(--ok-d);margin-bottom:6px">✅ RÉSULTAT DU CALCUL</div>'+
-      li("Masse maigre",(Math.round(maigre*10)/10)+" kg")+li("Poids cible",cible+" kg")+
-      li("À perdre",perte+" kg")+li("Durée estimée",sem+" semaines")+
-      (imc?li("IMC",imc+" → "+imcC):"")+li("Protéines / jour",pLo+" à "+pHi+" g")+
-      '<div style="font-size:11px;color:var(--mute);font-weight:700;margin-top:8px;line-height:1.45">Modifie et recalcule autant de fois que nécessaire, puis enregistre.</div></div>';
-    var pc=document.getElementById("bl-poidscible");
-    if(pc&&!pc.value)pc.value=cible;
+    blPlanCompute();
     blDraftPlanifier();
-    feedback("🧮 Calcul mis à jour","ok");
+    var o=document.getElementById("bl-plan-out");
+    if(o&&o.innerHTML.trim())feedback("🧮 Calcul mis à jour","ok");
+    else feedback("Renseigne poids, % masse grasse et % cible","err");
   });
 
   var blSave=document.getElementById("bl-save");

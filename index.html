@@ -322,9 +322,8 @@ function nutStreak(cfg){
   return {cur:cur,best:Math.max(best,cur),todayOk:todayOk};
 }
 // Calcule le plan (prot/kcal/durée) depuis poids départ → cible
-// mMaigre : masse maigre en kg, mesurée au bilan (poids × (1 − %MG)).
-// C'est la bonne référence : les protéines nourrissent le muscle, pas le gras.
-// Sans bilan, on retombe sur le poids cible — moins juste, mais toujours prudent.
+// Les protéines suivent la règle du coach : femme 1,6–1,8 g/kg,
+// homme 1,8–2,0 g/kg, appliquée au POIDS DE DÉPART.
 // Masse maigre lue dans le dernier bilan qui a poids + %MG
 function nutMasseMaigre(allData){
   var b=(allData&&allData[600])||{}, list=b.list||[];
@@ -339,23 +338,19 @@ function nutMasseMaigre(allData){
 }
 function nutPlan(sexe,pDepart,pCible,mMaigre){
   var P=NUT_PARAMS[sexe]||NUT_PARAMS.H;
-  var ref, base;
-  if(mMaigre&&mMaigre>0){
-    // Sur masse maigre, les besoins sont plus élevés par kg : ~2,3–2,6 g/kg
-    ref=mMaigre; base="maigre";
-    var lo=P.protX*1.3, hi=(P.protMax||P.protX)*1.3;
-    var prot=Math.round(lo*ref), protMax=Math.round(hi*ref);
-  }else{
-    ref=pCible; base="cible";
-    var prot=Math.round(P.protX*ref), protMax=Math.round((P.protMax||P.protX)*ref);
-  }
+  // Règle du coach : femme 1,6–1,8 g/kg · homme 1,8–2,0 g/kg,
+  // toujours appliquée au POIDS DE DÉPART.
+  var ref=pDepart||pCible;
+  var prot=Math.round(P.protX*ref);
+  var protMax=Math.round((P.protMax||P.protX)*ref);
   var kcal=Math.round(P.kcalX*pCible);
   var perte=Math.round((pDepart-pCible)*10)/10;
-  var duree=perte>0?Math.ceil(perte/0.8):0; // ~800 g / semaine
+  var duree=perte>0?Math.ceil(perte/0.8):0;
   return {prot:prot,protMax:protMax,kcal:kcal,perte:perte,duree:duree,
-          base:base,ref:Math.round(ref*10)/10,
+          base:"depart",ref:Math.round(ref*10)/10,
           protX:P.protX,protMax_x:P.protMax||P.protX,kcalX:P.kcalX};
 }
+
 
 // ═══════════ 💰 QUÊTE FINANCE — QUESTIONNAIRE GUIDÉ ═══════════
 // ═══════════ 🍽️ MENUS (slot 517) ═══════════
@@ -4525,10 +4520,9 @@ function viewCoachDetail(){
     var np=nutPlan(nut.sexe||"H",nut.pDepart||0,nut.pCible||0,nutMasseMaigre(allData));
     h+='<div style="background:#F1F8E9;border-radius:10px;padding:11px 12px;margin-bottom:10px;font-size:12px;line-height:1.7">'+
       '<div><strong>Objectif :</strong> '+(nut.pDepart||"?")+' kg → '+(nut.pCible||"?")+' kg ('+(nut.sexe==="F"?"femme":"homme")+')</div>'+
-      // On affiche le calcul À JOUR (masse maigre du dernier bilan),
-      // pas la valeur figée au moment de l'activation.
+      // On affiche le calcul à jour, pas la valeur figée à l'activation.
       '<div><strong>💪 Protéines :</strong> '+np.prot+' à '+np.protMax+' g/jour · <strong>🔥</strong> '+(nut.kcal||np.kcal)+' kcal/jour</div>'+
-      '<div style="font-size:11px;color:var(--mute);margin-top:2px">calculé sur '+np.ref+' kg de '+(np.base==="maigre"?"masse maigre (dernier bilan)":"poids cible — fais un bilan avec % de masse grasse pour affiner")+'</div>'+
+      '<div style="font-size:11px;color:var(--mute);margin-top:2px">'+np.protX+'–'+np.protMax_x+' g/kg × '+np.ref+' kg de poids de départ</div>'+
       (np.perte>0?'<div><strong>Perte :</strong> '+np.perte+' kg (~'+np.duree+' sem à 800 g/sem)</div>':'')+'</div>';
     // Aperçu remplissage 7 derniers jours
     (function(){
@@ -5382,18 +5376,11 @@ function calcPlanV2(sexe,p0,mga,mgc,taille,age){
   var Leff=res.blocked?(res.adjL||0):res.L;
   var pEff=p0-Leff;
   res.Leff=Leff;res.pEff=pEff;
-  // Les protéines se calculent sur la MASSE MAIGRE (le muscle à nourrir),
-  // jamais sur le poids cible — c'était l'erreur signalée par Akli.
-  var maigreRef=(p0&&mga)?p0*(1-mga/100):null;
-  if(maigreRef&&maigreRef>0){
-    res.prot=Math.round(S.protX*1.3*maigreRef);
-    res.protMax=Math.round((S.protMax||S.protX)*1.3*maigreRef);
-    res.protRef=maigreRef; res.protBase="masse maigre";
-  }else{
-    res.prot=Math.round(S.protX*pEff);
-    res.protMax=Math.round((S.protMax||S.protX)*pEff);
-    res.protRef=pEff; res.protBase="poids cible";
-  }
+  // Règle Akli : protéines sur le POIDS DE DÉPART.
+  // Femme 1,6–1,8 g/kg · Homme 1,8–2,0 g/kg.
+  res.prot=Math.round(S.protX*p0);
+  res.protMax=Math.round((S.protMax||S.protX)*p0);
+  res.protRef=p0; res.protBase="poids de départ";
   // ─── Avertissements ───
   if(mgc<S.mgReco){
     res.warnings.push({lvl:"comp",txt:"Cible "+mgc+" % = zone COMPÉTITION ("+(isF?"< 15 % femme":"< 10 % homme")+"). Non durable, réservé à une préparation encadrée de courte durée."});
@@ -5402,7 +5389,7 @@ function calcPlanV2(sexe,p0,mga,mgc,taille,age){
     res.warnings.push({lvl:"med",txt:"Cible sous le seuil santé ("+S.mgSante+" % "+(isF?"femme":"homme")+") : risques hormonaux et immunitaires"+(isF?", aménorrhée possible":"")+". Avis médical recommandé avant d'engager ce plan."});
   }
   if(age&&age>=40){
-    res.warnings.push({lvl:"age",txt:"Client 40+ : la sarcopénie accélère la fonte musculaire en déficit. La musculation devient le levier prioritaire, avec des protéines entre "+S.protX+" et "+(S.protMax||S.protX)+" g/kg de masse maigre ("+res.prot+" à "+res.protMax+" g/jour ici). En dessous, la perte se fera davantage sur le muscle."});
+    res.warnings.push({lvl:"age",txt:"Client 40+ : la sarcopénie accélère la fonte musculaire en déficit. La musculation devient le levier prioritaire, avec des protéines entre "+S.protX+" et "+(S.protMax||S.protX)+" g/kg de poids de départ ("+res.prot+" à "+res.protMax+" g/jour ici). En dessous, la perte se fera davantage sur le muscle."});
   }
   if(obese){
     res.warnings.push({lvl:"info",txt:"IMC de départ "+imc0.toFixed(1)+" (≥ 30) : rythmes maximum majorés de 50 % — les premières semaines perdent naturellement plus vite."});
@@ -5471,7 +5458,7 @@ function planCardHTMLV2(res,mgc){
   }
   for(var i=0;i<res.scenarios.length;i++)h+=scenarioRowV2(res.scenarios[i]);
   h+='<div style="padding-top:10px;font-size:12.5px;line-height:1.8">'+
-    '💪 <strong>Protéines : '+res.prot+' à '+res.protMax+' g/jour</strong> <span style="color:var(--mute)">(calculé sur '+res.protRef.toFixed(1)+' kg de '+(res.protBase||"poids cible")+')</span></div>';
+    '💪 <strong>Protéines : '+res.prot+' à '+res.protMax+' g/jour</strong> <span style="color:var(--mute)">('+res.S.protX+'–'+(res.S.protMax||res.S.protX)+' g/kg × '+res.protRef.toFixed(1)+' kg de poids de départ)</span></div>';
   h+=reperesVisuelsHTMLV2(res.isF?"F":"H",mgc)+'</div>';
   h+=avertissementsHTML(res);
   return h;

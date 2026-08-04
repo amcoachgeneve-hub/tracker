@@ -5197,6 +5197,20 @@ function viewCoachDash(){
   })();
 
 
+  if(state.showForm){
+    h+='<div class="card" style="padding:18px 16px;margin-bottom:16px">'+
+      '<div style="font-weight:900;font-size:14px;margin-bottom:16px">Nouveau client</div>'+
+      '<div class="card-label">PRÉNOM</div>'+
+      '<input id="nc-name" class="num-input" style="font-size:15px;font-weight:400;margin-bottom:12px" placeholder="ex: Sarah"/>'+
+      '<div class="card-label">LIEN (identifiant)</div>'+
+      '<input id="nc-slug" class="num-input" style="font-size:15px;font-weight:400;margin-bottom:4px" placeholder="ex: sarah"/>'+
+      '<div id="nc-preview" style="font-size:11px;color:#666;margin-bottom:12px"></div>'+
+      '<div class="card-label">DATE DE DÉPART</div>'+
+      '<input id="nc-date" type="date" class="num-input" style="font-size:15px;font-weight:400;margin-bottom:12px" value="'+isoLocal()+'"/>'+
+      '<div class="card-label">DATE DE FIN D\'ACCÈS (OPTIONNEL — vide = illimité)</div>'+
+      '<input id="nc-end" type="date" class="num-input" style="font-size:15px;font-weight:400;margin-bottom:16px"/>'+
+      '<button id="nc-create" class="big-btn" style="padding:14px 0;font-size:14px;margin-bottom:0">Créer le lien →</button></div>';
+  }
   h+='<input id="client-search" class="num-input" placeholder="\ud83d\udd0d Rechercher un client..." value="'+esc(state.searchQ||"")+'" style="font-size:15px;font-weight:400;margin-bottom:14px"/>';
   var q=(state.searchQ||"").toLowerCase();
   var shown=q?clients.filter(function(c){return c.name.toLowerCase().indexOf(q)>=0||c.slug.toLowerCase().indexOf(q)>=0;}):clients;

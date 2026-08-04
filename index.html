@@ -3033,55 +3033,69 @@ function viewCalendar(name,start){
       h+='<div style="font-weight:900;font-size:16px;color:var(--ok)">🏆 OBJECTIF ATTEINT !</div>'+
          '<div style="font-size:13px;color:#333;margin-top:6px;line-height:1.6">Tu as mérité ta récompense :<br><strong>'+esc(goal.reward||"—")+'</strong></div>';
     }else{
-      h+='<div style="font-size:11px;font-weight:800;color:var(--mute);letter-spacing:1.3px;text-transform:uppercase;margin-bottom:10px">🎯 '+(shortProg?'Objectif '+progDays+' jours':'Objectif du mois '+month)+'</div>'+
-        '<div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px">'+
-        '<div><div style="font-weight:900;font-size:40px;line-height:.95;letter-spacing:-1.5px;color:var(--ink)">'+(curW!=null?curW:'—')+'<span style="font-size:16px;color:var(--mute);margin-left:2px">kg</span></div>'+
-        '<div style="font-size:11px;font-weight:800;color:var(--mute);margin-top:3px">aujourd\'hui</div></div>'+
-        '<div style="text-align:right"><div style="font-weight:900;font-size:24px;line-height:1;color:var(--brand)">'+goal.target+'<span style="font-size:13px;margin-left:1px">kg</span></div>'+
-        '<div style="font-size:11px;font-weight:800;color:var(--mute);margin-top:3px">objectif</div></div></div>';
-      if(diff!=null){
-        if(shortProg)h+='<div style="font-size:12.5px;color:var(--warn-d);font-weight:800;margin-top:4px">⏳ '+daysLeft+' jour'+(daysLeft>1?'s':'')+' restant'+(daysLeft>1?'s':'')+'</div>';
-      }
-      // 📊 Barre de progression vers l'objectif du mois (deplacee depuis Stats)
+      // 🎯 Carte objectif — trois colonnes, anneau central, piste et récompense
+      var pcG=0, depG=null, colG=solid("var(--brand)");
       (function(){
-        // Départ = le TOUT PREMIER poids du programme, pas celui du mois.
-        // Sinon la barre retombait à 0 % à chaque changement de mois, alors que
-        // c'est justement l'indicateur le plus motivant de la transformation.
-        var dep=null;
         for(var w=0;w<=today90;w++){
-          if(allData[w]&&allData[w].poids){dep=parseFloat(allData[w].poids);break;}
+          if(allData[w]&&allData[w].poids){depG=parseFloat(allData[w].poids);break;}
         }
-        if(dep==null)dep=curW;
-        if(dep==null||curW==null||!goal.target)return;
-        var tot=dep-goal.target, fait=dep-curW;
-        // Si la cible est déjà dépassée ou le départ égal à la cible, on montre 100 %
-        if(tot<=0){tot=1;fait=1;}
-        var pc=Math.max(0,Math.min(100,Math.round(fait/tot*100)));
-        var col=gaugeCol(pc);
-        var reste=Math.max(0,Math.round((curW-goal.target)*10)/10);
-        // Piste toujours visible, avec une pastille qui marque la position exacte.
-        // À 0 %, une barre pleine invisible donnait l'impression qu'il n'y avait rien.
-        var perdu=Math.max(0,Math.round((dep-curW)*10)/10);
-        h+='<div style="margin-top:18px">'+
-          '<div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:9px">'+
-          '<span style="font-size:13.5px;font-weight:800;color:var(--ink2)">'+
-          (reste>0?'Plus que <strong style="font-size:19px;color:var(--ink)">'+reste+' kg</strong>':'🎉 Objectif atteint')+'</span>'+
-          '<span style="font-size:17px;font-weight:900;color:'+col+';line-height:1">'+pc+'<span style="font-size:11px">%</span></span></div>'+
-          '<div style="position:relative;height:18px">'+
-          '<div style="position:absolute;left:0;right:0;top:5px;height:9px;background:var(--soft2);border-radius:100px"></div>'+
-          '<div style="position:absolute;left:0;top:5px;height:9px;width:'+Math.max(pc,1.5)+'%;border-radius:100px;background:linear-gradient(90deg,'+col+'99,'+col+');transition:width .6s cubic-bezier(.2,.8,.3,1)"></div>'+
-          '<div style="position:absolute;top:0;left:calc('+pc+'% - 9px);width:18px;height:18px;border-radius:50%;background:#fff;border:3.5px solid '+col+';box-shadow:0 2px 7px rgba(0,0,0,.16);transition:left .6s cubic-bezier(.2,.8,.3,1)"></div>'+
-          '</div>'+
-          '<div style="display:flex;justify-content:space-between;font-size:11px;font-weight:800;color:var(--mute);margin-top:8px">'+
-          '<span>'+dep+' kg<span style="font-weight:700;opacity:.7"> · départ</span></span>'+
-          '<span>'+goal.target+' kg<span style="font-weight:700;opacity:.7"> · cible</span></span></div>'+
-          (perdu>0?'<div style="text-align:center;font-size:12px;font-weight:800;color:'+col+';margin-top:9px">−'+perdu+' kg parcourus 💪</div>':'')+
-          '</div>';
+        if(depG==null)depG=curW;
+        if(depG!=null&&curW!=null&&goal.target){
+          var tt=depG-goal.target, ff=depG-curW;
+          if(tt<=0){tt=1;ff=1;}
+          pcG=Math.max(0,Math.min(100,Math.round(ff/tt*100)));
+          colG=gaugeCol(pcG);
+        }
       })();
-      h+='<div style="font-size:13px;color:#666;margin-top:9px">'+phrase+'</div>';
-      if(goal.reward)h+='<div style="font-size:12px;color:var(--mute);margin-top:6px">🎁 Ta récompense : <strong>'+esc(goal.reward)+'</strong></div>';
+      var resteG=(curW!=null&&goal.target)?Math.max(0,Math.round((curW-goal.target)*10)/10):null;
+      var perduG=(depG!=null&&curW!=null)?Math.max(0,Math.round((depG-curW)*10)/10):0;
+      var Rg=34, Cg=2*Math.PI*Rg;
+
+      h+='<div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">'+
+        '<span style="width:46px;height:46px;flex:0 0 46px;border-radius:15px;background:var(--soft2);display:flex;align-items:center;justify-content:center;font-size:23px">🎯</span>'+
+        '<span style="flex:1;font-weight:900;font-size:19px;letter-spacing:-.3px;color:var(--ink)">'+(shortProg?'Objectif '+progDays+' jours':'Objectif du mois '+month)+'</span></div>'+
+
+        // Trois colonnes : poids du jour · anneau · cible
+        '<div style="display:flex;align-items:center;margin-bottom:18px">'+
+        '<div style="flex:1;text-align:center">'+
+        '<div style="font-size:12.5px;font-weight:700;color:var(--mute);margin-bottom:2px">Aujourd\'hui</div>'+
+        '<div style="font-weight:900;font-size:36px;line-height:1;letter-spacing:-1.5px;color:var(--ink)">'+(curW!=null?curW:'—')+'<span style="font-size:15px;color:var(--mute);margin-left:1px">kg</span></div></div>'+
+        '<div style="flex:0 0 96px;position:relative;height:96px;border-left:1px solid var(--line);border-right:1px solid var(--line)">'+
+        '<svg width="96" height="96" style="position:absolute;inset:0;transform:rotate(-90deg)">'+
+        '<circle cx="48" cy="48" r="'+Rg+'" fill="none" stroke='+JSON.stringify(solid("var(--soft2)"))+' stroke-width="8"/>'+
+        '<circle cx="48" cy="48" r="'+Rg+'" fill="none" stroke="'+colG+'" stroke-width="8" stroke-linecap="round" stroke-dasharray="'+(Cg*pcG/100).toFixed(1)+' '+Cg.toFixed(1)+'" style="transition:stroke-dasharray .6s cubic-bezier(.2,.8,.3,1)"/></svg>'+
+        '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">'+
+        '<span style="font-weight:900;font-size:22px;line-height:1;color:'+colG+'">'+pcG+'<span style="font-size:12px">%</span></span>'+
+        '<span style="font-size:10px;font-weight:700;color:var(--mute);margin-top:1px">du chemin</span></div></div>'+
+        '<div style="flex:1;text-align:center">'+
+        '<div style="font-size:12.5px;font-weight:700;color:var(--mute);margin-bottom:2px">Objectif</div>'+
+        '<div style="font-weight:900;font-size:36px;line-height:1;letter-spacing:-1.5px;color:var(--brand)">'+goal.target+'<span style="font-size:15px;margin-left:1px">kg</span></div></div></div>'+
+
+        // Piste avec pastille de position
+        '<div style="background:var(--soft);border:1px solid var(--line);border-radius:18px;padding:16px 17px">'+
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:13px">'+
+        '<span style="font-size:14px;font-weight:700;color:var(--ink2)">'+
+        (resteG!==null&&resteG>0?'Plus que <strong style="font-size:19px;color:var(--ink)">'+resteG+' kg</strong>':'🎉 <strong>Objectif atteint</strong>')+'</span>'+
+        (perduG>0?'<span style="background:'+colG+'1f;color:'+colG+';border-radius:100px;padding:6px 12px;font-size:12px;font-weight:800;white-space:nowrap">−'+perduG+' kg parcourus 💪</span>':'')+'</div>'+
+        '<div style="position:relative;height:16px">'+
+        '<div style="position:absolute;left:0;right:0;top:5px;height:7px;background:var(--soft2);border-radius:100px"></div>'+
+        '<div style="position:absolute;left:0;top:5px;height:7px;width:'+Math.max(pcG,2)+'%;border-radius:100px;background:'+colG+';transition:width .6s cubic-bezier(.2,.8,.3,1)"></div>'+
+        '<div style="position:absolute;top:0;left:calc('+pcG+'% - 8px);width:16px;height:16px;border-radius:50%;background:#fff;border:3.5px solid '+colG+';box-shadow:0 2px 6px rgba(0,0,0,.15);transition:left .6s cubic-bezier(.2,.8,.3,1)"></div></div>'+
+        '<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:800;color:var(--ink2);margin-top:9px">'+
+        '<span>'+(depG!=null?depG:'—')+' kg<span style="color:var(--mute);font-weight:700"> · départ</span></span>'+
+        '<span>'+goal.target+' kg<span style="color:var(--mute);font-weight:700"> · cible</span></span></div></div>'+
+
+        // Récompense
+        '<div style="display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:15px 16px;margin-top:12px">'+
+        '<span style="width:52px;height:52px;flex:0 0 52px;border-radius:16px;background:var(--soft2);display:flex;align-items:center;justify-content:center;font-size:26px">🎁</span>'+
+        '<div style="flex:1;min-width:0">'+
+        '<div style="font-size:11.5px;font-weight:700;color:var(--mute)">Récompense du mois</div>'+
+        '<div style="font-weight:900;font-size:18px;color:var(--ink);line-height:1.2;margin-top:2px">'+esc(goal.reward||"À définir")+'</div>'+
+        '<div style="font-size:11.5px;color:var(--mute);font-weight:700;margin-top:4px">À débloquer en atteignant '+goal.target+' kg</div></div>'+
+        '<button id="goal-edit" style="flex:0 0 auto;border:0;background:var(--soft2);color:var(--brand);padding:10px 14px;border-radius:13px;font-weight:800;font-size:12.5px">✏️</button></div>'+
+        '<div style="font-size:13px;color:var(--mute);margin-top:13px;text-align:center;line-height:1.5">'+phrase+'</div>';
     }
-    h+='<button id="goal-edit" style="font-size:11px;color:#777;margin-top:8px;padding:0">✏️ modifier</button></div>';
+    h+='</div>';
   }else{
     h+='<button id="goal-set" class="card" style="width:calc(100% - 28px);margin-bottom:18px;border:2px dashed #DDD;text-align:center;padding:16px;font-weight:800;font-size:14px;color:var(--mute);cursor:pointer">🎯 Définir mon objectif '+(shortProg?'('+progDays+' jours)':'du mois '+month)+' →</button>';
   }

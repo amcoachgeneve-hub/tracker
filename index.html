@@ -2020,6 +2020,60 @@ function solid(c){
   __cvarCache[k]=v;
   return v;
 }
+// 🏔️ Jauge montagne : le chemin se remplit à mesure qu'on monte vers le drapeau.
+// Tout est dessiné en SVG, donc net à toutes les tailles et sans image à charger.
+function svgMontagne(pct,col,w,hh){
+  w=w||150; hh=hh||120;
+  var p=Math.max(0,Math.min(100,pct||0));
+  var id="mg"+Math.random().toString(36).slice(2,8);
+  // Le remplissage monte du bas vers le sommet
+  var y=hh-(hh-14)*(p/100);
+  return '<svg viewBox="0 0 150 120" width="'+w+'" height="'+hh+'" style="display:block">'+
+    '<defs>'+
+    '<clipPath id="'+id+'"><rect x="0" y="'+y.toFixed(1)+'" width="150" height="'+(hh-y).toFixed(1)+'"/></clipPath>'+
+    '<linearGradient id="g'+id+'" x1="0" y1="1" x2="0" y2="0">'+
+    '<stop offset="0%" stop-color="'+col+'" stop-opacity=".55"/>'+
+    '<stop offset="100%" stop-color="'+col+'"/></linearGradient>'+
+    '</defs>'+
+    // Massif en gris clair (le chemin restant)
+    '<path d="M8 112 L46 46 L62 68 L88 22 L112 66 L128 48 L142 112 Z" fill="'+solid("var(--soft2)")+'"/>'+
+    '<path d="M62 68 L88 22 L112 66 Z" fill="'+solid("var(--line)")+'" opacity=".7"/>'+
+    // Même massif rempli, découpé à la hauteur atteinte
+    '<g clip-path="url(#'+id+')">'+
+    '<path d="M8 112 L46 46 L62 68 L88 22 L112 66 L128 48 L142 112 Z" fill="url(#g'+id+')"/>'+
+    '</g>'+
+    // Sentier sinueux
+    '<path d="M75 112 C64 96 86 88 76 74 C68 62 90 56 84 42 C81 34 87 30 88 24" fill="none" stroke="#fff" stroke-width="4.5" stroke-linecap="round" opacity=".85"/>'+
+    // Drapeau au sommet
+    '<line x1="88" y1="22" x2="88" y2="4" stroke="'+(p>=100?col:solid("var(--mute)"))+'" stroke-width="2.6" stroke-linecap="round"/>'+
+    '<path d="M88 5 L106 10 L88 15 Z" fill="'+(p>=100?col:solid("var(--mute)"))+'"/>'+
+    '<line x1="6" y1="113" x2="144" y2="113" stroke="'+solid("var(--line)")+'" stroke-width="2.5" stroke-linecap="round"/>'+
+    '</svg>';
+}
+// 🎁 Univers visuel de la récompense, déduit de ce que le coach a écrit.
+function rewardTheme(txt){
+  var t=(txt||"").toLowerCase();
+  function has(){for(var i=0;i<arguments.length;i++){if(t.indexOf(arguments[i])>-1)return true;}return false;}
+  if(has("massage","spa","hammam","sauna","thaï","thai","détente","detente","soin"))
+    return {e:"💆",g:"linear-gradient(135deg,#2B1B12,#6B4A2F)",c:"#E8C88A"};
+  if(has("restaurant","resto","dîner","diner","repas","gastro","japonais","sushi","brunch"))
+    return {e:"🍽️",g:"linear-gradient(135deg,#2A1A1A,#7A3B32)",c:"#F0B99A"};
+  if(has("week-end","weekend","voyage","hôtel","hotel","escapade","vacances","séjour"))
+    return {e:"✈️",g:"linear-gradient(135deg,#0F2438,#2A6A9E)",c:"#9AD0F0"};
+  if(has("vêtement","vetement","jean","robe","shopping","chaussure","basket","sneak"))
+    return {e:"🛍️",g:"linear-gradient(135deg,#241A2E,#5E3A78)",c:"#D6B3F0"};
+  if(has("montre","bijou","parfum","sac","cadeau"))
+    return {e:"⌚",g:"linear-gradient(135deg,#1E1E22,#4A4A55)",c:"#D8D8E0"};
+  if(has("concert","spectacle","cinéma","cinema","match","festival"))
+    return {e:"🎟️",g:"linear-gradient(135deg,#1A1030,#4A2A7A)",c:"#C0A8F0"};
+  if(has("tatouage","tattoo","coiffeur","coupe","esthé","esthe","manucure"))
+    return {e:"✨",g:"linear-gradient(135deg,#2A1E10,#7A5A20)",c:"#F0D090"};
+  if(has("photo","shooting","séance photo"))
+    return {e:"📸",g:"linear-gradient(135deg,#1A1A1A,#4A4A4A)",c:"#E0E0E0"};
+  if(has("sport","vélo","velo","ski","rando","surf","golf"))
+    return {e:"🏔️",g:"linear-gradient(135deg,#10281E,#2A6A4E)",c:"#9AE0BE"};
+  return {e:"🎁",g:"linear-gradient(135deg,#1A2438,#3A5A8E)",c:"#B8D0F0"};
+}
 function svgRing(pct,color,size,w){
   size=size||64; w=w||6; color=solid(color);
   var r=(size-w-2)/2, c=2*Math.PI*r, p=Math.min(Math.max(pct||0,0),1);
@@ -3051,25 +3105,22 @@ function viewCalendar(name,start){
       var perduG=(depG!=null&&curW!=null)?Math.max(0,Math.round((depG-curW)*10)/10):0;
       var Rg=34, Cg=2*Math.PI*Rg;
 
-      h+='<div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">'+
-        '<span style="width:46px;height:46px;flex:0 0 46px;border-radius:15px;background:var(--soft2);display:flex;align-items:center;justify-content:center;font-size:23px">🎯</span>'+
-        '<span style="flex:1;font-weight:900;font-size:19px;letter-spacing:-.3px;color:var(--ink)">'+(shortProg?'Objectif '+progDays+' jours':'Objectif du mois '+month)+'</span></div>'+
-
-        // Trois colonnes : poids du jour · anneau · cible
-        '<div style="display:flex;align-items:center;margin-bottom:18px">'+
-        '<div style="flex:1;text-align:center">'+
-        '<div style="font-size:12.5px;font-weight:700;color:var(--mute);margin-bottom:2px">Aujourd\'hui</div>'+
-        '<div style="font-weight:900;font-size:36px;line-height:1;letter-spacing:-1.5px;color:var(--ink)">'+(curW!=null?curW:'—')+'<span style="font-size:15px;color:var(--mute);margin-left:1px">kg</span></div></div>'+
-        '<div style="flex:0 0 96px;position:relative;height:96px;border-left:1px solid var(--line);border-right:1px solid var(--line)">'+
-        '<svg width="96" height="96" style="position:absolute;inset:0;transform:rotate(-90deg)">'+
-        '<circle cx="48" cy="48" r="'+Rg+'" fill="none" stroke='+JSON.stringify(solid("var(--soft2)"))+' stroke-width="8"/>'+
-        '<circle cx="48" cy="48" r="'+Rg+'" fill="none" stroke="'+colG+'" stroke-width="8" stroke-linecap="round" stroke-dasharray="'+(Cg*pcG/100).toFixed(1)+' '+Cg.toFixed(1)+'" style="transition:stroke-dasharray .6s cubic-bezier(.2,.8,.3,1)"/></svg>'+
-        '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">'+
-        '<span style="font-weight:900;font-size:22px;line-height:1;color:'+colG+'">'+pcG+'<span style="font-size:12px">%</span></span>'+
-        '<span style="font-size:10px;font-weight:700;color:var(--mute);margin-top:1px">du chemin</span></div></div>'+
-        '<div style="flex:1;text-align:center">'+
-        '<div style="font-size:12.5px;font-weight:700;color:var(--mute);margin-bottom:2px">Objectif</div>'+
-        '<div style="font-weight:900;font-size:36px;line-height:1;letter-spacing:-1.5px;color:var(--brand)">'+goal.target+'<span style="font-size:15px;margin-left:1px">kg</span></div></div></div>'+
+      // 🏔️ En-tête coloré : les deux poids encadrent la montagne qui se remplit
+      h+='<div style="margin:-18px -16px 0;padding:18px 17px 20px;background:linear-gradient(135deg,'+solid("var(--brand)")+','+solid("var(--brand2)")+');border-radius:20px 20px 0 0">'+
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">'+
+        '<span style="width:34px;height:34px;flex:0 0 34px;border-radius:11px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:17px">🎯</span>'+
+        '<span style="flex:1;font-weight:900;font-size:12px;letter-spacing:1.4px;text-transform:uppercase;color:rgba(255,255,255,.92)">'+(shortProg?'Objectif '+progDays+' jours':'Objectif du mois '+month)+'</span></div>'+
+        '<div style="display:flex;align-items:flex-end;gap:8px">'+
+        '<div style="flex:1">'+
+        '<div style="font-weight:900;font-size:38px;line-height:.95;letter-spacing:-1.6px;color:#fff">'+(curW!=null?curW:'—')+'<span style="font-size:15px;opacity:.75;margin-left:1px">kg</span></div>'+
+        '<div style="font-size:11.5px;font-weight:700;color:rgba(255,255,255,.7);margin-top:3px">aujourd\'hui</div></div>'+
+        '<div style="flex:0 0 122px;text-align:center">'+svgMontagne(pcG,"#FFFFFF",122,98)+
+        '<div style="font-weight:900;font-size:16px;color:#fff;margin-top:-4px">'+pcG+'<span style="font-size:10px">% du chemin</span></div></div>'+
+        '<div style="flex:1;text-align:right">'+
+        '<div style="font-weight:900;font-size:30px;line-height:.95;letter-spacing:-1.2px;color:#fff">'+goal.target+'<span style="font-size:14px;opacity:.75;margin-left:1px">kg</span></div>'+
+        '<div style="font-size:11.5px;font-weight:700;color:rgba(255,255,255,.7);margin-top:3px">objectif</div></div>'+
+        '</div></div>'+
+        '<div style="height:18px"></div>'+
 
         // Piste avec pastille de position
         '<div style="background:var(--soft);border:1px solid var(--line);border-radius:18px;padding:16px 17px">'+
@@ -3086,13 +3137,19 @@ function viewCalendar(name,start){
         '<span>'+goal.target+' kg<span style="color:var(--mute);font-weight:700"> · cible</span></span></div></div>'+
 
         // Récompense
-        '<div style="display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:15px 16px;margin-top:12px">'+
-        '<span style="width:52px;height:52px;flex:0 0 52px;border-radius:16px;background:var(--soft2);display:flex;align-items:center;justify-content:center;font-size:26px">🎁</span>'+
-        '<div style="flex:1;min-width:0">'+
-        '<div style="font-size:11.5px;font-weight:700;color:var(--mute)">Récompense du mois</div>'+
-        '<div style="font-weight:900;font-size:18px;color:var(--ink);line-height:1.2;margin-top:2px">'+esc(goal.reward||"À définir")+'</div>'+
-        '<div style="font-size:11.5px;color:var(--mute);font-weight:700;margin-top:4px">À débloquer en atteignant '+goal.target+' kg</div></div>'+
-        '<button id="goal-edit" style="flex:0 0 auto;border:0;background:var(--soft2);color:var(--brand);padding:10px 14px;border-radius:13px;font-weight:800;font-size:12.5px">✏️</button></div>'+
+        (function(){
+          // L'ambiance de la carte suit ce que le coach a écrit comme récompense
+          var TH=rewardTheme(goal.reward);
+          return '<div style="position:relative;overflow:hidden;border-radius:18px;padding:17px 16px;margin-top:12px;background:'+TH.g+';border:1.5px solid '+TH.c+'55">'+
+            '<div style="position:absolute;right:-14px;bottom:-18px;font-size:96px;opacity:.16;line-height:1">'+TH.e+'</div>'+
+            '<div style="position:relative">'+
+            '<div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.1);border:1.5px solid '+TH.c+'66;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:11px">'+TH.e+'</div>'+
+            '<div style="font-size:10.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:'+TH.c+'">Ta récompense du mois</div>'+
+            '<div style="font-weight:900;font-size:24px;color:#fff;line-height:1.15;margin-top:3px">'+esc(goal.reward||"À définir")+'</div>'+
+            '<div style="font-size:11.5px;font-weight:700;color:rgba(255,255,255,.62);margin-top:7px;line-height:1.45">À DÉBLOQUER<br>QUAND TU ATTEINS '+goal.target+' KG</div>'+
+            '<button id="goal-edit" style="position:absolute;right:0;bottom:0;border:0;background:rgba(255,255,255,.14);color:#fff;padding:9px 13px;border-radius:12px;font-weight:800;font-size:12.5px">✏️</button>'+
+            '</div></div>';
+        })()+
         '<div style="font-size:13px;color:var(--mute);margin-top:13px;text-align:center;line-height:1.5">'+phrase+'</div>';
     }
     h+='</div>';

@@ -901,6 +901,20 @@ function getToday90(startDate){
 }
 
 var GOAL_PHRASES=[
+  "Le poids bouge lentement, l'habitude bouge vite ⚡",
+  "Ce que tu fais aujourd'hui se verra dans trois semaines 🌱",
+  "La balance n'est qu'un indicateur — regarde le miroir 🪞",
+  "Un jour parfait ne fait rien. Trente jours corrects font tout 📆",
+  "Tu n'as pas besoin de motivation, juste de ta prochaine action 🎯",
+  "Ton corps s'adapte à ce que tu répètes 🔁",
+  "Ce n'est pas une ligne droite, c'est une tendance 📉",
+  "La discipline te coûte moins cher que le regret 💭",
+  "Personne ne verra les efforts, tout le monde verra le résultat 👀",
+  "Le plus dur est déjà derrière : tu as commencé 🚀",
+  "Deux pas en avant, un en arrière — ça reste un pas en avant 👣",
+  "Chaque repas est une occasion de choisir ton camp 🍽️",
+  "Ce que tu construis ne se voit pas encore, mais ça tient 🧱",
+  "La constance bat l'intensité, toujours 🏆",
   "Tu vas y arriver 💪",
   "Chaque jour compte, continue 🔥",
   "Ton corps te suit, ta tête décide 🧠",
@@ -2961,7 +2975,17 @@ function viewCalendar(name,start){
 
   // ⭕ CARTE HÉROS — la jauge en premier, en grand.
   // Sa couleur suit le remplissage : rouge → orange → jaune → vert.
-  var etat=pct>=85?"Tu tiens le rythme":pct>=65?"Bien engagé":pct>=45?"À consolider":pct>=25?"Ça décroche":"À relancer";
+  // Six formules par palier, qui tournent chaque jour : le même message
+  // répété une semaine finit par ne plus rien vouloir dire.
+  var ETATS={
+    haut:["Tu tiens le rythme","Machine bien lancée","Rien ne te fait décrocher","C'est ça, la régularité","Tu ne négocies plus","Solide, jour après jour"],
+    bon:["Bien engagé","Ça prend forme","La dynamique est là","Tu construis quelque chose","Le rythme s'installe","Continue comme ça"],
+    moyen:["À consolider","Encore un cran à passer","La base est là, serre un peu","Ni bien ni mal — décide","Tu peux faire mieux","Reprends la main"],
+    bas:["Ça décroche","Le fil se détend","Il faut se remettre dedans","Une journée pleine, et ça repart","Le plus dur, c'est de recommencer","Reviens dans la course"],
+    zero:["À relancer","On repart de zéro, et alors ?","Aujourd'hui suffit à changer ça","Un seul jour rempli, pour commencer","Personne ne tient sans repartir","Le premier pas, maintenant"]
+  };
+  var __niv=pct>=85?"haut":pct>=65?"bon":pct>=45?"moyen":pct>=25?"bas":"zero";
+  var etat=ETATS[__niv][today90%ETATS[__niv].length];
   h+='<div class="card" style="padding:24px 18px 20px;margin-bottom:16px;text-align:center">'+
     '<div style="font-size:20px;font-weight:900;color:var(--ink);letter-spacing:-.3px;margin-bottom:16px">Ma progression</div>'+
     '<div class="ring-wrap" style="margin:0 auto">'+svgRing(pct/100,pctColor,196,16)+
@@ -3020,26 +3044,39 @@ function viewCalendar(name,start){
       }
       // 📊 Barre de progression vers l'objectif du mois (deplacee depuis Stats)
       (function(){
+        // Départ = le TOUT PREMIER poids du programme, pas celui du mois.
+        // Sinon la barre retombait à 0 % à chaque changement de mois, alors que
+        // c'est justement l'indicateur le plus motivant de la transformation.
         var dep=null;
-        // Point de depart : le poids du 1er jour renseigne de la periode en cours
-        var d0=shortProg?0:(month-1)*30;
-        for(var w=d0;w<=today90;w++){
+        for(var w=0;w<=today90;w++){
           if(allData[w]&&allData[w].poids){dep=parseFloat(allData[w].poids);break;}
         }
+        if(dep==null)dep=curW;
         if(dep==null||curW==null||!goal.target)return;
         var tot=dep-goal.target, fait=dep-curW;
-        if(tot<=0)return;
+        // Si la cible est déjà dépassée ou le départ égal à la cible, on montre 100 %
+        if(tot<=0){tot=1;fait=1;}
         var pc=Math.max(0,Math.min(100,Math.round(fait/tot*100)));
         var col=gaugeCol(pc);
         var reste=Math.max(0,Math.round((curW-goal.target)*10)/10);
-        h+='<div style="margin-top:16px">'+
-          '<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:7px">'+
-          '<span style="font-size:13px;font-weight:800;color:var(--ink2)">'+(reste>0?'Plus que <strong style="font-size:16px">'+reste+' kg</strong>':'🎉 Objectif atteint')+'</span>'+
-          '<span style="font-size:15px;font-weight:900;color:'+col+'">'+pc+'%</span></div>'+
-          '<div style="background:var(--soft2);height:14px;border-radius:100px;overflow:hidden">'+
-          '<div style="background:linear-gradient(90deg,'+col+'aa,'+col+');height:100%;width:'+pc+'%;border-radius:100px;transition:width .5s cubic-bezier(.2,.8,.3,1)"></div></div>'+
-          '<div style="display:flex;justify-content:space-between;font-size:11px;font-weight:800;color:var(--mute);margin-top:6px">'+
-          '<span>'+dep+' kg</span><span>'+goal.target+' kg</span></div></div>';
+        // Piste toujours visible, avec une pastille qui marque la position exacte.
+        // À 0 %, une barre pleine invisible donnait l'impression qu'il n'y avait rien.
+        var perdu=Math.max(0,Math.round((dep-curW)*10)/10);
+        h+='<div style="margin-top:18px">'+
+          '<div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:9px">'+
+          '<span style="font-size:13.5px;font-weight:800;color:var(--ink2)">'+
+          (reste>0?'Plus que <strong style="font-size:19px;color:var(--ink)">'+reste+' kg</strong>':'🎉 Objectif atteint')+'</span>'+
+          '<span style="font-size:17px;font-weight:900;color:'+col+';line-height:1">'+pc+'<span style="font-size:11px">%</span></span></div>'+
+          '<div style="position:relative;height:18px">'+
+          '<div style="position:absolute;left:0;right:0;top:5px;height:9px;background:var(--soft2);border-radius:100px"></div>'+
+          '<div style="position:absolute;left:0;top:5px;height:9px;width:'+Math.max(pc,1.5)+'%;border-radius:100px;background:linear-gradient(90deg,'+col+'99,'+col+');transition:width .6s cubic-bezier(.2,.8,.3,1)"></div>'+
+          '<div style="position:absolute;top:0;left:calc('+pc+'% - 9px);width:18px;height:18px;border-radius:50%;background:#fff;border:3.5px solid '+col+';box-shadow:0 2px 7px rgba(0,0,0,.16);transition:left .6s cubic-bezier(.2,.8,.3,1)"></div>'+
+          '</div>'+
+          '<div style="display:flex;justify-content:space-between;font-size:11px;font-weight:800;color:var(--mute);margin-top:8px">'+
+          '<span>'+dep+' kg<span style="font-weight:700;opacity:.7"> · départ</span></span>'+
+          '<span>'+goal.target+' kg<span style="font-weight:700;opacity:.7"> · cible</span></span></div>'+
+          (perdu>0?'<div style="text-align:center;font-size:12px;font-weight:800;color:'+col+';margin-top:9px">−'+perdu+' kg parcourus 💪</div>':'')+
+          '</div>';
       })();
       h+='<div style="font-size:13px;color:#666;margin-top:9px">'+phrase+'</div>';
       if(goal.reward)h+='<div style="font-size:12px;color:var(--mute);margin-top:6px">🎁 Ta récompense : <strong>'+esc(goal.reward)+'</strong></div>';

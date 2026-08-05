@@ -130,9 +130,9 @@ input,textarea{outline:none}
 .mh-fill{height:6px;border-radius:3px}
 .mh-pct{font-size:12px;font-weight:700;color:#777}
 .cal-grid{background:#fff;border-radius:12px;padding:14px 12px;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:10px}
-.cal-days{display:grid;grid-template-columns:repeat(7,1fr);gap:9px;margin-bottom:8px}
+.cal-days{display:grid;grid-template-columns:repeat(7,1fr);gap:13px;margin-bottom:8px}
 .cal-dayname{text-align:center;font-size:11px;font-weight:700;color:#666}
-.cal-week{display:grid;grid-template-columns:repeat(7,1fr);gap:9px;margin-bottom:9px}
+.cal-week{display:grid;grid-template-columns:repeat(7,1fr);gap:13px;margin-bottom:13px}
 .cal-cell{aspect-ratio:1;border-radius:8px;border:2px solid transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;padding:0;font-size:11px;font-weight:700;color:var(--ink)}
 .cal-cell.today{border-color:var(--brand);font-weight:900}
 .cal-cell.future{color:#A0B8D8}
@@ -3852,11 +3852,11 @@ function viewCalendar(name,start){
             // L'éclair était à 7 px : illisible d'un coup d'œil sur la grille.
             // La couleur ne servait à rien non plus — un emoji garde ses couleurs
             // natives. On le grossit et on met le statut derrière, en pastille.
-            // Toujours un éclair jaune sur pastille verte, bien lisible :
-            // c'est le repère « mission » d'un coup d'œil. L'intensité du vert
-            // dit le résultat sans casser la lecture.
-            var mc2=msn.status==="done"?"#2FBF71":msn.status==="half"?"#7BD1A0":"#B9C4CE";
-            msnDot='<span style="position:absolute;top:-3px;right:-3px;width:24px;height:24px;border-radius:50%;background:'+mc2+';border:2px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,.28);display:flex;align-items:center;justify-content:center;font-size:14px;line-height:1">⚡</span>';
+            // UN SEUL vert, toujours le même. Faire varier la teinte selon
+            // l'issue de la mission donnait une grille bariolée où l'œil ne
+            // repérait plus rien. La pastille dit « il y a eu une mission » ;
+            // le résultat se lit dans la couleur de la case elle-même.
+            msnDot='<span style="position:absolute;top:-7px;right:-5px;width:26px;height:26px;border-radius:50%;background:#2FBF71;border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.32);display:flex;align-items:center;justify-content:center;font-size:15px;line-height:1">⚡</span>';
           }
           h+='<button class="cal-cell'+cls+'" data-day="'+idx+'" style="background:'+cellBg+'">'+(idx+1)+
             (hasBilan?'<span class="bilan-dot">📋</span>':"")+msnDot+'</button>';
@@ -5117,7 +5117,7 @@ function viewCoachDetail(){
       h+='<div style="font-size:11px;font-weight:800;color:var(--mute);letter-spacing:1px;margin:8px 0 4px">MOIS '+(mi3+1)+'</div>';
       var nR=Math.ceil((28+wkO)/7);
       for(var w3=0;w3<nR;w3++){
-        h+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:9px;margin-bottom:8px">';
+        h+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:13px;margin-bottom:12px">';
         for(var dd3=0;dd3<7;dd3++){
           var sl=w3*7+dd3-wkO;
           if(sl<0||sl>=28){h+='<div style="aspect-ratio:1;border-radius:5px;background:#F6F6F6"></div>';continue;}
@@ -5131,13 +5131,13 @@ function viewCoachDetail(){
           }
           var msn2=allData[200+ix];
           // L'éclair était à 6 px : impossible de juger le sérieux d'un client
-          // d'un coup d'œil. Pastille colorée selon le résultat de la mission.
+          // d'un coup d'œil. Pastille verte fixe, éclair jaune, bien visible.
           var mDot2="";
           if(msn2&&msn2.status&&msn2.status!=="pending"){
-            var mcc=msn2.status==="done"?"#2FBF71":msn2.status==="half"?"#7BD1A0":"#B9C4CE";
-            mDot2='<span style="position:absolute;top:-4px;right:-4px;width:21px;height:21px;border-radius:50%;background:'+mcc+';border:2px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:12px;line-height:1">⚡</span>';
+            // Même règle que côté client : un seul vert, toujours le même.
+            mDot2='<span style="position:absolute;top:-7px;right:-5px;width:26px;height:26px;border-radius:50%;background:#2FBF71;border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.32);display:flex;align-items:center;justify-content:center;font-size:15px;line-height:1">⚡</span>';
           }else if(msn2){
-            mDot2='<span style="position:absolute;top:-4px;right:-4px;width:21px;height:21px;border-radius:50%;background:#D6DCE4;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:12px;line-height:1;opacity:.8">⚡</span>';
+            mDot2='<span style="position:absolute;top:-7px;right:-5px;width:26px;height:26px;border-radius:50%;background:#2FBF71;border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.32);display:flex;align-items:center;justify-content:center;font-size:15px;line-height:1;opacity:.45">⚡</span>';
           }
           h+='<div style="aspect-ratio:1;border-radius:5px;background:'+bg2+';display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:'+(ix<=t90?"var(--ink)":"#A0B8D8")+';position:relative'+(ix===t90?';outline:2px solid var(--brand)':'')+'">'+(ix+1)+mDot2+'</div>';
         }

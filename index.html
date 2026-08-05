@@ -4,6 +4,16 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=4.0, user-scalable=yes"/>
 <title>DISCIPLINE 90 · AM Coach Genève</title>
+<script>
+/* ═══════════ THÈME AVANT LE PREMIER AFFICHAGE ═══════════
+   La palette par défaut du CSS est le corail. Le bleu n'arrivait qu'une fois
+   les données chargées : d'où l'éclair orange à l'ouverture. On mémorise donc
+   le thème du dernier passage et on le pose ici, avant tout rendu. */
+(function(){try{
+  if(localStorage.getItem("d90-theme")==="h")
+    document.documentElement.className+=" th-h";
+}catch(e){}})();
+</script>
 <style>
 /* ═══════════ THÈMES ═══════════
    Deux palettes choisies selon la fiche du client (femme / homme).
@@ -1382,11 +1392,31 @@ function clientTheme(allData){
 function applyTheme(allData){
   var cl=document.querySelectorAll(".app,.dark-screen");
   var h=clientTheme(allData)==="h";
+  // On garde le thème sous la main : au prochain lancement il sera posé
+  // avant le premier affichage, plus d'éclair de couleur.
+  try{localStorage.setItem("d90-theme",h?"h":"f");}catch(e){}
   document.documentElement.classList.toggle("th-h",h);
   __cvarCache={}; // le thème a pu changer : on relit les couleurs
   for(var i=0;i<cl.length;i++)cl[i].classList.toggle("th-h",h);
   var mt=document.querySelector('meta[name="theme-color"]');
   if(mt)mt.setAttribute("content",h?"#263038":"#33241F");
+}
+// 💬 Tirage de la phrase d'état.
+// L'ancien calcul (jour % 6) ne changeait qu'une fois par jour : en ouvrant
+// l'appli trois fois dans la journée, on relisait trois fois la même phrase.
+// Maintenant : une phrase neuve à chaque ouverture, jamais celle d'avant,
+// mais figée pendant toute la session pour qu'elle ne saute pas à chaque clic.
+var __etatSession={};
+function pickEtat(liste,niveau){
+  if(!liste||!liste.length)return "";
+  if(__etatSession[niveau]!==undefined)return liste[__etatSession[niveau]];
+  var prec=-1;
+  try{var v=localStorage.getItem("d90-etat-"+niveau);if(v!==null)prec=parseInt(v,10);}catch(e){}
+  var i=Math.floor(Math.random()*liste.length);
+  if(liste.length>1&&i===prec)i=(i+1+Math.floor(Math.random()*(liste.length-1)))%liste.length;
+  __etatSession[niveau]=i;
+  try{localStorage.setItem("d90-etat-"+niveau,String(i));}catch(e){}
+  return liste[i];
 }
 // 🎚️ Couleur de jauge : rouge à 0 %, vert à 100 %, en continu.
 // 🎚️ Rouge → orange → jaune → vert, en continu.
@@ -2020,25 +2050,31 @@ function solid(c){
   __cvarCache[k]=v;
   return v;
 }
-// 🏔️ Jauge montagne — DEUX couleurs séparées :
-//   le massif reste blanc translucide (discret, lisible sur la carte colorée)
-//   le SENTIER PARCOURU est vert vif — c'est lui qui doit sauter aux yeux
+// 🏔️ Jauge montagne — trois couleurs, trois rôles :
+//   massif  = blanc translucide (décor, il ne doit pas concurrencer)
+//   sentier = vert vif (la progression, c'est lui qu'on doit voir)
+//   drapeau = ROUGE tant que le sommet n'est pas atteint, VERT à 100 %
 // On n'utilise PAS pathLength (mal supporté selon les moteurs) : la longueur
 // réelle du tracé est calculée une fois pour toutes (SENTIER_LEN), donc le
 // remplissage est exact partout. Géométrie vérifiée : le sentier ne sort
 // jamais du triangle du massif.
-var SENTIER_D="M45 106 Q60 100 75 93 Q84 86 55 80 Q56 73 92 66 Q100 59 72 52 Q73 45 88 40 Q89 33 85 27";
-var SENTIER_LEN=166.01;
+var SENTIER_D="M42 132 Q56 126 78 118 Q88 112 52 104 Q46 97 95 88 Q104 81 66 72 Q62 65 94 56 Q98 49 78 42 Q79 34 85 26";
+var SENTIER_LEN=236.01;
+var DRAPEAU_ROUGE="#FF4B4B";
 function svgMontagne(pct,accent,w,hh){
-  w=w||160; hh=hh||120;
   accent=accent||"#5DF2A0";
   var p=Math.max(0,Math.min(100,pct||0));
   var id="mg"+Math.random().toString(36).slice(2,8);
   var sommet=p>=100;
-  var fait=(SENTIER_LEN*p/100).toFixed(2);      // longueur parcourue, en unités réelles
-  var reste=(SENTIER_LEN+2).toFixed(2);          // le reste du motif : jamais redessiné
+  var dc=sommet?accent:DRAPEAU_ROUGE;               // couleur du drapeau
+  var fait=(SENTIER_LEN*p/100).toFixed(2);          // longueur parcourue, en unités réelles
+  var reste=(SENTIER_LEN+2).toFixed(2);             // le reste du motif : jamais redessiné
   var TR="transition:stroke-dasharray .7s cubic-bezier(.2,.8,.3,1),stroke-dashoffset .7s cubic-bezier(.2,.8,.3,1)";
-  var s='<svg viewBox="0 0 170 120" width="'+w+'" height="'+hh+'" style="display:block;overflow:visible">'+
+  // Largeur fluide : le SVG remplit sa colonne et garde ses proportions, donc
+  // il ne déborde jamais, même sur un petit écran.
+  var dim=(w&&hh)?(' width="'+w+'" height="'+hh+'"'):'';
+  var sty=(w&&hh)?'display:block;overflow:visible':'display:block;width:100%;height:auto;overflow:visible';
+  var s='<svg viewBox="0 0 170 150"'+dim+' style="'+sty+'">'+
     '<defs>'+
     '<linearGradient id="r'+id+'" x1="0" y1="1" x2="0" y2="0">'+
     '<stop offset="0%" stop-color="#FFFFFF" stop-opacity=".20"/>'+
@@ -2047,34 +2083,34 @@ function svgMontagne(pct,accent,w,hh){
     '<stop offset="0%" stop-color="'+accent+'" stop-opacity=".9"/>'+
     '<stop offset="100%" stop-color="'+accent+'"/></linearGradient>'+
     '<filter id="g'+id+'" x="-70%" y="-70%" width="240%" height="240%">'+
-    '<feGaussianBlur stdDeviation="2.6" result="b"/>'+
+    '<feGaussianBlur stdDeviation="2.8" result="b"/>'+
     '<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'+
     '</defs>'+
     // Reliefs arrière — profondeur
-    '<path d="M6 112 L42 58 L78 112 Z" fill="#FFFFFF" opacity=".12"/>'+
-    '<path d="M96 112 L132 50 L168 112 Z" fill="#FFFFFF" opacity=".12"/>'+
+    '<path d="M0 140 L38 62 L76 140 Z" fill="#FFFFFF" opacity=".12"/>'+
+    '<path d="M94 140 L132 55 L170 140 Z" fill="#FFFFFF" opacity=".12"/>'+
     // Massif principal
-    '<path d="M25 112 L85 25 L145 112 Z" fill="url(#r'+id+')"/>'+
+    '<path d="M18 140 L85 22 L152 140 Z" fill="url(#r'+id+')"/>'+
     // Face droite éclairée — volume
-    '<path d="M85 25 L145 112 L85 112 Z" fill="#FFFFFF" opacity=".10"/>'+
+    '<path d="M85 22 L152 140 L85 140 Z" fill="#FFFFFF" opacity=".10"/>'+
     // Neige du sommet
-    '<path d="M85 25 L99 47 L95 43 L90 50 L85 42 L80 50 L75 43 L71 47 Z" fill="#FFFFFF" opacity=".92"/>'+
+    '<path d="M85 22 L99 50 L94 45 L89 53 L85 43 L80 53 L75 45 L71 50 Z" fill="#FFFFFF" opacity=".92"/>'+
     // Sentier restant — creux blanc discret
-    '<path d="'+SENTIER_D+'" fill="none" stroke="#FFFFFF" stroke-opacity=".28" stroke-width="5" stroke-linecap="round"/>';
+    '<path d="'+SENTIER_D+'" fill="none" stroke="#FFFFFF" stroke-opacity=".28" stroke-width="5.5" stroke-linecap="round"/>';
   // Sentier PARCOURU — vert vif. Rien n'est dessiné à 0 % (sinon le bout rond laisse un point).
   if(p>0){
-    s+='<path d="'+SENTIER_D+'" fill="none" stroke="url(#s'+id+')" stroke-width="5.5" stroke-linecap="round" filter="url(#g'+id+')" stroke-dasharray="'+fait+' '+reste+'" style="'+TR+'"/>';
+    s+='<path d="'+SENTIER_D+'" fill="none" stroke="url(#s'+id+')" stroke-width="6" stroke-linecap="round" filter="url(#g'+id+')" stroke-dasharray="'+fait+' '+reste+'" style="'+TR+'"/>';
   }
   // Marcheur : point blanc cerclé de vert, posé exactement au bout du parcouru
   if(p>0&&p<100){
-    s+='<path d="'+SENTIER_D+'" fill="none" stroke="'+accent+'" stroke-width="13" stroke-linecap="round" stroke-dasharray="0.01 '+reste+'" stroke-dashoffset="'+(-fait)+'" style="'+TR+'"/>'+
-       '<path d="'+SENTIER_D+'" fill="none" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" stroke-dasharray="0.01 '+reste+'" stroke-dashoffset="'+(-fait)+'" style="'+TR+'"/>';
+    s+='<path d="'+SENTIER_D+'" fill="none" stroke="'+accent+'" stroke-width="14" stroke-linecap="round" stroke-dasharray="0.01 '+reste+'" stroke-dashoffset="'+(-fait)+'" style="'+TR+'"/>'+
+       '<path d="'+SENTIER_D+'" fill="none" stroke="#FFFFFF" stroke-width="8.5" stroke-linecap="round" stroke-dasharray="0.01 '+reste+'" stroke-dashoffset="'+(-fait)+'" style="'+TR+'"/>';
   }
-  // Mât et drapeau : blanc en demi-teinte tant que ce n'est pas atteint, vert illuminé à 100 %
-  s+='<line x1="85" y1="25" x2="85" y2="4" stroke="'+(sommet?accent:"#FFFFFF")+'" stroke-opacity="'+(sommet?"1":".5")+'" stroke-width="2.4" stroke-linecap="round"/>'+
-     '<path d="M85 5 L104 10.5 L85 16 Z" fill="'+(sommet?accent:"#FFFFFF")+'" fill-opacity="'+(sommet?"1":".38")+'"'+(sommet?' filter="url(#g'+id+')"':'')+'/>'+
-     (sommet?'<circle cx="85" cy="25" r="9" fill="none" stroke="'+accent+'" stroke-width="2.2" opacity=".55"/>':'')+
-     '<line x1="8" y1="112.5" x2="162" y2="112.5" stroke="#FFFFFF" stroke-opacity=".32" stroke-width="2.5" stroke-linecap="round"/>'+
+  // Mât blanc, drapeau ROUGE tant que ce n'est pas gagné, VERT et illuminé au sommet
+  s+='<line x1="85" y1="24" x2="85" y2="2" stroke="#FFFFFF" stroke-opacity=".85" stroke-width="2.6" stroke-linecap="round"/>'+
+     '<path d="M85 3 L106 9 L85 15 Z" fill="'+dc+'"'+(sommet?' filter="url(#g'+id+')"':'')+' style="transition:fill .5s"/>'+
+     (sommet?'<circle cx="85" cy="24" r="10" fill="none" stroke="'+accent+'" stroke-width="2.4" opacity=".55"/>':'')+
+     '<line x1="4" y1="140.5" x2="166" y2="140.5" stroke="#FFFFFF" stroke-opacity=".32" stroke-width="2.6" stroke-linecap="round"/>'+
      '</svg>';
   return s;
 }
@@ -3067,7 +3103,7 @@ function viewCalendar(name,start){
     zero:["À relancer","On repart de zéro, et alors ?","Aujourd'hui suffit à changer ça","Un seul jour rempli, pour commencer","Personne ne tient sans repartir","Le premier pas, maintenant"]
   };
   var __niv=pct>=85?"haut":pct>=65?"bon":pct>=45?"moyen":pct>=25?"bas":"zero";
-  var etat=ETATS[__niv][today90%ETATS[__niv].length];
+  var etat=pickEtat(ETATS[__niv],__niv);
   h+='<div class="card" style="padding:24px 18px 20px;margin-bottom:16px;text-align:center">'+
     '<div style="font-size:20px;font-weight:900;color:var(--ink);letter-spacing:-.3px;margin-bottom:16px">Ma progression</div>'+
     '<div class="ring-wrap" style="margin:0 auto">'+svgRing(pct/100,pctColor,196,16)+
@@ -3138,16 +3174,16 @@ function viewCalendar(name,start){
         '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">'+
         '<span style="width:34px;height:34px;flex:0 0 34px;border-radius:11px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:17px">🎯</span>'+
         '<span style="flex:1;font-weight:900;font-size:12px;letter-spacing:1.4px;text-transform:uppercase;color:rgba(255,255,255,.92)">'+(shortProg?'Objectif '+progDays+' jours':'Objectif du mois '+month)+'</span></div>'+
-        '<div style="display:flex;align-items:flex-end;gap:8px">'+
-        '<div style="flex:1">'+
-        '<div style="font-weight:900;font-size:38px;line-height:.95;letter-spacing:-1.6px;color:#fff">'+(curW!=null?curW:'—')+'<span style="font-size:15px;opacity:.75;margin-left:1px">kg</span></div>'+
-        '<div style="font-size:11.5px;font-weight:700;color:rgba(255,255,255,.7);margin-top:3px">aujourd\'hui</div></div>'+
-        '<div style="flex:0 0 156px;text-align:center">'+svgMontagne(pcG,"#5DF2A0",156,116)+
-        '<div style="font-weight:900;font-size:16px;color:#fff;margin-top:-2px">'+pcG+'<span style="font-size:10px">% du chemin</span></div></div>'+
-        '<div style="flex:1;text-align:right">'+
-        '<div style="display:inline-block;background:#5DF2A0;border:2px solid rgba(255,255,255,.55);border-radius:14px;padding:5px 11px 6px;box-shadow:0 3px 12px rgba(0,0,0,.16)">'+
-        '<span style="font-weight:900;font-size:27px;line-height:.95;letter-spacing:-1.2px;color:#06331F">'+goal.target+'<span style="font-size:13px;margin-left:1px">kg</span></span></div>'+
-        '<div style="font-size:11.5px;font-weight:700;color:rgba(255,255,255,.78);margin-top:5px">objectif</div></div>'+
+        '<div style="display:flex;align-items:flex-end;gap:6px">'+
+        '<div style="flex:1 1 0;min-width:0">'+
+        '<div style="font-weight:900;font-size:34px;line-height:.95;letter-spacing:-1.5px;color:#fff">'+(curW!=null?curW:'—')+'<span style="font-size:14px;opacity:.75;margin-left:1px">kg</span></div>'+
+        '<div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.7);margin-top:3px">aujourd\'hui</div></div>'+
+        '<div style="flex:1 1 186px;max-width:196px;min-width:112px;text-align:center">'+svgMontagne(pcG,"#5DF2A0")+
+        '<div style="font-weight:900;font-size:16px;color:#fff;margin-top:1px">'+pcG+'<span style="font-size:10px">% du chemin</span></div></div>'+
+        '<div style="flex:1 1 0;min-width:0;text-align:right">'+
+        '<div style="display:inline-block;background:#5DF2A0;border:2px solid rgba(255,255,255,.55);border-radius:13px;padding:5px 9px 6px;box-shadow:0 3px 12px rgba(0,0,0,.16)">'+
+        '<span style="font-weight:900;font-size:24px;line-height:.95;letter-spacing:-1px;color:#06331F">'+goal.target+'<span style="font-size:12px;margin-left:1px">kg</span></span></div>'+
+        '<div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.78);margin-top:5px">objectif</div></div>'+
         '</div></div>'+
         '<div style="height:18px"></div>'+
 
@@ -5387,12 +5423,42 @@ function viewCoachDash(){
   return h+'</div></div>';
 }
 
+// ═══════════ CLIENTS SUPPRIMÉS ═══════════
+// Le nuage fait autorité au rechargement : il réécrit la liste locale. Donc si
+// le DELETE côté serveur n'a pas abouti (réseau coupé, ligne verrouillée), le
+// client effacé réapparaissait au lancement suivant, comme si rien ne s'était
+// passé. On garde donc la trace des slugs supprimés : ils sont filtrés à chaque
+// chargement, et leur suppression est retentée en silence jusqu'à ce qu'elle passe.
+function deletedSlugs(){return lsGet("amcoach_deleted",[]);}
+function markDeleted(slug){
+  var d=deletedSlugs();
+  if(d.indexOf(slug)===-1){d.push(slug);lsSet("amcoach_deleted",d);}
+}
+function unmarkDeleted(slug){
+  var d=deletedSlugs(),i=d.indexOf(slug);
+  if(i>-1){d.splice(i,1);lsSet("amcoach_deleted",d);}
+}
+function isDeleted(slug){return deletedSlugs().indexOf(slug)>-1;}
+// Nouvelle tentative de purge cloud pour tout ce qui traîne encore
+function retryCloudPurge(slug){
+  sbFetch("tracking?client_slug=eq."+encodeURIComponent(slug),{method:"DELETE"}).catch(function(){})
+    .then(function(){return sbFetch("clients?slug=eq."+encodeURIComponent(slug),{method:"DELETE"});})
+    .catch(function(){});
+}
+
 function loadCoachDataFromCloud(){
   Promise.all([
     sbFetch("clients?select=*&order=created_at.desc").then(function(r){return r.json();}),
     sbFetch("tracking?select=client_slug,day_index,data").then(function(r){return r.json();})
   ]).then(function(results){
     var clients=results[0]||[], rows=results[1]||[];
+    // Un client supprimé ne revient pas, quoi que dise le nuage.
+    var revenus=[];
+    clients=clients.filter(function(cc){
+      if(isDeleted(cc.slug)){revenus.push(cc.slug);return false;}
+      return true;
+    });
+    for(var rz=0;rz<revenus.length;rz++)retryCloudPurge(revenus[rz]);
     if(clients.length){
       // On FUSIONNE : le nuage remplace la liste, mais on retraduit hors_stats
       // et on conserve les champs locaux que Supabase ne connaît pas.
@@ -5408,6 +5474,8 @@ function loadCoachDataFromCloud(){
     var bySlug={};
     for(var i=0;i<rows.length;i++){
       var r=rows[i];
+      // Les lignes orphelines d'un client supprimé ne ressuscitent rien
+      if(isDeleted(r.client_slug))continue;
       if(!bySlug[r.client_slug])bySlug[r.client_slug]={};
       bySlug[r.client_slug][r.day_index]=r.data;
     }
@@ -6390,6 +6458,9 @@ function bindCoach(){
       }
       var clients=lsGet("amcoach_clients",[]);
       var startDate=document.getElementById("nc-date").value;
+      // Si ce lien avait été supprimé, on lève la marque : sinon le nouveau
+      // client serait filtré au chargement et resterait invisible.
+      unmarkDeleted(slug);
       clients.unshift({name:name,slug:slug,start_date:startDate,created_at:new Date().toISOString()});
       lsSet("amcoach_clients",clients);
       sbFetch("clients?on_conflict=slug",{method:"POST",prefer:"resolution=merge-duplicates",body:{slug:slug,name:name,start_date:startDate}}).catch(function(){});
@@ -6985,6 +7056,9 @@ function bindCoach(){
 
     clients=clients.filter(function(x){return x.slug!==slug;});
     lsSet("amcoach_clients",clients);
+    // On inscrit le slug au registre des suppressions AVANT tout appel réseau :
+    // même si le cloud ne répond pas, ce client ne remontera plus jamais.
+    markDeleted(slug);
     // Purge locale complète : toute clé qui porte ce slug
     try{
       var aSupprimer=[];
@@ -7007,20 +7081,28 @@ function bindCoach(){
       .then(function(r){okCli=!!(r&&r.ok);})
       .catch(function(){})
       .then(function(){
-        // On vérifie qu'il ne reste vraiment rien avant de dire que c'est fait
-        return sbFetch("tracking?client_slug=eq."+encodeURIComponent(slug)+"&select=day_index")
-          .then(function(r){return r.json();})
-          .catch(function(){return null;});
+        // On vérifie les DEUX tables : c'est la ligne « clients » restée en place
+        // qui faisait réapparaître le client au rechargement.
+        return Promise.all([
+          sbFetch("tracking?client_slug=eq."+encodeURIComponent(slug)+"&select=day_index")
+            .then(function(r){return r.json();}).catch(function(){return null;}),
+          sbFetch("clients?slug=eq."+encodeURIComponent(slug)+"&select=slug")
+            .then(function(r){return r.json();}).catch(function(){return null;})
+        ]);
       })
-      .then(function(reste){
-        if(reste&&reste.length){
-          alert("⚠️ "+reste.length+" ligne(s) n'ont pas pu être supprimées du cloud.\n\nSi tu recrées « "+slug+" », ces données reviendront. Utilise un autre lien, ou supprime-les depuis Supabase.");
+      .then(function(res){
+        var resteT=(res&&res[0])||[], resteC=(res&&res[1])||[];
+        if(resteT.length||resteC.length){
+          alert("✅ "+nom+" a été retiré du tableau de bord.\n\nLe nuage garde encore "+
+                (resteC.length?"sa fiche":"")+(resteC.length&&resteT.length?" et ":"")+
+                (resteT.length?resteT.length+" ligne(s) de suivi":"")+
+                ".\nCe n'est pas grave : il ne réapparaîtra pas, et la purge sera retentée à chaque ouverture.");
         }else{
           alert("✅ "+nom+" et toutes ses données ont été supprimés définitivement.");
         }
       })
       .catch(function(){
-        alert("⚠️ Suppression locale faite, mais le cloud n'a pas répondu. Vérifie avant de réutiliser le lien « "+slug+" ».");
+        alert("✅ "+nom+" a été retiré du tableau de bord.\n\nLe nuage n'a pas répondu — la purge sera retentée automatiquement. Il ne réapparaîtra pas.");
       });
 
     state.coachDetail=null;

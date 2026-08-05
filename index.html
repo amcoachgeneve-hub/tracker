@@ -1214,6 +1214,11 @@ var QUESTS={
 // 🔻 Score VIVANT : le niveau se tient, il ne se décroche pas.
 // Chaque journée entièrement vide de la dernière quinzaine retire une brique,
 // avec deux jours tolérés — maladie, imprévu, vraie coupure.
+// MAIS une série en cours rachète le passé : sans ça, quelqu'un qui repart
+// depuis trois jours lisait quand même « ton niveau glisse », c'est-à-dire
+// l'inverse de ce qu'il est en train de faire. Chaque jour de série au-delà
+// du premier rend une brique. Le premier ne compte pas : une seule journée
+// ne doit pas effacer deux semaines d'absence.
 // Les briques posées (l'historique) ne bougent jamais : seul le niveau descend.
 function qgVivant(allData,today90){
   var res=qgRes(allData,today90);
@@ -1227,8 +1232,13 @@ function qgVivant(allData,today90){
     if(n===0)vides++;
   }
   var tolerance=2;
-  var penalite=Math.max(0,vides-tolerance);
+  var serie=comboStreak(allData,today90,hasBrique);
+  var rachat=Math.max(0,serie-1);
+  var brut=Math.max(0,vides-tolerance);
+  var penalite=Math.max(0,brut-rachat);
   return {total:res.total, vides:vides, fenetre:fenetre, tolerance:tolerance,
+          serie:serie, rachat:Math.min(rachat,brut), brut:brut,
+          remonte:serie>=2&&brut>0,
           penalite:penalite, vivant:Math.max(0,res.total-penalite)};
 }
 function qgRes(allData,today90){
@@ -2969,8 +2979,17 @@ function blocForteresse(allData,today90,start){
           '<span style="font-size:12px;font-weight:800;color:'+(cb>0?streakBadge(cb).c:"rgba(255,255,255,.35)")+'">'+(cb>0?streakBadge(cb).e+' '+cb+' j':'—')+'</span>'+
           '</div></div></div>';
       })()+
-      // 🔻 Le niveau se tient : on prévient quand il glisse
-      (VIV.penalite>0?'<div style="background:rgba(255,152,0,.14);border:1px solid rgba(255,152,0,.35);border-radius:14px;padding:12px 13px;margin-top:14px">'+
+      // 🔻 Le niveau se tient : on prévient quand il glisse.
+      // Mais si la personne a repris (série en cours), on lui dit qu'elle
+      // REMONTE : lui annoncer une chute pendant qu'elle recolle, c'est le
+      // meilleur moyen de la faire lâcher pour de bon.
+      (VIV.remonte?'<div style="background:rgba(93,242,160,.13);border:1px solid rgba(93,242,160,.34);border-radius:14px;padding:12px 13px;margin-top:14px">'+
+        '<div style="color:#7CF5B4;font-weight:900;font-size:12.5px">🔺 Tu remontes</div>'+
+        '<div style="color:rgba(255,255,255,.62);font-size:11.5px;line-height:1.5;margin-top:4px">'+
+        VIV.serie+' jour'+(VIV.serie>1?'s':'')+' d\'affilée — '+VIV.rachat+' brique'+(VIV.rachat>1?'s':'')+' récupérée'+(VIV.rachat>1?'s':'')+'.'+
+        (VIV.penalite>0?' Encore '+VIV.penalite+' à reprendre : tiens la série.':' Ton niveau est de nouveau plein.')+
+        '</div></div>':
+       VIV.penalite>0?'<div style="background:rgba(255,152,0,.14);border:1px solid rgba(255,152,0,.35);border-radius:14px;padding:12px 13px;margin-top:14px">'+
         '<div style="color:#FFC46B;font-weight:900;font-size:12.5px">'+(redescendu?'🔻 Tu es redescendu de niveau':'⚠️ Ton niveau glisse')+'</div>'+
         '<div style="color:rgba(255,255,255,.62);font-size:11.5px;line-height:1.5;margin-top:4px">'+
         VIV.vides+' jour'+(VIV.vides>1?'s':'')+' sans rien poser sur les '+VIV.fenetre+' derniers — '+VIV.penalite+' brique'+(VIV.penalite>1?'s':'')+' retirée'+(VIV.penalite>1?'s':'')+'.'+
@@ -3169,11 +3188,20 @@ function viewCalendar(name,start){
       var perduG=(depG!=null&&curW!=null)?Math.max(0,Math.round((depG-curW)*10)/10):0;
       var Rg=34, Cg=2*Math.PI*Rg;
 
-      // 🏔️ En-tête coloré : les deux poids encadrent la montagne qui se remplit
+      // 🏔️ En-tête coloré : les deux poids encadrent la montagne qui se remplit.
+      // Les repères (départ, reste à faire, parcouru) sont remontés ici, en haut
+      // à droite : la montagne porte déjà la progression, la barre du dessous
+      // racontait deux fois la même chose et mangeait un écran entier.
       h+='<div style="margin:-18px -16px 0;padding:18px 17px 20px;background:linear-gradient(135deg,'+solid("var(--brand)")+','+solid("var(--brand2)")+');border-radius:20px 20px 0 0">'+
-        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">'+
+        '<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:6px">'+
         '<span style="width:34px;height:34px;flex:0 0 34px;border-radius:11px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:17px">🎯</span>'+
-        '<span style="flex:1;font-weight:900;font-size:12px;letter-spacing:1.4px;text-transform:uppercase;color:rgba(255,255,255,.92)">'+(shortProg?'Objectif '+progDays+' jours':'Objectif du mois '+month)+'</span></div>'+
+        '<span style="flex:1;font-weight:900;font-size:12px;letter-spacing:1.4px;text-transform:uppercase;color:rgba(255,255,255,.92);padding-top:9px">'+(shortProg?'Objectif '+progDays+' jours':'Objectif du mois '+month)+'</span>'+
+        // Repères compacts, calés en haut à droite
+        '<div style="flex:0 0 auto;text-align:right;line-height:1.35">'+
+        (resteG!==null&&resteG>0?'<div style="font-size:12.5px;font-weight:900;color:#fff">Plus que '+resteG+' kg</div>':'<div style="font-size:12.5px;font-weight:900;color:#5DF2A0">🎉 Objectif atteint</div>')+
+        (perduG>0?'<div style="display:inline-block;margin-top:4px;background:rgba(255,255,255,.22);border-radius:100px;padding:3px 9px;font-size:11px;font-weight:800;color:#fff;white-space:nowrap">−'+perduG+' kg 💪</div>':'')+
+        '<div style="font-size:10.5px;font-weight:700;color:rgba(255,255,255,.62);margin-top:4px">départ '+(depG!=null?depG:'—')+' kg</div>'+
+        '</div></div>'+
         '<div style="display:flex;align-items:flex-end;gap:6px">'+
         '<div style="flex:1 1 0;min-width:0">'+
         '<div style="font-weight:900;font-size:34px;line-height:.95;letter-spacing:-1.5px;color:#fff">'+(curW!=null?curW:'—')+'<span style="font-size:14px;opacity:.75;margin-left:1px">kg</span></div>'+
@@ -3185,35 +3213,24 @@ function viewCalendar(name,start){
         '<span style="font-weight:900;font-size:24px;line-height:.95;letter-spacing:-1px;color:#06331F">'+goal.target+'<span style="font-size:12px;margin-left:1px">kg</span></span></div>'+
         '<div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.78);margin-top:5px">objectif</div></div>'+
         '</div></div>'+
-        '<div style="height:18px"></div>'+
-
-        // Piste avec pastille de position
-        '<div style="background:var(--soft);border:1px solid var(--line);border-radius:18px;padding:16px 17px">'+
-        '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:13px">'+
-        '<span style="font-size:14px;font-weight:700;color:var(--ink2)">'+
-        (resteG!==null&&resteG>0?'Plus que <strong style="font-size:19px;color:var(--ink)">'+resteG+' kg</strong>':'🎉 <strong>Objectif atteint</strong>')+'</span>'+
-        (perduG>0?'<span style="background:'+colG+'1f;color:'+colG+';border-radius:100px;padding:6px 12px;font-size:12px;font-weight:800;white-space:nowrap">−'+perduG+' kg parcourus 💪</span>':'')+'</div>'+
-        '<div style="position:relative;height:16px">'+
-        '<div style="position:absolute;left:0;right:0;top:5px;height:7px;background:var(--soft2);border-radius:100px"></div>'+
-        '<div style="position:absolute;left:0;top:5px;height:7px;width:'+Math.max(pcG,2)+'%;border-radius:100px;background:'+colG+';transition:width .6s cubic-bezier(.2,.8,.3,1)"></div>'+
-        '<div style="position:absolute;top:0;left:calc('+pcG+'% - 8px);width:16px;height:16px;border-radius:50%;background:#fff;border:3.5px solid '+colG+';box-shadow:0 2px 6px rgba(0,0,0,.15);transition:left .6s cubic-bezier(.2,.8,.3,1)"></div></div>'+
-        '<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:800;color:var(--ink2);margin-top:9px">'+
-        '<span>'+(depG!=null?depG:'—')+' kg<span style="color:var(--mute);font-weight:700"> · départ</span></span>'+
-        '<span>'+goal.target+' kg<span style="color:var(--mute);font-weight:700"> · cible</span></span></div></div>'+
+        '<div style="height:16px"></div>'+
 
         // Récompense
         (function(){
           // L'ambiance de la carte suit ce que le coach a écrit comme récompense
           var TH=rewardTheme(goal.reward);
-          return '<div style="position:relative;overflow:hidden;border-radius:18px;padding:17px 16px;margin-top:12px;background:'+TH.g+';border:1.5px solid '+TH.c+'55">'+
-            '<div style="position:absolute;right:-14px;bottom:-18px;font-size:96px;opacity:.16;line-height:1">'+TH.e+'</div>'+
+          return '<div style="position:relative;overflow:hidden;border-radius:18px;padding:17px 16px 15px;background:'+TH.g+';border:1.5px solid '+TH.c+'55">'+
+            // L'emoji de fond était masqué par le bouton : on le remonte et on le
+            // décale à gauche du bouton, il reste entier.
+            '<div style="position:absolute;right:6px;bottom:44px;font-size:96px;opacity:.16;line-height:1;pointer-events:none">'+TH.e+'</div>'+
             '<div style="position:relative">'+
             '<div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.1);border:1.5px solid '+TH.c+'66;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:11px">'+TH.e+'</div>'+
             '<div style="font-size:10.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:'+TH.c+'">Ta récompense du mois</div>'+
             '<div style="font-weight:900;font-size:24px;color:#fff;line-height:1.15;margin-top:3px">'+esc(goal.reward||"À définir")+'</div>'+
-            '<div style="font-size:11.5px;font-weight:700;color:rgba(255,255,255,.62);margin-top:7px;line-height:1.45">À DÉBLOQUER<br>QUAND TU ATTEINS '+goal.target+' KG</div>'+
-            '<button id="goal-edit" style="position:absolute;right:0;bottom:0;border:0;background:rgba(255,255,255,.14);color:#fff;padding:9px 13px;border-radius:12px;font-weight:800;font-size:12.5px">✏️</button>'+
-            '</div></div>';
+            '<div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-top:7px">'+
+            '<div style="font-size:11.5px;font-weight:700;color:rgba(255,255,255,.62);line-height:1.45">À DÉBLOQUER<br>QUAND TU ATTEINS '+goal.target+' KG</div>'+
+            '<button id="goal-edit" style="flex:0 0 auto;border:0;background:rgba(255,255,255,.14);color:#fff;padding:9px 13px;border-radius:12px;font-weight:800;font-size:12.5px">✏️</button>'+
+            '</div></div></div>';
         })()+
         '<div style="font-size:13px;color:var(--mute);margin-top:13px;text-align:center;line-height:1.5">'+phrase+'</div>';
     }
@@ -3445,8 +3462,11 @@ function viewCalendar(name,start){
           var msn=allData[200+idx];
           var msnDot="";
           if(msn&&msn.status&&msn.status!=="pending"){
-            var mc2=msn.status==="done"?"var(--ok)":msn.status==="half"?"var(--amber)":"#BBB";
-            msnDot='<span style="position:absolute;top:2px;left:3px;font-size:7px;color:'+mc2+'">⚡</span>';
+            // L'éclair était à 7 px : illisible d'un coup d'œil sur la grille.
+            // La couleur ne servait à rien non plus — un emoji garde ses couleurs
+            // natives. On le grossit et on met le statut derrière, en pastille.
+            var mc2=msn.status==="done"?"var(--ok)":msn.status==="half"?"var(--amber)":"#9AA3AE";
+            msnDot='<span style="position:absolute;top:1px;right:1px;width:18px;height:18px;border-radius:50%;background:'+mc2+';box-shadow:0 1px 3px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;font-size:10px;line-height:1">⚡</span>';
           }
           h+='<button class="cal-cell'+cls+'" data-day="'+idx+'" style="background:'+cellBg+'">'+(idx+1)+
             (hasBilan?'<span class="bilan-dot">📋</span>':"")+msnDot+'</button>';
@@ -3532,6 +3552,36 @@ function viewDay(name,start){
   }
   h+='</div></div>';
 
+  // 🧠 MINDSET DU JOUR — remonté juste après l'énergie physique :
+  // en bas de page les clients ne le remplissaient pas.
+  var ms=d.mindset||{};
+  h+='<div style="margin-top:16px"><div class="card-label">🧠 MINDSET DU JOUR — 3 questions, 3 minutes</div>'+
+    '<details style="margin-bottom:10px"><summary style="cursor:pointer;list-style:none;font-size:12px;font-weight:800;color:var(--violet);padding:9px 13px;background:var(--soft2);border-radius:12px">💡 Pourquoi ces 3 questions ?</summary>'+
+    '<div class="card" style="padding:13px 15px;margin-top:7px;border-left:4px solid var(--violet)"><div style="font-size:12px;color:#666;line-height:1.75">Ton cerveau est programmé pour retenir le négatif — c\'est un réflexe de survie. Ces 3 questions le rééquilibrent chaque soir : la <strong>fierté</strong> ancre tes victoires, la <strong>gratitude</strong> entraîne ton cerveau à voir ce qui va bien, et nommer le <strong>négatif</strong> le sort de ta tête — un problème écrit pèse deux fois moins lourd qu\'un problème ruminé. En 90 jours, ce rituel de 3 minutes reprogramme ta façon de voir tes journées. Sois honnête, sois précis : c\'est ce qui revient chaque semaine qui révèle ce qu\'il faut corriger.</div></div></details>'+
+    (function(){var ms2=comboStreak(allData,idx,mindsetFull);return ms2>0?'<div style="font-size:12px;font-weight:900;margin:-6px 0 8px;padding:0 2px;color:'+streakBadge(ms2).c+'">COMBO '+streakBadge(ms2).e+' '+ms2+' jour'+(ms2>1?'s':'')+' de mindset complet</div>':'';})()+''+
+    (idx===today90?
+      '<div class="card" style="padding:16px">'+
+      '<div class="txt-label">🥇 Une chose dont tu es fier(ère) aujourd\'hui</div>'+
+      '<textarea id="ms-fier" class="txt-area" placeholder="J\'ai tenu ma séance malgré la fatigue...">'+esc(ms.fier||"")+'</textarea>'+
+      '<div class="txt-label">🌟 Une chose positive — la chance que tu as d\'avoir ça</div>'+
+      '<textarea id="ms-positif" class="txt-area" placeholder="Ma santé, ma famille, ce repas...">'+esc(ms.positif||"")+'</textarea>'+
+      '<div class="txt-label">🌧️ Une chose négative — ce que tu n\'as pas aimé aujourd\'hui</div>'+
+      '<textarea id="ms-negatif" class="txt-area" style="margin-bottom:0" placeholder="Le stress du bureau, le grignotage de 16h...">'+esc(ms.negatif||"")+'</textarea>'+
+      '</div>'
+    :(ms.fier||ms.positif||ms.negatif)?
+      '<div class="card" style="padding:16px">'+
+      (ms.fier?'<div style="font-size:13px;line-height:1.7;margin-bottom:8px">🥇 '+esc(ms.fier)+'</div>':'')+
+      (ms.positif?'<div style="font-size:13px;line-height:1.7;margin-bottom:8px">🌟 '+esc(ms.positif)+'</div>':'')+
+      (ms.negatif?'<div style="font-size:13px;line-height:1.7;color:var(--brand)">🌧️ '+esc(ms.negatif)+'</div>':'')+
+      '<div style="font-size:11px;color:#777;margin-top:10px">🔒 Mindset du jour '+(idx+1)+' — verrouillé</div></div>'
+    :
+      '<div class="card" style="padding:16px;text-align:center">'+
+      '<div style="font-size:26px;margin-bottom:8px">🔒</div>'+
+      '<div style="font-size:13px;font-weight:800;margin-bottom:6px">Ce mindset est resté vide</div>'+
+      '<div style="font-size:12px;color:#666;line-height:1.7">Les 3 questions se remplissent <strong>le jour même</strong> — c\'est un rituel du soir, pas un devoir à rattraper. Ce qui compte, c\'est ce soir : rendez-vous sur la page du jour 🌙</div></div>'
+    )+
+    '</div>';
+
   // habits
   h+='<div style="margin-top:16px"><div class="card-label">HABITUDES DU JOUR</div>';
   for(var hb=0;hb<HABITS.length;hb++){
@@ -3583,34 +3633,6 @@ function viewDay(name,start){
     })();
   }
 
-  // 🧠 MINDSET DU JOUR
-  var ms=d.mindset||{};
-  h+='<div style="margin-top:16px"><div class="card-label">🧠 MINDSET DU JOUR — 3 questions, 3 minutes</div>'+
-    '<details style="margin-bottom:10px"><summary style="cursor:pointer;list-style:none;font-size:12px;font-weight:800;color:var(--violet);padding:9px 13px;background:var(--soft2);border-radius:12px">💡 Pourquoi ces 3 questions ?</summary>'+
-    '<div class="card" style="padding:13px 15px;margin-top:7px;border-left:4px solid var(--violet)"><div style="font-size:12px;color:#666;line-height:1.75">Ton cerveau est programmé pour retenir le négatif — c\'est un réflexe de survie. Ces 3 questions le rééquilibrent chaque soir : la <strong>fierté</strong> ancre tes victoires, la <strong>gratitude</strong> entraîne ton cerveau à voir ce qui va bien, et nommer le <strong>négatif</strong> le sort de ta tête — un problème écrit pèse deux fois moins lourd qu\'un problème ruminé. En 90 jours, ce rituel de 3 minutes reprogramme ta façon de voir tes journées. Sois honnête, sois précis : c\'est ce qui revient chaque semaine qui révèle ce qu\'il faut corriger.</div></div></details>'+
-    (function(){var ms2=comboStreak(allData,idx,mindsetFull);return ms2>0?'<div style="font-size:12px;font-weight:900;margin:-6px 0 8px;padding:0 2px;color:'+streakBadge(ms2).c+'">COMBO '+streakBadge(ms2).e+' '+ms2+' jour'+(ms2>1?'s':'')+' de mindset complet</div>':'';})()+''+
-    (idx===today90?
-      '<div class="card" style="padding:16px">'+
-      '<div class="txt-label">🥇 Une chose dont tu es fier(ère) aujourd\'hui</div>'+
-      '<textarea id="ms-fier" class="txt-area" placeholder="J\'ai tenu ma séance malgré la fatigue...">'+esc(ms.fier||"")+'</textarea>'+
-      '<div class="txt-label">🌟 Une chose positive — la chance que tu as d\'avoir ça</div>'+
-      '<textarea id="ms-positif" class="txt-area" placeholder="Ma santé, ma famille, ce repas...">'+esc(ms.positif||"")+'</textarea>'+
-      '<div class="txt-label">🌧️ Une chose négative — ce que tu n\'as pas aimé aujourd\'hui</div>'+
-      '<textarea id="ms-negatif" class="txt-area" style="margin-bottom:0" placeholder="Le stress du bureau, le grignotage de 16h...">'+esc(ms.negatif||"")+'</textarea>'+
-      '</div>'
-    :(ms.fier||ms.positif||ms.negatif)?
-      '<div class="card" style="padding:16px">'+
-      (ms.fier?'<div style="font-size:13px;line-height:1.7;margin-bottom:8px">🥇 '+esc(ms.fier)+'</div>':'')+
-      (ms.positif?'<div style="font-size:13px;line-height:1.7;margin-bottom:8px">🌟 '+esc(ms.positif)+'</div>':'')+
-      (ms.negatif?'<div style="font-size:13px;line-height:1.7;color:var(--brand)">🌧️ '+esc(ms.negatif)+'</div>':'')+
-      '<div style="font-size:11px;color:#777;margin-top:10px">🔒 Mindset du jour '+(idx+1)+' — verrouillé</div></div>'
-    :
-      '<div class="card" style="padding:16px;text-align:center">'+
-      '<div style="font-size:26px;margin-bottom:8px">🔒</div>'+
-      '<div style="font-size:13px;font-weight:800;margin-bottom:6px">Ce mindset est resté vide</div>'+
-      '<div style="font-size:12px;color:#666;line-height:1.7">Les 3 questions se remplissent <strong>le jour même</strong> — c\'est un rituel du soir, pas un devoir à rattraper. Ce qui compte, c\'est ce soir : rendez-vous sur la page du jour 🌙</div></div>'
-    )+
-    '</div>';
 
   // bilan dimanche
   if(isSunday){

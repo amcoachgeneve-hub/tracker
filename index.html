@@ -2020,47 +2020,63 @@ function solid(c){
   __cvarCache[k]=v;
   return v;
 }
-// 🏔️ Jauge montagne — le SENTIER se remplit à mesure qu'on monte.
-// Astuce : pathLength="100" normalise la longueur du tracé, donc
-// stroke-dasharray="<pct> 100" remplit exactement le pourcentage voulu.
-// Le marcheur est un second tracé réduit à un point rond, décalé du même pct.
-function svgMontagne(pct,col,w,hh){
-  w=w||150; hh=hh||120;
+// 🏔️ Jauge montagne — DEUX couleurs séparées :
+//   le massif reste blanc translucide (discret, lisible sur la carte colorée)
+//   le SENTIER PARCOURU est vert vif — c'est lui qui doit sauter aux yeux
+// On n'utilise PAS pathLength (mal supporté selon les moteurs) : la longueur
+// réelle du tracé est calculée une fois pour toutes (SENTIER_LEN), donc le
+// remplissage est exact partout. Géométrie vérifiée : le sentier ne sort
+// jamais du triangle du massif.
+var SENTIER_D="M45 106 Q60 100 75 93 Q84 86 55 80 Q56 73 92 66 Q100 59 72 52 Q73 45 88 40 Q89 33 85 27";
+var SENTIER_LEN=166.01;
+function svgMontagne(pct,accent,w,hh){
+  w=w||160; hh=hh||120;
+  accent=accent||"#5DF2A0";
   var p=Math.max(0,Math.min(100,pct||0));
   var id="mg"+Math.random().toString(36).slice(2,8);
   var sommet=p>=100;
-  // Le sentier : lacets qui restent à l'intérieur de la montagne
-  var SENTIER="M35 105 Q42 100 40 92 Q38 82 50 80 Q62 78 65 70 Q68 62 75 54 Q82 46 90 38 Q96 32 100 27";
-  return '<svg viewBox="0 0 150 120" width="'+w+'" height="'+hh+'" style="display:block;overflow:visible">'+
+  var fait=(SENTIER_LEN*p/100).toFixed(2);      // longueur parcourue, en unités réelles
+  var reste=(SENTIER_LEN+2).toFixed(2);          // le reste du motif : jamais redessiné
+  var TR="transition:stroke-dasharray .7s cubic-bezier(.2,.8,.3,1),stroke-dashoffset .7s cubic-bezier(.2,.8,.3,1)";
+  var s='<svg viewBox="0 0 170 120" width="'+w+'" height="'+hh+'" style="display:block;overflow:visible">'+
     '<defs>'+
     '<linearGradient id="r'+id+'" x1="0" y1="1" x2="0" y2="0">'+
-    '<stop offset="0%" stop-color="'+col+'" stop-opacity=".28"/>'+
-    '<stop offset="100%" stop-color="'+col+'" stop-opacity=".55"/></linearGradient>'+
+    '<stop offset="0%" stop-color="#FFFFFF" stop-opacity=".20"/>'+
+    '<stop offset="100%" stop-color="#FFFFFF" stop-opacity=".44"/></linearGradient>'+
     '<linearGradient id="s'+id+'" x1="0" y1="1" x2="0" y2="0">'+
-    '<stop offset="0%" stop-color="'+col+'" stop-opacity=".75"/>'+
-    '<stop offset="100%" stop-color="'+col+'"/></linearGradient>'+
+    '<stop offset="0%" stop-color="'+accent+'" stop-opacity=".9"/>'+
+    '<stop offset="100%" stop-color="'+accent+'"/></linearGradient>'+
+    '<filter id="g'+id+'" x="-70%" y="-70%" width="240%" height="240%">'+
+    '<feGaussianBlur stdDeviation="2.6" result="b"/>'+
+    '<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'+
     '</defs>'+
-    // Sommet arrière, plus clair, pour donner de la profondeur
-    '<path d="M12 110 L40 62 L58 84 L70 66 L92 110 Z" fill="'+col+'" opacity=".14"/>'+
+    // Reliefs arrière — profondeur
+    '<path d="M6 112 L42 58 L78 112 Z" fill="#FFFFFF" opacity=".12"/>'+
+    '<path d="M96 112 L132 50 L168 112 Z" fill="#FFFFFF" opacity=".12"/>'+
     // Massif principal
-    '<path d="M22 110 L58 60 L74 78 L100 26 L124 68 L138 52 L150 110 Z" fill="url(#r'+id+')"/>'+
-    // Face éclairée du pic principal
-    '<path d="M100 26 L124 68 L100 110 Z" fill="'+col+'" opacity=".12"/>'+
-    // Neige au sommet
-    '<path d="M100 26 L110 44 L104 41 L100 47 L96 40 L90 43 Z" fill="'+col+'" opacity=".85"/>'+
-    // Sentier restant, en creux
-    '<path d="'+SENTIER+'" pathLength="100" fill="none" stroke="'+col+'" stroke-opacity=".22" stroke-width="5" stroke-linecap="round"/>'+
-    // Sentier parcouru — c'est lui qui porte le pourcentage
-    '<path d="'+SENTIER+'" pathLength="100" fill="none" stroke="url(#s'+id+')" stroke-width="5" stroke-linecap="round" stroke-dasharray="'+p.toFixed(1)+' 100" style="transition:stroke-dasharray .7s cubic-bezier(.2,.8,.3,1)"/>'+
-    // Marcheur : point rond posé exactement sur le tracé
-    (p>0&&p<100?'<path d="'+SENTIER+'" pathLength="100" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" stroke-dasharray="0.01 100" stroke-dashoffset="'+(-p).toFixed(1)+'" style="transition:stroke-dashoffset .7s cubic-bezier(.2,.8,.3,1)"/>':'')+
-    // Mât et drapeau au sommet
-    '<line x1="100" y1="26" x2="100" y2="6" stroke="'+col+'" stroke-opacity="'+(sommet?"1":".45")+'" stroke-width="2.4" stroke-linecap="round"/>'+
-    '<path d="M100 7 L118 12 L100 17 Z" fill="'+col+'" fill-opacity="'+(sommet?"1":".35")+'"/>'+
-    (sommet?'<circle cx="100" cy="26" r="7" fill="none" stroke="'+col+'" stroke-width="2" opacity=".5"/>':'')+
-    // Sol
-    '<line x1="8" y1="111" x2="148" y2="111" stroke="'+col+'" stroke-opacity=".3" stroke-width="2.5" stroke-linecap="round"/>'+
-    '</svg>';
+    '<path d="M25 112 L85 25 L145 112 Z" fill="url(#r'+id+')"/>'+
+    // Face droite éclairée — volume
+    '<path d="M85 25 L145 112 L85 112 Z" fill="#FFFFFF" opacity=".10"/>'+
+    // Neige du sommet
+    '<path d="M85 25 L99 47 L95 43 L90 50 L85 42 L80 50 L75 43 L71 47 Z" fill="#FFFFFF" opacity=".92"/>'+
+    // Sentier restant — creux blanc discret
+    '<path d="'+SENTIER_D+'" fill="none" stroke="#FFFFFF" stroke-opacity=".28" stroke-width="5" stroke-linecap="round"/>';
+  // Sentier PARCOURU — vert vif. Rien n'est dessiné à 0 % (sinon le bout rond laisse un point).
+  if(p>0){
+    s+='<path d="'+SENTIER_D+'" fill="none" stroke="url(#s'+id+')" stroke-width="5.5" stroke-linecap="round" filter="url(#g'+id+')" stroke-dasharray="'+fait+' '+reste+'" style="'+TR+'"/>';
+  }
+  // Marcheur : point blanc cerclé de vert, posé exactement au bout du parcouru
+  if(p>0&&p<100){
+    s+='<path d="'+SENTIER_D+'" fill="none" stroke="'+accent+'" stroke-width="13" stroke-linecap="round" stroke-dasharray="0.01 '+reste+'" stroke-dashoffset="'+(-fait)+'" style="'+TR+'"/>'+
+       '<path d="'+SENTIER_D+'" fill="none" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" stroke-dasharray="0.01 '+reste+'" stroke-dashoffset="'+(-fait)+'" style="'+TR+'"/>';
+  }
+  // Mât et drapeau : blanc en demi-teinte tant que ce n'est pas atteint, vert illuminé à 100 %
+  s+='<line x1="85" y1="25" x2="85" y2="4" stroke="'+(sommet?accent:"#FFFFFF")+'" stroke-opacity="'+(sommet?"1":".5")+'" stroke-width="2.4" stroke-linecap="round"/>'+
+     '<path d="M85 5 L104 10.5 L85 16 Z" fill="'+(sommet?accent:"#FFFFFF")+'" fill-opacity="'+(sommet?"1":".38")+'"'+(sommet?' filter="url(#g'+id+')"':'')+'/>'+
+     (sommet?'<circle cx="85" cy="25" r="9" fill="none" stroke="'+accent+'" stroke-width="2.2" opacity=".55"/>':'')+
+     '<line x1="8" y1="112.5" x2="162" y2="112.5" stroke="#FFFFFF" stroke-opacity=".32" stroke-width="2.5" stroke-linecap="round"/>'+
+     '</svg>';
+  return s;
 }
 // 🎁 Univers visuel de la récompense, déduit de ce que le coach a écrit.
 function rewardTheme(txt){
@@ -3126,11 +3142,12 @@ function viewCalendar(name,start){
         '<div style="flex:1">'+
         '<div style="font-weight:900;font-size:38px;line-height:.95;letter-spacing:-1.6px;color:#fff">'+(curW!=null?curW:'—')+'<span style="font-size:15px;opacity:.75;margin-left:1px">kg</span></div>'+
         '<div style="font-size:11.5px;font-weight:700;color:rgba(255,255,255,.7);margin-top:3px">aujourd\'hui</div></div>'+
-        '<div style="flex:0 0 140px;text-align:center">'+svgMontagne(pcG,"#5FBF9C",140,110)+
-        '<div style="font-weight:900;font-size:16px;color:#fff;margin-top:-4px">'+pcG+'<span style="font-size:10px">% du chemin</span></div></div>'+
+        '<div style="flex:0 0 156px;text-align:center">'+svgMontagne(pcG,"#5DF2A0",156,116)+
+        '<div style="font-weight:900;font-size:16px;color:#fff;margin-top:-2px">'+pcG+'<span style="font-size:10px">% du chemin</span></div></div>'+
         '<div style="flex:1;text-align:right">'+
-        '<div style="font-weight:900;font-size:30px;line-height:.95;letter-spacing:-1.2px;color:#5FBF9C">'+goal.target+'<span style="font-size:14px;opacity:.75;margin-left:1px">kg</span></div>'+
-        '<div style="font-size:11.5px;font-weight:700;color:rgba(255,255,255,.7);margin-top:3px">objectif</div></div>'+
+        '<div style="display:inline-block;background:#5DF2A0;border:2px solid rgba(255,255,255,.55);border-radius:14px;padding:5px 11px 6px;box-shadow:0 3px 12px rgba(0,0,0,.16)">'+
+        '<span style="font-weight:900;font-size:27px;line-height:.95;letter-spacing:-1.2px;color:#06331F">'+goal.target+'<span style="font-size:13px;margin-left:1px">kg</span></span></div>'+
+        '<div style="font-size:11.5px;font-weight:700;color:rgba(255,255,255,.78);margin-top:5px">objectif</div></div>'+
         '</div></div>'+
         '<div style="height:18px"></div>'+
 

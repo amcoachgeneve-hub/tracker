@@ -1693,6 +1693,80 @@ function themeCSS(){
   return o+"}";
 }
 // ═══════════ 📅 SÉLECTEUR DE DATE ═══════════
+// 🎭 ANNONCE DU SUPERVISEUR — feuille modale au lancement.
+// Les clients déjà en cours n'ont jamais vu l'écran d'inscription, donc ils
+// ne savent pas que la fonction existe. On la leur présente une fois, avec
+// une sortie franche : « Plus tard » ne redemande rien avant sept jours,
+// et l'accès reste permanent depuis la carte de progression.
+function supAnnonceVue(){
+  try{return localStorage.getItem("d90-sup-vu-"+CLIENT);}catch(e){return "1";}
+}
+function supAnnonceMarque(val){
+  try{localStorage.setItem("d90-sup-vu-"+CLIENT,val);}catch(e){}
+}
+function supDoitAnnoncer(allData){
+  if(allData[503])return false;                 // déjà choisi, rien à annoncer
+  var v=supAnnonceVue();
+  if(v==="fait")return false;
+  if(v&&v.indexOf("plus-tard:")===0){
+    var t=parseInt(v.slice(10),10)||0;
+    if(Date.now()-t < 7*86400000)return false;  // reporté : on laisse sept jours
+  }
+  return true;
+}
+function supAnnonce(){
+  var ov=document.createElement("div");
+  ov.style.cssText="position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center";
+  var S=supGet(getAllData()), genre=S.genre, choisi=S.ton, prenom=S.prenom;
+  function corps(){
+    var T=TONS[choisi], g='';
+    for(var ti=0;ti<TON_ORDRE.length;ti++){
+      var k=TON_ORDRE[ti],TT=TONS[k],on=(k===choisi);
+      g+='<button type="button" class="sa-ton" data-ton="'+k+'" style="flex:1 1 30%;padding:9px 4px;border-radius:11px;border:2px solid '+(on?solid("var(--brand)"):solid("var(--line)"))+';background:'+(on?solid("var(--soft)"):"#fff")+';font-weight:800;font-size:11px;color:'+(on?solid("var(--ink)"):solid("var(--mute)"))+'">'+TT.emoji+' '+TT.nom+'</button>';
+    }
+    return '<div style="background:'+solid("var(--card)")+';width:100%;max-width:430px;border-radius:22px 22px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));max-height:88vh;overflow-y:auto">'+
+      '<div style="display:inline-block;background:'+solid("var(--brand)")+';color:#fff;font-size:10.5px;font-weight:900;letter-spacing:1.2px;text-transform:uppercase;border-radius:100px;padding:4px 11px;margin-bottom:9px">Nouveau</div>'+
+      '<div style="font-weight:900;font-size:19px;color:'+solid("var(--ink)")+';line-height:1.25">Choisis ton accompagnateur</div>'+
+      '<div style="font-size:12.5px;color:'+solid("var(--mute)")+';line-height:1.5;margin-top:5px">Il te parlera pendant tes 90 jours. À toi de voir si tu préfères qu\'on te secoue ou qu\'on te ménage.</div>'+
+      '<div style="display:flex;gap:6px;margin:14px 0 8px">'+
+      '<button type="button" class="sa-g" data-g="h" style="flex:1;padding:9px 4px;border-radius:10px;border:2px solid '+(genre==="h"?solid("var(--brand)"):solid("var(--line)"))+';background:'+(genre==="h"?solid("var(--soft)"):"#fff")+';font-weight:800;font-size:12px;color:'+(genre==="h"?solid("var(--ink)"):solid("var(--mute)"))+'">👨 Homme</button>'+
+      '<button type="button" class="sa-g" data-g="f" style="flex:1;padding:9px 4px;border-radius:10px;border:2px solid '+(genre==="f"?solid("var(--brand)"):solid("var(--line)"))+';background:'+(genre==="f"?solid("var(--soft)"):"#fff")+';font-weight:800;font-size:12px;color:'+(genre==="f"?solid("var(--ink)"):solid("var(--mute)"))+'">👩 Femme</button></div>'+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap">'+g+'</div>'+
+      '<div style="background:'+solid("var(--soft2)")+';border-radius:13px;padding:12px 13px;margin-top:12px">'+
+      '<div style="font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:'+solid("var(--mute)")+'">Ce sera</div>'+
+      '<div style="font-size:16px;font-weight:900;color:'+solid("var(--ink)")+';margin-top:2px">'+T.emoji+' '+esc(prenom)+'</div>'+
+      '<div style="font-size:12px;color:'+solid("var(--ink2)")+';font-style:italic;margin-top:6px;line-height:1.5">« '+esc(T.bas[0])+' »</div></div>'+
+      '<button type="button" id="sa-ok" style="width:100%;margin-top:13px;padding:14px 0;border-radius:13px;border:0;background:'+solid("var(--brand)")+';color:#fff;font-weight:900;font-size:14px">C\'est parti avec '+esc(prenom)+'</button>'+
+      '<button type="button" id="sa-later" style="width:100%;margin-top:8px;padding:11px 0;border-radius:13px;border:1px solid '+solid("var(--line)")+';background:#fff;color:'+solid("var(--mute)")+';font-weight:800;font-size:13px">Plus tard</button>'+
+      '</div>';
+  }
+  function cabler(){
+    ov.innerHTML=corps();
+    var gs=ov.querySelectorAll(".sa-g");
+    for(var i=0;i<gs.length;i++)gs[i].addEventListener("click",function(){
+      genre=this.getAttribute("data-g"); prenom=supTirage(choisi,genre); cabler();
+    });
+    var ts=ov.querySelectorAll(".sa-ton");
+    for(var j=0;j<ts.length;j++)ts[j].addEventListener("click",function(){
+      choisi=this.getAttribute("data-ton"); prenom=supTirage(choisi,genre); cabler();
+    });
+    ov.querySelector("#sa-ok").addEventListener("click",function(){
+      saveDay(503,{ton:choisi,genre:genre,prenom:prenom});
+      supAnnonceMarque("fait");
+      document.body.removeChild(ov);
+      feedback("🎭 "+prenom+" t\'accompagne maintenant","ok");
+      render();
+    });
+    ov.querySelector("#sa-later").addEventListener("click",function(){
+      supAnnonceMarque("plus-tard:"+Date.now());
+      document.body.removeChild(ov);
+    });
+  }
+  cabler();
+  ov.addEventListener("click",function(e){if(e.target===ov){supAnnonceMarque("plus-tard:"+Date.now());document.body.removeChild(ov);}});
+  document.body.appendChild(ov);
+}
+
 // Saisir une date au clavier est trop lent : on ouvre le calendrier natif.
 // cb reçoit la date au format AAAA-MM-JJ, ou null si annulé.
 function pickDate(titre,valeurISO,cb,options){
@@ -2583,7 +2657,7 @@ function bindOnboarding(){
     if(!n.value.trim())return;
     lsSetStr("amcoach_name_"+CLIENT,n.value.trim());
     lsSetStr("amcoach_start_"+CLIENT,d.value);
-    var ad=getAllData(); tonSet(ad,choisi,genre,prenom); saveAllData(ad);
+    saveDay(503,{ton:choisi,genre:genre,prenom:prenom});
     ensureClientInCloud(n.value.trim(),d.value);
     alert("Bravo ! C'est "+prenom+" qui va te superviser pendant 90 jours.\n\nSi tu en as marre de "+prenom+", tu peux changer de superviseur quand tu veux.");
     render();
@@ -8044,6 +8118,13 @@ function bindFinance(){
 
 // ═══════════ MAIN BINDINGS ═══════════
 function bindMain(name,start){
+  // 🎭 Une seule fois : on présente le choix du superviseur aux clients
+  // déjà lancés, qui n'ont jamais vu l'écran d'inscription.
+  if(state.view==="calendar"&&!document.querySelector("#sa-ok")){
+    try{
+      if(supDoitAnnoncer(getAllData()))setTimeout(supAnnonce,450);
+    }catch(e){}
+  }
   if(state.view==="nutrition"){bindNutrition();bindNav();return;}
   if(state.view==="menus"){bindNav();return;}
   if(state.view==="finance"){bindFinance();bindNav();return;}
@@ -8167,11 +8248,15 @@ function bindMain(name,start){
   var supB=document.querySelectorAll(".sup-pick");
   for(var sp=0;sp<supB.length;sp++){
     supB[sp].addEventListener("click",function(){
-      var ad=getAllData(), cur=supGet(ad);
+      var cur=supGet(getAllData());
       var k=this.getAttribute("data-ton")||cur.ton;
       var g=this.getAttribute("data-g")||cur.genre;
-      tonSet(ad,k,g); saveAllData(ad);
-      feedback("🎭 "+supGet(getAllData()).prenom+" prend le relais","ok");
+      // On garde le prénom tant que le caractère ET le genre ne bougent pas :
+      // changer juste de genre ne doit pas rebattre le personnage entier.
+      var meme=(k===cur.ton&&g===cur.genre);
+      var prenom=meme?cur.prenom:supTirage(k,g);
+      saveDay(503,{ton:k,genre:g,prenom:prenom});
+      feedback("🎭 "+prenom+" prend le relais","ok");
       render();
     });
   }

@@ -130,9 +130,9 @@ input,textarea{outline:none}
 .mh-fill{height:6px;border-radius:3px}
 .mh-pct{font-size:12px;font-weight:700;color:#777}
 .cal-grid{background:#fff;border-radius:12px;padding:14px 12px;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:10px}
-.cal-days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:8px}
+.cal-days{display:grid;grid-template-columns:repeat(7,1fr);gap:9px;margin-bottom:8px}
 .cal-dayname{text-align:center;font-size:11px;font-weight:700;color:#666}
-.cal-week{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px}
+.cal-week{display:grid;grid-template-columns:repeat(7,1fr);gap:9px;margin-bottom:9px}
 .cal-cell{aspect-ratio:1;border-radius:8px;border:2px solid transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;padding:0;font-size:11px;font-weight:700;color:var(--ink)}
 .cal-cell.today{border-color:var(--brand);font-weight:900}
 .cal-cell.future{color:#A0B8D8}
@@ -1649,17 +1649,21 @@ function supPhrases(allData){var T=TONS[tonActif(allData)];return (T&&T.phrases&
 // l'appli trois fois dans la journée, on relisait trois fois la même phrase.
 // Maintenant : une phrase neuve à chaque ouverture, jamais celle d'avant,
 // mais figée pendant toute la session pour qu'elle ne saute pas à chaque clic.
-var __etatSession={};
-function pickEtat(liste,niveau){
+// Une phrase PAR JOUR, pas par ouverture. Le tirage aléatoire changeait à
+// chaque rafraîchissement, ce qui donnait l'impression que l'appli bafouille.
+// Ici l'index est calculé depuis le numéro du jour : identique toute la
+// journée, différent le lendemain, jamais deux jours de suite le même.
+// Le décalage dépend du superviseur, donc deux personnes au même niveau
+// le même jour ne lisent pas la même phrase.
+function __hash(txt){
+  var h=0;
+  for(var i=0;i<txt.length;i++){h=(h*31+txt.charCodeAt(i))%9973;}
+  return h;
+}
+function pickEtat(liste,cle,jour){
   if(!liste||!liste.length)return "";
-  if(__etatSession[niveau]!==undefined)return liste[__etatSession[niveau]];
-  var prec=-1;
-  try{var v=localStorage.getItem("d90-etat-"+niveau);if(v!==null)prec=parseInt(v,10);}catch(e){}
-  var i=Math.floor(Math.random()*liste.length);
-  if(liste.length>1&&i===prec)i=(i+1+Math.floor(Math.random()*(liste.length-1)))%liste.length;
-  __etatSession[niveau]=i;
-  try{localStorage.setItem("d90-etat-"+niveau,String(i));}catch(e){}
-  return liste[i];
+  var j=(typeof jour==="number"&&jour>=0)?jour:0;
+  return liste[(j+__hash(cle||""))%liste.length];
 }
 // 🎚️ Couleur de jauge : rouge à 0 %, vert à 100 %, en continu.
 // 🎚️ Rouge → orange → jaune → vert, en continu.
@@ -3409,7 +3413,7 @@ function viewCalendar(name,start){
   // Les phrases suivent le ton choisi par le client au démarrage.
   var ETATS=TONS[tonActif(allData)];
   var __niv=pct>=85?"haut":pct>=65?"bon":pct>=45?"moyen":pct>=25?"bas":"zero";
-  var etat=pickEtat(ETATS[__niv],tonActif(allData)+"-"+__niv);
+  var etat=pickEtat(ETATS[__niv],tonActif(allData)+"-"+__niv,today90);
   h+='<div class="card" style="padding:24px 18px 20px;margin-bottom:16px;text-align:center">'+
     '<div style="font-size:20px;font-weight:900;color:var(--ink);letter-spacing:-.3px;margin-bottom:16px">Ma progression</div>'+
     '<div class="ring-wrap" style="margin:0 auto">'+svgRing(pct/100,pctColor,196,16)+
@@ -3418,6 +3422,27 @@ function viewCalendar(name,start){
     '<span style="font-size:22px;letter-spacing:0">%</span></span>'+
     '<span style="font-size:11.5px;font-weight:700;color:var(--mute)">de tes jours remplis</span></div></div>'+
     '<div style="font-size:13.5px;font-weight:800;color:'+pctColor+';margin-top:14px">'+etat+'</div>'+
+    // 🎭 Signature du superviseur : les clients déjà lancés n'ont jamais vu
+    // l'écran de choix (il n'apparaît qu'au tout premier démarrage). Le bouton
+    // leur donne l'accès, et rappelle à tous qui leur parle.
+    (function(){var S=supGet(allData),T=TONS[S.ton];
+      var b='<button id="sup-edit" style="margin:9px auto 0;display:flex;align-items:center;gap:6px;background:var(--soft2);border:1px solid var(--line);border-radius:100px;padding:6px 13px;font-size:11.5px;font-weight:700;color:var(--ink2);cursor:pointer">'+
+        '<span style="font-size:14px">'+T.emoji+'</span>'+esc(S.prenom)+'<span style="color:var(--mute);font-weight:600">· changer</span></button>';
+      if(!state.showSupForm)return b;
+      var f='<div id="sup-form" style="margin-top:13px;padding-top:13px;border-top:1px solid var(--line);text-align:left">'+
+        '<div style="font-size:12px;font-weight:800;margin-bottom:8px">Qui te supervise ?</div>'+
+        '<div style="display:flex;gap:6px;margin-bottom:8px">'+
+        '<button class="sup-pick" data-g="h" style="flex:1;padding:8px 4px;border-radius:10px;border:2px solid '+(S.genre==="h"?"var(--brand)":"var(--line)")+';background:'+(S.genre==="h"?"var(--soft)":"#fff")+';font-weight:800;font-size:11.5px;color:'+(S.genre==="h"?"var(--ink)":"var(--mute)")+'">👨 Homme</button>'+
+        '<button class="sup-pick" data-g="f" style="flex:1;padding:8px 4px;border-radius:10px;border:2px solid '+(S.genre==="f"?"var(--brand)":"var(--line)")+';background:'+(S.genre==="f"?"var(--soft)":"#fff")+';font-weight:800;font-size:11.5px;color:'+(S.genre==="f"?"var(--ink)":"var(--mute)")+'">👩 Femme</button></div>'+
+        '<div style="display:flex;gap:6px;flex-wrap:wrap">';
+      for(var ti=0;ti<TON_ORDRE.length;ti++){
+        var k=TON_ORDRE[ti],TT=TONS[k],on=(k===S.ton);
+        f+='<button class="sup-pick" data-ton="'+k+'" style="flex:1 1 30%;padding:9px 4px;border-radius:11px;border:2px solid '+(on?"var(--brand)":"var(--line)")+';background:'+(on?"var(--soft)":"#fff")+';font-weight:800;font-size:11px;color:'+(on?"var(--ink)":"var(--mute)")+'">'+TT.emoji+' '+TT.nom+'</button>';
+      }
+      f+='</div><div style="font-size:11.5px;color:var(--ink2);font-style:italic;margin-top:9px;line-height:1.5">« '+esc(T.bas[0])+' »</div>'+
+        '<button id="sup-close" style="width:100%;margin-top:9px;padding:8px 0;border-radius:10px;border:1px solid var(--line);background:#fff;font-size:11.5px;font-weight:800;color:var(--mute)">Fermer</button></div>';
+      return b+f;
+    })()+
     '<div style="display:flex;gap:7px;justify-content:center;flex-wrap:wrap;margin-top:14px">'+
       '<span style="background:var(--soft2);border-radius:100px;padding:9px 15px;font-size:12.5px;font-weight:700;color:var(--ink2)">'+
         '<span style="font-size:30px;line-height:1;vertical-align:-8px;filter:drop-shadow(0 2px 5px rgba(0,0,0,.18))">'+streakBadge(streak).e+'</span> <b style="font-size:16px;color:'+(streak>=1?streakBadge(streak).c:"var(--mute)")+'">'+streak+'</b> jour'+(streak>1?'s':'')+' de série</span>'+
@@ -3753,8 +3778,11 @@ function viewCalendar(name,start){
             // L'éclair était à 7 px : illisible d'un coup d'œil sur la grille.
             // La couleur ne servait à rien non plus — un emoji garde ses couleurs
             // natives. On le grossit et on met le statut derrière, en pastille.
-            var mc2=msn.status==="done"?"var(--ok)":msn.status==="half"?"var(--amber)":"#9AA3AE";
-            msnDot='<span style="position:absolute;top:1px;right:1px;width:18px;height:18px;border-radius:50%;background:'+mc2+';box-shadow:0 1px 3px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;font-size:10px;line-height:1">⚡</span>';
+            // Toujours un éclair jaune sur pastille verte, bien lisible :
+            // c'est le repère « mission » d'un coup d'œil. L'intensité du vert
+            // dit le résultat sans casser la lecture.
+            var mc2=msn.status==="done"?"#2FBF71":msn.status==="half"?"#7BD1A0":"#B9C4CE";
+            msnDot='<span style="position:absolute;top:-3px;right:-3px;width:24px;height:24px;border-radius:50%;background:'+mc2+';border:2px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,.28);display:flex;align-items:center;justify-content:center;font-size:14px;line-height:1">⚡</span>';
           }
           h+='<button class="cal-cell'+cls+'" data-day="'+idx+'" style="background:'+cellBg+'">'+(idx+1)+
             (hasBilan?'<span class="bilan-dot">📋</span>':"")+msnDot+'</button>';
@@ -5015,7 +5043,7 @@ function viewCoachDetail(){
       h+='<div style="font-size:11px;font-weight:800;color:var(--mute);letter-spacing:1px;margin:8px 0 4px">MOIS '+(mi3+1)+'</div>';
       var nR=Math.ceil((28+wkO)/7);
       for(var w3=0;w3<nR;w3++){
-        h+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:5px">';
+        h+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:9px;margin-bottom:8px">';
         for(var dd3=0;dd3<7;dd3++){
           var sl=w3*7+dd3-wkO;
           if(sl<0||sl>=28){h+='<div style="aspect-ratio:1;border-radius:5px;background:#F6F6F6"></div>';continue;}
@@ -5032,10 +5060,10 @@ function viewCoachDetail(){
           // d'un coup d'œil. Pastille colorée selon le résultat de la mission.
           var mDot2="";
           if(msn2&&msn2.status&&msn2.status!=="pending"){
-            var mcc=msn2.status==="done"?"var(--ok)":msn2.status==="half"?"var(--amber)":"#9AA3AE";
-            mDot2='<span style="position:absolute;top:-3px;right:-3px;width:15px;height:15px;border-radius:50%;background:'+mcc+';border:1.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.28);display:flex;align-items:center;justify-content:center;font-size:8px;line-height:1">⚡</span>';
+            var mcc=msn2.status==="done"?"#2FBF71":msn2.status==="half"?"#7BD1A0":"#B9C4CE";
+            mDot2='<span style="position:absolute;top:-4px;right:-4px;width:21px;height:21px;border-radius:50%;background:'+mcc+';border:2px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:12px;line-height:1">⚡</span>';
           }else if(msn2){
-            mDot2='<span style="position:absolute;top:-3px;right:-3px;width:15px;height:15px;border-radius:50%;background:#D6DCE4;border:1.5px solid #fff;display:flex;align-items:center;justify-content:center;font-size:8px;line-height:1;opacity:.75">⚡</span>';
+            mDot2='<span style="position:absolute;top:-4px;right:-4px;width:21px;height:21px;border-radius:50%;background:#D6DCE4;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:12px;line-height:1;opacity:.8">⚡</span>';
           }
           h+='<div style="aspect-ratio:1;border-radius:5px;background:'+bg2+';display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:'+(ix<=t90?"var(--ink)":"#A0B8D8")+';position:relative'+(ix===t90?';outline:2px solid var(--brand)':'')+'">'+(ix+1)+mDot2+'</div>';
         }
@@ -8127,6 +8155,28 @@ function bindMain(name,start){
   if(gs)gs.addEventListener("click",function(){state.showGoalForm=true;render();});
   var ge=document.getElementById("goal-edit");
   if(ge)ge.addEventListener("click",function(){state.showGoalForm=true;render();});
+  // 🎭 Changer de superviseur depuis l'appli, sans repasser par l'inscription
+  var se=document.getElementById("sup-edit");
+  if(se)se.addEventListener("click",function(){
+    state.showSupForm=!state.showSupForm; render();
+    setTimeout(function(){
+      var el=document.getElementById("sup-form");
+      if(el)el.scrollIntoView({behavior:"smooth",block:"center"});
+    },60);
+  });
+  var supB=document.querySelectorAll(".sup-pick");
+  for(var sp=0;sp<supB.length;sp++){
+    supB[sp].addEventListener("click",function(){
+      var ad=getAllData(), cur=supGet(ad);
+      var k=this.getAttribute("data-ton")||cur.ton;
+      var g=this.getAttribute("data-g")||cur.genre;
+      tonSet(ad,k,g); saveAllData(ad);
+      feedback("🎭 "+supGet(getAllData()).prenom+" prend le relais","ok");
+      render();
+    });
+  }
+  var supClose=document.getElementById("sup-close");
+  if(supClose)supClose.addEventListener("click",function(){state.showSupForm=false;render();});
   var gsave=document.getElementById("goal-save");
   if(gsave)gsave.addEventListener("click",function(){
     var t=parseFloat(document.getElementById("goal-target").value);

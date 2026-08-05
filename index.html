@@ -2020,34 +2020,46 @@ function solid(c){
   __cvarCache[k]=v;
   return v;
 }
-// 🏔️ Jauge montagne : le chemin se remplit à mesure qu'on monte vers le drapeau.
-// Tout est dessiné en SVG, donc net à toutes les tailles et sans image à charger.
+// 🏔️ Jauge montagne — le SENTIER se remplit à mesure qu'on monte.
+// Astuce : pathLength="100" normalise la longueur du tracé, donc
+// stroke-dasharray="<pct> 100" remplit exactement le pourcentage voulu.
+// Le marcheur est un second tracé réduit à un point rond, décalé du même pct.
 function svgMontagne(pct,col,w,hh){
   w=w||150; hh=hh||120;
   var p=Math.max(0,Math.min(100,pct||0));
   var id="mg"+Math.random().toString(36).slice(2,8);
-  // Le remplissage monte du bas vers le sommet
-  var y=hh-(hh-14)*(p/100);
-  return '<svg viewBox="0 0 150 120" width="'+w+'" height="'+hh+'" style="display:block">'+
+  var sommet=p>=100;
+  // Le sentier : départ en bas à gauche, lacets, arrivée au sommet (100,26)
+  var SENTIER="M28 108 C44 104 54 96 52 88 C50 79 62 76 70 74 C80 71 78 62 74 56 C70 49 80 45 88 42 C96 39 96 33 100 27";
+  return '<svg viewBox="0 0 150 120" width="'+w+'" height="'+hh+'" style="display:block;overflow:visible">'+
     '<defs>'+
-    '<clipPath id="'+id+'"><rect x="0" y="'+y.toFixed(1)+'" width="150" height="'+(hh-y).toFixed(1)+'"/></clipPath>'+
-    '<linearGradient id="g'+id+'" x1="0" y1="1" x2="0" y2="0">'+
-    '<stop offset="0%" stop-color="'+col+'" stop-opacity=".55"/>'+
+    '<linearGradient id="r'+id+'" x1="0" y1="1" x2="0" y2="0">'+
+    '<stop offset="0%" stop-color="'+col+'" stop-opacity=".28"/>'+
+    '<stop offset="100%" stop-color="'+col+'" stop-opacity=".55"/></linearGradient>'+
+    '<linearGradient id="s'+id+'" x1="0" y1="1" x2="0" y2="0">'+
+    '<stop offset="0%" stop-color="'+col+'" stop-opacity=".75"/>'+
     '<stop offset="100%" stop-color="'+col+'"/></linearGradient>'+
     '</defs>'+
-    // Massif en gris clair (le chemin restant)
-    '<path d="M8 112 L46 46 L62 68 L88 22 L112 66 L128 48 L142 112 Z" fill="'+solid("var(--soft2)")+'"/>'+
-    '<path d="M62 68 L88 22 L112 66 Z" fill="'+solid("var(--line)")+'" opacity=".7"/>'+
-    // Même massif rempli, découpé à la hauteur atteinte
-    '<g clip-path="url(#'+id+')">'+
-    '<path d="M8 112 L46 46 L62 68 L88 22 L112 66 L128 48 L142 112 Z" fill="url(#g'+id+')"/>'+
-    '</g>'+
-    // Sentier sinueux
-    '<path d="M75 112 C64 96 86 88 76 74 C68 62 90 56 84 42 C81 34 87 30 88 24" fill="none" stroke="#fff" stroke-width="4.5" stroke-linecap="round" opacity=".85"/>'+
-    // Drapeau au sommet
-    '<line x1="88" y1="22" x2="88" y2="4" stroke="'+(p>=100?col:solid("var(--mute)"))+'" stroke-width="2.6" stroke-linecap="round"/>'+
-    '<path d="M88 5 L106 10 L88 15 Z" fill="'+(p>=100?col:solid("var(--mute)"))+'"/>'+
-    '<line x1="6" y1="113" x2="144" y2="113" stroke="'+solid("var(--line)")+'" stroke-width="2.5" stroke-linecap="round"/>'+
+    // Sommet arrière, plus clair, pour donner de la profondeur
+    '<path d="M12 110 L40 62 L58 84 L70 66 L92 110 Z" fill="'+col+'" opacity=".14"/>'+
+    // Massif principal
+    '<path d="M22 110 L58 60 L74 78 L100 26 L124 68 L138 52 L150 110 Z" fill="url(#r'+id+')"/>'+
+    // Face éclairée du pic principal
+    '<path d="M100 26 L124 68 L100 110 Z" fill="'+col+'" opacity=".12"/>'+
+    // Neige au sommet
+    '<path d="M100 26 L110 44 L104 41 L100 47 L96 40 L90 43 Z" fill="'+col+'" opacity=".85"/>'+
+    // Sentier restant, en creux
+    '<path d="'+SENTIER+'" pathLength="100" fill="none" stroke="'+col+'" stroke-opacity=".22" stroke-width="5" stroke-linecap="round"/>'+
+    // Sentier parcouru — c'est lui qui porte le pourcentage
+    '<path d="'+SENTIER+'" pathLength="100" fill="none" stroke="url(#s'+id+')" stroke-width="5" stroke-linecap="round" stroke-dasharray="'+p.toFixed(1)+' 100" style="transition:stroke-dasharray .7s cubic-bezier(.2,.8,.3,1)"/>'+
+    // Marcheur : point rond posé exactement sur le tracé
+    (p>0&&p<100?'<path d="'+SENTIER+'" pathLength="100" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" stroke-dasharray="0.01 100" stroke-dashoffset="'+(-p).toFixed(1)+'" style="transition:stroke-dashoffset .7s cubic-bezier(.2,.8,.3,1)"/>':'')+
+    // Mât et drapeau au sommet
+    '<line x1="100" y1="26" x2="100" y2="6" stroke="'+col+'" stroke-opacity="'+(sommet?"1":".45")+'" stroke-width="2.4" stroke-linecap="round"/>'+
+    '<path d="M100 7 L118 12 L100 17 Z" fill="'+col+'" fill-opacity="'+(sommet?"1":".35")+'"/>'+
+    (sommet?'<circle cx="100" cy="26" r="7" fill="none" stroke="'+col+'" stroke-width="2" opacity=".5"/>':'')+
+    // Sol
+    '<line x1="8" y1="111" x2="148" y2="111" stroke="'+col+'" stroke-opacity=".3" stroke-width="2.5" stroke-linecap="round"/>'+
     '</svg>';
 }
 // 🎁 Univers visuel de la récompense, déduit de ce que le coach a écrit.
@@ -6351,6 +6363,14 @@ function bindCoach(){
     document.getElementById("nc-create").addEventListener("click",function(){
       var name=ncName.value.trim(), slug=ncSlug.value.trim();
       if(!name||!slug)return;
+      // Un lien déjà utilisé peut porter des données restées dans le cloud :
+      // on prévient AVANT de créer, sinon le nouveau client les hérite.
+      var dejaLa=lsGet("amcoach_"+slug,null);
+      if(dejaLa&&Object.keys(dejaLa).length){
+        if(!confirm("⚠️ Le lien « "+slug+" » contient déjà des données d'un ancien client.\n\nSi tu continues, "+name+" les récupérera.\n\nOK pour EFFACER ces données et repartir de zéro, Annuler pour choisir un autre lien."))return;
+        try{localStorage.removeItem("amcoach_"+slug);}catch(e){}
+        sbFetch("tracking?client_slug=eq."+encodeURIComponent(slug),{method:"DELETE"}).catch(function(){});
+      }
       var clients=lsGet("amcoach_clients",[]);
       var startDate=document.getElementById("nc-date").value;
       clients.unshift({name:name,slug:slug,start_date:startDate,created_at:new Date().toISOString()});
@@ -6939,22 +6959,53 @@ function bindCoach(){
     var slug=state.coachDetail;
     var clients=lsGet("amcoach_clients",[]);
     var c=null;for(var i=0;i<clients.length;i++){if(clients[i].slug===slug){c=clients[i];break;}}
-    if(!confirm("Supprimer définitivement "+(c?c.name:slug)+" et toutes ses données ?"))return;
+    var nom=c?c.name:slug;
+    if(!confirm("Supprimer définitivement "+nom+" et TOUTES ses données ?\n\nCette action est irréversible."))return;
+    // Deuxième garde-fou : on retape le prénom. Une suppression ne se rattrape pas.
+    var conf=prompt("Pour confirmer, tape le prénom du client :","");
+    if(conf===null)return;
+    if(conf.trim().toLowerCase()!==String(nom).trim().toLowerCase()){alert("Le nom ne correspond pas — rien n'a été supprimé.");return;}
+
     clients=clients.filter(function(x){return x.slug!==slug;});
     lsSet("amcoach_clients",clients);
-    try{localStorage.removeItem("amcoach_"+slug);localStorage.removeItem("amcoach_name_"+slug);localStorage.removeItem("amcoach_start_"+slug);}catch(e){}
-    // Supprimer Supabase : clients table (by slug)
-    sbFetch("clients?slug=eq."+encodeURIComponent(slug),{method:"DELETE"}).then(function(r){
-      if(!r.ok){console.error("Erreur suppression Supabase clients",r.status);return;}
-      // Supprimer toutes les données tracking du client
-      return sbFetch("tracking?client_slug=eq."+encodeURIComponent(slug),{method:"DELETE"});
-    }).then(function(r){
-      if(r&&!r.ok)console.error("Erreur suppression Supabase tracking",r.status);
-      alert("✅ Client supprimé définitivement (données Supabase aussi)");
-    }).catch(function(e){
-      console.error("Erreur suppression",e);
-      alert("⚠️ Suppression locale OK, mais vérifies Supabase dashboard pour être sûr");
-    });
+    // Purge locale complète : toute clé qui porte ce slug
+    try{
+      var aSupprimer=[];
+      for(var k=0;k<localStorage.length;k++){
+        var cle=localStorage.key(k);
+        if(cle&&(cle==="amcoach_"+slug||cle.indexOf("amcoach_")===0&&cle.indexOf("_"+slug)>-1||cle==="amcoach_bldraft_"+slug))aSupprimer.push(cle);
+      }
+      for(var z=0;z<aSupprimer.length;z++)localStorage.removeItem(aSupprimer[z]);
+    }catch(e){}
+    if(typeof __coachLoaded!=="undefined")delete __coachLoaded[slug];
+
+    // ⚠️ Le TRACKING d'abord : c'est lui qui ressuscitait les données quand on
+    // recréait un client avec le même lien. Les deux suppressions sont menées
+    // jusqu'au bout même si l'une échoue.
+    var okTrack=false, okCli=false;
+    sbFetch("tracking?client_slug=eq."+encodeURIComponent(slug),{method:"DELETE"})
+      .then(function(r){okTrack=!!(r&&r.ok);})
+      .catch(function(){})
+      .then(function(){return sbFetch("clients?slug=eq."+encodeURIComponent(slug),{method:"DELETE"});})
+      .then(function(r){okCli=!!(r&&r.ok);})
+      .catch(function(){})
+      .then(function(){
+        // On vérifie qu'il ne reste vraiment rien avant de dire que c'est fait
+        return sbFetch("tracking?client_slug=eq."+encodeURIComponent(slug)+"&select=day_index")
+          .then(function(r){return r.json();})
+          .catch(function(){return null;});
+      })
+      .then(function(reste){
+        if(reste&&reste.length){
+          alert("⚠️ "+reste.length+" ligne(s) n'ont pas pu être supprimées du cloud.\n\nSi tu recrées « "+slug+" », ces données reviendront. Utilise un autre lien, ou supprime-les depuis Supabase.");
+        }else{
+          alert("✅ "+nom+" et toutes ses données ont été supprimés définitivement.");
+        }
+      })
+      .catch(function(){
+        alert("⚠️ Suppression locale faite, mais le cloud n'a pas répondu. Vérifie avant de réutiliser le lien « "+slug+" ».");
+      });
+
     state.coachDetail=null;
     render();
   });

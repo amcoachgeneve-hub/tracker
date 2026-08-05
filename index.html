@@ -2029,8 +2029,8 @@ function svgMontagne(pct,col,w,hh){
   var p=Math.max(0,Math.min(100,pct||0));
   var id="mg"+Math.random().toString(36).slice(2,8);
   var sommet=p>=100;
-  // Le sentier : départ en bas à gauche, lacets, arrivée au sommet (100,26)
-  var SENTIER="M28 108 C44 104 54 96 52 88 C50 79 62 76 70 74 C80 71 78 62 74 56 C70 49 80 45 88 42 C96 39 96 33 100 27";
+  // Le sentier : lacets qui restent à l'intérieur de la montagne
+  var SENTIER="M35 105 Q42 100 40 92 Q38 82 50 80 Q62 78 65 70 Q68 62 75 54 Q82 46 90 38 Q96 32 100 27";
   return '<svg viewBox="0 0 150 120" width="'+w+'" height="'+hh+'" style="display:block;overflow:visible">'+
     '<defs>'+
     '<linearGradient id="r'+id+'" x1="0" y1="1" x2="0" y2="0">'+
@@ -3126,10 +3126,10 @@ function viewCalendar(name,start){
         '<div style="flex:1">'+
         '<div style="font-weight:900;font-size:38px;line-height:.95;letter-spacing:-1.6px;color:#fff">'+(curW!=null?curW:'—')+'<span style="font-size:15px;opacity:.75;margin-left:1px">kg</span></div>'+
         '<div style="font-size:11.5px;font-weight:700;color:rgba(255,255,255,.7);margin-top:3px">aujourd\'hui</div></div>'+
-        '<div style="flex:0 0 122px;text-align:center">'+svgMontagne(pcG,"#FFFFFF",122,98)+
+        '<div style="flex:0 0 140px;text-align:center">'+svgMontagne(pcG,"#5FBF9C",140,110)+
         '<div style="font-weight:900;font-size:16px;color:#fff;margin-top:-4px">'+pcG+'<span style="font-size:10px">% du chemin</span></div></div>'+
         '<div style="flex:1;text-align:right">'+
-        '<div style="font-weight:900;font-size:30px;line-height:.95;letter-spacing:-1.2px;color:#fff">'+goal.target+'<span style="font-size:14px;opacity:.75;margin-left:1px">kg</span></div>'+
+        '<div style="font-weight:900;font-size:30px;line-height:.95;letter-spacing:-1.2px;color:#5FBF9C">'+goal.target+'<span style="font-size:14px;opacity:.75;margin-left:1px">kg</span></div>'+
         '<div style="font-size:11.5px;font-weight:700;color:rgba(255,255,255,.7);margin-top:3px">objectif</div></div>'+
         '</div></div>'+
         '<div style="height:18px"></div>'+

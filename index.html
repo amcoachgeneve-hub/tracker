@@ -80,6 +80,11 @@ input,textarea{outline:none}
 .dark-sub{color:#555;font-size:13px;margin-bottom:44px}
 .dark-label{color:#fff;font-weight:900;font-size:17px;margin-bottom:12px}
 .dark-input{width:100%;max-width:340px;padding:16px 18px;border-radius:12px;border:2px solid var(--ink2);background:#111;color:#fff;font-size:17px;font-weight:700;text-align:center;margin-bottom:20px;display:block;margin-left:auto;margin-right:auto}
+#ob-tons{display:flex;flex-direction:column;gap:7px;margin-bottom:10px}
+.ob-ton{display:flex;align-items:flex-start;gap:11px;width:100%;padding:11px 13px;border-radius:12px;border:2px solid #2A2A2A;background:#141414;color:#fff;text-align:left;cursor:pointer;transition:border-color .18s,background .18s}
+.ob-ton.sel{border-color:var(--brand);background:#1C1C1C}
+.ob-g{flex:1;padding:11px 4px;border-radius:12px;border:2px solid #2A2A2A;background:#141414;color:rgba(255,255,255,.6);font-weight:800;font-size:12.5px;cursor:pointer}
+.ob-g.sel{border-color:var(--brand);background:#1C1C1C;color:#fff}
 .btn-primary{width:100%;max-width:340px;padding:18px 0;border-radius:100px;background:var(--brand);color:#fff;font-weight:900;font-size:16px;letter-spacing:1.2px;display:block;margin:0 auto;box-shadow:var(--shadow-l)}
 .btn-primary:disabled{background:var(--ink2);color:#555;cursor:not-allowed}
 
@@ -946,7 +951,10 @@ var HABIT_ALERTS={
   travail:"💼 L'équilibre travail vacille. Structure ta journée — ta transformation a besoin de stabilité."
 };
 
-function computeAlert(allData,today90){
+// voix=true : le message est dit par le superviseur du client.
+// Sans voix, on garde le registre neutre — c'est ce que lit le coach
+// dans sa fiche client, où il a besoin d'un constat, pas d'un personnage.
+function computeAlert(allData,today90,voix){
   // Analyse les 7 derniers jours remplis (min 4 pour être fiable)
   var days=[];
   for(var i=today90;i>=0&&days.length<7;i--){
@@ -971,7 +979,8 @@ function computeAlert(allData,today90){
     var mRate=mWon/span;
     if(mRate<0.5&&mRate<worstRate){worstRate=mRate;worst="onething";}
   }
-  return worst?{habit:worst,msg:HABIT_ALERTS[worst]}:null;
+  var src=voix?supAlertes(allData):HABIT_ALERTS;
+  return worst?{habit:worst,msg:src[worst]||HABIT_ALERTS[worst]}:null;
 }
 
 var PENSEES=[
@@ -1411,6 +1420,230 @@ function applyTheme(allData){
   var mt=document.querySelector('meta[name="theme-color"]');
   if(mt)mt.setAttribute("content",h?"#263038":"#33241F");
 }
+// ═══════════════ 🎭 TON SUPERVISEUR ═══════════════
+// Le client choisit un caractère ET un genre au démarrage : il hérite d'un
+// personnage avec un prénom. Comme la voix d'un GPS, mais avec une identité.
+// Le ton ne change QUE la façon de parler : chiffres, seuils et règles
+// restent identiques pour tout le monde.
+// Registre : franc, moqueur ou cru selon le choix — jamais sur le physique
+// ni sur la valeur de la personne. On secoue quelqu'un, on ne l'abîme pas.
+var TONS={
+  normal:{
+    nom:"Le carré", emoji:"🎯", desc:"Direct et posé. Va à l'essentiel, sans détour.",
+    prenoms:{h:["Marc","Thomas","Julien"],f:["Claire","Sophie","Laura"]},
+    haut:["Tu tiens le rythme","Machine bien lancée","Rien ne te fait décrocher","C'est ça, la régularité","Tu ne négocies plus","Solide, jour après jour"],
+    bon:["Bien engagé","Ça prend forme","La dynamique est là","Tu construis quelque chose","Le rythme s'installe","Continue comme ça"],
+    moyen:["À consolider","Encore un cran à passer","La base est là, serre un peu","Ni bien ni mal — décide","Tu peux faire mieux","Reprends la main"],
+    bas:["Ça décroche","Le fil se détend","Il faut se remettre dedans","Une journée pleine, et ça repart","Le plus dur, c'est de recommencer","Reviens dans la course"],
+    zero:["À relancer","On repart de zéro, et alors ?","Aujourd'hui suffit à changer ça","Un seul jour rempli, pour commencer","Personne ne tient sans repartir","Le premier pas, maintenant"]
+  },
+  marseillais:{
+    nom:"Le Marseillais", emoji:"☀️", desc:"Chambreur, imagé, il te pousse au cul avec le sourire.",
+    prenoms:{h:["Momo","Ange","Dédé"],f:["Nadine","Josy","Mireille"]},
+    haut:["Té, t'es un tigre !","Oh bonne mère, tu déroules","Là t'as mis le maillot, bravo","Dégun peut rien te dire","Tu joues à la maison, ça se voit","Fada de régularité, j'adore"],
+    bon:["Ça sent bon, continue","Té, tu prends le rythme","On tient le bon bout, collègue","Ça se met en place tranquille","Tu chauffes, lâche pas","Bien joué, on lâche rien"],
+    moyen:["Bon, t'es un cave ou t'es un tigre ?","Té, tu fais quoi là ?","Ni bien ni mal, décide-toi","Allez, un peu de cœur au ventre","T'es capable de mieux, je le sais","Serre les dents deux minutes"],
+    bas:["Oh collègue, tu me lâches ?","Ça part en cacade cette histoire","Té, réveille-toi un peu","Une bonne journée et on repart","Le plus dur c'est de s'y remettre","Reviens, on t'attend au tournant"],
+    zero:["Bon, on efface et on repart","Allez, aujourd'hui c'est le jour","Té, un jour rempli et ça relance","Dégun tient sans repartir, dégun","Un seul pas, après on verra","Aujourd'hui, maintenant, allez"]
+  },
+  italien:{
+    nom:"L'Italien", emoji:"🇮🇹", desc:"Expansif et théâtral. Il s'enflamme pour un rien.",
+    prenoms:{h:["Francesco","Gennaro","Matteo"],f:["Giulia","Chiara","Rosaria"]},
+    haut:["Bellissimo ! Que dire de plus","Perfetto, tu es en feu","Bravissimo, continua così !","Madonna, quelle régularité","Sei un campione, un vrai","Magnifico, je n'ai rien à ajouter"],
+    bon:["Molto bene, ça prend forme","Bene, tu montes en puissance","Ça se construit, piano piano","Bravo, la dynamique est là","Continua, tu es sur la bonne route","Ottimo, garde ce rythme"],
+    moyen:["Mamma mia, tu fais quoi là ?","Insomma... ni bien ni mal","Allora, tu te décides ?","La base est là, il manque le cœur","Puoi fare di più, je le sais","Un peu de passione, per favore"],
+    bas:["Madonna mia, tu me lâches ?","Che disastro, il faut réagir","Basta ! On se remet dedans","Une journée pleine et on repart","Ricominciare, c'est le plus dur","Torna qui, reviens dans la course"],
+    zero:["Niente. Rien du tout. Allora ?","On efface, si riparte da zero","Oggi suffit à tout changer","Un seul jour, un seul, coraggio","Tout le monde repart un jour","Il primo passo, adesso"]
+  },
+  drole:{
+    nom:"Le rigolo", emoji:"😄", desc:"Léger et taquin. On rigole, mais on avance.",
+    prenoms:{h:["Kevin","Bruno","Sacha"],f:["Manon","Cécile","Alice"]},
+    haut:["T'es en feu, quelqu'un a un extincteur ?","Là c'est plus de la discipline, c'est un don","Tu commences à faire peur, doucement","Bravo, tu bats 87% des gens","Tellement régulier que c'en est suspect","Un métronome avec des jambes"],
+    bon:["Ça sent bon, continue de cuisiner","T'es sur la bonne pente, la montante","Ça pousse, comme du basilic","Pas mal du tout, presque impressionnant","Le rythme s'installe, le dérange pas","Tu deviens fréquentable"],
+    moyen:["Bof. Voilà, c'est dit","Ni héros ni catastrophe, un mardi","T'es en mode économie d'énergie ?","La base est là, le reste s'est perdu","Un petit coup de rein, allez","Mi-figue mi-raisin, choisis un fruit"],
+    bas:["Ton streak fait la sieste","Ça sent le mou, ouvre une fenêtre","T'as pris un abonnement au canapé ?","Un jour rempli et on n'en parle plus","Recommencer c'est le pire, après ça glisse","Ton objectif t'a envoyé un message"],
+    zero:["Zéro. Le vide. Mais un beau vide","On repart de rien, c'est plus léger","Aujourd'hui suffit à tout changer","Un seul jour, même pas parfait","Tout le monde repart un jour","Le premier pas attend depuis un moment"]
+  },
+  sarcastique:{
+    nom:"Le sarcastique", emoji:"🙃", desc:"Piquant et froid. Ça pique là où ça motive.",
+    prenoms:{h:["Vincent","Hugo","Damien"],f:["Camille","Élise","Margot"]},
+    haut:["Bon. Difficile de critiquer, pour une fois","Impeccable. C'était pas obligé de m'impressionner","Tu tiens. Étonnant. Continue","Là je n'ai rien à dire, savoure","Sans faute. Tu fais exprès ?","Parfait. Ça me met au chômage"],
+    bon:["Pas mal. J'ai dit pas mal, pas génial","Ça avance. Doucement, mais ça avance","Tu progresses. Ne t'emballe pas","Correct. Le mot est bien choisi","Bien. Voyons si ça tient demain","Tu commences à saisir le principe"],
+    moyen:["Moyen. Le mot existe pour toi","Ni bien ni mal. Passionnant","Tu fais le minimum. Bravo pour l'efficacité","La base est là. Le reste ?","Tu peux mieux faire, et tu le sais","On appelle ça tiède"],
+    bas:["Ah. On s'est perdu en route","Le fil se détend. Comme la motivation","Intéressant, cette technique du surplace","Une journée pleine, ce serait un début","Recommencer, c'est un concept","Ton objectif demande de tes nouvelles"],
+    zero:["Zéro. Difficile de faire plus clair","Rien. Absolument rien. Impressionnant","Aujourd'hui suffirait, mais bon","Un jour rempli. Un seul. Je vise bas","Tout le monde repart. Toi aussi peut-être","Le premier pas. Il ne se fera pas seul"]
+  },
+  vulgaire:{
+    nom:"Le taré", emoji:"🥊", desc:"Fou, agressif, aucun filtre. Il gueule pour te faire bouger.",
+    prenoms:{h:["Serge","Rocky","Didier"],f:["Jacky","Sandra","Patricia"]},
+    haut:["Putain, là t'assures","Bordel, tu déroules","T'as rien lâché, respect","Ça c'est du boulot, continue","Personne peut rien te dire","T'es une machine, point"],
+    bon:["Ça commence à ressembler à quelque chose","Bien, mais lâche rien maintenant","T'es dans le bon, accroche-toi","Ça bosse, continue comme ça","Le rythme est là, garde-le","Pas mal, mais t'as de la marge"],
+    moyen:["Bon, tu fais le minimum là","Tu te fous de qui ? T'es capable de mieux","Ni bien ni mal, décide-toi bordel","La base y est, le reste t'es passé où ?","Serre les dents, c'est pas la mer à boire","Arrête de te chercher des excuses"],
+    bas:["Qu'est-ce que tu fous ? T'as rien rempli","T'es en train de lâcher, assume","Bouge-toi le cul, t'as de la chance que j'aie pas de corps","Une journée pleine et on n'en parle plus","Recommencer c'est chiant, et alors ?","Ton objectif t'attend, il s'impatiente"],
+    zero:["Zéro. Rien. Nada. On fait quoi ?","T'as rien foutu, on repart d'ici","Aujourd'hui rattrape ça, alors bouge","Un jour. Un seul. C'est pas la lune","Tout le monde se plante, c'est de repartir qui compte","Le premier pas, maintenant, pas demain"]
+  },
+  jeune:{
+    nom:"Le jeune", emoji:"🔥", desc:"Argot d'aujourd'hui, phrases courtes, ça va vite.",
+    prenoms:{h:["Ryan","Ilyes","Noah"],f:["Inès","Maya","Lina"]},
+    haut:["Wesh c'est un banger cette journée","T'es chaud de ouf, sah","Grosse dinguerie, continue","C'est carré, rien à dire","T'as le rizz de la discipline","Là t'es en main character energy"],
+    bon:["Ça commence à être carré","T'es dans le bail, lâche pas","Ça monte tranquille, sah","Propre. Continue comme ça","Le rythme est là, garde-le","Pas mal wesh, t'assures"],
+    moyen:["Bof, t'es en mode PNJ là","Tu fais le strict minimum, sah","Ni ouf ni cringe, faut choisir","La base y est, le reste il est où ?","Tu peux clairement mieux, wesh","Reprends le contrôle du bail"],
+    bas:["Là c'est un peu le seum","T'es en train de ghoster tes objectifs","Faut se remettre dedans, sah","Une journée pleine et c'est reparti","Le plus dur c'est de relancer, après ça passe crème","Reviens dans le game, wesh"],
+    zero:["Zéro. Chokbar. On repart de là","T'as rien fait, on efface","Aujourd'hui ça change tout, sah","Un jour rempli, juste un, c'est pas la mort","Tout le monde repart un jour, miskine","Premier pas, go"]
+  },
+  commentateur:{
+    nom:"Le commentateur", emoji:"🎙️", desc:"Ta journée racontée comme un match en direct.",
+    prenoms:{h:["Gérard","Patrick","Christian"],f:["Nathalie","Estelle","Véronique"]},
+    haut:["Et quelle démonstration, mesdames et messieurs !","Il déroule, personne ne peut le suivre !","Incroyable régularité, le public est debout !","Sans faute, absolument sans faute !","Il domine cette journée de bout en bout !","Une prestation de très haut niveau !"],
+    bon:["Belle dynamique, il monte en puissance","Le voilà qui prend le contrôle du match","Ça se met en place, patiemment","Solide, il fait le métier","Il tient son rythme de croisière","Bonne séquence, il faut confirmer"],
+    moyen:["Match fermé, il faut aller chercher plus","Il gère, mais sans prendre de risque","Mi-temps compliquée, tout reste à faire","La base est là, le contenu manque","Il lui faut un sursaut maintenant","Le public attend une réaction"],
+    bas:["Alerte, il décroche dans les derniers instants","Coup dur, la mécanique se grippe","Il perd le fil, il faut réagir vite","Une journée pleine et il revient dans le match","Tout se joue sur la relance","Le comeback commence par un point"],
+    zero:["Score vierge, rien à signaler","Journée blanche, on remet les compteurs","Une seule action relance la partie","Un jour rempli, et le match repart","Les plus grands sont revenus de loin","Coup d'envoi, maintenant"]
+  }
+};
+var TON_ORDRE=["normal","marseillais","italien","drole","sarcastique","vulgaire","jeune","commentateur"];
+// Le superviseur = un ton + un genre + un prénom tiré à l'inscription.
+function supGet(allData){
+  var t=allData&&allData[503];
+  if(t&&typeof t==="object"){
+    var k=TONS[t.ton]?t.ton:"normal";
+    var g=(t.genre==="f")?"f":"h";
+    return {ton:k,genre:g,prenom:t.prenom||TONS[k].prenoms[g][0]};
+  }
+  var k2=(t&&TONS[t])?t:"normal";
+  return {ton:k2,genre:"h",prenom:TONS[k2].prenoms.h[0]};
+}
+function tonActif(allData){return supGet(allData).ton;}
+function supPrenom(allData){return supGet(allData).prenom;}
+function supTirage(cle,genre){
+  var L=TONS[cle].prenoms[(genre==="f")?"f":"h"];
+  return L[Math.floor(Math.random()*L.length)];
+}
+function tonSet(allData,cle,genre,prenom){
+  if(!TONS[cle])return;
+  var g=(genre==="f")?"f":"h";
+  allData[503]={ton:cle,genre:g,prenom:prenom||supTirage(cle,g)};
+}
+// ── Ce que chaque superviseur dit en plus : alertes d'habitude et phrases
+//    de l'objectif du mois. Même règle : la voix change, jamais les chiffres.
+var TON_EXTRA={
+  normal:{
+    alertes:{
+      sommeil:"😴 Ton sommeil décroche — c'est lui qui peut t'empêcher d'atteindre ton objectif. Couche-toi plus tôt ce soir.",
+      nutrition:"🥗 Ta nutrition lâche ces derniers jours. C'est 70 % du résultat. Reviens à l'assiette 1/3 - 1/3 - 1/3 dès le prochain repas.",
+      sport:"🏋️ Le sport a manqué cette semaine. Pas besoin d'une séance parfaite — 20 minutes valent mieux que zéro.",
+      hydratation:"💧 Ton hydratation baisse. Ton corps ne transforme rien sans eau. Ta bouteille, maintenant.",
+      complements:"💊 Tes compléments sont souvent oubliés. Mets-les à côté de ta brosse à dents.",
+      famille:"👨‍👩‍👧 Le temps famille a manqué. L'équilibre fait partie de la transformation.",
+      identite:"🧱 Ta forteresse n'a pas reçu de brique. Une action de 2 minutes suffit — elle ne se construit pas seule.",
+      onething:"⚡ Tes missions du jour passent à la trappe. Une seule conquête de 5 minutes : prépare-la ce soir.",
+      travail:"💼 L'équilibre travail vacille. Structure ta journée — ta transformation a besoin de stabilité."
+    },
+    phrases:["Le poids bouge lentement, l'habitude bouge vite ⚡","Ce que tu fais aujourd'hui se verra dans trois semaines 🌱","Un jour parfait ne fait rien. Trente jours corrects font tout 📆","Ce n'est pas une ligne droite, c'est une tendance 📉","La constance bat l'intensité, toujours 🏆","Le plus dur est derrière : tu as commencé 🚀"]
+  },
+  marseillais:{
+    alertes:{
+      sommeil:"😴 Té, tu dors plus ou quoi ? C'est la nuit que le corps travaille. Au lit plus tôt ce soir.",
+      nutrition:"🥗 Ton assiette part en cacade. C'est 70 % du résultat, collègue. 1/3 - 1/3 - 1/3, dès le prochain repas.",
+      sport:"🏋️ Le sport a disparu cette semaine. 20 minutes, même mal faites, ça vaut mieux que dégun.",
+      hydratation:"💧 Tu bois plus rien. Sans eau ton corps transforme que dalle. La bouteille, allez.",
+      complements:"💊 Tes compléments, tu les oublies. À côté de la brosse à dents, et c'est réglé.",
+      famille:"👨‍👩‍👧 La famille a pris cher cette semaine. L'équilibre ça fait partie du truc aussi.",
+      identite:"🧱 Ta forteresse a rien reçu. Deux minutes, une action, et elle monte. Elle se bâtit pas toute seule.",
+      onething:"⚡ Tes missions, tu les zappes. Une seule, cinq minutes. Prépare-la ce soir, té.",
+      travail:"💼 Le boulot déborde sur tout. Cadre ta journée, sinon c'est le bazar."
+    },
+    phrases:["Le poids bouge doucement, l'habitude bouge vite ⚡","Ce que tu fais aujourd'hui, tu le verras dans trois semaines 🌱","Un jour parfait c'est rien. Trente jours corrects, c'est tout 📆","C'est pas une ligne droite, c'est une tendance 📉","La régularité bat la force, toujours 🏆","Le plus dur est fait : t'as commencé 🚀"]
+  },
+  italien:{
+    alertes:{
+      sommeil:"😴 Mamma mia, tu ne dors plus. C'est la nuit que le corps se répare. A letto presto ce soir.",
+      nutrition:"🥗 Che disastro, ton assiette. C'est 70 % du résultat ! 1/3 - 1/3 - 1/3, dès le prochain repas.",
+      sport:"🏋️ Niente sport cette semaine. Vingt minutes, même imparfaites, valent mieux que rien.",
+      hydratation:"💧 Tu ne bois plus assez. Senza acqua, le corps ne transforme rien. La bouteille, subito.",
+      complements:"💊 Tes compléments, dimenticati. Pose-les à côté de ta brosse à dents.",
+      famille:"👨‍👩‍👧 La famiglia a manqué cette semaine. L'équilibre fait partie de la transformation.",
+      identite:"🧱 Ta forteresse n'a rien reçu. Due minuti, une action, et elle monte. Coraggio.",
+      onething:"⚡ Tes missions passent à la trappe. Una sola, cinq minutes. Prépare-la ce soir.",
+      travail:"💼 Le travail déborde sur tout. Structure ta journée, la transformation a besoin de calme."
+    },
+    phrases:["Le poids bouge piano, l'habitude bouge vite ⚡","Ce que tu fais oggi se verra dans trois semaines 🌱","Un jour parfait, niente. Trente jours corrects, tutto 📆","Ce n'est pas une ligne droite, c'est une tendance 📉","La costanza bat l'intensité, toujours 🏆","Le plus dur est derrière : tu as commencé 🚀"]
+  },
+  drole:{
+    alertes:{
+      sommeil:"😴 Tes nuits ressemblent à des siestes. C'est la nuit que le corps bosse — laisse-le faire son métier.",
+      nutrition:"🥗 Ton assiette a pris des vacances. C'est 70 % du résultat, quand même. 1/3 - 1/3 - 1/3, on reprend.",
+      sport:"🏋️ Le sport t'a envoyé un message, tu n'as pas répondu. 20 minutes, c'est déjà une réponse.",
+      hydratation:"💧 Tu es en mode cactus. Sans eau, ton corps ne transforme rien. La bouteille, voilà.",
+      complements:"💊 Tes compléments prennent la poussière. À côté de la brosse à dents, ils ne se cacheront plus.",
+      famille:"👨‍👩‍👧 Ta famille a failli poster un avis de recherche. Un vrai moment aujourd'hui.",
+      identite:"🧱 Ta forteresse attend toujours sa brique. Deux minutes. Elle ne va pas se construire par magie.",
+      onething:"⚡ Tes missions ont disparu sans laisser d'adresse. Une seule, cinq minutes, ce soir tu la prépares.",
+      travail:"💼 Le boulot déborde partout, comme un évier. Cadre ta journée avant l'inondation."
+    },
+    phrases:["Le poids traîne, l'habitude sprinte ⚡","Ce que tu fais aujourd'hui arrive dans trois semaines 🌱","Un jour parfait ne sert à rien. Trente jours corrects, tout 📆","Pas une ligne droite. Une tendance, c'est déjà bien 📉","La constance bat l'intensité. Désolé pour l'intensité 🏆","Le plus dur est fait : tu as commencé 🚀"]
+  },
+  sarcastique:{
+    alertes:{
+      sommeil:"😴 Le sommeil, apparemment optionnel. C'est pourtant la nuit que le corps travaille. Couche-toi plus tôt.",
+      nutrition:"🥗 L'assiette a décroché. 70 % du résultat, mais bon. 1/3 - 1/3 - 1/3, si l'envie te prend.",
+      sport:"🏋️ Aucune séance cette semaine. Vingt minutes suffiraient. Vingt.",
+      hydratation:"💧 Tu ne bois plus. Le corps ne transforme rien sans eau, mais tu le savais sûrement.",
+      complements:"💊 Compléments oubliés, encore. À côté de la brosse à dents. Révolutionnaire, je sais.",
+      famille:"👨‍👩‍👧 Le temps famille a disparu. L'équilibre fait partie du programme, figure-toi.",
+      identite:"🧱 Aucune brique posée. Deux minutes. Je ne demande pas la lune.",
+      onething:"⚡ Les missions, cette semaine : néant. Cinq minutes par jour. Cinq.",
+      travail:"💼 Le travail prend toute la place. Structurer sa journée, ça existe."
+    },
+    phrases:["Le poids bouge lentement. L'habitude, elle, va vite ⚡","Ce que tu fais aujourd'hui se verra dans trois semaines. Patience 🌱","Un jour parfait ne sert à rien. Trente jours corrects, tout 📆","Ce n'est pas une ligne droite. Personne n'a promis ça 📉","La constance bat l'intensité. Toujours. Sans exception 🏆","Le plus dur est derrière : tu as commencé 🚀"]
+  },
+  vulgaire:{
+    alertes:{
+      sommeil:"😴 Tu dors quand, bordel ? C'est la nuit que le corps se répare. Au lit plus tôt, point.",
+      nutrition:"🥗 Ton assiette c'est n'importe quoi. 70 % du résultat, tu piges ? 1/3 - 1/3 - 1/3, dès le prochain repas.",
+      sport:"🏋️ Zéro séance cette semaine. Zéro. Vingt minutes, t'es pas mort pour autant.",
+      hydratation:"💧 Tu bois que dalle. Sans eau ton corps transforme rien. La bouteille, tout de suite.",
+      complements:"💊 Tes compléments tu les oublies systématiquement. À côté de la brosse à dents et on n'en parle plus.",
+      famille:"👨‍👩‍👧 T'as zappé les tiens cette semaine. L'équilibre ça compte aussi, arrête de tout sacrifier.",
+      identite:"🧱 Pas une brique posée. DEUX MINUTES. Elle se construit pas toute seule ta forteresse.",
+      onething:"⚡ Tes missions, t'as rien fait. Une seule, cinq minutes. Prépare-la ce soir et exécute.",
+      travail:"💼 Le boulot bouffe tout. Cadre ta journée, sinon tu tiendras pas 90 jours."
+    },
+    phrases:["Le poids bouge lentement, l'habitude va vite ⚡","Ce que tu fais aujourd'hui, tu le vois dans trois semaines 🌱","Un jour parfait sert à rien. Trente jours corrects, tout 📆","C'est pas une ligne droite, c'est une tendance 📉","La constance bat la force, toujours 🏆","Le plus dur est fait, t'as commencé 🚀"]
+  },
+  jeune:{
+    alertes:{
+      sommeil:"😴 Tes nuits sont chelou. C'est la night que le corps répare — couche-toi plus tôt, sah.",
+      nutrition:"🥗 Ton assiette c'est le seum. 70 % du résultat quand même. 1/3 - 1/3 - 1/3, on repart.",
+      sport:"🏋️ Zéro séance cette semaine, wesh. 20 minutes c'est carré, faut juste y aller.",
+      hydratation:"💧 Tu bois plus rien. Sans eau ton corps fait R. La bouteille, go.",
+      complements:"💊 Tes compléments tu les zappes à chaque fois. À côté de la brosse à dents, réglé.",
+      famille:"👨‍👩‍👧 T'as ghosté les tiens cette semaine. L'équilibre ça compte aussi.",
+      identite:"🧱 Pas une brique posée. 2 minutes wesh, c'est pas la mort.",
+      onething:"⚡ Tes missions t'as rien fait. Une seule, 5 minutes, tu la prépares ce soir.",
+      travail:"💼 Le taf prend toute la place. Cadre ta journée sinon tu tiens pas."
+    },
+    phrases:["Le poids bouge doucement, l'habitude va vite ⚡","Ce que tu fais aujourd'hui, tu le vois dans 3 semaines 🌱","Un jour parfait ça sert à R. 30 jours corrects, c'est tout 📆","C'est pas une ligne droite, c'est une tendance 📉","La régularité bat le talent, toujours 🏆","Le plus dur est fait, t'as lancé le truc 🚀"]
+  },
+  commentateur:{
+    alertes:{
+      sommeil:"😴 Le sommeil, grand absent de la semaine. C'est pourtant la nuit que la récupération se joue.",
+      nutrition:"🥗 L'assiette décroche, et c'est 70 % du match. Retour au 1/3 - 1/3 - 1/3 dès le prochain repas.",
+      sport:"🏋️ Aucune séance au compteur cette semaine. Vingt minutes suffiraient à relancer la machine.",
+      hydratation:"💧 L'hydratation chute. Sans eau, pas de transformation possible. La bouteille, dès maintenant.",
+      complements:"💊 Les compléments manquent à l'appel. À côté de la brosse à dents, et le problème disparaît.",
+      famille:"👨‍👩‍👧 Le temps famille a manqué. L'équilibre fait partie intégrante de la performance.",
+      identite:"🧱 Pas une seule brique cette semaine. Deux minutes suffisent à relancer la construction.",
+      onething:"⚡ Les missions du jour sont restées au vestiaire. Cinq minutes, une seule action.",
+      travail:"💼 Le travail déborde et déséquilibre tout le reste. Il faut structurer la journée."
+    },
+    phrases:["Le poids bouge lentement, l'habitude bien plus vite ⚡","Ce qui se joue aujourd'hui se verra dans trois semaines 🌱","Un jour parfait ne fait rien. Trente jours corrects font tout 📆","Ce n'est pas une ligne droite, c'est une tendance 📉","La constance bat l'intensité, toujours 🏆","Le plus dur est derrière : le match a commencé 🚀"]
+  }
+};
+for(var __tk in TON_EXTRA){if(TONS[__tk]){TONS[__tk].alertes=TON_EXTRA[__tk].alertes;TONS[__tk].phrases=TON_EXTRA[__tk].phrases;}}
+// Alertes et phrases de l'objectif, dans la voix du superviseur du client.
+function supAlertes(allData){var T=TONS[tonActif(allData)];return (T&&T.alertes)?T.alertes:HABIT_ALERTS;}
+function supPhrases(allData){var T=TONS[tonActif(allData)];return (T&&T.phrases&&T.phrases.length)?T.phrases:GOAL_PHRASES;}
 // 💬 Tirage de la phrase d'état.
 // L'ancien calcul (jour % 6) ne changeait qu'une fois par jour : en ouvrant
 // l'appli trois fois dans la journée, on relisait trois fois la même phrase.
@@ -1588,15 +1821,24 @@ function sleepWeekHTML(allData,refIdx,today90){
       '<div style="font-size:14px;font-weight:900;color:'+col+'">'+(sc2?sc2.total:(fut?'·':'?'))+'</div></div>';
   }
   var pctS=Math.min(tot/35,1),barCol=pctS>=1?'var(--ok)':pctS>=0.6?'var(--brand2)':'var(--warn-d)';
-  var doneDays=Math.max(1,Math.min(today90,wS+6)-wS+1);
-  var behind=Math.max(0,5*doneDays-tot);
+  // Une nuit ne se note qu'au réveil : compter la journée en cours comme due
+  // affichait un retard imaginaire dès le matin. On ne compte donc que les
+  // jours révolus, plus celui d'aujourd'hui s'il est déjà renseigné.
+  var dernier=Math.min(today90,wS+6);
+  var doneDays=Math.max(0,dernier-wS);
+  var auj=allData[dernier];
+  if(auj&&auj.sommeilH)doneDays++;
+  var behind=doneDays>0?Math.max(0,5*doneDays-tot):0;
   var msg;
   if(!hasAny)msg='Note tes heures de sommeil chaque jour — 1 cycle = 90 min, objectif 5 cycles par nuit.';
   else if(behind>=1){
     var dLeft=Math.max(1,wS+6-today90);
     msg='⚠️ '+(Math.round(behind*10)/10)+' cycle'+(behind>=2?'s':'')+' de retard cette semaine. Rattrape avec des nuits plus longues (+'+Math.min(120,Math.round(behind/dLeft*90))+' min/nuit) ou une micro-sieste de 20-25 min entre 13 h et 15 h.';
   }else msg='✅ Bon rythme — continue à viser 5 cycles par nuit.';
-  return '<div class="card" style="padding:14px 15px;margin-bottom:14px;border-left:4px solid var(--brand2)">'+
+  // Rendu sans carte : ce bloc vit desormais DANS la carte du sommeil,
+  // juste sous la saisie. La nuit du jour et la semaine racontent la meme
+  // histoire, les separer obligeait a faire l'aller-retour entre deux cartes.
+  return '<div style="margin-top:13px;padding-top:13px;border-top:1px solid var(--line)">'+
     '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">'+
     '<span style="font-weight:900;font-size:13px">🌙 Cycles de sommeil — semaine</span>'+
     '<span style="font-size:12px;font-weight:900;color:'+barCol+'">'+(Math.round(tot*10)/10)+' / 35</span></div>'+
@@ -2271,6 +2513,16 @@ function viewNoClient(){
 // ═══════════ ONBOARDING ═══════════
 function viewOnboarding(){
   var today=isoLocal();
+  // 🎭 Le superviseur se choisit ici : un caractère + un genre, et l'appli
+  // annonce le prénom de celui qui accompagnera les 90 jours.
+  var tonsHtml='';
+  for(var ti=0;ti<TON_ORDRE.length;ti++){
+    var tk=TON_ORDRE[ti], T=TONS[tk];
+    tonsHtml+='<button type="button" class="ob-ton'+(tk==="normal"?" sel":"")+'" data-ton="'+tk+'">'+
+      '<span style="font-size:19px;line-height:1">'+T.emoji+'</span>'+
+      '<span style="flex:1;text-align:left"><b style="display:block;font-size:13px">'+T.nom+'</b>'+
+      '<span style="font-size:11px;opacity:.62;line-height:1.35;display:block;margin-top:2px">'+T.desc+'</span></span></button>';
+  }
   return '<div class="dark-screen">'+
     '<div class="dark-brand"><div class="bar bar-r"></div><span>AM Coach</span><div class="bar bar-b"></div></div>'+
     '<div class="dark-sub">DISCIPLINE 90 · La discipline devient automatique</div>'+
@@ -2279,17 +2531,57 @@ function viewOnboarding(){
     '<input id="ob-name" class="dark-input" placeholder="Prénom..."/>'+
     '<div class="dark-label">Date de départ</div>'+
     '<input id="ob-date" type="date" class="dark-input" value="'+today+'"/>'+
+    '<div class="dark-label">Choisis ton superviseur</div>'+
+    '<div style="font-size:11px;color:rgba(255,255,255,.45);margin:-6px 0 9px;line-height:1.45">Il t\'accompagne pendant 90 jours. Tu peux en changer quand tu veux.</div>'+
+    '<div id="ob-tons">'+tonsHtml+'</div>'+
+    '<div id="ob-genre" style="display:flex;gap:7px;margin-bottom:10px">'+
+    '<button type="button" class="ob-g sel" data-g="h">👨 Un homme</button>'+
+    '<button type="button" class="ob-g" data-g="f">👩 Une femme</button></div>'+
+    '<div id="ob-carte"></div>'+
     '<button id="ob-go" class="btn-primary" disabled>Démarrer mes 90 jours →</button>'+
     '</div></div>';
 }
 function bindOnboarding(){
   var n=document.getElementById("ob-name"), d=document.getElementById("ob-date"), g=document.getElementById("ob-go");
+  var choisi="normal", genre="h", prenom=supTirage("normal","h");
+  var carte=document.getElementById("ob-carte");
+  // On présente le superviseur AVANT de valider : nom, prénom, et une vraie
+  // phrase de sa bouche. On entend la voix avant de la choisir.
+  function montrer(){
+    var T=TONS[choisi], L=T.bas;
+    carte.innerHTML='<div style="background:#141414;border:2px solid var(--brand);border-radius:14px;padding:13px 14px;margin-bottom:14px">'+
+      '<div style="font-size:11px;color:rgba(255,255,255,.5);font-weight:800;letter-spacing:.6px;text-transform:uppercase">Ton superviseur</div>'+
+      '<div style="font-size:17px;font-weight:900;color:#fff;margin-top:3px">'+T.emoji+' '+prenom+'</div>'+
+      '<div style="font-size:11.5px;color:rgba(255,255,255,.55);margin-top:3px;line-height:1.4">'+T.nom+' — '+T.desc+'</div>'+
+      '<div style="font-size:12px;color:rgba(255,255,255,.75);font-style:italic;margin-top:9px;line-height:1.5">« '+L[Math.floor(Math.random()*L.length)]+' »</div></div>';
+  }
+  montrer();
+  var btns=document.querySelectorAll(".ob-ton");
+  for(var i=0;i<btns.length;i++){
+    btns[i].addEventListener("click",function(){
+      choisi=this.getAttribute("data-ton");
+      for(var j=0;j<btns.length;j++)btns[j].classList.remove("sel");
+      this.classList.add("sel");
+      prenom=supTirage(choisi,genre); montrer();
+    });
+  }
+  var gs=document.querySelectorAll(".ob-g");
+  for(var k=0;k<gs.length;k++){
+    gs[k].addEventListener("click",function(){
+      genre=this.getAttribute("data-g");
+      for(var m=0;m<gs.length;m++)gs[m].classList.remove("sel");
+      this.classList.add("sel");
+      prenom=supTirage(choisi,genre); montrer();
+    });
+  }
   n.addEventListener("input",function(){g.disabled=!n.value.trim();});
   g.addEventListener("click",function(){
     if(!n.value.trim())return;
     lsSetStr("amcoach_name_"+CLIENT,n.value.trim());
     lsSetStr("amcoach_start_"+CLIENT,d.value);
+    var ad=getAllData(); tonSet(ad,choisi,genre,prenom); saveAllData(ad);
     ensureClientInCloud(n.value.trim(),d.value);
+    alert("Bravo ! C'est "+prenom+" qui va te superviser pendant 90 jours.\n\nSi tu en as marre de "+prenom+", tu peux changer de superviseur quand tu veux.");
     render();
   });
 }
@@ -3114,15 +3406,10 @@ function viewCalendar(name,start){
   // Sa couleur suit le remplissage : rouge → orange → jaune → vert.
   // Six formules par palier, qui tournent chaque jour : le même message
   // répété une semaine finit par ne plus rien vouloir dire.
-  var ETATS={
-    haut:["Tu tiens le rythme","Machine bien lancée","Rien ne te fait décrocher","C'est ça, la régularité","Tu ne négocies plus","Solide, jour après jour"],
-    bon:["Bien engagé","Ça prend forme","La dynamique est là","Tu construis quelque chose","Le rythme s'installe","Continue comme ça"],
-    moyen:["À consolider","Encore un cran à passer","La base est là, serre un peu","Ni bien ni mal — décide","Tu peux faire mieux","Reprends la main"],
-    bas:["Ça décroche","Le fil se détend","Il faut se remettre dedans","Une journée pleine, et ça repart","Le plus dur, c'est de recommencer","Reviens dans la course"],
-    zero:["À relancer","On repart de zéro, et alors ?","Aujourd'hui suffit à changer ça","Un seul jour rempli, pour commencer","Personne ne tient sans repartir","Le premier pas, maintenant"]
-  };
+  // Les phrases suivent le ton choisi par le client au démarrage.
+  var ETATS=TONS[tonActif(allData)];
   var __niv=pct>=85?"haut":pct>=65?"bon":pct>=45?"moyen":pct>=25?"bas":"zero";
-  var etat=pickEtat(ETATS[__niv],__niv);
+  var etat=pickEtat(ETATS[__niv],tonActif(allData)+"-"+__niv);
   h+='<div class="card" style="padding:24px 18px 20px;margin-bottom:16px;text-align:center">'+
     '<div style="font-size:20px;font-weight:900;color:var(--ink);letter-spacing:-.3px;margin-bottom:16px">Ma progression</div>'+
     '<div class="ring-wrap" style="margin:0 auto">'+svgRing(pct/100,pctColor,196,16)+
@@ -3164,7 +3451,8 @@ function viewCalendar(name,start){
   if(goal){
     var diff=curW!=null?Math.round((curW-goal.target)*10)/10:null;
     var reached=diff!=null&&diff<=0;
-    var phrase=GOAL_PHRASES[today90%GOAL_PHRASES.length];
+    var __ph=supPhrases(allData);
+    var phrase=__ph[today90%__ph.length];
     h+='<div class="card" style="margin-bottom:18px;border-left:4px solid '+(reached?"var(--ok)":R)+';padding:16px 18px">';
     if(reached){
       h+='<div style="font-weight:900;font-size:16px;color:var(--ok)">🏆 OBJECTIF ATTEINT !</div>'+
@@ -3514,7 +3802,7 @@ function viewDay(name,start){
     '<div style="color:var(--line);font-size:13.5px;line-height:1.75;font-style:italic">'+esc(penseeJ)+'</div>'+
     '<button id="pensee-share" style="margin-top:10px;font-size:11px;font-weight:800;color:var(--gold);padding:6px 12px;border:1.5px solid var(--gold);border-radius:16px;background:transparent">📤 Partager</button></div>';
   if(idx===today90){
-    var alertD=computeAlert(allData,today90);
+    var alertD=computeAlert(allData,today90,true);
     if(alertD){
       h+='<div class="card" style="background:#FFF8F0;border:2px solid #FFE0B2;padding:13px 15px">'+
         '<div style="font-weight:900;font-size:11px;color:var(--warn-d);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">⚠️ Message de ton coach</div>'+
@@ -3527,14 +3815,16 @@ function viewDay(name,start){
     '<div style="flex:1"><div class="card-label">POIDS (KG)</div>'+
     '<input id="in-poids" class="num-input" type="number" step="0.1" placeholder="ex: 78.5" value="'+esc(d.poids||"")+'"/></div></div>';
 
-  // sommeil h
-  h+='<div class="card"><div style="display:flex;align-items:center;gap:14px"><span style="font-size:24px">⏱️</span>'+
+  // 😴 SOMMEIL — la nuit du jour et la semaine dans UNE seule carte :
+  // c'est la meme information a deux echelles, les separer forcait
+  // l'aller-retour entre deux blocs pour comprendre ou on en est.
+  h+='<div class="card" style="border-left:4px solid var(--brand2)">'+
+    '<div style="display:flex;align-items:center;gap:14px"><span style="font-size:24px">⏱️</span>'+
     '<div style="flex:1"><div class="card-label">HEURES DE SOMMEIL</div>'+
     '<input id="in-sommeil" class="num-input" type="number" step="0.5" min="0" max="24" placeholder="ex: 7.5" value="'+esc(d.sommeilH||"")+'"/></div></div>'+
-    '<div id="cycle-viz">'+cycleVizHTML(d.sommeilH)+'</div></div>';
-
-  // 🌙 Cycles de sommeil — semaine (déplacé de l'accueil vers le calendrier)
-  h+='<div id="sleep-week">'+sleepWeekHTML(allData,idx,today90)+'</div>';
+    '<div id="cycle-viz">'+cycleVizHTML(d.sommeilH)+'</div>'+
+    '<div id="sleep-week">'+sleepWeekHTML(allData,idx,today90)+'</div>'+
+    '</div>';
 
   // mental
   h+='<div class="card"><div class="card-label">🧠 RESSENTI MENTAL</div><div class="mood-row">';
@@ -4725,7 +5015,7 @@ function viewCoachDetail(){
       h+='<div style="font-size:11px;font-weight:800;color:var(--mute);letter-spacing:1px;margin:8px 0 4px">MOIS '+(mi3+1)+'</div>';
       var nR=Math.ceil((28+wkO)/7);
       for(var w3=0;w3<nR;w3++){
-        h+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px">';
+        h+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:5px">';
         for(var dd3=0;dd3<7;dd3++){
           var sl=w3*7+dd3-wkO;
           if(sl<0||sl>=28){h+='<div style="aspect-ratio:1;border-radius:5px;background:#F6F6F6"></div>';continue;}
@@ -4738,7 +5028,16 @@ function viewCoachDetail(){
             else{var sc2=dayScore(dO);bg2=sc2===100?"var(--ok)":sc2>=50?"var(--ok-l)":sc2>0?"#FFD0B0":"var(--bad)";}
           }
           var msn2=allData[200+ix];
-          h+='<div style="aspect-ratio:1;border-radius:5px;background:'+bg2+';display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:'+(ix<=t90?"var(--ink)":"#A0B8D8")+';position:relative'+(ix===t90?';outline:2px solid var(--brand)':'')+'">'+(ix+1)+(msn2?'<span style="position:absolute;top:0;right:1px;font-size:6px">⚡</span>':'')+'</div>';
+          // L'éclair était à 6 px : impossible de juger le sérieux d'un client
+          // d'un coup d'œil. Pastille colorée selon le résultat de la mission.
+          var mDot2="";
+          if(msn2&&msn2.status&&msn2.status!=="pending"){
+            var mcc=msn2.status==="done"?"var(--ok)":msn2.status==="half"?"var(--amber)":"#9AA3AE";
+            mDot2='<span style="position:absolute;top:-3px;right:-3px;width:15px;height:15px;border-radius:50%;background:'+mcc+';border:1.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.28);display:flex;align-items:center;justify-content:center;font-size:8px;line-height:1">⚡</span>';
+          }else if(msn2){
+            mDot2='<span style="position:absolute;top:-3px;right:-3px;width:15px;height:15px;border-radius:50%;background:#D6DCE4;border:1.5px solid #fff;display:flex;align-items:center;justify-content:center;font-size:8px;line-height:1;opacity:.75">⚡</span>';
+          }
+          h+='<div style="aspect-ratio:1;border-radius:5px;background:'+bg2+';display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:'+(ix<=t90?"var(--ink)":"#A0B8D8")+';position:relative'+(ix===t90?';outline:2px solid var(--brand)':'')+'">'+(ix+1)+mDot2+'</div>';
         }
         h+='</div>';
       }
@@ -4920,7 +5219,25 @@ function viewCoachDetail(){
       '</div>';
   })();
 
-  // 📄 RAPPORT — déplacé du client vers le coach : c'est lui qui l'envoie
+  // 🎭 TON DE L'APPLI — choisi par le client au départ, ajustable ici
+  (function(){
+    var SUP=supGet(allData), tk=SUP.ton;
+    h+='<div class="card" style="padding:13px 15px">'+
+      '<div style="font-weight:800;font-size:13px;margin-bottom:3px">🎭 Son superviseur</div>'+
+      '<div style="font-size:12px;font-weight:800;color:var(--ink2);margin-bottom:8px">'+TONS[tk].emoji+' '+esc(SUP.prenom)+' · '+TONS[tk].nom+' ('+(SUP.genre==="f"?"femme":"homme")+')</div>'+
+      '<div style="display:flex;gap:6px;margin-bottom:7px">'+
+      '<button class="cd-sg" data-g="h" style="flex:1;padding:8px 4px;border-radius:10px;border:2px solid '+(SUP.genre==="h"?"var(--brand)":"var(--line)")+';background:'+(SUP.genre==="h"?"var(--soft)":"#fff")+';font-weight:800;font-size:11.5px;color:'+(SUP.genre==="h"?"var(--ink)":"var(--mute)")+'">👨 Homme</button>'+
+      '<button class="cd-sg" data-g="f" style="flex:1;padding:8px 4px;border-radius:10px;border:2px solid '+(SUP.genre==="f"?"var(--brand)":"var(--line)")+';background:'+(SUP.genre==="f"?"var(--soft)":"#fff")+';font-weight:800;font-size:11.5px;color:'+(SUP.genre==="f"?"var(--ink)":"var(--mute)")+'">👩 Femme</button></div>'+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap">';
+    for(var ti=0;ti<TON_ORDRE.length;ti++){
+      var k=TON_ORDRE[ti],T=TONS[k],on=(k===tk);
+      h+='<button class="cd-ton" data-ton="'+k+'" style="flex:1 1 30%;padding:9px 4px;border-radius:11px;border:2px solid '+(on?"var(--brand)":"var(--line)")+';background:'+(on?"var(--soft)":"#fff")+';font-weight:800;font-size:11.5px;color:'+(on?"var(--ink)":"var(--mute)")+'">'+T.emoji+' '+T.nom+'</button>';
+    }
+    h+='</div>'+
+      '<div style="font-size:10.5px;color:var(--mute);margin-top:8px;line-height:1.5">Le client l\'a choisi en démarrant. Change-le s\'il ne s\'y retrouve pas — seule la façon de parler bouge, jamais les chiffres.</div>'+
+      '<div style="font-size:11px;color:var(--ink2);font-style:italic;margin-top:7px;line-height:1.5">Quand il décroche : « '+esc(TONS[tk].bas[0])+' »</div>'+
+      '</div>';
+  })();
   (function(){
     var nR=0;for(var rr=0;rr<90;rr++){if(allData[rr]&&Object.keys(allData[rr]).length>0)nR++;}
     h+='<div class="card" style="border-left:4px solid var(--gold);padding:13px 15px">'+
@@ -6757,6 +7074,32 @@ function bindCoach(){
       var slug=state.coachDetail;
       coachSaveSlot(slug,514,{theme:this.getAttribute("data-t")});
       feedback("🎨 Thème enregistré","ok");
+      render();
+    });
+  }
+
+  // 🎭 Ton de l'appli du client
+  var tns=document.querySelectorAll(".cd-ton");
+  for(var tn0=0;tn0<tns.length;tn0++){
+    tns[tn0].addEventListener("click",function(){
+      var slug=state.coachDetail;
+      var cur=supGet(lsGet("amcoach_"+slug,{}));
+      var nk=this.getAttribute("data-ton");
+      coachSaveSlot(slug,503,{ton:nk,genre:cur.genre,prenom:supTirage(nk,cur.genre)});
+      feedback("🎭 Superviseur changé","ok");
+      render();
+    });
+  }
+
+  // 🎭 Genre du superviseur
+  var sgs=document.querySelectorAll(".cd-sg");
+  for(var sg0=0;sg0<sgs.length;sg0++){
+    sgs[sg0].addEventListener("click",function(){
+      var slug=state.coachDetail;
+      var cur=supGet(lsGet("amcoach_"+slug,{}));
+      var ng=this.getAttribute("data-g");
+      coachSaveSlot(slug,503,{ton:cur.ton,genre:ng,prenom:supTirage(cur.ton,ng)});
+      feedback("🎭 Superviseur changé","ok");
       render();
     });
   }

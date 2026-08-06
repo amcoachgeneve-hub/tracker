@@ -133,6 +133,17 @@ input,textarea{outline:none}
 .cal-days{display:grid;grid-template-columns:repeat(7,1fr);gap:13px;margin-bottom:8px}
 .cal-dayname{text-align:center;font-size:11px;font-weight:700;color:#666}
 .cal-week{display:grid;grid-template-columns:repeat(7,1fr);gap:13px;margin-bottom:13px}
+.cd-sec{background:var(--card);border-radius:14px;margin-bottom:9px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.cd-sec>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:11px;padding:14px 15px;font-weight:800;font-size:13.5px;color:var(--ink)}
+.cd-sec>summary::-webkit-details-marker{display:none}
+.cd-sec-e{font-size:17px;line-height:1}
+.cd-sec-t{flex:1;display:flex;flex-direction:column;gap:2px}
+.cd-sec-r{font-size:11px;font-weight:600;color:var(--mute)}
+.cd-sec-c{color:var(--mute);font-size:19px;transition:transform .2s;transform:rotate(90deg)}
+.cd-sec[open]>summary .cd-sec-c{transform:rotate(-90deg)}
+.cd-sec[open]>summary{border-bottom:1px solid var(--line)}
+.cd-sec-b{padding:13px 12px 4px}
+.cd-sec-b>.card{margin-bottom:9px;box-shadow:none;border:1px solid var(--line)}
 .cal-cell{aspect-ratio:1;border-radius:8px;border:2px solid transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;padding:0;font-size:11px;font-weight:700;color:var(--ink)}
 .cal-cell.today{border-color:var(--brand);font-weight:900}
 .cal-cell.future{color:#A0B8D8}
@@ -5037,6 +5048,24 @@ function coachClient(slug){
   return null;
 }
 // ═══════════ COACH DETAIL ═══════════
+// ═══════ 📂 SECTIONS REPLIABLES DE LA FICHE CLIENT ═══════
+// La fiche empilait une vingtaine de cartes au même niveau : pour changer
+// un réglage il fallait faire défiler tout le reste. On garde en haut ce
+// qu'on regarde à chaque visite (chiffres, courbes, calendrier) et on range
+// le reste dans des tiroirs. L'état d'ouverture est mémorisé par section,
+// donc celles qu'un coach ouvre souvent restent ouvertes chez lui.
+function cdSecOuverte(id){
+  try{return localStorage.getItem("amcoach_sec_"+id)==="1";}catch(e){return false;}
+}
+function cdSecOpen(id,emoji,titre,resume){
+  var o=cdSecOuverte(id);
+  return '<details class="cd-sec" data-sec="'+id+'"'+(o?' open':'')+'>'+
+    '<summary><span class="cd-sec-e">'+emoji+'</span>'+
+    '<span class="cd-sec-t">'+titre+(resume?'<span class="cd-sec-r">'+resume+'</span>':'')+'</span>'+
+    '<span class="cd-sec-c">›</span></summary><div class="cd-sec-b">';
+}
+function cdSecClose(){return '</div></details>';}
+
 function viewCoachDetail(){
   var clients=lsGet("amcoach_clients",[]);
   if(state.coachDetail)coachLoadClient(state.coachDetail); // rafraîchit au premier affichage
@@ -5147,6 +5176,7 @@ function viewCoachDetail(){
   })();
   h+='<div style="font-size:11px;color:#777;margin-top:6px">🟢 complet · 🟠 partiel · 🔴 manqué · ⚡ mission</div></div>';
 
+  h+=cdSecOpen("reglages","⚙️","Réglages du client","Date de départ, accès à l&rsquo;appli");
   // 🚀 Date de départ (modifiable)
   h+='<div class="card" style="border-left:4px solid '+B+';padding:13px 15px;display:flex;align-items:center;justify-content:space-between">'+
     '<span style="font-weight:800;font-size:13px">🚀 Départ : <strong>'+new Date(c.start_date).toLocaleDateString("fr-FR")+'</strong></span>'+
@@ -5164,6 +5194,8 @@ function viewCoachDetail(){
     '<button id="acc-inf" style="flex:1;font-size:11px;font-weight:800;padding:9px 0;border:1.5px solid #999;border-radius:10px;background:#fff;color:#555">♾️ Illimité</button>'+
     '<button id="acc-toggle" style="flex:1;font-size:11px;font-weight:800;padding:9px 0;border:1.5px solid '+(isOff?"var(--ok)":"var(--brand)")+';border-radius:10px;background:#fff;color:'+(isOff?"var(--ok)":"var(--brand)")+'">'+(isOff?"✅ Réactiver":"⛔ Couper")+'</button></div></div>';
 
+  h+=cdSecClose();
+  h+=cdSecOpen("modules","🎁","Modules &amp; suivi","Reset 14 j, protéines, bilan final, verrou");
   // ⚡ RESET 14 JOURS
   h+='<div class="card" style="border-left:4px solid var(--warn-d);padding:13px 15px">'+
     '<div style="font-weight:800;font-size:13px;margin-bottom:10px">⚡ Reset 14 jours</div>'+
@@ -5242,6 +5274,8 @@ function viewCoachDetail(){
       '</div></div>';
   })();
 
+  h+=cdSecClose();
+  h+=cdSecOpen("menus","🍽️","Menus &amp; challenge","Plans alimentaires, défis courts");
   // 🍽️ MENUS — aiguillage vers menu.html (3 phases de 28 j ou Reset 14 j)
   (function(){
     var mc=allData[517]||{};
@@ -5298,6 +5332,8 @@ function viewCoachDetail(){
     h+='</div>';
   })();
 
+  h+=cdSecClose();
+  h+=cdSecOpen("affichage","🎨","Affichage &amp; statistiques","Thème, superviseur, prise en compte");
   // 📊 Compter ou non dans les statistiques
   (function(){
     var hs=!!c.horsStats;
@@ -5357,6 +5393,8 @@ function viewCoachDetail(){
       '</div>';
   })();
 
+  h+=cdSecClose();
+  h+=cdSecOpen("bonus","💰","Bonus &amp; documents","Finance, entraînement, bilans, rapport");
   // 💰 QUÊTE FINANCE (slot 512) — bonus optionnel, pensé pour les renouvellements
   var fin=allData[512]||{};
   var finOn=!!fin.on;
@@ -5479,6 +5517,7 @@ function viewCoachDetail(){
     '<button id="cd-delete" style="width:100%;padding:13px 0;border-radius:12px;background:#fff;border:2px solid var(--bad);color:'+R+';font-weight:800;font-size:13px">🗑️ Supprimer ce client</button>'+
     '<div style="font-size:11px;color:#777;text-align:center;margin-top:6px">Supprime définitivement toutes ses données</div></div>';
 
+  h+=cdSecClose();
   return h+'</div></div>';
 }
 
@@ -7190,6 +7229,14 @@ function bindCoach(){
       coachSaveSlot(slug,503,{ton:nk,genre:cur.genre,prenom:supTirage(nk,cur.genre)});
       feedback("🎭 Superviseur changé","ok");
       render();
+    });
+  }
+
+  // 📂 Mémoriser quelles sections le coach laisse ouvertes
+  var secs=document.querySelectorAll(".cd-sec");
+  for(var sc=0;sc<secs.length;sc++){
+    secs[sc].addEventListener("toggle",function(){
+      try{localStorage.setItem("amcoach_sec_"+this.getAttribute("data-sec"),this.open?"1":"0");}catch(e){}
     });
   }
 

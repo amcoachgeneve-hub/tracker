@@ -829,11 +829,22 @@ function ensureClientInCloud(name,startDate){
 // ═══════════ SYNCHRO CÔTÉ COACH ═══════════
 // loadFromCloud() s'arrête si !CLIENT : en mode coach, aucune donnée client
 // n'était jamais téléchargée. Le dashboard ne montrait que le cache local.
+// Ce garde-fou existe pour empêcher une boucle : charger appelle render(),
+// qui réaffiche la fiche, qui redemande un chargement. Mais il était DÉFINITIF :
+// une fois un client chargé, sa fiche ne se rafraîchissait plus JAMAIS de toute
+// la session. Un client qui remplissait sa journée restait invisible chez le
+// coach. Il devient temporel : au-delà de FRAICHEUR, on redemande au nuage.
 var __coachLoaded={},__coachBusy=false;
+var COACH_FRAICHEUR=45000;   // 45 s : assez pour couper la boucle de rendu,
+                             // assez court pour voir arriver une journée remplie
+function coachFrais(slug){
+  var t=__coachLoaded[slug];
+  return !!t&&(Date.now()-t)<COACH_FRAICHEUR;
+}
 function coachLoadClient(slug,force,cb){
   if(!slug){if(cb)cb();return;}
-  if(__coachLoaded[slug]&&!force){if(cb)cb();return;}
-  __coachLoaded[slug]=true;
+  if(coachFrais(slug)&&!force){if(cb)cb();return;}
+  __coachLoaded[slug]=Date.now();
   sbFetch("tracking?client_slug=eq."+encodeURIComponent(slug)+"&select=day_index,data")
     .then(function(r){return r.json();})
     .then(function(rows){
@@ -851,7 +862,7 @@ function coachLoadAll(force){
   var cl=lsGet("amcoach_clients",[]);
   if(!cl.length)return;
   var reste=0;
-  for(var i=0;i<cl.length;i++){if(force||!__coachLoaded[cl[i].slug])reste++;}
+  for(var i=0;i<cl.length;i++){if(force||!coachFrais(cl[i].slug))reste++;}
   if(!reste)return;
   __coachBusy=true;
   var fait=0;
@@ -3857,18 +3868,10 @@ function viewCalendar(name,start){
           }else cls=" future";
           if(idx===today90)cls+=" today";
           var hasBilan=allData[idx]&&allData[idx].bilan;
-          var msn=allData[200+idx];
-          var msnDot="";
-          if(msn&&msn.status&&msn.status!=="pending"){
-            // L'éclair était à 7 px : illisible d'un coup d'œil sur la grille.
-            // La couleur ne servait à rien non plus — un emoji garde ses couleurs
-            // natives. On le grossit et on met le statut derrière, en pastille.
-            // UN SEUL vert, toujours le même. Faire varier la teinte selon
-            // l'issue de la mission donnait une grille bariolée où l'œil ne
-            // repérait plus rien. La pastille dit « il y a eu une mission » ;
-            // le résultat se lit dans la couleur de la case elle-même.
-            msnDot='<span style="position:absolute;top:-7px;right:-5px;width:26px;height:26px;border-radius:50%;background:#2FBF71;border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.32);display:flex;align-items:center;justify-content:center;font-size:15px;line-height:1">⚡</span>';
-          }
+          // ⚡ L'éclair signale les TROIS QUESTIONS remplies, pas la mission :
+          // la couleur de la case dit déjà si la journée a été faite, l'éclair
+          // dit si la personne est allée jusqu'au mindset.
+          var msnDot=mindsetFull(allData,idx)?'<span style="position:absolute;top:-7px;right:-5px;width:26px;height:26px;border-radius:50%;background:#2FBF71;border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.32);display:flex;align-items:center;justify-content:center;font-size:15px;line-height:1">⚡</span>':"";
           h+='<button class="cal-cell'+cls+'" data-day="'+idx+'" style="background:'+cellBg+'">'+(idx+1)+
             (hasBilan?'<span class="bilan-dot">📋</span>':"")+msnDot+'</button>';
         }
@@ -5158,23 +5161,19 @@ function viewCoachDetail(){
             if(!dO||!dO.habits)bg2="var(--bad)";
             else{var sc2=dayScore(dO);bg2=sc2===100?"var(--ok)":sc2>=50?"var(--ok-l)":sc2>0?"#FFD0B0":"var(--bad)";}
           }
-          var msn2=allData[200+ix];
-          // L'éclair était à 6 px : impossible de juger le sérieux d'un client
-          // d'un coup d'œil. Pastille verte fixe, éclair jaune, bien visible.
-          var mDot2="";
-          if(msn2&&msn2.status&&msn2.status!=="pending"){
-            // Même règle que côté client : un seul vert, toujours le même.
-            mDot2='<span style="position:absolute;top:-7px;right:-5px;width:26px;height:26px;border-radius:50%;background:#2FBF71;border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.32);display:flex;align-items:center;justify-content:center;font-size:15px;line-height:1">⚡</span>';
-          }else if(msn2){
-            mDot2='<span style="position:absolute;top:-7px;right:-5px;width:26px;height:26px;border-radius:50%;background:#2FBF71;border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.32);display:flex;align-items:center;justify-content:center;font-size:15px;line-height:1;opacity:.45">⚡</span>';
-          }
+          // Même règle que côté client : l'éclair = les 3 questions remplies.
+          var mDot2=mindsetFull(allData,ix)?'<span style="position:absolute;top:-7px;right:-5px;width:26px;height:26px;border-radius:50%;background:#2FBF71;border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.32);display:flex;align-items:center;justify-content:center;font-size:15px;line-height:1">⚡</span>':"";
           h+='<div style="aspect-ratio:1;border-radius:5px;background:'+bg2+';display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:'+(ix<=t90?"var(--ink)":"#A0B8D8")+';position:relative'+(ix===t90?';outline:2px solid var(--brand)':'')+'">'+(ix+1)+mDot2+'</div>';
         }
         h+='</div>';
       }
     }
   })();
-  h+='<div style="font-size:11px;color:#777;margin-top:6px">🟢 complet · 🟠 partiel · 🔴 manqué · ⚡ mission</div></div>';
+  // La légende disait « ⚡ mission » sans préciser que la pastille ne
+  // s'affiche QUE si une mission du jour a été définie — pas quand le client
+  // remplit simplement ses habitudes. D'où l'impression que l'éclair manque.
+  h+='<div style="font-size:11px;color:#777;margin-top:6px;line-height:1.6">🟢 complet · 🟠 partiel · 🔴 manqué'+
+    '<br><span style="opacity:.85">⚡ les 3 questions du mindset ont été remplies</span></div></div>';
 
   h+=cdSecOpen("reglages","⚙️","Réglages du client","Date de départ, accès à l&rsquo;appli");
   // 🚀 Date de départ (modifiable)
@@ -5926,10 +5925,42 @@ function retryCloudPurge(slug){
     .catch(function(){});
 }
 
+// 👤 Ouvrir la fiche d'un client. On affiche immédiatement ce qu'on a en
+// mémoire — pas d'attente devant un écran vide — puis on redemande au nuage
+// en arrière-plan. Sans ça, la fiche montrait l'état du dernier démarrage :
+// un client qui remplissait sa journée restait invisible jusqu'au prochain
+// rechargement complet de la page.
+function ouvrirFiche(slug){
+  if(!slug)return;
+  state.coachDetail=slug;
+  render();                       // on affiche tout de suite ce qu'on a
+  coachLoadClient(slug,true);     // puis on redemande au nuage, sans attendre
+}
+
+// 📥 Supabase plafonne toute requête à 1000 lignes quand aucune limite n'est
+// demandée. Avec une dizaine de clients qui remplissent chacun une centaine de
+// journées, on dépassait ce plafond : des jours disparaissaient du tableau de
+// bord — au hasard, puisque rien ne garantissait l'ordre. On récupère donc le
+// suivi par tranches, jusqu'à ce que le nuage n'ait plus rien à donner.
+function chargerTracking(page,acc){
+  page=page||0; acc=acc||[];
+  var TAILLE=1000;
+  return sbFetch("tracking?select=client_slug,day_index,data&order=client_slug.asc,day_index.asc"+
+                 "&limit="+TAILLE+"&offset="+(page*TAILLE))
+    .then(function(r){return r.json();})
+    .then(function(lot){
+      if(!lot||!lot.length)return acc;
+      acc=acc.concat(lot);
+      if(lot.length<TAILLE||page>=40)return acc;   // garde-fou : 40 000 lignes max
+      return chargerTracking(page+1,acc);
+    })
+    .catch(function(){return acc;});
+}
+
 function loadCoachDataFromCloud(){
   Promise.all([
     sbFetch("clients?select=*&order=created_at.desc").then(function(r){return r.json();}),
-    sbFetch("tracking?select=client_slug,day_index,data").then(function(r){return r.json();})
+    chargerTracking()
   ]).then(function(results){
     var clients=results[0]||[], rows=results[1]||[];
     // Un client supprimé ne revient pas, quoi que dise le nuage.
@@ -6437,9 +6468,31 @@ function viewCoachBilan(){
   var __bdayTracker=(__bd&&(__bd.bday||__bd.date||__bd.d))||"";
   // ✏️ Mode modification : on repart des valeurs enregistrées
   var __ed=(state.blEdit!=null&&bl[state.blEdit])?bl[state.blEdit]:null;
+  // 🔁 REPORT AUTOMATIQUE. Le nom, la date de naissance ou la taille ne
+  // changent pas d'une analyse à l'autre : les retaper à chaque fois est une
+  // perte de temps et une source d'erreurs. On reprend donc la dernière
+  // analyse enregistrée comme point de départ.
+  // Deux familles distinctes :
+  //   FIXE    = état civil, ça ne bouge jamais -> toujours repris
+  //   REPRIS  = mensurations et repères de la dernière fois -> repris comme
+  //             base à corriger, pour n'avoir à modifier que ce qui a changé
+  var __prec=(!__ed&&bl.length)?bl[bl.length-1]:null;
+  var CHAMPS_FIXES={prenom:1,nom:1,naiss:1,taille:1,sexe:1};
   function pv(k,def){
-    if(!__ed)return def===undefined?"":def;
-    var v=__ed[k];
+    if(__ed){
+      var v=__ed[k];
+      return (v===undefined||v===null)?"":String(v);
+    }
+    if(__prec&&CHAMPS_FIXES[k]){
+      var f=__prec[k];
+      if(f!==undefined&&f!==null&&f!=="")return String(f);
+    }
+    return def===undefined?"":def;
+  }
+  // Valeur de la dernière analyse pour un champ non figé (mensurations…)
+  function pvPrec(k){
+    if(__ed||!__prec)return "";
+    var v=__prec[k];
     return (v===undefined||v===null)?"":String(v);
   }
   h+='<div class="card" id="bl-form" style="padding:16px;margin-bottom:14px">'+
@@ -6451,6 +6504,9 @@ function viewCoachBilan(){
       '<div style="font-size:11.5px;color:#8A6A2F;margin-top:3px;line-height:1.45">Tu avais commencé cette analyse le '+
       new Date(__dr.maj).toLocaleDateString("fr-FR")+' à '+new Date(__dr.maj).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})+'. Les champs sont pré-remplis.</div>'+
       '<button id="bl-draft-clear" style="margin-top:8px;font-size:11px;font-weight:800;color:#8A6A2F;background:#fff;border:1px solid #F0D9A0;border-radius:8px;padding:6px 11px">🗑️ Repartir de zéro</button></div>':'')+
+    (__prec?'<div style="background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:12px">'+
+      '<div style="font-size:12px;font-weight:800;color:var(--ink)">🔁 Repris de l\'analyse du '+esc(__prec.date||"précédente")+'</div>'+
+      '<div style="font-size:11px;color:var(--mute);margin-top:3px;line-height:1.45">Identité, taille et distances de repère sont déjà remplies. Les tours de mesure restent vides : ce sont eux qui changent.</div></div>':'')+
     '<div style="font-weight:900;font-size:12px;color:var(--violet);margin:2px 0 8px">IDENTITÉ</div>'+
     '<div style="display:flex;gap:8px"><div style="flex:1">'+bilanInput("bl-prenom","PRÉNOM","","text",pv("prenom")||cName)+'</div>'+
     '<div style="flex:1">'+bilanInput("bl-nom","NOM","","text",pv("nom"))+'</div></div>'+
@@ -6499,12 +6555,18 @@ function viewCoachBilan(){
     '<div id="bl-plan-out"></div>';
   h+='<div style="font-weight:900;font-size:12px;color:var(--violet);margin:8px 0 8px">MESURES CORPORELLES (CM)</div>';
   h+='<div style="font-size:11px;color:var(--mute);margin-bottom:8px">Bras / jambes / mollets : le tour (cm) + la distance de repère (coude ou rotule) pour reprendre toujours la même mesure au bilan suivant.</div>';
+  // Les DISTANCES de repère sont reprises de la dernière analyse : c'est ce
+  // qui garantit qu'on mesure au même endroit, donc que les bilans restent
+  // comparables. Les TOURS, eux, restent vides à dessein — un chiffre
+  // pré-rempli qu'on oublierait de corriger fausserait toute la progression.
   for(var m2=0;m2<BILAN_MESURES.length;m2++){
     var bm2=BILAN_MESURES[m2];
+    var vMes=__ed&&__ed.mesures?__ed.mesures[bm2[0]]:"";
+    var vDst=__ed&&__ed.mdist?__ed.mdist[bm2[0]]:(__prec&&__prec.mdist?__prec.mdist[bm2[0]]:"");
     if(bm2[2]){
-      h+='<div style="display:flex;gap:8px"><div style="flex:1.2">'+bilanInput("bl-m-"+bm2[0],bm2[1].toUpperCase()+" (CM)","",null,__ed&&__ed.mesures?__ed.mesures[bm2[0]]:"")+'</div><div style="flex:1">'+bilanInput("bl-d-"+bm2[0],"DISTANCE (CM)","",null,__ed&&__ed.mdist?__ed.mdist[bm2[0]]:"")+'</div></div>';
+      h+='<div style="display:flex;gap:8px"><div style="flex:1.2">'+bilanInput("bl-m-"+bm2[0],bm2[1].toUpperCase()+" (CM)","",null,vMes)+'</div><div style="flex:1">'+bilanInput("bl-d-"+bm2[0],"DISTANCE (CM)","",null,vDst)+'</div></div>';
     }else{
-      h+=bilanInput("bl-m-"+bm2[0],bm2[1].toUpperCase()+" (CM)","",null,__ed&&__ed.mesures?__ed.mesures[bm2[0]]:"");
+      h+=bilanInput("bl-m-"+bm2[0],bm2[1].toUpperCase()+" (CM)","",null,vMes);
     }
   }
   h+='<div id="bl-draft-info" style="text-align:center;font-size:11px;color:var(--mute);font-weight:700;margin-bottom:9px"></div>'+
@@ -6564,6 +6626,28 @@ function compareBilans(A,B){
   if(!C.resistantes.length&&losses.length>3)C.resistantes=[losses[losses.length-1]];
   return C;
 }
+// ← RETOUR DANS LES DOCUMENTS OUVERTS EN NOUVEL ONGLET.
+// La progression, le rapport et le diplôme s'ouvrent via window.open : le
+// geste de retour de l'application ne s'y applique pas, et en mode plein
+// écran il n'y a pas de barre de navigateur. On embarque donc les deux :
+// un bouton visible, et le glissement depuis le bord gauche.
+function docRetourHTML(){
+  return '<button id="doc-back" aria-label="Retour" style="position:fixed;top:calc(12px + env(safe-area-inset-top));left:12px;z-index:99;'+
+    'width:40px;height:40px;border-radius:50%;border:0;background:rgba(255,255,255,.94);'+
+    'box-shadow:0 2px 10px rgba(0,0,0,.18);font-size:19px;line-height:1;cursor:pointer">←</button>'+
+    '<div id="doc-hint" style="position:fixed;top:0;left:0;bottom:0;width:3px;z-index:98;background:linear-gradient(90deg,rgba(0,0,0,.16),transparent);pointer-events:none"></div>'+
+    '<script>(function(){'+
+    'function retour(){ if(window.opener&&!window.opener.closed){window.close();return;} if(history.length>1){history.back();return;} window.close(); }'+
+    'var b=document.getElementById("doc-back"); if(b)b.addEventListener("click",retour);'+
+    'var sx=0,sy=0,dx=0,dy=0,bord=false;'+
+    'document.addEventListener("touchstart",function(e){if(e.touches.length!==1)return;'+
+    'sx=e.touches[0].clientX;sy=e.touches[0].clientY;dx=0;dy=0;bord=sx<40;},{passive:true});'+
+    'document.addEventListener("touchmove",function(e){if(!bord)return;'+
+    'dx=e.touches[0].clientX-sx;dy=e.touches[0].clientY-sy;},{passive:true});'+
+    'document.addEventListener("touchend",function(){if(bord&&dx>70&&Math.abs(dy)<60)retour();bord=false;},{passive:true});'+
+    '})();<\/script>';
+}
+
 function progressReport(slug,iA,iB){
   var clients=lsGet("amcoach_clients",[]),cName=slug;
   for(var i=0;i<clients.length;i++){if(clients[i].slug===slug){cName=clients[i].name;break;}}
@@ -6639,6 +6723,7 @@ function progressReport(slug,iA,iB){
   }
   html+='<div style="text-align:center;font-size:10px;color:var(--mute);margin-top:18px;letter-spacing:1px">AM COACH GENÈVE · MÉTHODE BALANCE-360 · @AMCOACHSPORTIF</div>'+
     '<div class="pdfbar"><button onclick="window.print()">📄 Enregistrer en PDF</button></div>'+
+    docRetourHTML()+
     '</body></html>';
   var win=window.open("","_blank");
   if(win){win.document.write(html);win.document.close();}
@@ -6656,13 +6741,16 @@ function successCard(slug,iA,iB){
   // ─── Les 4 meilleurs résultats à afficher (toujours 4 cases) ───
   var stats=[];
   if(C.dPoids!=null&&C.dPoids<0)stats.push({n:C.dPoids+" kg",l:"sur la balance",c:"var(--ok)"});
-  if(C.totalCm>0)stats.push({n:"−"+C.totalCm+" cm",l:"de mensurations",c:"var(--gold)"});
   if(C.dMg!=null&&C.dMg<0)stats.push({n:C.dMg+" %",l:"de masse grasse",c:"var(--ok)"});
   if(C.dMus!=null&&C.dMus>0)stats.push({n:"+"+C.dMus+" kg",l:"de muscle",c:"var(--brand2)"});
-  if(C.dGras!=null&&C.dGras<0)stats.push({n:C.dGras+" kg",l:"de gras",c:"var(--ok)"});
-  if(C.dGv!=null&&C.dGv<0)stats.push({n:""+C.dGv,l:"graisse viscérale",c:"var(--ok)"});
+  // 📸 Sur la carte à partager, on nomme les DEUX plus belles zones plutôt
+  // qu'un total de centimètres. « −38 cm de mensurations » ne parle à
+  // personne et gonfle un chiffre en additionnant dix tours de mesure ;
+  // « −9 cm de ventre » se comprend et se croit tout de suite.
   if(C.topZones&&C.topZones[0])stats.push({n:C.topZones[0].d+" cm",l:C.topZones[0].label.toLowerCase(),c:"var(--gold)"});
   if(C.topZones&&C.topZones[1])stats.push({n:C.topZones[1].d+" cm",l:C.topZones[1].label.toLowerCase(),c:"var(--gold)"});
+  if(C.dGras!=null&&C.dGras<0)stats.push({n:C.dGras+" kg",l:"de gras",c:"var(--ok)"});
+  if(C.dGv!=null&&C.dGv<0)stats.push({n:""+C.dGv,l:"graisse viscérale",c:"var(--ok)"});
   if(C.dMus!=null&&C.dMus<0&&Math.abs(C.dMus)<=0.5)stats.push({n:"💪",l:"muscle protégé",c:"var(--brand2)"});
   if(C.jours)stats.push({n:C.jours+" j",l:"de discipline",c:"var(--gold)"});
   // dédoublonnage par libellé, puis on garde les 4 premiers
@@ -6823,9 +6911,8 @@ function bindCoach(){
   var pgo=document.querySelectorAll(".pouls-go");
   for(var pi2=0;pi2<pgo.length;pi2++){
     pgo[pi2].addEventListener("click",function(){
-      state.coachDetail=this.getAttribute("data-s");
       state.cdTab="";
-      render();
+      ouvrirFiche(this.getAttribute("data-s"));
     });
   }
 
@@ -6966,7 +7053,7 @@ function bindCoach(){
   }
   var opens=document.querySelectorAll(".cd-open,.alert-row");
   for(var o=0;o<opens.length;o++){
-    opens[o].addEventListener("click",function(){state.coachDetail=this.getAttribute("data-detail");render();});
+    opens[o].addEventListener("click",function(){ouvrirFiche(this.getAttribute("data-detail"));});
   }
   var cdBack=document.getElementById("cd-back");
   if(cdBack)cdBack.addEventListener("click",function(){state.coachDetail=null;render();});

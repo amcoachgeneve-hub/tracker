@@ -1503,6 +1503,102 @@ var TONS={
 };
 var TON_ORDRE=["normal","marseillais","italien","drole","sarcastique","vulgaire","jeune","commentateur"];
 // Le superviseur = un ton + un genre + un prénom tiré à l'inscription.
+// ═══════════════ 🔊 LA VOIX DES SUPERVISEURS ═══════════════
+// Synthèse vocale native du téléphone : rien à télécharger, rien à payer,
+// ça marche hors ligne. Principe posé : « soit on lit, soit on écoute » —
+// la lecture reste le mode par défaut, l'audio ne part JAMAIS tout seul.
+// Contrainte iOS respectée de fait : chaque lecture naît d'un geste.
+
+// Chaque superviseur a son réglage : la langue donne l'accent, le débit et
+// la hauteur donnent le caractère. L'Italien lit du français avec une voix
+// italienne — c'est ce qui produit l'accent, sans rien enregistrer.
+var VOIX={
+  normal:      {lang:"fr-FR", rate:1.00, pitch:1.00},
+  marseillais: {lang:"fr-FR", rate:1.06, pitch:1.06},
+  italien:     {lang:"it-IT", rate:0.98, pitch:1.02},
+  drole:       {lang:"fr-FR", rate:1.09, pitch:1.14},
+  sarcastique: {lang:"fr-FR", rate:0.88, pitch:0.90},
+  vulgaire:    {lang:"fr-FR", rate:1.16, pitch:0.88},
+  jeune:       {lang:"fr-FR", rate:1.18, pitch:1.10},
+  commentateur:{lang:"fr-FR", rate:1.14, pitch:1.04}
+};
+// Prénoms des voix système connues, pour respecter le genre choisi.
+var VOIX_F=["aurélie","aurelie","marie","amélie","amelie","audrey","chantal","alice","federica","elsa","céline","celine","julie","léa","lea","siri female","female"];
+var VOIX_H=["thomas","nicolas","daniel","paul","luca","alessio","yannick","mathieu","siri male","male"];
+
+function voixDispo(){
+  try{return (window.speechSynthesis&&speechSynthesis.getVoices())||[];}catch(e){return [];}
+}
+// Safari charge la liste des voix en différé : on la réchauffe au démarrage.
+function voixPrepare(){
+  try{
+    if(!window.speechSynthesis)return;
+    speechSynthesis.getVoices();
+    speechSynthesis.onvoiceschanged=function(){speechSynthesis.getVoices();};
+  }catch(e){}
+}
+function voixSupportee(){
+  try{return !!(window.speechSynthesis&&window.SpeechSynthesisUtterance);}catch(e){return false;}
+}
+function voixChoisir(lang,genre){
+  var vs=voixDispo();
+  if(!vs.length)return null;
+  var base=lang.slice(0,2);
+  var meme=vs.filter(function(v){return v.lang&&v.lang.slice(0,2)===base;});
+  if(!meme.length)meme=vs;
+  var cherche=(genre==="f")?VOIX_F:VOIX_H;
+  for(var i=0;i<meme.length;i++){
+    var n=(meme[i].name||"").toLowerCase();
+    for(var j=0;j<cherche.length;j++){if(n.indexOf(cherche[j])>-1)return meme[i];}
+  }
+  // Aucun prénom reconnu : on prend une voix locale de la bonne langue,
+  // plus rapide et disponible hors connexion.
+  for(var k=0;k<meme.length;k++){if(meme[k].localService)return meme[k];}
+  return meme[0];
+}
+var __voixEnCours=null;
+function voixStop(){
+  try{if(window.speechSynthesis)speechSynthesis.cancel();}catch(e){}
+  __voixEnCours=null;
+  var b=document.querySelectorAll(".voix-btn");
+  for(var i=0;i<b.length;i++)b[i].textContent="🔊";
+}
+// Lit une phrase avec la voix du superviseur. Re-cliquer coupe la lecture.
+function voixDire(texte,ton,genre,bouton){
+  if(!voixSupportee()||!texte)return;
+  var deja=(__voixEnCours===texte);
+  voixStop();
+  if(deja)return;
+  var cfg=VOIX[ton]||VOIX.normal;
+  var u=new SpeechSynthesisUtterance(texte);
+  var v=voixChoisir(cfg.lang,genre);
+  if(v){u.voice=v;u.lang=v.lang;}else{u.lang=cfg.lang;}
+  u.rate=cfg.rate; u.pitch=cfg.pitch; u.volume=1;
+  __voixEnCours=texte;
+  if(bouton)bouton.textContent="⏸";
+  u.onend=function(){__voixEnCours=null;if(bouton)bouton.textContent="🔊";};
+  u.onerror=function(){__voixEnCours=null;if(bouton)bouton.textContent="🔊";};
+  try{speechSynthesis.speak(u);}catch(e){voixStop();}
+}
+// Le bouton se pose à côté d'une phrase. Il ne s'affiche que si le
+// téléphone sait parler : inutile de montrer un bouton mort.
+function voixBouton(texte,ton,genre,style){
+  if(!voixSupportee())return "";
+  return '<button type="button" class="voix-btn" data-vx="'+esc(texte)+'" data-vt="'+ton+'" data-vg="'+genre+'" '+
+    'aria-label="Écouter" style="border:0;background:transparent;padding:2px 4px;font-size:15px;line-height:1;cursor:pointer;'+(style||'')+'">🔊</button>';
+}
+// Câblage global : appelé après chaque rendu, il branche tous les boutons.
+function voixCabler(){
+  var b=document.querySelectorAll(".voix-btn");
+  for(var i=0;i<b.length;i++){
+    if(b[i].__vxOk)continue;
+    b[i].__vxOk=true;
+    b[i].addEventListener("click",function(e){
+      e.preventDefault(); e.stopPropagation();
+      voixDire(this.getAttribute("data-vx"),this.getAttribute("data-vt"),this.getAttribute("data-vg"),this);
+    });
+  }
+}
 function supGet(allData){
   var t=allData&&allData[503];
   if(t&&typeof t==="object"){
@@ -1735,7 +1831,9 @@ function supAnnonce(){
       '<div style="background:'+solid("var(--soft2)")+';border-radius:13px;padding:12px 13px;margin-top:12px">'+
       '<div style="font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:'+solid("var(--mute)")+'">Ce sera</div>'+
       '<div style="font-size:16px;font-weight:900;color:'+solid("var(--ink)")+';margin-top:2px">'+T.emoji+' '+esc(prenom)+'</div>'+
-      '<div style="font-size:12px;color:'+solid("var(--ink2)")+';font-style:italic;margin-top:6px;line-height:1.5">« '+esc(T.bas[0])+' »</div></div>'+
+      '<div style="display:flex;align-items:center;gap:6px;margin-top:6px">'+
+      '<span style="flex:1;font-size:12px;color:'+solid("var(--ink2)")+';font-style:italic;line-height:1.5">« '+esc(T.bas[0])+' »</span>'+
+      voixBouton(T.bas[0],choisi,genre,"font-size:18px")+'</div></div>'+
       '<button type="button" id="sa-ok" style="width:100%;margin-top:13px;padding:14px 0;border-radius:13px;border:0;background:'+solid("var(--brand)")+';color:#fff;font-weight:900;font-size:14px">C\'est parti avec '+esc(prenom)+'</button>'+
       '<button type="button" id="sa-later" style="width:100%;margin-top:8px;padding:11px 0;border-radius:13px;border:1px solid '+solid("var(--line)")+';background:#fff;color:'+solid("var(--mute)")+';font-weight:800;font-size:13px">Plus tard</button>'+
       '</div>';
@@ -1750,14 +1848,17 @@ function supAnnonce(){
     for(var j=0;j<ts.length;j++)ts[j].addEventListener("click",function(){
       choisi=this.getAttribute("data-ton"); prenom=supTirage(choisi,genre); cabler();
     });
+    voixCabler();
     ov.querySelector("#sa-ok").addEventListener("click",function(){
       saveDay(503,{ton:choisi,genre:genre,prenom:prenom});
+      voixStop();
       supAnnonceMarque("fait");
       document.body.removeChild(ov);
       feedback("🎭 "+prenom+" t\'accompagne maintenant","ok");
       render();
     });
     ov.querySelector("#sa-later").addEventListener("click",function(){
+      voixStop();
       supAnnonceMarque("plus-tard:"+Date.now());
       document.body.removeChild(ov);
     });
@@ -2508,6 +2609,9 @@ function scrollTopIfRouteChanged(){
 function render(){
   renderView();
   scrollTopIfRouteChanged();
+  // 🔊 Safari charge la liste des voix en différé : on la réchauffe tôt,
+  // sinon le tout premier appui sur un bouton reste muet.
+  try{voixPrepare();}catch(e){}
 }
 function renderView(){
   setTimeout(function(){try{applyTheme(getAllData());ancrerNav();}catch(e){}},0);
@@ -3495,7 +3599,10 @@ function viewCalendar(name,start){
     '<span style="font-size:54px;font-weight:900;letter-spacing:-2px;line-height:1;color:var(--ink)">'+pct+
     '<span style="font-size:22px;letter-spacing:0">%</span></span>'+
     '<span style="font-size:11.5px;font-weight:700;color:var(--mute)">de tes jours remplis</span></div></div>'+
-    '<div style="font-size:13.5px;font-weight:800;color:'+pctColor+';margin-top:14px">'+etat+'</div>'+
+    // 🔊 La phrase peut être lue à voix haute. Jamais toute seule : un geste.
+    '<div style="display:flex;align-items:center;justify-content:center;gap:5px;margin-top:14px">'+
+    '<span style="font-size:13.5px;font-weight:800;color:'+pctColor+'">'+etat+'</span>'+
+    (function(){var S=supGet(allData);return voixBouton(etat,S.ton,S.genre,"opacity:.7");})()+'</div>'+
     // 🎭 Signature du superviseur : les clients déjà lancés n'ont jamais vu
     // l'écran de choix (il n'apparaît qu'au tout premier démarrage). Le bouton
     // leur donne l'accès, et rappelle à tous qui leur parle.
@@ -3513,7 +3620,9 @@ function viewCalendar(name,start){
         var k=TON_ORDRE[ti],TT=TONS[k],on=(k===S.ton);
         f+='<button class="sup-pick" data-ton="'+k+'" style="flex:1 1 30%;padding:9px 4px;border-radius:11px;border:2px solid '+(on?"var(--brand)":"var(--line)")+';background:'+(on?"var(--soft)":"#fff")+';font-weight:800;font-size:11px;color:'+(on?"var(--ink)":"var(--mute)")+'">'+TT.emoji+' '+TT.nom+'</button>';
       }
-      f+='</div><div style="font-size:11.5px;color:var(--ink2);font-style:italic;margin-top:9px;line-height:1.5">« '+esc(T.bas[0])+' »</div>'+
+      f+='</div><div style="display:flex;align-items:center;gap:5px;margin-top:9px">'+
+        '<span style="flex:1;font-size:11.5px;color:var(--ink2);font-style:italic;line-height:1.5">« '+esc(T.bas[0])+' »</span>'+
+        voixBouton(T.bas[0],S.ton,S.genre)+'</div>'+
         '<button id="sup-close" style="width:100%;margin-top:9px;padding:8px 0;border-radius:10px;border:1px solid var(--line);background:#fff;font-size:11.5px;font-weight:800;color:var(--mute)">Fermer</button></div>';
       return b+f;
     })()+
@@ -8118,6 +8227,7 @@ function bindFinance(){
 
 // ═══════════ MAIN BINDINGS ═══════════
 function bindMain(name,start){
+  voixCabler();   // 🔊 les boutons d'écoute, sur toutes les vues
   // 🎭 Une seule fois : on présente le choix du superviseur aux clients
   // déjà lancés, qui n'ont jamais vu l'écran d'inscription.
   if(state.view==="calendar"&&!document.querySelector("#sa-ok")){

@@ -1666,6 +1666,127 @@ for(var __tk in TON_EXTRA){if(TONS[__tk]){TONS[__tk].alertes=TON_EXTRA[__tk].ale
 // Alertes et phrases de l'objectif, dans la voix du superviseur du client.
 function supAlertes(allData){var T=TONS[tonActif(allData)];return (T&&T.alertes)?T.alertes:HABIT_ALERTS;}
 function supPhrases(allData){var T=TONS[tonActif(allData)];return (T&&T.phrases&&T.phrases.length)?T.phrases:GOAL_PHRASES;}
+// Titres des verdicts de l'écran Ma progression, dans la voix du superviseur.
+// Le corps du message reste factuel — les chiffres ne se déclinent pas — mais
+// le titre, lui, doit être celui du personnage que le client a choisi.
+var TON_VERDICTS={
+  normal:{atteint:"Objectif atteint",monte:"Le poids remonte",stagne:"Tu stagnes",repart:"Ça repart dans l'autre sens",lent:"Trop lent pour la date",ralentit:"Tu ralentis",progresse:"Tu progresses"},
+  marseillais:{atteint:"Té, objectif atteint !",monte:"Oh, le poids remonte",stagne:"Ça bouge plus, collègue",repart:"Té, ça part à l'envers",lent:"Trop lent pour la date",ralentit:"Tu lèves le pied",progresse:"Là tu déroules"},
+  italien:{atteint:"Bravissimo, objectif atteint",monte:"Madonna, le poids remonte",stagne:"Tutto fermo, ça ne bouge plus",repart:"Attenzione, ça repart à l'envers",lent:"Troppo lento pour la date",ralentit:"Tu ralentis, piano piano",progresse:"Molto bene, tu avances"},
+  drole:{atteint:"Objectif atteint, rideau",monte:"La balance fait marche arrière",stagne:"Ton poids fait le mort",repart:"Demi-tour non autorisé",lent:"Trop lent pour la date",ralentit:"Tu passes en mode tortue",progresse:"Tu progresses, chapeau"},
+  sarcastique:{atteint:"Objectif atteint. Bien.",monte:"Le poids remonte. Voilà.",stagne:"Rien ne bouge. Fascinant.",repart:"Ça repart à l'envers. Curieux.",lent:"Trop lent pour la date",ralentit:"Tu ralentis. Déjà.",progresse:"Tu progresses. Pour l'instant."},
+  vulgaire:{atteint:"Objectif atteint, bravo",monte:"Ton poids remonte, merde",stagne:"Ça bouge plus du tout",repart:"Ça repart à l'envers là",lent:"Trop lent pour la date",ralentit:"Tu lèves le pied",progresse:"Là t'assures"},
+  jeune:{atteint:"Objectif atteint, carré",monte:"Le poids remonte, le seum",stagne:"Ça bouge plus, chelou",repart:"Ça repart à l'envers, sah",lent:"Trop lent pour la date",ralentit:"Tu ralentis là",progresse:"T'es chaud, ça monte"},
+  commentateur:{atteint:"Objectif atteint, quelle fin !",monte:"Alerte, la balance remonte",stagne:"Match nul, rien ne bouge",repart:"Coup dur, ça repart à l'envers",lent:"Trop lent pour tenir la date",ralentit:"Il lève le pied",progresse:"Il déroule, belle dynamique"}
+};
+function supVerdictTitre(allData,cle){
+  var V=TON_VERDICTS[tonActif(allData)]||TON_VERDICTS.normal;
+  return V[cle]||TON_VERDICTS.normal[cle]||"";
+}
+// ═══ ⚠️ SIGNAUX D'ALERTE — ce que le superviseur dit AVANT de féliciter ═══
+// Le remplissage ne fait pas le résultat. Quelqu'un peut cocher toutes ses
+// cases et ne pas maigrir : c'est là qu'il faut parler, pas le féliciter.
+// Ces phrases passent DEVANT la phrase d'état quand un signal est présent.
+var TON_SIGNAUX={
+  normal:{
+    poidsMonte:"Ton poids remonte. Regarde d'abord les portions du soir et le sommeil — c'est là que ça se joue.",
+    poidsBloque:"Ton poids ne bouge plus. Ce n'est pas une fatalité : il manque presque toujours du sommeil ou des protéines.",
+    faitSansResultat:"Tu remplis bien, mais la balance ne suit pas. Le problème n'est pas ta discipline, c'est un réglage à faire — parles-en à ton coach.",
+    sommeil:"Ton sommeil décroche. C'est la nuit que le corps déstocke — commence par là avant tout le reste.",
+    nutrition:"Ta nutrition lâche. C'est 70 % du résultat : tant qu'elle n'est pas tenue, le reste ne suffira pas."
+  },
+  marseillais:{
+    poidsMonte:"Té, le poids remonte. Regarde les portions du soir et le sommeil, c'est là que ça se passe.",
+    poidsBloque:"Le poids bouge plus, collègue. C'est presque toujours le sommeil ou les protéines qui manquent.",
+    faitSansResultat:"Tu fais le boulot mais la balance suit pas. C'est pas toi le problème, c'est un réglage — dis-le à ton coach.",
+    sommeil:"Ton sommeil part en cacade. C'est la nuit que le corps travaille, commence par ça.",
+    nutrition:"L'assiette lâche, collègue. 70 % du résultat, té — tant que c'est pas tenu, le reste sert à rien."
+  },
+  italien:{
+    poidsMonte:"Il peso risale. Regarde les portions du soir et le sommeil, c'est là que tout se joue.",
+    poidsBloque:"Le poids ne bouge plus. Niente panico — il manque presque toujours du sommeil ou des protéines.",
+    faitSansResultat:"Tu fais tout bene, mais la balance ne suit pas. Ce n'est pas ta discipline, c'est un réglage — parles-en au coach.",
+    sommeil:"Mamma mia, ton sommeil. C'est la nuit que le corps déstocke, commence par là.",
+    nutrition:"L'assiette ne va pas. C'est 70 % du résultat, allora — sans ça, le reste ne suffira jamais."
+  },
+  drole:{
+    poidsMonte:"La balance repart vers le haut. Regarde du côté du dîner et du sommeil, les deux suspects habituels.",
+    poidsBloque:"Ton poids fait le mort. Dans 9 cas sur 10 c'est le sommeil ou les protéines qui manquent à l'appel.",
+    faitSansResultat:"Tu coches tout et la balance s'en moque. C'est vexant, mais ce n'est pas ta faute : il y a un réglage à revoir.",
+    sommeil:"Ton sommeil est en grève. Le corps déstocke la nuit, il faut lui laisser le temps.",
+    nutrition:"L'assiette fait de la résistance. C'est 70 % du résultat, difficile de tricher avec ça."
+  },
+  sarcastique:{
+    poidsMonte:"Le poids remonte. Le dîner et le sommeil, généralement. Mais tu le savais.",
+    poidsBloque:"Plus rien ne bouge. Sommeil ou protéines. C'est presque toujours l'un des deux.",
+    faitSansResultat:"Tu remplis tout, la balance ne bouge pas. Rassure-toi, ce n'est pas ta discipline. C'est un réglage.",
+    sommeil:"Le sommeil décroche. C'est pourtant la nuit que le corps travaille. Étonnant, non ?",
+    nutrition:"L'assiette lâche. 70 % du résultat. Le reste ne rattrapera pas ça, aussi motivé sois-tu."
+  },
+  vulgaire:{
+    poidsMonte:"Ton poids remonte, bordel. Les portions du soir et le sommeil, regarde ça en premier.",
+    poidsBloque:"Le poids bouge plus. Sommeil ou protéines, c'est toujours l'un des deux qui déconne.",
+    faitSansResultat:"Tu bosses et la balance suit pas. C'est pas toi le problème, y'a un réglage à faire — appelle ton coach.",
+    sommeil:"Ton sommeil c'est n'importe quoi. Le corps déstocke la nuit, commence par là.",
+    nutrition:"Ton assiette lâche. 70 % du résultat, tu piges ? Le reste rattrapera rien."
+  },
+  jeune:{
+    poidsMonte:"Ton poids remonte, sah. Check les portions du soir et le sommeil en premier.",
+    poidsBloque:"Le poids bouge plus, c'est le seum. Souvent c'est le sommeil ou les protéines qui manquent.",
+    faitSansResultat:"Tu fais tout carré et la balance suit pas. C'est pas toi, y'a un réglage à faire — dis-le au coach.",
+    sommeil:"Ton sommeil est chelou. Le corps déstocke la night, faut lui laisser le temps.",
+    nutrition:"L'assiette lâche, wesh. 70 % du résultat, le reste rattrapera rien."
+  },
+  commentateur:{
+    poidsMonte:"Attention, la balance repart à la hausse. Les portions du soir et le sommeil, deux suspects classiques.",
+    poidsBloque:"Le poids s'est immobilisé. Dans la plupart des cas, c'est le sommeil ou les protéines qui manquent.",
+    faitSansResultat:"Il fait le match, mais le score ne bouge pas. Ce n'est pas l'engagement qui manque, c'est un réglage.",
+    sommeil:"Le sommeil décroche, et c'est un point capital : la récupération se joue la nuit.",
+    nutrition:"L'assiette faiblit, et c'est 70 % du match. Impossible de compenser ailleurs."
+  }
+};
+for(var __sk in TON_SIGNAUX){if(TONS[__sk])TONS[__sk].signaux=TON_SIGNAUX[__sk];}
+
+// Décide de CE QUE le superviseur doit dire aujourd'hui.
+// Un signal de résultat passe TOUJOURS devant la phrase de remplissage :
+// féliciter quelqu'un dont le poids stagne, c'est le laisser dans le mur.
+function supMessage(allData,today90,pct){
+  var ton=tonActif(allData), T=TONS[ton], S=(T&&T.signaux)||TONS.normal.signaux;
+  // 1. Le poids : le juge de paix.
+  // On lit la tendance DIRECTEMENT, sans passer par statProjection : celle-ci
+  // sort prématurément quand aucun objectif du mois n'est défini, et le signal
+  // ne partait alors jamais. Or un poids bloqué se voit sans cible.
+  var poidsV=[];
+  for(var i=0;i<=today90;i++){
+    var d=allData[i]||{};
+    poidsV.push((d.poids!=null&&d.poids!=="")?parseFloat(d.poids):null);
+  }
+  var TG=null,TR=null;   // TG = tendance globale (T porte déjà le superviseur)
+  try{TG=statTendance(poidsV);TR=statTendance(poidsV,10);}catch(e){}
+  var atteint=false;
+  try{
+    var g=getGoal(allData,currentMonth(today90));
+    var cible=(g&&g.target)?parseFloat(g.target):null;
+    var act=null;
+    for(var k=poidsV.length-1;k>=0;k--){if(poidsV[k]!=null){act=poidsV[k];break;}}
+    atteint=(cible!=null&&act!=null&&act<=cible);
+  }catch(e){}
+  if(!atteint&&TG&&TG.n>=8){
+    // Les dernières pesées remontent, ou la tendance de fond monte
+    if((TR&&TR.n>=4&&TR.pente>0.005)||TG.pente>0.005)return {texte:S.poidsMonte,alerte:true};
+    // Plus rien ne bouge : le message change selon l'effort déjà fourni
+    if(TG.pente>=-0.005&&TG.pente<=0.005)return {texte:(pct>=65?S.faitSansResultat:S.poidsBloque),alerte:true};
+  }
+  // 2. Les deux piliers : sommeil et nutrition
+  try{
+    var al=computeAlert(allData,today90,true);
+    if(al&&al.habit==="sommeil")return {texte:S.sommeil,alerte:true};
+    if(al&&al.habit==="nutrition")return {texte:S.nutrition,alerte:true};
+  }catch(e){}
+  // 3. Rien d'alarmant : la phrase d'état habituelle
+  var niv=pct>=85?"haut":pct>=65?"bon":pct>=45?"moyen":pct>=25?"bas":"zero";
+  return {texte:pickEtat(T[niv],ton+"-"+niv,today90),alerte:false};
+}
 // 💬 Tirage de la phrase d'état.
 // L'ancien calcul (jour % 6) ne changeait qu'une fois par jour : en ouvrant
 // l'appli trois fois dans la journée, on relisait trois fois la même phrase.
@@ -2186,9 +2307,13 @@ function generateDiplome(name,startDate,allData){
 // chaque série est ramenée sur une échelle commune pour que les croisements se voient.
 // ═══════════ 📈 MOTEURS D'ANALYSE DE PROGRESSION ═══════════
 // Régression linéaire sur les points renseignés : renvoie la pente par jour
-function statTendance(values){
+// fenetre = ne garder que les N dernieres pesees. Sans fenetre, la regression
+// porte sur TOUT l'historique : un bon demarrage ecrase un recul recent et la
+// pente reste descendante alors que la personne est en train de reprendre.
+function statTendance(values,fenetre){
   var xs=[],ys=[];
   for(var i=0;i<values.length;i++){if(values[i]!=null){xs.push(i);ys.push(values[i]);}}
+  if(fenetre&&xs.length>fenetre){xs=xs.slice(-fenetre);ys=ys.slice(-fenetre);}
   if(xs.length<3)return null;
   var n=xs.length,sx=0,sy=0,sxy=0,sxx=0;
   for(var j=0;j<n;j++){sx+=xs[j];sy+=ys[j];sxy+=xs[j]*ys[j];sxx+=xs[j]*xs[j];}
@@ -2221,8 +2346,13 @@ function statSemaine(values,finIdx){
           nRec:rec.length};
 }
 // Projection vers le poids cible à partir de la tendance réelle
-function statProjection(poidsVals,cible,finIdx){
+// joursRestants = ce qu'il reste avant la fin du programme. Sans cette
+// information, la projection annonçait une date sans jamais dire qu'elle
+// tombait APRÈS l'échéance — donc « Tu progresses » alors que le rythme ne
+// permet plus de tenir la promesse.
+function statProjection(poidsVals,cible,finIdx,joursRestants){
   var T=statTendance(poidsVals);
+  var TR=statTendance(poidsVals,10);   // les 10 dernières pesées : le rythme du moment
   var act=null;
   for(var i=finIdx;i>=0;i--){if(poidsVals[i]!=null){act=poidsVals[i];break;}}
   if(act==null)return null;
@@ -2239,8 +2369,21 @@ function statProjection(poidsVals,cible,finIdx){
       dateCible=d.toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"});
     }
   }
-  return {act:act,cible:cible,reste:reste,tendance:T,assez:assez,
+  // Retard sur l'échéance : positif = la cible tombe APRÈS la fin du programme
+  var retard=null,dateFin=null;
+  if(jours!=null&&joursRestants!=null&&joursRestants>0){
+    retard=jours-joursRestants;
+    var df=new Date();df.setDate(df.getDate()+joursRestants);
+    dateFin=df.toLocaleDateString("fr-FR",{day:"numeric",month:"long"});
+  }
+  // Le rythme récent s'est-il retourné, ou nettement essoufflé ?
+  var recentMonte=!!(TR&&TR.n>=4&&TR.pente>0.005);
+  var recentMou=!!(TR&&TR.n>=4&&T&&T.pente<-0.005&&TR.pente>T.pente*0.5);
+  return {act:act,cible:cible,reste:reste,tendance:T,recent:TR,assez:assez,
           jours:jours,sem:jours?Math.ceil(jours/7):null,dateCible:dateCible,parSem:parSem,
+          retard:retard,dateFin:dateFin,joursRestants:joursRestants,
+          recentMonte:recentMonte,recentMou:recentMou,
+          parSemRecent:(TR&&TR.pente<0)?Math.round(-TR.pente*7*100)/100:0,
           stagne:!!(assez&&T&&T.pente>=-0.005&&T.pente<=0.005),
           monte:!!(assez&&T&&T.pente>0.005)};
 }
@@ -3507,9 +3650,11 @@ function viewCalendar(name,start){
   // Six formules par palier, qui tournent chaque jour : le même message
   // répété une semaine finit par ne plus rien vouloir dire.
   // Les phrases suivent le ton choisi par le client au démarrage.
-  var ETATS=TONS[tonActif(allData)];
-  var __niv=pct>=85?"haut":pct>=65?"bon":pct>=45?"moyen":pct>=25?"bas":"zero";
-  var etat=pickEtat(ETATS[__niv],tonActif(allData)+"-"+__niv,today90);
+  // Le superviseur ne regarde plus seulement le taux de remplissage : si le
+  // poids stagne, remonte, ou si le sommeil / la nutrition décrochent, il le
+  // dit AVANT de féliciter. Cocher ses cases n'est pas obtenir un résultat.
+  var __msg=supMessage(allData,today90,pct);
+  var etat=__msg.texte;
   h+='<div class="card" style="padding:24px 18px 20px;margin-bottom:16px;text-align:center">'+
     '<div style="font-size:20px;font-weight:900;color:var(--ink);letter-spacing:-.3px;margin-bottom:16px">Ma progression</div>'+
     '<div class="ring-wrap" style="margin:0 auto">'+svgRing(pct/100,pctColor,196,16)+
@@ -3517,7 +3662,12 @@ function viewCalendar(name,start){
     '<span style="font-size:54px;font-weight:900;letter-spacing:-2px;line-height:1;color:var(--ink)">'+pct+
     '<span style="font-size:22px;letter-spacing:0">%</span></span>'+
     '<span style="font-size:11.5px;font-weight:700;color:var(--mute)">de tes jours remplis</span></div></div>'+
-    '<div style="font-size:13.5px;font-weight:800;color:'+pctColor+';margin-top:14px">'+etat+'</div>'+
+    // Une alerte se voit : encadré ambre, pas une ligne de couleur parmi d'autres.
+    (__msg.alerte
+      ? '<div style="background:rgba(255,152,0,.12);border:1px solid rgba(255,152,0,.4);border-radius:14px;padding:12px 14px;margin-top:14px;text-align:left">'+
+        '<div style="font-size:11px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:var(--warn-d);margin-bottom:4px">⚠️ À regarder maintenant</div>'+
+        '<div style="font-size:13px;font-weight:700;color:var(--ink);line-height:1.55">'+etat+'</div></div>'
+      : '<div style="font-size:13.5px;font-weight:800;color:'+pctColor+';margin-top:14px">'+etat+'</div>')+
     // 🎭 Signature du superviseur : les clients déjà lancés n'ont jamais vu
     // l'écran de choix (il n'apparaît qu'au tout premier démarrage). Le bouton
     // leur donne l'accès, et rappelle à tous qui leur parle.
@@ -4525,7 +4675,7 @@ function viewStats(name){
   var poidsV=vals("poids");
   var nCfg=nutCfg(allData);
   var cible=parseFloat(nCfg.pCible)||null;
-  var PJ=statProjection(poidsV,cible,lastIdx);
+  var PJ=statProjection(poidsV,cible,lastIdx,Math.max(0,90-(today90+1)));
   var rempli=0;for(var f=0;f<=Math.min(89,lastIdx);f++){if(allData[f]&&Object.keys(allData[f]).length>0)rempli++;}
 
   var h='<div class="hdr"><div class="hdr-brand"><div class="bar bar-r"></div>'+
@@ -4545,7 +4695,7 @@ function viewStats(name){
       sous="Une pesée régulière, même approximative, suffit à faire apparaître la direction.";
       bg="linear-gradient(135deg,#455A64,#607D8B)";
     }else if(PJ.atteint){
-      ico="🎉";titre="Objectif atteint";
+      ico="🎉";titre=supVerdictTitre(allData,"atteint");
       sous="Tu es à "+PJ.act+" kg. Place au maintien : c'est là que la transformation devient définitive.";
       bg="linear-gradient(135deg,#1B5E20,var(--ok))";
     }else if(!PJ.assez){
@@ -4553,16 +4703,37 @@ function viewStats(name){
       sous="Il me faut environ 8 pesées pour distinguer une vraie tendance du bruit quotidien. Tu en as "+((PJ.tendance&&PJ.tendance.n)||0)+".";
       bg="linear-gradient(135deg,#455A64,#607D8B)";
     }else if(PJ.monte){
-      ico="📈";titre="Le poids remonte";
+      ico="📈";titre=supVerdictTitre(allData,"monte");
       sous="Ce n'est pas un échec, c'est une information. Parles-en à ton coach : on ajuste et ça repart.";
       bg="linear-gradient(135deg,var(--bad),var(--brand))";
     }else if(PJ.stagne){
-      ico="➖";titre="Tu stagnes";
+      ico="➖";titre=supVerdictTitre(allData,"stagne");
       sous="Le poids ne bouge plus depuis quelques jours. C'est fréquent et ça se débloque — souvent par le sommeil ou les protéines.";
       bg="linear-gradient(135deg,var(--warn-d),var(--warn))";
+    }else if(PJ.recentMonte){
+      // La pente globale descend encore, mais les dernières pesées remontent.
+      // Le dire maintenant vaut mieux que de féliciter quelqu'un qui repart
+      // dans l'autre sens : c'est là que ça se rattrape facilement.
+      ico="⚠️";titre=supVerdictTitre(allData,"repart");
+      sous="Ta tendance de fond reste bonne, mais tes dernières pesées remontent. Pris maintenant, ça se corrige en quelques jours — parles-en à ton coach.";
+      bg="linear-gradient(135deg,var(--warn-d),var(--warn))";
+    }else if(PJ.retard!=null&&PJ.retard>0){
+      // Il maigrit, mais trop lentement pour tenir la date. Annoncer une date
+      // au-delà de l'échéance sans la nommer, c'était mentir par omission.
+      var sem=Math.ceil(PJ.retard/7);
+      ico="⏳";titre=supVerdictTitre(allData,"lent");
+      sous="Tu perds "+PJ.parSem+" kg par semaine. À ce rythme tu atteins "+PJ.cible+" kg le "+PJ.dateCible+
+        ", soit "+sem+" semaine"+(sem>1?"s":"")+" APRÈS la fin de tes 90 jours ("+PJ.dateFin+")."+
+        " Il faudrait "+(Math.round((PJ.reste/(PJ.joursRestants/7))*100)/100)+" kg par semaine pour y être à temps.";
+      bg="linear-gradient(135deg,#B26A00,var(--warn-d))";
+    }else if(PJ.recentMou){
+      ico="🐢";titre=supVerdictTitre(allData,"ralentit");
+      sous="Sur l'ensemble tu perds "+PJ.parSem+" kg par semaine, mais ces derniers jours le rythme a nettement baissé ("+PJ.parSemRecent+" kg/sem). Tu tiens encore ta date, garde le cap.";
+      bg="linear-gradient(135deg,#2E7D32,var(--ok-d))";
     }else{
-      ico="🔥";titre="Tu progresses";
-      sous="Rythme actuel : "+PJ.parSem+" kg par semaine."+(PJ.dateCible?" À ce rythme, "+PJ.cible+" kg le "+PJ.dateCible+".":"");
+      ico="🔥";titre=supVerdictTitre(allData,"progresse");
+      sous="Rythme actuel : "+PJ.parSem+" kg par semaine."+(PJ.dateCible?" À ce rythme, "+PJ.cible+" kg le "+PJ.dateCible:"")+
+        (PJ.retard!=null&&PJ.retard<=0?" — soit "+Math.abs(Math.floor(PJ.retard/7))+" semaine(s) avant l'échéance.":".");
       bg="linear-gradient(135deg,#1B5E20,var(--ok-d))";
     }
     h+='<div class="card" style="background:'+bg+';border:none;padding:17px 16px;margin-bottom:13px">'+

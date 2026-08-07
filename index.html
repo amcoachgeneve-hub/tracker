@@ -1864,8 +1864,26 @@ function supMessage(allData,today90,pct){
     for(var k=poidsV.length-1;k>=0;k--){if(poidsV[k]!=null){act=poidsV[k];break;}}
     atteint=(cible!=null&&act!=null&&act<=cible);
   }catch(e){}
-  if(!atteint&&TG&&TG.n>=8){
-    if((TR&&TR.n>=4&&TR.pente>0.005)||TG.pente>0.005)return dire("poidsMonte");
+  // Données périmées : si la dernière pesée date de plus d'une semaine, on ne
+  // juge rien. Alerter sur un poids qu'on ne connaît plus n'aide personne.
+  var dernierePesee=-1;
+  for(var dp=poidsV.length-1;dp>=0;dp--){if(poidsV[dp]!=null){dernierePesee=dp;break;}}
+  var fraiche=(dernierePesee>=0&&(today90-dernierePesee)<=7);
+  // Même seuil que dans les stats : un écart RÉEL de 500 g entre la moyenne
+  // des 3 dernières pesées et celle des précédentes. En dessous, c'est le
+  // bruit normal d'une balance, pas une reprise.
+  function remonteVraiment(){
+    var rv=[];
+    for(var q=0;q<poidsV.length;q++){if(poidsV[q]!=null)rv.push(poidsV[q]);}
+    rv=rv.slice(-10);
+    if(rv.length<6)return false;
+    var d3=rv.slice(-3), av=rv.slice(0,-3),m3=0,ma=0,z;
+    for(z=0;z<d3.length;z++)m3+=d3[z]; m3/=d3.length;
+    for(z=0;z<av.length;z++)ma+=av[z]; ma/=av.length;
+    return (m3-ma)>=0.5;
+  }
+  if(!atteint&&fraiche&&TG&&TG.n>=8){
+    if(remonteVraiment()||TG.pente>0.02)return dire("poidsMonte");
     if(TG.pente>=-0.005&&TG.pente<=0.005)return dire(pct>=65?"faitSansResultat":"poidsBloque");
   }
   // 2. Les deux piliers : sommeil et nutrition
@@ -2468,7 +2486,25 @@ function statProjection(poidsVals,cible,finIdx,joursRestants){
     dateFin=df.toLocaleDateString("fr-FR",{day:"numeric",month:"long"});
   }
   // Le rythme récent s'est-il retourné, ou nettement essoufflé ?
-  var recentMonte=!!(TR&&TR.n>=4&&TR.pente>0.005);
+  // Une balance varie naturellement de 0,5 à 1 kg par jour (eau, sel, transit).
+  // Le seuil précédent — une pente de 0,005 kg/jour, soit 35 g par semaine —
+  // était très en dessous de ce bruit : un simple pic au milieu des dernières
+  // pesées suffisait à crier « ça repart à l'envers » chez quelqu'un qui avait
+  // perdu 2,5 kg. On exige maintenant un écart RÉEL : la moyenne des trois
+  // dernières pesées doit dépasser celle des précédentes d'au moins 500 g.
+  var recentMonte=false;
+  if(TR&&TR.n>=6){
+    var rv=[];
+    for(var ri=0;ri<poidsVals.length;ri++){if(poidsVals[ri]!=null)rv.push(poidsVals[ri]);}
+    rv=rv.slice(-10);
+    var d3=rv.slice(-3), av=rv.slice(0,-3);
+    if(d3.length===3&&av.length>=3){
+      var m3=0,ma=0,z;
+      for(z=0;z<d3.length;z++)m3+=d3[z]; m3/=d3.length;
+      for(z=0;z<av.length;z++)ma+=av[z]; ma/=av.length;
+      recentMonte=(m3-ma)>=0.5;
+    }
+  }
   var recentMou=!!(TR&&TR.n>=4&&T&&T.pente<-0.005&&TR.pente>T.pente*0.5);
   return {act:act,cible:cible,reste:reste,tendance:T,recent:TR,assez:assez,
           jours:jours,sem:jours?Math.ceil(jours/7):null,dateCible:dateCible,parSem:parSem,

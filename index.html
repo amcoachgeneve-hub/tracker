@@ -1945,6 +1945,59 @@ function themeCSS(){
   return o+"}";
 }
 // ═══════════ 📅 SÉLECTEUR DE DATE ═══════════
+// Lecture unique de l'anniversaire, quel que soit l'endroit où il a été saisi.
+// Slot dédié 518 ; repli sur 503 pour les dates enregistrées avant le
+// correctif, quand l'anniversaire partageait le slot du superviseur.
+function bdayLire(data){
+  var d=data||{};
+  var a=d[518]||{}, b=d[503]||{};
+  return {bday:a.bday||b.bday||null, year:a.year||b.year||null};
+}
+// 🎂 SAISIE DE L'ANNIVERSAIRE — vrai sélecteur de date.
+// Avant : un prompt() où il fallait taper « JJ/MM » à la main, sans calendrier,
+// et qui écrivait dans le slot du superviseur. Ici, le calendrier natif du
+// téléphone, et un slot dédié (518) que rien d'autre ne touche.
+function ouvrirAnniversaire(){
+  var ad=getAllData();
+  var cur=(ad[518]&&ad[518].bday)||(ad[503]&&ad[503].bday)||null;
+  var curY=(ad[518]&&ad[518].year)||(ad[503]&&ad[503].year)||null;
+  // L'année n'est pas demandée : seul le jour compte pour souhaiter.
+  // Si elle a déjà été saisie, on la garde ; sinon on prend une année neutre
+  // pour que le calendrier s'ouvre, sans jamais l'afficher comme un âge.
+  var val=cur?((curY||"2000")+"-"+cur):"";
+  var ov=document.createElement("div");
+  ov.style.cssText="position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center";
+  ov.innerHTML='<div style="background:'+solid("var(--card)")+';width:100%;max-width:430px;border-radius:22px 22px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom))">'+
+    '<div style="font-weight:900;font-size:18px;color:'+solid("var(--ink)")+'">🎂 Ton anniversaire</div>'+
+    '<div style="font-size:12.5px;color:'+solid("var(--mute)")+';line-height:1.5;margin-top:5px">Ton coach le verra pour te souhaiter le jour venu. Seuls le jour et le mois sont conservés.</div>'+
+    '<input id="bd-input" type="date" value="'+val+'" style="width:100%;margin-top:14px;padding:14px 16px;border-radius:13px;border:2px solid '+solid("var(--line)")+';background:#fff;color:'+solid("var(--ink)")+';font-size:17px;font-weight:700;text-align:center"/>'+
+    '<button id="bd-ok" style="width:100%;margin-top:13px;padding:14px 0;border-radius:13px;border:0;background:'+solid("var(--brand)")+';color:#fff;font-weight:900;font-size:14px">Enregistrer</button>'+
+    (cur?'<button id="bd-del" style="width:100%;margin-top:8px;padding:11px 0;border-radius:13px;border:1px solid '+solid("var(--line)")+';background:#fff;color:'+solid("var(--bad)")+';font-weight:800;font-size:13px">Retirer ma date</button>':'')+
+    '<button id="bd-no" style="width:100%;margin-top:8px;padding:11px 0;border-radius:13px;border:1px solid '+solid("var(--line)")+';background:#fff;color:'+solid("var(--mute)")+';font-weight:800;font-size:13px">Annuler</button>'+
+    '</div>';
+  function fermer(){if(ov.parentNode)document.body.removeChild(ov);}
+  ov.addEventListener("click",function(e){if(e.target===ov)fermer();});
+  document.body.appendChild(ov);
+  var inp=ov.querySelector("#bd-input");
+  // On ouvre le calendrier tout de suite : c'est ce qu'on vient faire.
+  setTimeout(function(){try{inp.showPicker?inp.showPicker():inp.focus();}catch(e){inp.focus();}},120);
+  ov.querySelector("#bd-ok").addEventListener("click",function(){
+    var v=inp.value;
+    if(!v||v.length<10){feedback("Choisis une date","err");return;}
+    var pa=v.split("-");                       // AAAA-MM-JJ
+    saveDay(518,{bday:pa[1]+"-"+pa[2],year:pa[0]});
+    fermer();
+    feedback("🎂 Anniversaire enregistré","ok");
+    render();
+  });
+  var del=ov.querySelector("#bd-del");
+  if(del)del.addEventListener("click",function(){
+    saveDay(518,{});
+    fermer(); feedback("Date retirée","undo"); render();
+  });
+  ov.querySelector("#bd-no").addEventListener("click",fermer);
+}
+
 // 🎭 ANNONCE DU SUPERVISEUR — feuille modale au lancement.
 // Les clients déjà en cours n'ont jamais vu l'écran d'inscription, donc ils
 // ne savent pas que la fonction existe. On la leur présente une fois, avec
@@ -3958,7 +4011,13 @@ function viewCalendar(name,start){
   }
 
   // 🎂 ANNIVERSAIRE
-  var bd=allData[503]&&allData[503].bday?allData[503].bday:null;
+  // 🎂 L'anniversaire vit dans le slot 518. Il écrivait AVANT dans le 503,
+  // qui est celui du superviseur : chaque enregistrement écrasait l'autre.
+  // D'où le bouton qui revenait sans cesse — et la perte du superviseur au
+  // passage. On relit l'ancien emplacement pour ne pas perdre les dates déjà
+  // saisies par les clients avant ce correctif.
+  var bd=(allData[518]&&allData[518].bday)||(allData[503]&&allData[503].bday)||null;
+  var bdYear=(allData[518]&&allData[518].year)||(allData[503]&&allData[503].year)||null;
   var nowD=new Date();
   var todayMD=("0"+(nowD.getMonth()+1)).slice(-2)+"-"+("0"+nowD.getDate()).slice(-2);
   if(bd&&bd===todayMD){
@@ -5784,8 +5843,8 @@ function viewCoachDetail(){
     '<button id="cd-calc" class="big-btn" style="padding:14px 0;font-size:14px;background:var(--violet);margin-bottom:14px">🧮 Calculateur bilan</button>';
 
   // 🎂 Anniversaire
-  var bd3=allData[503]||{};
-  var bday=bd3.bday||null;
+  var __BD=bdayLire(allData);
+  var bday=__BD.bday, bd3={year:__BD.year};
   var bdTxt="";
   if(bday){
     bdTxt='<strong>'+bday.split("-")[1]+'/'+bday.split("-")[0]+(bd3.year?'/'+bd3.year:'')+'</strong>';
@@ -6777,8 +6836,7 @@ function viewCoachBilan(){
   var __dr=blDraftLire(state.coachDetail);
   // Date de naissance déjà connue côté cliente (slot 503)
   var __allC=lsGet("amcoach_"+slug,{});
-  var __bd=__allC[503]||null;
-  var __bdayTracker=(__bd&&(__bd.bday||__bd.date||__bd.d))||"";
+  var __bdayTracker=bdayLire(__allC).bday||"";
   // ✏️ Mode modification : on repart des valeurs enregistrées
   var __ed=(state.blEdit!=null&&bl[state.blEdit])?bl[state.blEdit]:null;
   // 🔁 REPORT AUTOMATIQUE. Le nom, la date de naissance ou la taille ne
@@ -7921,12 +7979,13 @@ function bindCoach(){
     var naiss=(a.naiss||"").trim();
     if(naiss){
       var dc=lsGet("amcoach_"+slug,{});
-      if(!dc[503]||!dc[503].bday){
+      if(!bdayLire(dc).bday){
         // Le tracker attend JJ/MM ou JJ/MM/AAAA
         var mn=naiss.match(/^(\d{1,2})[\/\-.](\d{1,2})(?:[\/\-.](\d{2,4}))?$/);
         if(mn){
           var jj=("0"+mn[1]).slice(-2), mm2=("0"+mn[2]).slice(-2);
-          coachSaveSlot(slug,503,{bday:jj+"/"+mm2+(mn[3]?"/"+mn[3]:"")});
+          // Format unique dans toute l'appli : bday = "MM-JJ", année à part.
+          coachSaveSlot(slug,518,{bday:mm2+"-"+jj,year:mn[3]||null});
         }
       }
     }
@@ -7941,11 +8000,12 @@ function bindCoach(){
   });
   var cdBday=document.getElementById("cd-bday");
   if(cdBday)cdBday.addEventListener("click",function(){
-    var __bd0=(lsGet("amcoach_"+state.coachDetail,{})[503])||{};
-    pickDate("Anniversaire du client",frVersIso(__bd0.bday)||"",function(iso){
+    var __bd0=bdayLire(lsGet("amcoach_"+state.coachDetail,{}));
+    var __iso0=__bd0.bday?((__bd0.year||"2000")+"-"+__bd0.bday):"";
+    pickDate("Anniversaire du client",__iso0,function(iso){
       if(!iso)return;
-      var m2=iso.split("-");
-      coachSaveSlot(state.coachDetail,503,{bday:m2[2]+"/"+m2[1]+"/"+m2[0]});
+      var m2=iso.split("-");   // AAAA-MM-JJ
+      coachSaveSlot(state.coachDetail,518,{bday:m2[1]+"-"+m2[2],year:m2[0]});
       feedback("🎂 Anniversaire enregistré","ok");
       render();
     },{raccourcis:false,aide:"Un message spécial apparaîtra ce jour-là dans son tracker."});
@@ -8676,15 +8736,7 @@ function bindMain(name,start){
     if(win){win.document.write(html);win.document.close();}
   });
   var bde=document.getElementById("bday-edit");
-  if(bde)bde.addEventListener("click",function(){
-    var v=prompt("Ta date d'anniversaire (JJ/MM ou JJ/MM/AAAA) :","");
-    if(!v)return;
-    var mm=v.match(/^(\d{1,2})[\/\-.](\d{1,2})(?:[\/\-.](\d{4}))?$/);
-    if(!mm){alert("Format : JJ/MM ou JJ/MM/AAAA (ex: 24/09/1985)");return;}
-    var bday=("0"+mm[2]).slice(-2)+"-"+("0"+mm[1]).slice(-2);
-    saveDay(503,{bday:bday,year:mm[3]||null});
-    render();
-  });
+  if(bde)bde.addEventListener("click",function(){ouvrirAnniversaire();});
   var gs=document.getElementById("goal-set");
   if(gs)gs.addEventListener("click",function(){state.showGoalForm=true;render();});
   var ge=document.getElementById("goal-edit");

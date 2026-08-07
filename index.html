@@ -1687,62 +1687,64 @@ function supVerdictTitre(allData,cle){
 // Le remplissage ne fait pas le résultat. Quelqu'un peut cocher toutes ses
 // cases et ne pas maigrir : c'est là qu'il faut parler, pas le féliciter.
 // Ces phrases passent DEVANT la phrase d'état quand un signal est présent.
+// TROIS formules par signal, tirées selon le jour comme les phrases d'état :
+// une alerte répétée mot pour mot pendant une semaine cesse d'être entendue.
 var TON_SIGNAUX={
   normal:{
-    poidsMonte:"Ton poids remonte. Regarde d'abord les portions du soir et le sommeil — c'est là que ça se joue.",
-    poidsBloque:"Ton poids ne bouge plus. Ce n'est pas une fatalité : il manque presque toujours du sommeil ou des protéines.",
-    faitSansResultat:"Tu remplis bien, mais la balance ne suit pas. Le problème n'est pas ta discipline, c'est un réglage à faire — parles-en à ton coach.",
-    sommeil:"Ton sommeil décroche. C'est la nuit que le corps déstocke — commence par là avant tout le reste.",
-    nutrition:"Ta nutrition lâche. C'est 70 % du résultat : tant qu'elle n'est pas tenue, le reste ne suffira pas."
+    poidsMonte:["Ton poids remonte. Regarde d'abord les portions du soir et le sommeil.","La balance repart vers le haut. Deux causes possibles : le dîner ou les nuits trop courtes.","Le poids monte. On regarde les faits : qu'est-ce qui a changé cette semaine ?"],
+    poidsBloque:["Ton poids ne bouge plus. Il manque presque toujours du sommeil ou des protéines.","Plus rien ne bouge depuis plusieurs jours. C'est un réglage à faire, pas une fatalité.","Le poids stagne. Ce n'est pas la fin : c'est le moment d'ajuster."],
+    faitSansResultat:["Tu remplis bien, mais la balance ne suit pas. Le problème n'est pas ta discipline — parles-en à ton coach.","Tu fais le travail et le résultat ne vient pas. C'est un réglage, pas un manque d'effort.","Ton assiduité est là, le résultat non. C'est exactement ce qu'un coach est là pour débloquer."],
+    sommeil:["Ton sommeil décroche. C'est la nuit que le corps déstocke — commence par là.","Tes nuits sont trop courtes. Aucun programme ne compense un manque de sommeil.","Le sommeil lâche. C'est le premier levier, avant même l'assiette."],
+    nutrition:["Ta nutrition lâche. C'est 70 % du résultat.","L'assiette n'est pas tenue. Le reste ne rattrapera pas ça.","La nutrition décroche. Reprends au prochain repas, pas demain."]
   },
   marseillais:{
-    poidsMonte:"Té, le poids remonte. Regarde les portions du soir et le sommeil, c'est là que ça se passe.",
-    poidsBloque:"Le poids bouge plus, collègue. C'est presque toujours le sommeil ou les protéines qui manquent.",
-    faitSansResultat:"Tu fais le boulot mais la balance suit pas. C'est pas toi le problème, c'est un réglage — dis-le à ton coach.",
-    sommeil:"Ton sommeil part en cacade. C'est la nuit que le corps travaille, commence par ça.",
-    nutrition:"L'assiette lâche, collègue. 70 % du résultat, té — tant que c'est pas tenu, le reste sert à rien."
+    poidsMonte:["Té, le poids remonte. Les portions du soir et le sommeil, c'est là que ça se passe.","Oh bonne mère, la balance repart à l'envers. Qu'est-ce que t'as changé cette semaine ?","Le poids monte, collègue. Le dîner d'abord, les nuits ensuite. Pas l'inverse."],
+    poidsBloque:["Le poids bouge plus, collègue. C'est le sommeil ou les protéines, toujours.","Ça stagne. C'est pas la mort, mais faut ajuster maintenant.","Plus rien ne bouge. On change un truc, sinon ça va durer."],
+    faitSansResultat:["Tu fais le boulot mais la balance suit pas. C'est pas toi le problème, dis-le à ton coach.","T'assures et le résultat vient pas. C'est un réglage, pas un manque d'envie.","T'es sérieux, ça se voit. Le corps suit pas encore — ça se débloque, appelle ton coach."],
+    sommeil:["Ton sommeil part en cacade. C'est la nuit que le corps travaille.","Tu dors pas assez, collègue. Aucun programme rattrape ça.","Les nuits sont trop courtes. C'est le premier truc à régler, avant l'assiette."],
+    nutrition:["L'assiette lâche, collègue. 70 % du résultat, té.","La nutrition suit pas. Le reste rattrapera rien, c'est comme ça.","Ton assiette part en vrille. On reprend au prochain repas, pas demain."]
   },
   italien:{
-    poidsMonte:"Il peso risale. Regarde les portions du soir et le sommeil, c'est là que tout se joue.",
-    poidsBloque:"Le poids ne bouge plus. Niente panico — il manque presque toujours du sommeil ou des protéines.",
-    faitSansResultat:"Tu fais tout bene, mais la balance ne suit pas. Ce n'est pas ta discipline, c'est un réglage — parles-en au coach.",
-    sommeil:"Mamma mia, ton sommeil. C'est la nuit que le corps déstocke, commence par là.",
-    nutrition:"L'assiette ne va pas. C'est 70 % du résultat, allora — sans ça, le reste ne suffira jamais."
+    poidsMonte:["Il peso risale. Regarde les portions du soir et le sommeil.","Madonna mia, la bilancia risale ! Qu'est-ce que tu as changé cette semaine ?","Le poids monte. La cena, poi le notti — dans cet ordre, sempre."],
+    poidsBloque:["Le poids ne bouge plus. Niente panico — sommeil ou protéines, presque toujours.","Tutto fermo. Ce n'est pas grave, mais il faut ajuster maintenant.","Ça stagne. On change quelque chose, sinon ça dure."],
+    faitSansResultat:["Tu fais tout bene, mais la balance ne suit pas. Ce n'est pas ta discipline — parles-en au coach.","Tu travailles et le résultat ne vient pas. C'est un réglage, coraggio.","Sei serio, ça se voit. Le corps ne suit pas encore : ça se débloque."],
+    sommeil:["Mamma mia, ton sommeil. C'est la nuit que le corps déstocke.","Tu ne dors pas assez. Nessun programma ne compense ça.","Les nuits sont trop courtes. C'est le premier levier, avant l'assiette."],
+    nutrition:["L'assiette ne va pas. C'est 70 % du résultat, allora.","La nutrition ne suit pas. Le reste ne rattrapera rien.","Che disastro, l'assiette. On reprend au prochain repas, subito."]
   },
   drole:{
-    poidsMonte:"La balance repart vers le haut. Regarde du côté du dîner et du sommeil, les deux suspects habituels.",
-    poidsBloque:"Ton poids fait le mort. Dans 9 cas sur 10 c'est le sommeil ou les protéines qui manquent à l'appel.",
-    faitSansResultat:"Tu coches tout et la balance s'en moque. C'est vexant, mais ce n'est pas ta faute : il y a un réglage à revoir.",
-    sommeil:"Ton sommeil est en grève. Le corps déstocke la nuit, il faut lui laisser le temps.",
-    nutrition:"L'assiette fait de la résistance. C'est 70 % du résultat, difficile de tricher avec ça."
+    poidsMonte:["La balance repart vers le haut. Le dîner et le sommeil, les deux suspects habituels.","Ton poids remonte. Quelqu'un a touché aux portions du soir ?","La balance fait marche arrière. Regardons ce qui a changé cette semaine."],
+    poidsBloque:["Ton poids fait le mort. Dans 9 cas sur 10 : sommeil ou protéines.","Rien ne bouge. Ton corps attend un signal, pas un miracle.","Ça stagne. C'est le moment de changer un paramètre, pas d'attendre."],
+    faitSansResultat:["Tu coches tout et la balance s'en moque. Vexant, mais ce n'est pas ta faute.","Tu fais le boulot, le corps boude. Il y a un réglage à revoir, pas un effort à ajouter.","Assiduité parfaite, résultat absent. C'est frustrant et c'est réparable."],
+    sommeil:["Ton sommeil est en grève. Le corps déstocke la nuit, laisse-lui le temps.","Tes nuits sont courtes. Aucun programme ne compense ça, désolé.","Le sommeil lâche. C'est le levier le moins glamour et le plus efficace."],
+    nutrition:["L'assiette fait de la résistance. C'est 70 % du résultat.","La nutrition prend des vacances. Difficile de tricher avec ça.","L'assiette lâche. On reprend au prochain repas, pas lundi."]
   },
   sarcastique:{
-    poidsMonte:"Le poids remonte. Le dîner et le sommeil, généralement. Mais tu le savais.",
-    poidsBloque:"Plus rien ne bouge. Sommeil ou protéines. C'est presque toujours l'un des deux.",
-    faitSansResultat:"Tu remplis tout, la balance ne bouge pas. Rassure-toi, ce n'est pas ta discipline. C'est un réglage.",
-    sommeil:"Le sommeil décroche. C'est pourtant la nuit que le corps travaille. Étonnant, non ?",
-    nutrition:"L'assiette lâche. 70 % du résultat. Le reste ne rattrapera pas ça, aussi motivé sois-tu."
+    poidsMonte:["Le poids remonte. Le dîner et le sommeil, généralement. Mais tu le savais.","La balance repart vers le haut. Étrange, vraiment.","Le poids monte. Quelque chose a changé cette semaine. Une idée ?"],
+    poidsBloque:["Plus rien ne bouge. Sommeil ou protéines. C'est presque toujours l'un des deux.","Ça stagne. Fascinant. Et parfaitement réglable.","Le poids fait une pause. Il attend que tu changes quelque chose."],
+    faitSansResultat:["Tu remplis tout, la balance ne bouge pas. Rassure-toi : ce n'est pas ta discipline.","Assiduité irréprochable, résultat nul. Ça arrive. Ça se règle.","Tu fais tout bien et rien ne suit. C'est précisément à ça que sert un coach."],
+    sommeil:["Le sommeil décroche. C'est pourtant la nuit que le corps travaille.","Tes nuits sont courtes. Le corps s'en souvient, lui.","Le sommeil lâche. Le levier le plus simple, et le plus ignoré."],
+    nutrition:["L'assiette lâche. 70 % du résultat. Le reste ne rattrapera pas ça.","La nutrition décroche. Difficile de compenser ailleurs, hélas.","L'assiette ne suit pas. Tout le reste devient décoratif."]
   },
   vulgaire:{
-    poidsMonte:"Ton poids remonte, bordel. Les portions du soir et le sommeil, regarde ça en premier.",
-    poidsBloque:"Le poids bouge plus. Sommeil ou protéines, c'est toujours l'un des deux qui déconne.",
-    faitSansResultat:"Tu bosses et la balance suit pas. C'est pas toi le problème, y'a un réglage à faire — appelle ton coach.",
-    sommeil:"Ton sommeil c'est n'importe quoi. Le corps déstocke la nuit, commence par là.",
-    nutrition:"Ton assiette lâche. 70 % du résultat, tu piges ? Le reste rattrapera rien."
+    poidsMonte:["Ton poids remonte, bordel. Les portions du soir et le sommeil, regarde ça.","La balance repart à l'envers, putain. T'as changé quoi cette semaine ?","Le poids monte. On arrête les excuses et on regarde le dîner, tout de suite."],
+    poidsBloque:["Le poids bouge plus. Sommeil ou protéines, c'est toujours l'un des deux.","Ça stagne. Faut changer un truc, ça partira pas tout seul.","Plus rien ne bouge. On ajuste maintenant, pas dans deux semaines."],
+    faitSansResultat:["Tu bosses et la balance suit pas. C'est pas toi, appelle ton coach.","T'assures et le corps suit pas. C'est un réglage, pas un manque de volonté.","T'es sérieux, ça se voit. Le résultat vient pas : ça se débloque."],
+    sommeil:["Ton sommeil c'est n'importe quoi. Le corps déstocke la nuit.","Tu dors pas assez, point. Aucun programme rattrape ça.","Les nuits sont trop courtes. C'est le premier truc à régler."],
+    nutrition:["Ton assiette lâche. 70 % du résultat, tu piges ?","La nutrition suit pas. Le reste rattrapera rien.","L'assiette part en vrille. On reprend au prochain repas, pas demain."]
   },
   jeune:{
-    poidsMonte:"Ton poids remonte, sah. Check les portions du soir et le sommeil en premier.",
-    poidsBloque:"Le poids bouge plus, c'est le seum. Souvent c'est le sommeil ou les protéines qui manquent.",
-    faitSansResultat:"Tu fais tout carré et la balance suit pas. C'est pas toi, y'a un réglage à faire — dis-le au coach.",
-    sommeil:"Ton sommeil est chelou. Le corps déstocke la night, faut lui laisser le temps.",
-    nutrition:"L'assiette lâche, wesh. 70 % du résultat, le reste rattrapera rien."
+    poidsMonte:["Ton poids remonte, sah. Check les portions du soir et le sommeil.","La balance repart à l'envers, chokbar. T'as changé quoi cette semaine ?","Le poids monte, wesh. Le dîner d'abord, les nuits après. Direct."],
+    poidsBloque:["Le poids bouge plus, c'est le seum. Souvent c'est le sommeil ou les protéines.","Ça stagne. Faut ajuster un truc, ça partira pas tout seul.","Plus rien ne bouge. On change un paramètre, maintenant."],
+    faitSansResultat:["Tu fais tout carré et la balance suit pas. C'est pas toi, dis-le au coach.","T'es sérieux et le corps suit pas. C'est un réglage, pas un manque d'effort.","Assiduité au top, résultat zéro. Ça se débloque, t'inquiète."],
+    sommeil:["Ton sommeil est chelou. Le corps déstocke la night.","Tu dors pas assez, sah. Aucun programme rattrape ça.","Tes nuits sont trop courtes, wesh. C'est le premier truc à régler, avant l'assiette."],
+    nutrition:["L'assiette lâche, wesh. 70 % du résultat.","La nutrition suit pas. Le reste rattrapera R.","L'assiette part en vrille. On reprend au prochain repas."]
   },
   commentateur:{
-    poidsMonte:"Attention, la balance repart à la hausse. Les portions du soir et le sommeil, deux suspects classiques.",
-    poidsBloque:"Le poids s'est immobilisé. Dans la plupart des cas, c'est le sommeil ou les protéines qui manquent.",
-    faitSansResultat:"Il fait le match, mais le score ne bouge pas. Ce n'est pas l'engagement qui manque, c'est un réglage.",
-    sommeil:"Le sommeil décroche, et c'est un point capital : la récupération se joue la nuit.",
-    nutrition:"L'assiette faiblit, et c'est 70 % du match. Impossible de compenser ailleurs."
+    poidsMonte:["Attention, la balance repart à la hausse. Les portions du soir et le sommeil, deux suspects classiques.","Le poids remonte : il faut identifier ce qui a changé cette semaine.","Alerte sur la balance. On revient aux fondamentaux : dîner et nuits."],
+    poidsBloque:["Le poids s'est immobilisé. Sommeil ou protéines, dans la plupart des cas.","Match nul sur la balance. Il faut changer quelque chose pour relancer.","Plus rien ne bouge. C'est le moment d'ajuster, pas d'attendre."],
+    faitSansResultat:["Il fait le match, mais le score ne bouge pas. Ce n'est pas l'engagement qui manque.","Prestation solide, résultat absent. C'est un réglage tactique à revoir.","L'investissement est total, le résultat ne suit pas encore. Ça se débloque."],
+    sommeil:["Le sommeil décroche, et c'est capital : la récupération se joue la nuit.","Nuits trop courtes. Aucun entraînement ne compense ce manque.","Le sommeil cède, et c'est le premier poste à corriger avant de toucher au reste."],
+    nutrition:["L'assiette faiblit, et c'est 70 % du match.","La nutrition décroche. Impossible de compenser ailleurs.","L'assiette ne suit pas. On reprend dès le prochain repas."]
   }
 };
 for(var __sk in TON_SIGNAUX){if(TONS[__sk])TONS[__sk].signaux=TON_SIGNAUX[__sk];}
@@ -1752,6 +1754,11 @@ for(var __sk in TON_SIGNAUX){if(TONS[__sk])TONS[__sk].signaux=TON_SIGNAUX[__sk];
 // féliciter quelqu'un dont le poids stagne, c'est le laisser dans le mur.
 function supMessage(allData,today90,pct){
   var ton=tonActif(allData), T=TONS[ton], S=(T&&T.signaux)||TONS.normal.signaux;
+  function dire(cle){
+    var L=S[cle]||TONS.normal.signaux[cle];
+    if(typeof L==="string")L=[L];
+    return {texte:pickEtat(L,ton+"-sig-"+cle,today90),alerte:true,cle:cle};
+  }
   // 1. Le poids : le juge de paix.
   // On lit la tendance DIRECTEMENT, sans passer par statProjection : celle-ci
   // sort prématurément quand aucun objectif du mois n'est défini, et le signal
@@ -1772,20 +1779,18 @@ function supMessage(allData,today90,pct){
     atteint=(cible!=null&&act!=null&&act<=cible);
   }catch(e){}
   if(!atteint&&TG&&TG.n>=8){
-    // Les dernières pesées remontent, ou la tendance de fond monte
-    if((TR&&TR.n>=4&&TR.pente>0.005)||TG.pente>0.005)return {texte:S.poidsMonte,alerte:true};
-    // Plus rien ne bouge : le message change selon l'effort déjà fourni
-    if(TG.pente>=-0.005&&TG.pente<=0.005)return {texte:(pct>=65?S.faitSansResultat:S.poidsBloque),alerte:true};
+    if((TR&&TR.n>=4&&TR.pente>0.005)||TG.pente>0.005)return dire("poidsMonte");
+    if(TG.pente>=-0.005&&TG.pente<=0.005)return dire(pct>=65?"faitSansResultat":"poidsBloque");
   }
   // 2. Les deux piliers : sommeil et nutrition
   try{
     var al=computeAlert(allData,today90,true);
-    if(al&&al.habit==="sommeil")return {texte:S.sommeil,alerte:true};
-    if(al&&al.habit==="nutrition")return {texte:S.nutrition,alerte:true};
+    if(al&&al.habit==="sommeil")return dire("sommeil");
+    if(al&&al.habit==="nutrition")return dire("nutrition");
   }catch(e){}
   // 3. Rien d'alarmant : la phrase d'état habituelle
   var niv=pct>=85?"haut":pct>=65?"bon":pct>=45?"moyen":pct>=25?"bas":"zero";
-  return {texte:pickEtat(T[niv],ton+"-"+niv,today90),alerte:false};
+  return {texte:pickEtat(T[niv],ton+"-"+niv,today90),alerte:false,cle:niv};
 }
 // 💬 Tirage de la phrase d'état.
 // L'ancien calcul (jour % 6) ne changeait qu'une fois par jour : en ouvrant
@@ -3662,12 +3667,21 @@ function viewCalendar(name,start){
     '<span style="font-size:54px;font-weight:900;letter-spacing:-2px;line-height:1;color:var(--ink)">'+pct+
     '<span style="font-size:22px;letter-spacing:0">%</span></span>'+
     '<span style="font-size:11.5px;font-weight:700;color:var(--mute)">de tes jours remplis</span></div></div>'+
-    // Une alerte se voit : encadré ambre, pas une ligne de couleur parmi d'autres.
-    (__msg.alerte
-      ? '<div style="background:rgba(255,152,0,.12);border:1px solid rgba(255,152,0,.4);border-radius:14px;padding:12px 14px;margin-top:14px;text-align:left">'+
-        '<div style="font-size:11px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:var(--warn-d);margin-bottom:4px">⚠️ À regarder maintenant</div>'+
-        '<div style="font-size:13px;font-weight:700;color:var(--ink);line-height:1.55">'+etat+'</div></div>'
-      : '<div style="font-size:13.5px;font-weight:800;color:'+pctColor+';margin-top:14px">'+etat+'</div>')+
+    // Une alerte se voit : encadré ambre, pas une ligne de couleur parmi
+    // d'autres. Elle est SIGNÉE : sans le nom et l'emoji du superviseur, le
+    // message ressemble à une notification système et non à quelqu'un qui
+    // s'adresse à toi — c'est ce qui faisait perdre son caractère au message.
+    (function(){
+      var S=supGet(allData),TT=TONS[S.ton];
+      if(!__msg.alerte)
+        return '<div style="font-size:13.5px;font-weight:800;color:'+pctColor+';margin-top:14px">'+etat+'</div>';
+      return '<div style="background:rgba(255,152,0,.12);border:1px solid rgba(255,152,0,.4);border-radius:14px;padding:12px 14px;margin-top:14px;text-align:left">'+
+        '<div style="display:flex;align-items:center;gap:7px;margin-bottom:6px">'+
+        '<span style="font-size:16px;line-height:1">'+TT.emoji+'</span>'+
+        '<span style="font-size:12.5px;font-weight:900;color:var(--ink)">'+esc(S.prenom)+'</span>'+
+        '<span style="flex:1;text-align:right;font-size:10px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:var(--warn-d)">⚠️ à regarder</span></div>'+
+        '<div style="font-size:13px;font-weight:700;color:var(--ink);line-height:1.55">'+etat+'</div></div>';
+    })()+
     // 🎭 Signature du superviseur : les clients déjà lancés n'ont jamais vu
     // l'écran de choix (il n'apparaît qu'au tout premier démarrage). Le bouton
     // leur donne l'accès, et rappelle à tous qui leur parle.

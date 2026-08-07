@@ -2177,7 +2177,7 @@ function generateDiplome(name,startDate,allData){
   '<div class="msg">« Félicitations. Ce n\'est que le début — tu viens de te prouver que tu es capable de bien plus que tu ne le pensais. Je suis fier de toi. Bravo. »</div>'+
   '<div class="sig"><div class="sig-name">Akli</div><div class="sig-role">Coach & Fondateur — AM Coach Genève</div></div>'+
   '<div class="dates">'+fmt(d0)+' — '+fmt(d1)+'</div>'+
-  '</div></div></body></html>';
+  '</div></div>'+docRetourHTML()+'</body></html>';
   return html;
 }
 
@@ -4226,7 +4226,7 @@ function bindBlocsJour(name,start){
       '<div class="bot"><div class="tag">TRANSFO\'PHYSIQUE · 90 JOURS</div><div class="sub2">@amcoachsportif</div></div>'+
       '</div>'+
       '<div class="hint">📸 Capture d\'écran → partage en story 🌙</div>'+
-      '</body></html>';
+      docRetourHTML(false)+'</body></html>';
     var win=window.open("","_blank");
     if(win){win.document.write(html);win.document.close();}
   };
@@ -4263,7 +4263,7 @@ function bindBlocsJour(name,start){
       '<div class="bot"><div class="tag">TRANSFO\'PHYSIQUE</div><div class="sub2">@amcoachsportif · 90 jours</div></div>'+
       '</div>'+
       '<div class="hint">📸 Fais une capture d\'écran de cette carte<br>et poste-la en story 💪</div>'+
-      '</body></html>';
+      docRetourHTML(false)+'</body></html>';
     var win=window.open("","_blank");
     if(win){win.document.write(html);win.document.close();}
   });
@@ -4866,7 +4866,7 @@ function openRapport(name,start,period,dataOverride){
     "  rapPdf();"+
     "}"+
     "<\/script>";
-  html+="</div></body></html>";
+  html+="</div>"+docRetourHTML()+"</body></html>";
 
   var win=window.open("","_blank");
   if(win){win.document.write(html);win.document.close();}
@@ -6352,7 +6352,7 @@ function openCalcReport(){
     '<div class="foot">AM Coach Genève · Méthode AM Transfo Physique<br>La discipline devient automatique</div>'+
     '</div>'+
     '<div class="pdfbar"><button style="background:var(--ink);color:#fff" onclick="window.print()">📤 Enregistrer en PDF</button></div>'+
-    '</body></html>';
+    docRetourHTML()+'</body></html>';
   var win=window.open("","_blank");
   if(win){win.document.write(html);win.document.close();}
 }
@@ -6631,11 +6631,17 @@ function compareBilans(A,B){
 // geste de retour de l'application ne s'y applique pas, et en mode plein
 // écran il n'y a pas de barre de navigateur. On embarque donc les deux :
 // un bouton visible, et le glissement depuis le bord gauche.
-function docRetourHTML(){
-  return '<button id="doc-back" aria-label="Retour" style="position:fixed;top:calc(12px + env(safe-area-inset-top));left:12px;z-index:99;'+
+// avecBouton=false : on n'embarque QUE le geste, sans le bouton ←.
+// C'est le réglage des cartes à partager : elles sont faites pour être
+// prises en capture d'écran, un bouton flottant se retrouverait sur la photo.
+// Le bouton est aussi masqué à l'impression, pour ne pas salir les PDF.
+function docRetourHTML(avecBouton){
+  var b=(avecBouton===false)?"":
+    '<style>@media print{#doc-back{display:none!important}}</style>'+
+    '<button id="doc-back" aria-label="Retour" style="position:fixed;top:calc(12px + env(safe-area-inset-top));left:12px;z-index:99;'+
     'width:40px;height:40px;border-radius:50%;border:0;background:rgba(255,255,255,.94);'+
-    'box-shadow:0 2px 10px rgba(0,0,0,.18);font-size:19px;line-height:1;cursor:pointer">←</button>'+
-    '<div id="doc-hint" style="position:fixed;top:0;left:0;bottom:0;width:3px;z-index:98;background:linear-gradient(90deg,rgba(0,0,0,.16),transparent);pointer-events:none"></div>'+
+    'box-shadow:0 2px 10px rgba(0,0,0,.18);font-size:19px;line-height:1;cursor:pointer">←</button>';
+  return b+
     '<script>(function(){'+
     'function retour(){ if(window.opener&&!window.opener.closed){window.close();return;} if(history.length>1){history.back();return;} window.close(); }'+
     'var b=document.getElementById("doc-back"); if(b)b.addEventListener("click",retour);'+
@@ -6791,7 +6797,7 @@ function successCard(slug,iA,iB){
     '</div>'+
     '<a class="ig" href="instagram://story-camera">📸 Ouvrir Instagram Story</a>'+
     '<div class="hint">1. Fais une capture d\'écran de la carte<br>2. Ouvre Instagram Story et poste-la 🔥</div>'+
-    '</body></html>';
+    docRetourHTML(false)+'</body></html>';
   var win=window.open("","_blank");
   if(win){win.document.write(html);win.document.close();}
 }
@@ -6894,7 +6900,7 @@ function bilanReport(slug,idx,mode){
     if(a.hab)kh+='<h2>Habitudes (notes)</h2><p>'+esc(a.hab)+'</p>';
   }
   kh+='<div class="pdfbar"><button onclick="window.print()">'+(isClient?'📤 Enregistrer en PDF — à envoyer au client':'📤 Enregistrer en PDF — version complète (Goodnotes / archives)')+'</button></div>'+
-    '</body></html>';
+    docRetourHTML()+'</body></html>';
   var win=window.open("","_blank");
   if(win){win.document.write(kh);win.document.close();}
 }
@@ -6966,7 +6972,7 @@ function bindCoach(){
         return g+'</div>';
       })()+
       '<div class="ft"><b>MÉTHODE AM TRANSFO PHYSIQUE</b><s>@AMCOACHSPORTIF · 90 JOURS</s></div>'+
-      '</div><div style="text-align:center;color:#5C6773;font-size:11.5px;margin-top:16px">📸 Fais une capture de cette carte et poste-la</div></div></body></html>';
+      '</div><div style="text-align:center;color:#5C6773;font-size:11.5px;margin-top:16px">📸 Fais une capture de cette carte et poste-la</div></div>'+docRetourHTML(false)+'</body></html>';
     w.document.write(html); w.document.close();
   });
   var ss=document.getElementById("stats-share");

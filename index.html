@@ -1683,6 +1683,92 @@ function supVerdictTitre(allData,cle){
   var V=TON_VERDICTS[tonActif(allData)]||TON_VERDICTS.normal;
   return V[cle]||TON_VERDICTS.normal[cle]||"";
 }
+// Corps des verdicts, dans la voix du superviseur.
+// `sous` = message complet pour les verdicts SANS chiffres.
+// `fin`  = phrase de clôture ajoutée aux verdicts chiffrés : les chiffres,
+//          eux, restent factuels — un rythme en kg/semaine ne se décline pas.
+// Le CORPS du verdict, dans la voix du superviseur. Les chiffres restent
+// factuels et communs (un rythme ne se décline pas), mais la lecture qu'on
+// en fait — ce qu'il faut en conclure et sur quel ton — appartient au
+// personnage. Sans ça, seul le titre changeait et le message sonnait système.
+var TON_VERDICTS_S={
+  normal:{
+    atteint:"Place au maintien : c'est là que la transformation devient définitive.",
+    monte:"Ce n'est pas un échec, c'est une information. On ajuste et ça repart.",
+    stagne:"Le poids ne bouge plus depuis quelques jours. Sommeil ou protéines, presque toujours.",
+    repart:"Ta tendance de fond reste bonne, mais tes dernières pesées remontent. Pris maintenant, ça se corrige en quelques jours.",
+    finLent:"Deux options : accélérer, ou décaler la date. À décider avec ton coach.",
+    finRalentit:"La date tient encore. Ne relâche pas maintenant.",
+    finProgresse:"C'est le bon rythme. Ne change rien."
+  },
+  marseillais:{
+    atteint:"Té, maintenant on tient. C'est là que ça devient du solide, collègue.",
+    monte:"C'est pas un drame, c'est une info. On rectifie et ça repart.",
+    stagne:"Ça bouge plus. Le sommeil ou les protéines, y'a pas trente-six raisons.",
+    repart:"Le fond est bon, mais ça remonte sur la fin. Pris maintenant, c'est réglé en deux jours. Laissé traîner, c'est autre chose.",
+    finLent:"Soit on accélère, soit on décale. Appelle ton coach, on en discute.",
+    finRalentit:"La date tient encore, mais lâche rien maintenant.",
+    finProgresse:"Té, c'est le bon rythme. Touche à rien."
+  },
+  italien:{
+    atteint:"Adesso, le maintien. C'est là que la transformation devient definitiva.",
+    monte:"Non è un fallimento, c'est une information. On ajuste et si riparte.",
+    stagne:"Tutto fermo. Sonno o proteine — c'est presque toujours l'un des deux.",
+    repart:"Le fond est bon, ma les dernières pesées remontent. Pris maintenant, ça se corrige subito. Dans un mois, molto più difficile.",
+    finLent:"Due opzioni : accélérer, ou décaler la date. À décider avec ton coach.",
+    finRalentit:"La date tient encore. Non mollare adesso.",
+    finProgresse:"È il ritmo giusto. Ne change rien."
+  },
+  drole:{
+    atteint:"Maintenant le maintien — la partie que personne ne raconte, et la seule qui compte.",
+    monte:"Ce n'est pas un échec, c'est une info. Le corps te parle, écoute-le.",
+    stagne:"Ton poids fait la sieste. Sommeil ou protéines, les deux réveils habituels.",
+    repart:"Le fond est bon, mais les dernières pesées font demi-tour. Réglé en deux jours si tu t'y mets maintenant.",
+    finLent:"Deux choix : accélérer, ou décaler la date. Le troisième — ne rien faire — ne marche jamais.",
+    finRalentit:"La date tient encore. Ce n'est pas le moment de s'asseoir.",
+    finProgresse:"C'est le bon rythme. Surtout ne touche à rien."
+  },
+  sarcastique:{
+    atteint:"Reste le maintien. La partie que tout le monde rate, justement.",
+    monte:"Ce n'est pas un échec, c'est une information. Reste à en faire quelque chose.",
+    stagne:"Rien ne bouge. Sommeil ou protéines. Ce n'est jamais très original.",
+    repart:"Le fond tient, les dernières pesées non. Pris maintenant, ça se règle vite. Pris dans un mois, beaucoup moins.",
+    finLent:"Accélérer ou décaler la date. Il n'y a pas de troisième option, désolé.",
+    finRalentit:"La date tient encore. Encore.",
+    finProgresse:"C'est le bon rythme. Ne va rien inventer."
+  },
+  vulgaire:{
+    atteint:"Maintenant tu tiens. C'est là que la plupart se plantent, alors reste concentré.",
+    monte:"C'est pas un échec, c'est une info. Mais faut la traiter, pas la regarder.",
+    stagne:"Ça bouge plus. Sommeil ou protéines, y'a pas de mystère. Va falloir corriger.",
+    repart:"Le fond est bon mais ça repart à l'envers. Tu règles ça cette semaine, pas dans un mois.",
+    finLent:"T'accélères ou tu décales la date. Y'a pas d'autre choix, appelle ton coach.",
+    finRalentit:"La date tient encore. Lâche rien maintenant, ce serait con.",
+    finProgresse:"C'est le bon rythme. Touche à rien et continue."
+  },
+  jeune:{
+    atteint:"Maintenant le maintien. C'est là que ça devient carré pour de vrai.",
+    monte:"C'est pas un échec, c'est une info. Faut juste réagir maintenant.",
+    stagne:"Ça bouge plus. Sommeil ou protéines, souvent. Faut corriger.",
+    repart:"Le fond est bon mais ça remonte sur la fin. Tu règles ça cette semaine et c'est oublié.",
+    finLent:"Soit t'accélères, soit tu décales la date. Dis-le au coach.",
+    finRalentit:"La date tient encore. Lâche pas maintenant.",
+    finProgresse:"C'est le bon rythme, sah. Change rien."
+  },
+  commentateur:{
+    atteint:"Reste le maintien — la phase que les champions ne négligent jamais.",
+    monte:"Ce n'est pas un échec, c'est une donnée. On ajuste et on repart.",
+    stagne:"Le compteur est bloqué. Sommeil ou protéines, dans la grande majorité des cas.",
+    repart:"Le fond de jeu reste bon, mais les dernières pesées remontent. Corrigé maintenant, l'incident est vite refermé.",
+    finLent:"Deux stratégies possibles : accélérer, ou repousser l'échéance. À trancher avec le coach.",
+    finRalentit:"La date tient encore. Il ne faut pas relâcher l'effort ici.",
+    finProgresse:"C'est le bon rythme. Surtout, ne rien changer."
+  }
+};
+function supVerdictSous(allData,cle){
+  var V=TON_VERDICTS_S[tonActif(allData)]||TON_VERDICTS_S.normal;
+  return V[cle]||TON_VERDICTS_S.normal[cle]||"";
+}
 // ═══ ⚠️ SIGNAUX D'ALERTE — ce que le superviseur dit AVANT de féliciter ═══
 // Le remplissage ne fait pas le résultat. Quelqu'un peut cocher toutes ses
 // cases et ne pas maigrir : c'est là qu'il faut parler, pas le féliciter.
@@ -4710,7 +4796,7 @@ function viewStats(name){
       bg="linear-gradient(135deg,#455A64,#607D8B)";
     }else if(PJ.atteint){
       ico="🎉";titre=supVerdictTitre(allData,"atteint");
-      sous="Tu es à "+PJ.act+" kg. Place au maintien : c'est là que la transformation devient définitive.";
+      sous="Tu es à "+PJ.act+" kg. "+supVerdictSous(allData,"atteint");
       bg="linear-gradient(135deg,#1B5E20,var(--ok))";
     }else if(!PJ.assez){
       ico="⏳";titre="Encore un peu de patience";
@@ -4718,18 +4804,18 @@ function viewStats(name){
       bg="linear-gradient(135deg,#455A64,#607D8B)";
     }else if(PJ.monte){
       ico="📈";titre=supVerdictTitre(allData,"monte");
-      sous="Ce n'est pas un échec, c'est une information. Parles-en à ton coach : on ajuste et ça repart.";
+      sous=supVerdictSous(allData,"monte");
       bg="linear-gradient(135deg,var(--bad),var(--brand))";
     }else if(PJ.stagne){
       ico="➖";titre=supVerdictTitre(allData,"stagne");
-      sous="Le poids ne bouge plus depuis quelques jours. C'est fréquent et ça se débloque — souvent par le sommeil ou les protéines.";
+      sous=supVerdictSous(allData,"stagne");
       bg="linear-gradient(135deg,var(--warn-d),var(--warn))";
     }else if(PJ.recentMonte){
       // La pente globale descend encore, mais les dernières pesées remontent.
       // Le dire maintenant vaut mieux que de féliciter quelqu'un qui repart
       // dans l'autre sens : c'est là que ça se rattrape facilement.
       ico="⚠️";titre=supVerdictTitre(allData,"repart");
-      sous="Ta tendance de fond reste bonne, mais tes dernières pesées remontent. Pris maintenant, ça se corrige en quelques jours — parles-en à ton coach.";
+      sous=supVerdictSous(allData,"repart");
       bg="linear-gradient(135deg,var(--warn-d),var(--warn))";
     }else if(PJ.retard!=null&&PJ.retard>0){
       // Il maigrit, mais trop lentement pour tenir la date. Annoncer une date
@@ -4738,19 +4824,25 @@ function viewStats(name){
       ico="⏳";titre=supVerdictTitre(allData,"lent");
       sous="Tu perds "+PJ.parSem+" kg par semaine. À ce rythme tu atteins "+PJ.cible+" kg le "+PJ.dateCible+
         ", soit "+sem+" semaine"+(sem>1?"s":"")+" APRÈS la fin de tes 90 jours ("+PJ.dateFin+")."+
-        " Il faudrait "+(Math.round((PJ.reste/(PJ.joursRestants/7))*100)/100)+" kg par semaine pour y être à temps.";
+        " Il faudrait "+(Math.round((PJ.reste/(PJ.joursRestants/7))*100)/100)+" kg par semaine pour y être à temps. "+supVerdictSous(allData,"finLent");
       bg="linear-gradient(135deg,#B26A00,var(--warn-d))";
     }else if(PJ.recentMou){
       ico="🐢";titre=supVerdictTitre(allData,"ralentit");
-      sous="Sur l'ensemble tu perds "+PJ.parSem+" kg par semaine, mais ces derniers jours le rythme a nettement baissé ("+PJ.parSemRecent+" kg/sem). Tu tiens encore ta date, garde le cap.";
+      sous="Sur l'ensemble tu perds "+PJ.parSem+" kg par semaine, mais ces derniers jours le rythme a nettement baissé ("+PJ.parSemRecent+" kg/sem). "+supVerdictSous(allData,"finRalentit");
       bg="linear-gradient(135deg,#2E7D32,var(--ok-d))";
     }else{
       ico="🔥";titre=supVerdictTitre(allData,"progresse");
       sous="Rythme actuel : "+PJ.parSem+" kg par semaine."+(PJ.dateCible?" À ce rythme, "+PJ.cible+" kg le "+PJ.dateCible:"")+
-        (PJ.retard!=null&&PJ.retard<=0?" — soit "+Math.abs(Math.floor(PJ.retard/7))+" semaine(s) avant l'échéance.":".");
+        (PJ.retard!=null&&PJ.retard<=0?" — soit "+Math.abs(Math.floor(PJ.retard/7))+" semaine(s) avant l'échéance.":".")+" "+supVerdictSous(allData,"finProgresse");
       bg="linear-gradient(135deg,#1B5E20,var(--ok-d))";
     }
+    // Signée comme à l'accueil : sans le nom, le verdict ressemble à un
+    // bandeau système et le client ne reconnaît pas son superviseur.
+    var __S=supGet(allData),__T=TONS[__S.ton];
     h+='<div class="card" style="background:'+bg+';border:none;padding:17px 16px;margin-bottom:13px">'+
+      '<div style="display:flex;align-items:center;gap:7px;margin-bottom:7px">'+
+      '<span style="font-size:15px;line-height:1">'+__T.emoji+'</span>'+
+      '<span style="font-size:12px;font-weight:900;color:rgba(255,255,255,.92)">'+esc(__S.prenom)+'</span></div>'+
       '<div style="font-size:26px;line-height:1">'+ico+'</div>'+
       '<div style="color:#fff;font-weight:900;font-size:18px;margin-top:5px">'+titre+'</div>'+
       '<div style="color:rgba(255,255,255,.85);font-size:12.5px;font-weight:600;line-height:1.55;margin-top:5px">'+sous+'</div></div>';

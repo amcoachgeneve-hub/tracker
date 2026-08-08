@@ -1953,6 +1953,54 @@ function bdayLire(data){
   var a=d[518]||{}, b=d[503]||{};
   return {bday:a.bday||b.bday||null, year:a.year||b.year||null};
 }
+// 📅 FICHIER CALENDRIER (.ics) — le chemin le plus fiable sur iPhone.
+// Le lien Google suppose d'être connecté au bon compte dans le navigateur ;
+// s'il ne l'est pas, le formulaire s'ouvre et l'enregistrement se perd sans
+// message. Un .ics, lui, est pris en charge par l'app Calendrier native,
+// quel que soit le compte, et fonctionne aussi sur Android et ordinateur.
+function icsAnniversaire(ymd,titre,details){
+  function pad(n){return ("0"+n).slice(-2);}
+  var d=new Date(parseInt(ymd.slice(0,4),10),parseInt(ymd.slice(4,6),10)-1,parseInt(ymd.slice(6,8),10));
+  var lendemain=new Date(d.getTime()+86400000);
+  function ymdOf(x){return x.getFullYear()+pad(x.getMonth()+1)+pad(x.getDate());}
+  var uid="amcoach-"+ymd+"-"+Math.random().toString(36).slice(2,8)+"@amcoachgeneve";
+  var now=new Date();
+  var stamp=now.getUTCFullYear()+pad(now.getUTCMonth()+1)+pad(now.getUTCDate())+"T"+
+            pad(now.getUTCHours())+pad(now.getUTCMinutes())+pad(now.getUTCSeconds())+"Z";
+  // Journée entière : DTEND est EXCLUSIF, d'où le lendemain.
+  // RRULE:FREQ=YEARLY pour que le rappel revienne chaque année.
+  // VALARM à -09:00 la veille : prévenu la veille au matin, pas le jour même
+  // à minuit — un anniversaire se prépare.
+  var L=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//AM Coach Geneve//DISCIPLINE 90//FR",
+    "CALSCALE:GREGORIAN","METHOD:PUBLISH","BEGIN:VEVENT","UID:"+uid,"DTSTAMP:"+stamp,
+    "DTSTART;VALUE=DATE:"+ymdOf(d),"DTEND;VALUE=DATE:"+ymdOf(lendemain),
+    "RRULE:FREQ=YEARLY","SUMMARY:"+icsEchap(titre),"DESCRIPTION:"+icsEchap(details||""),
+    "TRANSP:TRANSPARENT","BEGIN:VALARM","TRIGGER:-PT15H","ACTION:DISPLAY",
+    "DESCRIPTION:"+icsEchap(titre),"END:VALARM","END:VEVENT","END:VCALENDAR"];
+  return L.join("\r\n");
+}
+// Les virgules, points-virgules et retours à la ligne doivent être échappés,
+// sinon le fichier est refusé sans explication par l'app Calendrier.
+function icsEchap(t){
+  return String(t||"").replace(/\\/g,"\\\\").replace(/;/g,"\\;")
+    .replace(/,/g,"\\,").replace(/\r?\n/g,"\\n");
+}
+function icsTelecharger(contenu,nomFichier){
+  try{
+    var blob=new Blob([contenu],{type:"text/calendar;charset=utf-8"});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement("a");
+    a.href=url; a.download=nomFichier; a.rel="noopener";
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);},1500);
+    return true;
+  }catch(e){
+    // Repli : certains navigateurs mobiles bloquent le téléchargement direct
+    try{window.open("data:text/calendar;charset=utf-8,"+encodeURIComponent(contenu),"_blank");return true;}
+    catch(e2){return false;}
+  }
+}
+
 // 🎂 SAISIE DE L'ANNIVERSAIRE — vrai sélecteur de date.
 // Avant : un prompt() où il fallait taper « JJ/MM » à la main, sans calendrier,
 // et qui écrivait dans le slot du superviseur. Ici, le calendrier natif du
@@ -5855,11 +5903,31 @@ function viewCoachDetail(){
     '<span style="font-weight:800;font-size:13px">🎂 Anniversaire : '+(bday?bdTxt:'<span style="color:#777">non renseigné</span>')+'</span>'+
     '<button id="cd-bday" style="font-size:12px;font-weight:800;color:var(--brand);padding:6px 12px;border:1.5px solid var(--brand);border-radius:18px;background:#fff">'+(bday?'✏️':'+ Ajouter')+'</button></div>'+
     (bday?(function(){
-      var now=new Date();var y=now.getFullYear();
-      var next=new Date(y,parseInt(bday.split("-")[0])-1,parseInt(bday.split("-")[1]));
-      if(next<now)next.setFullYear(y+1);
-      var ds=next.getFullYear()+("0"+(next.getMonth()+1)).slice(-2)+("0"+next.getDate()).slice(-2);
-      return '<a href="https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent("🎂 Anniversaire "+c.name+" — AM Coach")+'&dates='+ds+'/'+ds+'&recur=RRULE:FREQ%3DYEARLY&details='+encodeURIComponent("Envoyer un message d\'anniversaire à ton client 🎉")+'" target="_blank" style="display:block;text-align:center;margin-top:10px;font-size:12px;font-weight:800;color:var(--brand2);text-decoration:none">📅 Ajouter à mon Google Agenda (rappel annuel)</a>';
+      // 📅 Prochaine occurrence de l'anniversaire.
+      // On compare en JOURS, pas en instants : « next < now » avec now à 19 h
+      // et next à minuit repoussait d'un an un anniversaire qui tombe le jour
+      // même. On tolère aussi l'ancien format « JJ/MM/AAAA » écrit par les
+      // versions précédentes, sinon la date sortait fausse ou invalide.
+      var mm,jj;
+      if(bday.indexOf("/")>-1){var q=bday.split("/");jj=parseInt(q[0],10);mm=parseInt(q[1],10);}
+      else{var r=bday.split("-");mm=parseInt(r[0],10);jj=parseInt(r[1],10);}
+      if(!mm||!jj||mm>12||jj>31)return "";
+      var now=new Date(); var auj=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+      var next=new Date(auj.getFullYear(),mm-1,jj);
+      if(next<auj)next.setFullYear(auj.getFullYear()+1);
+      function ymd(d){return d.getFullYear()+("0"+(d.getMonth()+1)).slice(-2)+("0"+d.getDate()).slice(-2);}
+      var ds=ymd(next);
+      // Google attend une date de fin EXCLUSIVE pour une journée entière :
+      // avec début = fin, l'événement était vide et rien ne s'enregistrait.
+      var lendemain=new Date(next.getTime()+86400000);
+      var de=ymd(lendemain);
+      var titre="🎂 Anniversaire "+c.name+" — AM Coach";
+      var det="Envoyer un message d'anniversaire à ton client 🎉";
+      return '<div style="display:flex;gap:8px;margin-top:10px">'+
+        '<button class="bd-ics" data-ymd="'+ds+'" data-t="'+esc(titre)+'" style="flex:1;padding:9px 0;border-radius:11px;border:1.5px solid var(--brand);background:#fff;color:var(--brand);font-size:12px;font-weight:800">📅 Ajouter à mon agenda</button>'+
+        '<a href="https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(titre)+
+        '&dates='+ds+'/'+de+'&recur='+encodeURIComponent("RRULE:FREQ=YEARLY")+
+        '&details='+encodeURIComponent(det)+'" target="_blank" rel="noopener" style="flex:1;text-align:center;padding:9px 0;border-radius:11px;border:1.5px solid var(--line);color:var(--mute);font-size:12px;font-weight:800;text-decoration:none">Google</a></div>';
     })():'')+'</div>';
 
   // Mindset récent (14 derniers jours avec réponses, plus récent en premier)
@@ -7998,6 +8066,17 @@ function bindCoach(){
     bilanReport(slug,pos,"full");
     render();
   });
+  // 📅 Ajout de l'anniversaire au calendrier du téléphone
+  var icsB=document.querySelectorAll(".bd-ics");
+  for(var ib=0;ib<icsB.length;ib++){
+    icsB[ib].addEventListener("click",function(){
+      var t=this.getAttribute("data-t")||"Anniversaire";
+      var ok=icsTelecharger(icsAnniversaire(this.getAttribute("data-ymd"),t,
+        "Envoyer un message d'anniversaire à ton client 🎉"),"anniversaire.ics");
+      feedback(ok?"📅 Ouvre le fichier pour l'ajouter":"Impossible de créer le fichier",ok?"ok":"err");
+    });
+  }
+
   var cdBday=document.getElementById("cd-bday");
   if(cdBday)cdBday.addEventListener("click",function(){
     var __bd0=bdayLire(lsGet("amcoach_"+state.coachDetail,{}));

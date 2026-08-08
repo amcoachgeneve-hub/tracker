@@ -1231,9 +1231,28 @@ function chEtat(c){
     if(js[i]===auj)idx=i;
   }
   var fini=js[js.length-1]<auj;
+  // JOURS RESTANTS = ce qu'il reste au CALENDRIER, pas « durée moins validés ».
+  // L'ancien calcul annonçait « encore 4 jours » à quelqu'un qui n'en avait
+  // plus que 2 devant lui : il comptait les jours à rattraper, sans regarder
+  // s'il restait assez de journées pour les faire.
+  var restants=0;
+  for(var r=0;r<js.length;r++){if(js[r]>=auj)restants++;}
+  if(fini)restants=0;
+  // Le maximum encore atteignable : validés + tout ce qui reste devant.
+  // C'est lui qui dit si le badge est encore jouable ou déjà perdu.
+  var maxPossible=n+restants;
+  // Deux niveaux de réussite, posés par Akli :
+  //   7/7  = badge et trophée
+  //   5/7  = l'honneur est sauf, sans badge
+  var SEUIL_HONNEUR=Math.max(1,Math.ceil(c.jours*5/7));
   return {jours:js,valides:n,jourIdx:idx,ajd:idx>=0?js[idx]:null,
           fait:idx>=0&&!!done[js[idx]],fini:fini,
-          reussi:n>=c.jours,pct:Math.round(n/c.jours*100)};
+          restants:restants,maxPossible:maxPossible,seuilHonneur:SEUIL_HONNEUR,
+          reussi:n>=c.jours,
+          honneur:n>=SEUIL_HONNEUR&&n<c.jours,
+          badgePerdu:maxPossible<c.jours,
+          honneurPerdu:maxPossible<SEUIL_HONNEUR,
+          pct:Math.round(n/c.jours*100)};
 }
 function qgConfig(allData){return allData[502]||null;}
 var QUESTS={
@@ -4093,7 +4112,7 @@ function viewCalendar(name,start){
         (auj&&!ok?"box-shadow:inset 0 0 0 2px rgba(255,255,255,.5);":"")+
         'color:'+(ok?"#0F2016":"rgba(255,255,255,.45)")+'">'+(ok?"✓":(i+1))+'</div>';
     }
-    var restant=ch.jours-E.valides;
+    var restant=E.restants;
     h+='<div class="card" style="background:linear-gradient(155deg,#1B2A3A,#2E4560);border:none;padding:18px;margin-bottom:16px">'+
       '<div style="display:flex;align-items:center;gap:11px;margin-bottom:4px">'+
       '<span style="font-size:26px;line-height:1">'+ch.e+'</span>'+
@@ -4106,6 +4125,12 @@ function viewCalendar(name,start){
       h+='<div style="text-align:center;background:rgba(139,195,74,.16);border-radius:12px;padding:13px"><div style="font-size:24px">🏅</div>'+
         '<div style="color:#A5DE6E;font-weight:900;font-size:14px;margin-top:3px">Challenge réussi !</div>'+
         '<div style="color:rgba(255,255,255,.55);font-size:11.5px;margin-top:2px">Badge débloqué — bravo</div></div>';
+    }else if(E.fini&&E.honneur){
+      // 5/7 ou 6/7 : pas de badge, mais on ne rentre pas les mains vides.
+      h+='<div style="text-align:center;background:rgba(255,193,7,.14);border:1.5px solid rgba(255,193,7,.35);border-radius:12px;padding:13px">'+
+        '<div style="font-size:22px">🤝</div>'+
+        '<div style="color:#FFD86B;font-weight:900;font-size:14px;margin-top:3px">L\'honneur est sauf</div>'+
+        '<div style="color:rgba(255,255,255,.6);font-size:11.5px;margin-top:3px;line-height:1.45">'+E.valides+'/'+ch.jours+' validés. Pas de badge — il se mérite au sans-faute — mais tu as tenu l\'essentiel.</div></div>';
     }else if(E.fini){
       h+='<div style="text-align:center;color:rgba(255,255,255,.6);font-size:12.5px;font-weight:700;padding:8px 0">Challenge terminé — '+E.valides+' jours sur '+ch.jours+'</div>';
     }else if(E.jourIdx<0){
@@ -4129,8 +4154,23 @@ function viewCalendar(name,start){
       h+='<button id="ch-valider" style="width:100%;padding:15px 0;border-radius:12px;border:0;font-weight:900;font-size:14px;'+
         (E.fait?'background:rgba(255,255,255,.14);color:rgba(255,255,255,.75)':'background:#8BC34A;color:#0F2016')+'">'+
         (E.fait?"✓ Validé aujourd'hui — annuler":"Valider ma journée")+'</button>'+
-        '<div style="text-align:center;color:rgba(255,255,255,.5);font-size:11px;font-weight:700;margin-top:9px">'+
-        (restant>0?'Encore '+restant+' jour'+(restant>1?'s':'')+' pour décrocher le badge':'')+'</div>';
+        '<div style="text-align:center;font-size:11px;font-weight:700;margin-top:9px;line-height:1.5">'+
+        (function(){
+          if(restant<=0)return '';
+          var j=restant+' jour'+(restant>1?'s':'')+' restant'+(restant>1?'s':'');
+          // Le badge est-il encore jouable ? Si non, on le dit franchement et
+          // on remet l'objectif à sa portée, plutôt que de laisser viser un
+          // sans-faute devenu impossible.
+          if(E.badgePerdu&&!E.honneurPerdu){
+            var reste=Math.max(0,E.seuilHonneur-E.valides);
+            return '<span style="color:rgba(255,216,107,.85)">Le badge n\'est plus jouable ('+E.valides+'/'+ch.jours+'). '+
+              (reste>0?'Encore '+reste+' jour'+(reste>1?'s':'')+' pour sauver l\'honneur.':'L\'honneur est déjà sauf — termine proprement.')+'</span>';
+          }
+          if(E.honneurPerdu)
+            return '<span style="color:rgba(255,255,255,.45)">'+j+'. Va au bout : ce que tu poses compte pour la suite.</span>';
+          var manque=ch.jours-E.valides;
+          return '<span style="color:rgba(255,255,255,.5)">'+j+' · sans-faute requis pour le badge ('+manque+' à valider)</span>';
+        })()+'</div>';
     }
     h+='</div>';
   })();
@@ -5732,7 +5772,7 @@ function viewCoachDetail(){
       h+='<div style="background:var(--soft2);border-radius:12px;padding:12px;margin-bottom:9px">'+
         '<div style="font-weight:900;font-size:14px">'+ch.e+' '+esc(ch.n)+'</div>'+
         '<div style="font-size:11.5px;color:var(--mute);font-weight:700;margin-top:3px">'+
-        E.valides+'/'+ch.jours+' jours validés · '+E.pct+' %'+(E.reussi?' · 🏅 réussi':E.fini?' · terminé':'')+'</div>'+
+        E.valides+'/'+ch.jours+' jours validés · '+E.pct+' %'+(E.reussi?' · 🏅 badge':E.fini&&E.honneur?' · 🤝 honneur sauf':E.fini?' · terminé':E.badgePerdu?' · badge hors de portée':'')+'</div>'+
         '<div style="height:8px;border-radius:100px;background:var(--card);margin-top:8px;overflow:hidden">'+
         '<div style="height:100%;width:'+E.pct+'%;background:'+gaugeCol(E.pct)+';border-radius:100px"></div></div></div>'+
         '<button id="ch-stop" style="width:100%;padding:11px 0;border-radius:11px;border:1.5px solid var(--line);background:var(--card);color:var(--mute);font-weight:800;font-size:12px">Arrêter ce challenge</button>';
@@ -8873,6 +8913,11 @@ function bindMain(name,start){
       saveDay(516,bd);
       render();
       feedback("🏅 "+ch.n+" — challenge réussi !","win");
+    }else if(E2.badgePerdu&&E2.valides===E2.seuilHonneur){
+      // Le sans-faute est hors de portée, mais le seuil d'honneur vient de
+      // tomber : on le dit, sinon la fin de challenge n'a plus aucun enjeu.
+      render();
+      feedback("🤝 "+E2.valides+"/"+ch.jours+" — l'honneur est sauf","win");
     }else{
       render();
       feedback("✓ Jour "+(E2.valides)+"/"+ch.jours,"ok");

@@ -6239,6 +6239,32 @@ var PIPE_ETAPES=[
 ];
 // Les 4 premières étapes sont "actives" : c'est là qu'un prospect peut pourrir.
 var PIPE_ACTIVES=["contact","qualifie","propose","bilan"];
+// D'OÙ il vient. Une seule réponse — c'est ce qui rend le chiffre exploitable :
+// si on autorise plusieurs sources, on ne sait plus laquelle a vraiment amené
+// la personne, et le taux de conversion par canal ne veut plus rien dire.
+var PIPE_SOURCES=[
+  {k:"meyrin",  n:"Salle Meyrin",   e:"🏋️"},
+  {k:"champel", n:"Salle Champel",  e:"🏋️"},
+  {k:"insta",   n:"Instagram",      e:"📸"},
+  {k:"whatsapp",n:"WhatsApp",       e:"💬"},
+  {k:"bouche",  n:"Recommandation", e:"🗣️"},
+  {k:"ancien",  n:"Ancien client",  e:"🔄"},
+  {k:"autre",   n:"Autre",          e:"•"}
+];
+// CE QU'IL VIENT CHERCHER. Plusieurs réponses possibles : personne ne vient
+// pour une seule raison, et c'est le croisement qui est intéressant.
+var PIPE_DOULEURS=[
+  {k:"poids",   n:"Perdre du poids", e:"⚖️"},
+  {k:"dos",     n:"Mal de dos",      e:"🦴"},
+  {k:"fatigue", n:"Fatigue",         e:"😴"},
+  {k:"ventre",  n:"Ventre",          e:"🫃"},
+  {k:"muscle",  n:"Se muscler",      e:"💪"},
+  {k:"sante",   n:"Santé / bilan",   e:"❤️"},
+  {k:"confiance",n:"Confiance en soi",e:"✨"},
+  {k:"reprise", n:"Reprise du sport", e:"🔁"}
+];
+function pipeSource(k){for(var i=0;i<PIPE_SOURCES.length;i++){if(PIPE_SOURCES[i].k===k)return PIPE_SOURCES[i];}return null;}
+function pipeDouleur(k){for(var i=0;i<PIPE_DOULEURS.length;i++){if(PIPE_DOULEURS[i].k===k)return PIPE_DOULEURS[i];}return null;}
 // Règle des 3 relances (Marvin, partie 2) : J+3, J+7, J+15 après le dernier
 // contact. La majorité des ventes se font après la 3ᵉ relance, pas la 1ʳᵉ.
 var PIPE_RELANCES=[3,7,15];
@@ -6293,7 +6319,30 @@ function pipeKPI(){
     if(L[m].etape==="perdu")pos=ORD.indexOf(L[m].avant||"contact");
     for(var w=0;w<=pos&&pos>=0;w++)atteint[ORD[w]]++;
   }
+  // 📊 Par SOURCE et par MOTIF : entrés, signés, taux. C'est ce qui dit où
+  // investir son temps de prospection — un canal qui amène beaucoup de
+  // contacts mais aucun client coûte plus qu'il ne rapporte.
+  function grouper(champ,multi){
+    var g={};
+    for(var x=0;x<L.length;x++){
+      var v=L[x][champ];
+      var cles=multi?(v||[]):(v?[v]:[]);
+      for(var y=0;y<cles.length;y++){
+        if(!g[cles[y]])g[cles[y]]={n:0,gagnes:0,perdus:0};
+        g[cles[y]].n++;
+        if(L[x].etape==="gagne")g[cles[y]].gagnes++;
+        if(L[x].etape==="perdu")g[cles[y]].perdus++;
+      }
+    }
+    for(var k in g){
+      var d=g[k].gagnes+g[k].perdus;
+      g[k].taux=d?Math.round(g[k].gagnes/d*100):null;
+      g[k].transfo=g[k].n?Math.round(g[k].gagnes/g[k].n*100):0;
+    }
+    return g;
+  }
   return {liste:L, par:par, actifs:actifs, bloques:bloques, relances:relances,
+          parSource:grouper("source",false), parDouleur:grouper("douleurs",true),
           gagnes:g, perdus:pe, total:L.length, atteint:atteint, ordre:ORD,
           // Taux de transformation global : sur TOUT ce qui est entré dans le
           // pipeline, combien sont devenus clients. C'est le chiffre qui dit
@@ -6396,6 +6445,35 @@ function viewCoachKPI(){
     h+='</div>';
   }
 
+  // ── D'OÙ VIENNENT MES CLIENTS ───────────────────────────────
+  // Un canal qui amène 10 contacts et 0 client coûte du temps sans rien
+  // rapporter. C'est ce tableau qui dit où concentrer la prospection.
+  (function(){
+    var lignes='';
+    function bloc(titre, sous, groupe, ref, coul){
+      var cles=[];
+      for(var k in groupe)cles.push(k);
+      if(!cles.length)return '';
+      cles.sort(function(a,b){return groupe[b].n-groupe[a].n;});
+      var t='<div style="font-weight:900;font-size:13px;margin-bottom:2px">'+titre+'</div>'+
+        '<div style="font-size:11px;color:var(--mute);margin-bottom:10px;line-height:1.4">'+sous+'</div>';
+      for(var i=0;i<cles.length;i++){
+        var o=ref(cles[i]); if(!o)continue;
+        var g=groupe[cles[i]];
+        t+='<div style="display:flex;align-items:center;gap:9px;padding:7px 0;border-top:1px solid var(--line)">'+
+          '<span style="flex:1;font-size:12.5px;font-weight:800">'+o.e+' '+o.n+'</span>'+
+          '<span style="font-size:11.5px;color:var(--mute)">'+g.n+' entré'+(g.n>1?'s':'')+'</span>'+
+          '<span style="font-size:13px;font-weight:900;color:'+(g.gagnes?coul:'var(--mute)')+';min-width:52px;text-align:right">'+
+          g.gagnes+' client'+(g.gagnes>1?'s':'')+'</span></div>';
+      }
+      return t;
+    }
+    var b1=bloc("📍 D'où viennent mes clients","Nombre entré par canal, et combien ont signé.",K.parSource,pipeSource,"var(--ok-d)");
+    var b2=bloc("🎯 Ce qu'ils viennent chercher","Le motif le plus fréquent chez ceux qui signent.",K.parDouleur,pipeDouleur,"var(--brand2)");
+    if(b1)h+='<div class="card" style="padding:14px 15px;margin-top:12px">'+b1+'</div>';
+    if(b2)h+='<div class="card" style="padding:14px 15px;margin-top:10px">'+b2+'</div>';
+  })();
+
   h+='<button id="pipe-add" class="big-btn" style="padding:14px 0;font-size:14px;margin:14px 0 12px">+ Ajouter un prospect</button>';
 
   // ── LE PIPELINE, étape par étape ────────────────────────────
@@ -6446,7 +6524,17 @@ function viewCoachKPI(){
         '<div style="flex:1;min-width:0">'+
         '<div style="font-weight:800;font-size:13.5px">'+esc(pr.nom)+
         (PE.bloque?' <span style="color:var(--warn-d);font-size:11px">⚠️ '+PE.jours+' j</span>':'')+'</div>'+
-        (pr.note?'<div style="font-size:11.5px;color:var(--ink2);line-height:1.4;margin-top:2px">'+esc(pr.note)+'</div>':'')+
+        (function(){
+          // Source et motifs en petites puces : lisible d'un coup d'œil,
+          // et c'est exactement la donnée qui alimente les KPI plus bas.
+          var t='',S=pr.source?pipeSource(pr.source):null;
+          if(S)t+='<span style="display:inline-block;background:var(--soft2);border-radius:100px;padding:2px 8px;font-size:10.5px;font-weight:800;color:var(--ink2);margin:3px 4px 0 0">'+S.e+' '+S.n+'</span>';
+          var D=pr.douleurs||[];
+          for(var z=0;z<D.length;z++){var O=pipeDouleur(D[z]);
+            if(O)t+='<span style="display:inline-block;background:rgba(91,143,199,.12);border-radius:100px;padding:2px 8px;font-size:10.5px;font-weight:800;color:var(--brand2);margin:3px 4px 0 0">'+O.e+' '+O.n+'</span>';}
+          return t?'<div style="margin-top:2px">'+t+'</div>':'';
+        })()+
+        (pr.note?'<div style="font-size:11.5px;color:var(--ink2);line-height:1.4;margin-top:4px">'+esc(pr.note)+'</div>':'')+
         '<div style="font-size:10.5px;color:var(--mute);margin-top:3px">'+
         (PE.actif?'Sans mouvement depuis '+PE.jours+' j · '+PE.relancesFaites+'/3 relances':'Depuis '+PE.jours+' j')+'</div></div>'+
         '<button class="pipe-edit" data-id="'+pr.id+'" style="flex:0 0 auto;padding:6px 9px;border-radius:9px;border:1px solid var(--line);background:#fff;font-size:11px;font-weight:800;color:var(--mute)">✏️</button>'+
@@ -8088,44 +8176,103 @@ function bindCoach(){
                      cree:isoLocal(),maj:isoLocal(),relances:0};
     var ov=document.createElement("div");
     ov.style.cssText="position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center";
+    // On SÉLECTIONNE au lieu d'écrire : c'est plus rapide sur téléphone, et
+    // surtout ça produit une donnée exploitable. Une note libre ne remonte
+    // dans aucun KPI ; une source cochée dit quel canal amène des clients.
+    var srcSel=p.source||"", doulSel=(p.douleurs||[]).slice();
     var opts='';
     for(var i=0;i<PIPE_ETAPES.length;i++){
       opts+='<option value="'+PIPE_ETAPES[i].k+'"'+(PIPE_ETAPES[i].k===p.etape?' selected':'')+'>'+PIPE_ETAPES[i].e+' '+PIPE_ETAPES[i].n+'</option>';
     }
-    ov.innerHTML='<div style="background:'+solid("var(--card)")+';width:100%;max-width:430px;border-radius:22px 22px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));max-height:88vh;overflow-y:auto">'+
-      '<div style="font-weight:900;font-size:18px;color:'+solid("var(--ink)")+'">'+(existant?"Modifier":"Nouveau prospect")+'</div>'+
-      '<div style="font-size:12px;color:'+solid("var(--mute)")+';margin-top:4px;line-height:1.45">Un prospect doit changer d\'étape ou être relancé sous 7 jours. Sinon il refroidit.</div>'+
-      '<input id="pp-nom" placeholder="Prénom, nom" value="'+esc(p.nom)+'" style="width:100%;margin-top:14px;padding:13px 15px;border-radius:12px;border:2px solid '+solid("var(--line)")+';font-size:16px;font-weight:700"/>'+
-      '<textarea id="pp-note" placeholder="Sa douleur, où tu l\'as rencontré, ce qu\'il a dit..." style="width:100%;margin-top:9px;padding:13px 15px;border-radius:12px;border:2px solid '+solid("var(--line)")+';font-size:14px;min-height:80px;font-family:inherit">'+esc(p.note||"")+'</textarea>'+
-      '<select id="pp-etape" style="width:100%;margin-top:9px;padding:13px 15px;border-radius:12px;border:2px solid '+solid("var(--line)")+';font-size:15px;font-weight:700;background:#fff">'+opts+'</select>'+
-      '<button id="pp-ok" style="width:100%;margin-top:13px;padding:14px 0;border-radius:13px;border:0;background:'+solid("var(--brand)")+';color:#fff;font-weight:900;font-size:14px">Enregistrer</button>'+
-      (existant?'<button id="pp-del" style="width:100%;margin-top:8px;padding:11px 0;border-radius:13px;border:1px solid '+solid("var(--line)")+';background:#fff;color:'+solid("var(--bad)")+';font-weight:800;font-size:13px">Supprimer</button>':'')+
-      '<button id="pp-no" style="width:100%;margin-top:8px;padding:11px 0;border-radius:13px;border:1px solid '+solid("var(--line)")+';background:#fff;color:'+solid("var(--mute)")+';font-weight:800;font-size:13px">Annuler</button></div>';
+    function puces(){
+      var hs='<div style="font-size:11.5px;font-weight:800;color:'+solid("var(--ink2)")+';margin:14px 0 6px">D\'où vient-il ?</div><div style="display:flex;flex-wrap:wrap;gap:6px">';
+      for(var a=0;a<PIPE_SOURCES.length;a++){
+        var S=PIPE_SOURCES[a], on=(S.k===srcSel);
+        hs+='<button type="button" class="pp-src" data-k="'+S.k+'" style="padding:8px 12px;border-radius:100px;font-size:12px;font-weight:800;cursor:pointer;'+
+          'border:1.5px solid '+(on?solid("var(--brand)"):solid("var(--line)"))+';background:'+(on?solid("var(--brand)"):"#fff")+';color:'+(on?"#fff":solid("var(--mute)"))+'">'+S.e+' '+S.n+'</button>';
+      }
+      hs+='</div><div style="font-size:11.5px;font-weight:800;color:'+solid("var(--ink2)")+';margin:14px 0 6px">Qu\'est-ce qu\'il vient chercher ? <span style="font-weight:600;color:'+solid("var(--mute)")+'">(plusieurs possibles)</span></div><div style="display:flex;flex-wrap:wrap;gap:6px">';
+      for(var b=0;b<PIPE_DOULEURS.length;b++){
+        var D=PIPE_DOULEURS[b], onD=(doulSel.indexOf(D.k)>-1);
+        hs+='<button type="button" class="pp-doul" data-k="'+D.k+'" style="padding:8px 12px;border-radius:100px;font-size:12px;font-weight:800;cursor:pointer;'+
+          'border:1.5px solid '+(onD?solid("var(--brand2)"):solid("var(--line)"))+';background:'+(onD?solid("var(--brand2)"):"#fff")+';color:'+(onD?"#fff":solid("var(--mute)"))+'">'+D.e+' '+D.n+'</button>';
+      }
+      return hs+'</div>';
+    }
+    function dessiner(){
+      ov.innerHTML='<div style="background:'+solid("var(--card)")+';width:100%;max-width:430px;border-radius:22px 22px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));max-height:88vh;overflow-y:auto">'+
+        '<div style="font-weight:900;font-size:18px;color:'+solid("var(--ink)")+'">'+(existant?"Modifier":"Nouveau prospect")+'</div>'+
+        '<div style="font-size:12px;color:'+solid("var(--mute)")+';margin-top:4px;line-height:1.45">Un prospect doit changer d\'étape ou être relancé sous 7 jours. Sinon il refroidit.</div>'+
+        '<input id="pp-nom" placeholder="Prénom, nom" value="'+esc(p.nom)+'" style="width:100%;margin-top:14px;padding:13px 15px;border-radius:12px;border:2px solid '+solid("var(--line)")+';font-size:16px;font-weight:700"/>'+
+        puces()+
+        '<div style="font-size:11.5px;font-weight:800;color:'+solid("var(--ink2)")+';margin:14px 0 6px">Étape</div>'+
+        '<select id="pp-etape" style="width:100%;padding:13px 15px;border-radius:12px;border:2px solid '+solid("var(--line)")+';font-size:15px;font-weight:700;background:#fff">'+opts+'</select>'+
+        '<textarea id="pp-note" placeholder="Détail en plus, si besoin (facultatif)" style="width:100%;margin-top:9px;padding:12px 15px;border-radius:12px;border:2px solid '+solid("var(--line)")+';font-size:13.5px;min-height:56px;font-family:inherit">'+esc(p.note||"")+'</textarea>'+
+        '<button id="pp-ok" style="width:100%;margin-top:13px;padding:14px 0;border-radius:13px;border:0;background:'+solid("var(--brand)")+';color:#fff;font-weight:900;font-size:14px">Enregistrer</button>'+
+        (existant?'<button id="pp-del" style="width:100%;margin-top:8px;padding:11px 0;border-radius:13px;border:1px solid '+solid("var(--line)")+';background:#fff;color:'+solid("var(--bad)")+';font-weight:800;font-size:13px">Supprimer</button>':'')+
+        '<button id="pp-no" style="width:100%;margin-top:8px;padding:11px 0;border-radius:13px;border:1px solid '+solid("var(--line)")+';background:#fff;color:'+solid("var(--mute)")+';font-weight:800;font-size:13px">Annuler</button></div>';
+      cablerPuces();
+      cablerBoutons();
+    }
+    // On garde ce qui est déjà tapé quand on redessine après un clic sur une puce
+    function memoriser(){
+      var n=ov.querySelector("#pp-nom"), nt=ov.querySelector("#pp-note"), et=ov.querySelector("#pp-etape");
+      if(n)p.nom=n.value;
+      if(nt)p.note=nt.value;
+      if(et)p.etapeChoisie=et.value;
+    }
+    function cablerPuces(){
+      var ss=ov.querySelectorAll(".pp-src");
+      for(var a=0;a<ss.length;a++)ss[a].addEventListener("click",function(){
+        memoriser();
+        var k=this.getAttribute("data-k");
+        srcSel=(srcSel===k)?"":k;    // recliquer désélectionne
+        dessiner();
+      });
+      var dd=ov.querySelectorAll(".pp-doul");
+      for(var b=0;b<dd.length;b++)dd[b].addEventListener("click",function(){
+        memoriser();
+        var k=this.getAttribute("data-k"), i=doulSel.indexOf(k);
+        if(i>-1)doulSel.splice(i,1); else doulSel.push(k);
+        dessiner();
+      });
+    }
     function fermer(){if(ov.parentNode)document.body.removeChild(ov);}
+    // Les boutons sont recâblés à chaque redessin : la feuille se reconstruit
+    // à chaque clic sur une puce pour montrer la sélection en direct.
+    function cablerBoutons(){
+      ov.querySelector("#pp-ok").addEventListener("click",function(){
+        var nom=ov.querySelector("#pp-nom").value.trim();
+        if(!nom){feedback("Il faut au moins un nom","err");return;}
+        var L=pipeLire(), et=ov.querySelector("#pp-etape").value;
+        p.nom=nom;
+        p.note=ov.querySelector("#pp-note").value.trim();
+        p.source=srcSel;
+        p.douleurs=doulSel.slice();
+        // Changer d'étape remet le compteur d'immobilité à zéro : c'est un
+        // mouvement, et les relances repartent de la nouvelle situation.
+        if(p.etape!==et){p.etape=et;p.maj=isoLocal();p.relances=0;}
+        delete p.etapeChoisie;
+        var trouve=false;
+        for(var i=0;i<L.length;i++){if(L[i].id===p.id){L[i]=p;trouve=true;break;}}
+        if(!trouve)L.unshift(p);
+        pipeEcrire(L); fermer(); render();
+        feedback(trouve?"Prospect mis à jour":"Prospect ajouté","ok");
+      });
+      var del=ov.querySelector("#pp-del");
+      if(del)del.addEventListener("click",function(){
+        if(!confirm("Supprimer "+p.nom+" du pipeline ?"))return;
+        var L=pipeLire().filter(function(x){return x.id!==p.id;});
+        pipeEcrire(L); fermer(); render(); feedback("Prospect retiré","undo");
+      });
+      ov.querySelector("#pp-no").addEventListener("click",fermer);
+      // On restitue l'étape choisie avant le redessin
+      if(p.etapeChoisie){var se=ov.querySelector("#pp-etape");if(se)se.value=p.etapeChoisie;}
+    }
     ov.addEventListener("click",function(e){if(e.target===ov)fermer();});
     document.body.appendChild(ov);
-    setTimeout(function(){try{ov.querySelector("#pp-nom").focus();}catch(e){}},120);
-    ov.querySelector("#pp-ok").addEventListener("click",function(){
-      var nom=ov.querySelector("#pp-nom").value.trim();
-      if(!nom){feedback("Il faut au moins un nom","err");return;}
-      var L=pipeLire(), et=ov.querySelector("#pp-etape").value;
-      p.nom=nom; p.note=ov.querySelector("#pp-note").value.trim();
-      // Changer d'étape remet le compteur d'immobilité à zéro : c'est un
-      // mouvement, et les relances repartent de la nouvelle situation.
-      if(p.etape!==et){p.etape=et;p.maj=isoLocal();p.relances=0;}
-      var trouve=false;
-      for(var i=0;i<L.length;i++){if(L[i].id===p.id){L[i]=p;trouve=true;break;}}
-      if(!trouve)L.unshift(p);
-      pipeEcrire(L); fermer(); render();
-      feedback(trouve?"Prospect mis à jour":"Prospect ajouté","ok");
-    });
-    var del=ov.querySelector("#pp-del");
-    if(del)del.addEventListener("click",function(){
-      if(!confirm("Supprimer "+p.nom+" du pipeline ?"))return;
-      var L=pipeLire().filter(function(x){return x.id!==p.id;});
-      pipeEcrire(L); fermer(); render(); feedback("Prospect retiré","undo");
-    });
-    ov.querySelector("#pp-no").addEventListener("click",fermer);
+    dessiner();
+    setTimeout(function(){try{if(!existant)ov.querySelector("#pp-nom").focus();}catch(e){}},120);
   }
   function pipeTrouver(id){var L=pipeLire();for(var i=0;i<L.length;i++){if(L[i].id===id)return L[i];}return null;}
   function pipeSauver(p){

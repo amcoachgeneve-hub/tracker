@@ -6245,12 +6245,32 @@ var PIPE_ACTIVES=["contact","qualifie","propose","bilan"];
 var PIPE_SOURCES=[
   {k:"meyrin",  n:"Salle Meyrin",   e:"🏋️"},
   {k:"champel", n:"Salle Champel",  e:"🏋️"},
+  {k:"versoix", n:"Salle Versoix",  e:"🏋️"},
   {k:"insta",   n:"Instagram",      e:"📸"},
+  {k:"linkedin",n:"LinkedIn",       e:"💼"},
+  {k:"google",  n:"Google",         e:"🔍"},
   {k:"whatsapp",n:"WhatsApp",       e:"💬"},
+  {k:"calendly",n:"Lien Calendly",  e:"📅"},
+  {k:"vsl",     n:"Page 14 jours",  e:"🎬"},
   {k:"bouche",  n:"Recommandation", e:"🗣️"},
   {k:"ancien",  n:"Ancien client",  e:"🔄"},
   {k:"autre",   n:"Autre",          e:"•"}
 ];
+// Ce que devient un client APRÈS la signature. Convertir n'est pas réussir :
+// c'est le résultat obtenu qui fait la recommandation et le renouvellement.
+var PIPE_RESULTATS=[
+  {k:"encours", n:"En cours",           e:"⏳", c:"#8E9AAF"},
+  {k:"atteint", n:"Objectif atteint",   e:"🏆", c:"#2FBF71"},
+  {k:"partiel", n:"Progrès partiels",   e:"📈", c:"#E0A03C"},
+  {k:"abandon", n:"A abandonné",        e:"🚪", c:"#C96A5A"}
+];
+function pipeResultat(k){for(var i=0;i<PIPE_RESULTATS.length;i++){if(PIPE_RESULTATS[i].k===k)return PIPE_RESULTATS[i];}return PIPE_RESULTATS[0];}
+// Nom affiché : prénom + nom, en tolérant les fiches d'avant la séparation
+// des deux champs (où tout était dans `nom`).
+function pipeNomComplet(p){
+  var t=((p.prenom||"")+" "+(p.nom||"")).trim();
+  return t||p.nom||"";
+}
 // CE QU'IL VIENT CHERCHER. Plusieurs réponses possibles : personne ne vient
 // pour une seule raison, et c'est le croisement qui est intéressant.
 var PIPE_DOULEURS=[
@@ -6367,6 +6387,83 @@ function pipeAction(p){
   return "";
 }
 
+// 🧭 LE CONSEIL DU JOUR — ton coach commercial.
+// Une liste de noms ne fait pas agir : elle informe. Un conseil dit QUOI
+// faire, sur QUI, et POURQUOI maintenant. On ne sort qu'UNE priorité à la
+// fois — dix urgences, c'est aucune urgence.
+function pipeConseil(K){
+  // 1. Le plus urgent : quelqu'un que je n'ai jamais relancé et qui pourrit
+  var jamais=null, pire=null;
+  for(var i=0;i<K.liste.length;i++){
+    var p=K.liste[i], E=pipeEtat(p);
+    if(!E.actif)continue;
+    if(!pire||E.jours>pipeEtat(pire).jours)pire=p;
+    if(E.jours>=PIPE_SEUIL_BLOQUE&&!(p.relanceDates||[]).length){
+      if(!jamais||E.jours>pipeEtat(jamais).jours)jamais=p;
+    }
+  }
+  if(jamais){
+    var Ej=pipeEtat(jamais);
+    return {t:"Relance "+pipeNomComplet(jamais)+" aujourd'hui",
+      m:"Il est à l'étape « "+pipeEtape(jamais.etape).n+" » depuis "+Ej.jours+" jours et tu ne l'as JAMAIS relancé. "+
+        "La majorité des ventes se font après la 3ᵉ relance, pas la 1ʳᵉ. Un message court suffit : reprends ce qu'il t'a dit, et propose une date précise.",
+      c:"var(--bad)"};
+  }
+  // 2. Des relances dues aujourd'hui
+  if(K.relances.length){
+    var n=K.relances.length;
+    return {t:n+" relance"+(n>1?"s":"")+" à faire maintenant",
+      m:(n>1
+        ? "Commence par "+pipeNomComplet(K.relances[0])+" — bloque 15 minutes et enchaîne les "+n+". Groupées, elles te prennent moins de temps qu'étalées sur la semaine, et personne ne refroidit."
+        : "Il s'agit de "+pipeNomComplet(K.relances[0])+" — deux minutes suffisent. Reprends ce qu'il t'a dit la dernière fois et propose une date précise, pas « je te tiens au courant »."),
+      c:"var(--warn-d)"};
+  }
+  // 3. Des dossiers immobiles sans relance due : il faut trancher
+  if(K.bloques.length){
+    var b=K.bloques[0], Eb=pipeEtat(b);
+    return {t:pipeNomComplet(b)+" ne bouge plus depuis "+Eb.jours+" jours",
+      m:"Un prospect doit changer d'étape ou être relancé sous 7 jours. Au-delà, soit tu le fais avancer aujourd'hui, soit tu le sors du pipeline. "+
+        "Un pipeline encombré de dossiers morts te cache les vrais.",
+      c:"var(--warn-d)"};
+  }
+  // 4. Pipeline vide ou trop maigre : le problème est en amont
+  if(K.actifs===0){
+    return {t:"Ton pipeline est vide",
+      m:"Aucun prospect en cours. Ce n'est pas un problème de closing, c'est un problème de volume. "+
+        "Ton plan : 5 à 8 conversations en salle, 5 messages, 5 relances d'anciens contacts. Aujourd'hui, vise-en trois.",
+      c:"var(--brand)"};
+  }
+  if(K.actifs<5){
+    return {t:"Seulement "+K.actifs+" prospect"+(K.actifs>1?"s":"")+" en cours",
+      m:"C'est trop peu pour que le taux de signature veuille dire quelque chose. Un « non » te rapproche du prochain « oui » — "+
+        "mais encore faut-il parler à assez de monde. Ajoute-en deux ou trois cette semaine.",
+      c:"var(--brand)"};
+  }
+  // 5. Là où ça coince dans l'entonnoir
+  // On ne compte QUE les prospects sortis en « perdu » : quelqu'un encore
+  // en cours à une étape n'est pas une perte, il y travaille. Sans ça, le
+  // conseil accusait une étape où six personnes étaient simplement actives.
+  var pireEtape=null, pirePerte=0, pertes={};
+  for(var q=0;q<K.liste.length;q++){
+    if(K.liste[q].etape!=="perdu")continue;
+    var ou=K.liste[q].avant||"contact";
+    pertes[ou]=(pertes[ou]||0)+1;
+  }
+  for(var o2 in pertes){
+    if(pertes[o2]>pirePerte){pirePerte=pertes[o2];pireEtape=o2;}
+  }
+  if(pireEtape&&pirePerte>=2){
+    var E2=pipeEtape(pireEtape);
+    return {t:"Tu perds le plus à « "+E2.n+" »",
+      m:pirePerte+" prospects se sont arrêtés là. C'est cette étape qu'il faut travailler, pas la prospection. "+
+        "Regarde ce que tu dis à ce moment-là, et ce qui manque à la personne pour passer la suivante.",
+      c:"var(--brand2)"};
+  }
+  return {t:"Pipeline propre",
+    m:"Personne ne traîne, aucune relance en retard. C'est exactement l'état à tenir. Le seul risque maintenant : arrêter de prospecter parce que tout va bien.",
+    c:"var(--ok-d)"};
+}
+
 // 📈 ÉCRAN KPI COMMERCIAL
 function viewCoachKPI(){
   var K=pipeKPI();
@@ -6376,6 +6473,15 @@ function viewCoachKPI(){
     '<div><div class="hdr-title" style="font-size:17px">Mon commercial</div>'+
     '<div class="hdr-sub" style="color:#888;font-weight:400;font-size:12px">Pipeline · relances · KPI</div></div></div></div>'+
     '<div style="padding:14px 14px 90px">';
+
+  // ── LE CONSEIL DU JOUR ──────────────────────────────────────
+  (function(){
+    var C=pipeConseil(K);
+    h+='<div class="card" style="border-left:4px solid '+C.c+';padding:14px 15px;margin-bottom:12px">'+
+      '<div style="font-size:10.5px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:'+C.c+';margin-bottom:4px">🧭 Ton coach commercial</div>'+
+      '<div style="font-weight:900;font-size:14px;line-height:1.3;margin-bottom:5px">'+esc(C.t)+'</div>'+
+      '<div style="font-size:12px;color:var(--ink2);line-height:1.55">'+esc(C.m)+'</div></div>';
+  })();
 
   // ── Les 3 chiffres qui comptent ─────────────────────────────
   h+='<div style="display:flex;gap:8px;margin-bottom:14px">'+
@@ -6522,8 +6628,19 @@ function viewCoachKPI(){
       h+='<div style="padding:12px 14px;border-top:1px solid var(--line)">'+
         '<div style="display:flex;align-items:flex-start;gap:9px;margin-bottom:9px">'+
         '<div style="flex:1;min-width:0">'+
-        '<div style="font-weight:800;font-size:13.5px">'+esc(pr.nom)+
+        '<div style="font-weight:800;font-size:13.5px">'+esc(pipeNomComplet(pr))+
         (PE.bloque?' <span style="color:var(--warn-d);font-size:11px">⚠️ '+PE.jours+' j</span>':'')+'</div>'+
+        // 📞 Téléphone cliquable : saisir un numéro n'a d'intérêt que si on
+        // peut appeler depuis la fiche. Le code postal dit la zone — utile
+        // pour savoir si la personne est à portée d'une des trois salles.
+        (function(){
+          if(!pr.tel&&!pr.cp)return '';
+          var t='<div style="display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap">';
+          if(pr.tel)t+='<a href="tel:'+esc(String(pr.tel).replace(/\s/g,""))+'" style="font-size:11.5px;font-weight:800;color:var(--brand);text-decoration:none">📞 '+esc(pr.tel)+'</a>'+
+            '<a href="sms:'+esc(String(pr.tel).replace(/\s/g,""))+'" style="font-size:11.5px;font-weight:800;color:var(--brand2);text-decoration:none">💬 SMS</a>';
+          if(pr.cp)t+='<span style="font-size:11px;color:var(--mute);font-weight:700">📍 '+esc(pr.cp)+'</span>';
+          return t+'</div>';
+        })()+
         (function(){
           // Source et motifs en petites puces : lisible d'un coup d'œil,
           // et c'est exactement la donnée qui alimente les KPI plus bas.
@@ -6541,10 +6658,54 @@ function viewCoachKPI(){
         '</div>'+
         etapesHtml+
         (act&&!estClient&&!estPerdu?'<div style="font-size:11px;color:var(--brand);font-weight:700;margin:6px 0 8px">→ '+act+'</div>':'')+
+        // 📞 Relance : un appui, la date se pose toute seule. L'historique
+        // s'affiche dessous — on voit d'un coup à quelle fréquence on a suivi.
+        (!estClient&&!estPerdu?(function(){
+          var ds=pr.relanceDates||[];
+          var last=ds.length?ds[ds.length-1]:null;
+          var hh='<button class="pipe-relance" data-id="'+pr.id+'" style="width:100%;padding:9px 10px;margin-bottom:7px;border-radius:10px;border:1.5px solid '+
+            (PE.relanceDue?'var(--warn-d);background:var(--warn-d);color:#fff':'var(--line);background:#fff;color:var(--ink2)')+';font-size:12px;font-weight:800">'+
+            '📞 J\'ai relancé'+(PE.relanceDue?' · relance '+(PE.relancesFaites+1)+'/3 due':'')+'</button>';
+          if(ds.length){
+            var liste='';
+            for(var z=0;z<ds.length;z++){
+              var jz=ds[z].split("-");
+              liste+=(z?' · ':'')+jz[2]+'/'+jz[1];
+            }
+            hh+='<div style="font-size:10.5px;color:var(--mute);margin-bottom:7px;line-height:1.4">'+
+              ds.length+' relance'+(ds.length>1?'s':'')+' : '+liste+
+              (last?' · dernière il y a '+pipeJoursDepuis(last)+' j':'')+'</div>';
+          }
+          return hh;
+        })():'')+
         '<div style="display:flex;gap:6px;margin-top:7px;flex-wrap:wrap">'+
         // Le passage en client : le seul bouton qui compte vraiment.
         (!estClient&&!estPerdu?'<button class="pipe-client" data-id="'+pr.id+'" style="flex:1;padding:9px 10px;border-radius:10px;border:0;background:var(--ok-d);color:#fff;font-size:12px;font-weight:900">✅ Devenu client</button>':'')+
         (estClient?'<button class="pipe-mv" data-id="'+pr.id+'" data-dir="-1" style="padding:8px 11px;border-radius:10px;border:1px solid var(--line);background:#fff;font-size:11px;font-weight:800;color:var(--mute)">↩︎ Remettre en cours</button>':'')+
+        '</div>'+
+        // 🏆 APRÈS LA SIGNATURE. Convertir n'est pas réussir : un client qui
+        // signe et n'obtient rien ne recommande personne et ne renouvelle pas.
+        // C'est ce résultat-là qui dit si le système tient jusqu'au bout.
+        (estClient?(function(){
+          var R=pipeResultat(pr.resultat||"encours");
+          var t='<div style="margin-top:9px;padding-top:9px;border-top:1px solid var(--line)">'+
+            '<div style="font-size:10.5px;font-weight:900;letter-spacing:.6px;text-transform:uppercase;color:var(--mute);margin-bottom:6px">Où en est sa transformation ?</div>'+
+            '<div style="display:flex;gap:5px;flex-wrap:wrap">';
+          for(var rr=0;rr<PIPE_RESULTATS.length;rr++){
+            var RE=PIPE_RESULTATS[rr], onR=(RE.k===(pr.resultat||"encours"));
+            t+='<button class="pipe-resultat" data-id="'+pr.id+'" data-r="'+RE.k+'" style="flex:1 1 44%;padding:8px 6px;border-radius:10px;font-size:11.5px;font-weight:800;cursor:pointer;'+
+              'border:1.5px solid '+(onR?RE.c:'var(--line)')+';background:'+(onR?RE.c:'#fff')+';color:'+(onR?'#fff':'var(--mute)')+'">'+RE.e+' '+RE.n+'</button>';
+          }
+          t+='</div>';
+          if(pr.resultat&&pr.resultat!=="encours"){
+            t+='<div style="font-size:11px;color:'+R.c+';font-weight:700;margin-top:7px;line-height:1.45">'+
+              (pr.resultat==="atteint"?'🗣️ Moment idéal pour demander une recommandation — dans les 24 h.':
+               pr.resultat==="partiel"?'Des progrès, mais pas l\'objectif. Comprends ce qui a manqué avant de proposer une suite.':
+               'Documente pourquoi il a arrêté : c\'est la donnée la plus utile de tout ce tableau.')+'</div>';
+          }
+          return t+'</div>';
+        })():'')+
+        '<div style="display:none">'+
         (PE.actif?'<button class="pipe-perdu" data-id="'+pr.id+'" style="padding:9px 11px;border-radius:10px;border:1px solid var(--line);background:#fff;font-size:11.5px;font-weight:800;color:var(--mute)">Perdu</button>':'')+
         '</div></div>';
     }
@@ -8203,7 +8364,14 @@ function bindCoach(){
       ov.innerHTML='<div style="background:'+solid("var(--card)")+';width:100%;max-width:430px;border-radius:22px 22px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));max-height:88vh;overflow-y:auto">'+
         '<div style="font-weight:900;font-size:18px;color:'+solid("var(--ink)")+'">'+(existant?"Modifier":"Nouveau prospect")+'</div>'+
         '<div style="font-size:12px;color:'+solid("var(--mute)")+';margin-top:4px;line-height:1.45">Un prospect doit changer d\'étape ou être relancé sous 7 jours. Sinon il refroidit.</div>'+
-        '<input id="pp-nom" placeholder="Prénom, nom" value="'+esc(p.nom)+'" style="width:100%;margin-top:14px;padding:13px 15px;border-radius:12px;border:2px solid '+solid("var(--line)")+';font-size:16px;font-weight:700"/>'+
+        // Prénom et nom séparés : c'est ce qui permet de retrouver quelqu'un
+        // et de personnaliser un message sans se tromper de champ.
+        '<div style="display:flex;gap:8px;margin-top:14px">'+
+        '<input id="pp-prenom" placeholder="Prénom" value="'+esc(p.prenom||p.nom||"")+'" style="flex:1;min-width:0;padding:13px 14px;border-radius:12px;border:2px solid '+solid("var(--line)")+';font-size:16px;font-weight:700"/>'+
+        '<input id="pp-nom" placeholder="Nom" value="'+esc(p.prenom?(p.nom||""):"")+'" style="flex:1;min-width:0;padding:13px 14px;border-radius:12px;border:2px solid '+solid("var(--line)")+';font-size:16px;font-weight:700"/></div>'+
+        '<div style="display:flex;gap:8px;margin-top:8px">'+
+        '<input id="pp-tel" type="tel" inputmode="tel" placeholder="Téléphone" value="'+esc(p.tel||"")+'" style="flex:1.6;min-width:0;padding:13px 14px;border-radius:12px;border:2px solid '+solid("var(--line)")+';font-size:15px;font-weight:700"/>'+
+        '<input id="pp-cp" inputmode="numeric" placeholder="Code postal" value="'+esc(p.cp||"")+'" style="flex:1;min-width:0;padding:13px 14px;border-radius:12px;border:2px solid '+solid("var(--line)")+';font-size:15px;font-weight:700"/></div>'+
         puces()+
         '<div style="font-size:11.5px;font-weight:800;color:'+solid("var(--ink2)")+';margin:14px 0 6px">Étape</div>'+
         '<select id="pp-etape" style="width:100%;padding:13px 15px;border-radius:12px;border:2px solid '+solid("var(--line)")+';font-size:15px;font-weight:700;background:#fff">'+opts+'</select>'+
@@ -8217,6 +8385,10 @@ function bindCoach(){
     // On garde ce qui est déjà tapé quand on redessine après un clic sur une puce
     function memoriser(){
       var n=ov.querySelector("#pp-nom"), nt=ov.querySelector("#pp-note"), et=ov.querySelector("#pp-etape");
+      var pn=ov.querySelector("#pp-prenom"), tl=ov.querySelector("#pp-tel"), cp=ov.querySelector("#pp-cp");
+      if(pn)p.prenom=pn.value;
+      if(tl)p.tel=tl.value;
+      if(cp)p.cp=cp.value;
       if(n)p.nom=n.value;
       if(nt)p.note=nt.value;
       if(et)p.etapeChoisie=et.value;
@@ -8242,10 +8414,13 @@ function bindCoach(){
     // à chaque clic sur une puce pour montrer la sélection en direct.
     function cablerBoutons(){
       ov.querySelector("#pp-ok").addEventListener("click",function(){
+        var prenom=ov.querySelector("#pp-prenom").value.trim();
         var nom=ov.querySelector("#pp-nom").value.trim();
-        if(!nom){feedback("Il faut au moins un nom","err");return;}
+        if(!prenom&&!nom){feedback("Il faut au moins un prénom","err");return;}
         var L=pipeLire(), et=ov.querySelector("#pp-etape").value;
-        p.nom=nom;
+        p.prenom=prenom; p.nom=nom;
+        p.tel=ov.querySelector("#pp-tel").value.trim();
+        p.cp=ov.querySelector("#pp-cp").value.trim();
         p.note=ov.querySelector("#pp-note").value.trim();
         p.source=srcSel;
         p.douleurs=doulSel.slice();
@@ -8337,6 +8512,18 @@ function bindCoach(){
     },350);
   });
 
+  // 🏆 Résultat de la transformation, après signature
+  var pRes=document.querySelectorAll(".pipe-resultat");
+  for(var pz=0;pz<pRes.length;pz++)pRes[pz].addEventListener("click",function(){
+    var p=pipeTrouver(this.getAttribute("data-id")); if(!p)return;
+    var r=this.getAttribute("data-r");
+    p.resultat=(p.resultat===r)?"encours":r;
+    if(p.resultat!=="encours")p.resultatDate=isoLocal();
+    pipeSauver(p); render();
+    var R=pipeResultat(p.resultat);
+    feedback(R.e+" "+pipeNomComplet(p)+" · "+R.n, p.resultat==="atteint"?"win":"ok");
+  });
+
   var pPerdu=document.querySelectorAll(".pipe-perdu");
   for(var pp=0;pp<pPerdu.length;pp++)pPerdu[pp].addEventListener("click",function(){
     var p=pipeTrouver(this.getAttribute("data-id")); if(!p)return;
@@ -8353,7 +8540,12 @@ function bindCoach(){
   var pRel=document.querySelectorAll(".pipe-relance");
   for(var pr=0;pr<pRel.length;pr++)pRel[pr].addEventListener("click",function(){
     var p=pipeTrouver(this.getAttribute("data-id")); if(!p)return;
-    p.relances=(p.relances||0)+1; p.maj=isoLocal();
+    // Chaque relance est HORODATÉE : on garde la liste, pas seulement le
+    // compteur. C'est ce qui permet de dire « relancé le 12, le 19, le 27 »
+    // et de savoir à quelle fréquence on a réellement suivi quelqu'un.
+    p.relances=(p.relances||0)+1;
+    p.relanceDates=(p.relanceDates||[]).concat([isoLocal()]);
+    p.maj=isoLocal();
     pipeSauver(p); render();
     feedback(p.relances>=3?"3ᵉ relance faite — décide maintenant":"Relance "+p.relances+"/3 notée","ok");
   });

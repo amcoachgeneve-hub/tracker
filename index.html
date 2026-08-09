@@ -736,6 +736,7 @@ var state={
   showForm:false,
   showGoalForm:false,
   coachDetail:null,
+  coachKPI:false,      // écran commercial (pipeline, relances, KPI)
   otForm:false,
   qgForm:false,
   otCountdown:false,
@@ -2924,7 +2925,7 @@ function render(){
 function renderView(){
   setTimeout(function(){try{applyTheme(getAllData());ancrerNav();}catch(e){}},0);
   var root=document.getElementById("root");
-  if(IS_COACH){root.innerHTML=state.coachAuthed?(state.coachStats?viewCoachStats():state.coachCalc?viewCoachCalc():(state.coachDetail?(state.cdTab==="bilan"?viewCoachBilan():viewCoachDetail()):viewCoachDash())):viewCoachLogin();bindCoach();return;}
+  if(IS_COACH){root.innerHTML=state.coachAuthed?(state.coachKPI?viewCoachKPI():state.coachStats?viewCoachStats():state.coachCalc?viewCoachCalc():(state.coachDetail?(state.cdTab==="bilan"?viewCoachBilan():viewCoachDetail()):viewCoachDash())):viewCoachLogin();bindCoach();return;}
   if(!CLIENT){root.innerHTML=viewNoClient();return;}
   var name=lsGetStr("amcoach_name_"+CLIENT);
   var start=lsGetStr("amcoach_start_"+CLIENT);
@@ -6222,6 +6223,203 @@ function coachPouls(){
   });
   return out;
 }
+// ═══════════════ 📈 KPI COMMERCIAL — PIPELINE ═══════════════
+// Un prospect ne se perd presque jamais en rendez-vous. Il se perd ENTRE deux
+// étapes, parce que personne ne savait qu'il était bloqué. Ce module sert à
+// ça : voir d'un coup d'œil qui attend une réponse depuis trop longtemps.
+// Stockage local (slot "amcoach_pipeline") — c'est l'outil du coach, il ne
+// dépend d'aucun client et n'a pas besoin d'être synchronisé pour servir.
+var PIPE_ETAPES=[
+  {k:"contact", n:"Contact identifié", d:"Il t'a écrit, suivi, ou tu l'as abordé en salle", e:"👋", c:"#8E9AAF"},
+  {k:"qualifie",n:"Besoin qualifié",   d:"Il a exprimé une vraie douleur : dos, fatigue, ventre", e:"🎯", c:"#5B8FC7"},
+  {k:"propose", n:"Bilan proposé",     d:"Tu lui as proposé le bilan gratuit", e:"📩", c:"#7E6BB5"},
+  {k:"bilan",   n:"Bilan fait",        d:"L'entretien a eu lieu, il réfléchit", e:"🤝", c:"#E0A03C"},
+  {k:"gagne",   n:"Gagné",             d:"Il a signé", e:"✅", c:"#2FBF71"},
+  {k:"perdu",   n:"Perdu",             d:"Documenter POURQUOI : c'est là qu'on apprend", e:"⚪", c:"#B9C4CE"}
+];
+// Les 4 premières étapes sont "actives" : c'est là qu'un prospect peut pourrir.
+var PIPE_ACTIVES=["contact","qualifie","propose","bilan"];
+// Règle des 3 relances (Marvin, partie 2) : J+3, J+7, J+15 après le dernier
+// contact. La majorité des ventes se font après la 3ᵉ relance, pas la 1ʳᵉ.
+var PIPE_RELANCES=[3,7,15];
+// Règle du pipeline propre : un prospect doit changer d'étape ou être relancé
+// sous 7 jours. Au-delà, il est considéré comme en train de refroidir.
+var PIPE_SEUIL_BLOQUE=7;
+
+function pipeLire(){var l=lsGet("amcoach_pipeline",[]);return Array.isArray(l)?l:[];}
+function pipeEcrire(l){lsSet("amcoach_pipeline",l);}
+function pipeEtape(k){for(var i=0;i<PIPE_ETAPES.length;i++){if(PIPE_ETAPES[i].k===k)return PIPE_ETAPES[i];}return PIPE_ETAPES[0];}
+function pipeJoursDepuis(iso){
+  if(!iso)return 0;
+  var a=new Date(iso+"T12:00:00"), b=new Date();
+  return Math.max(0,Math.round((new Date(b.getFullYear(),b.getMonth(),b.getDate())-new Date(a.getFullYear(),a.getMonth(),a.getDate()))/86400000));
+}
+// État d'un prospect : depuis combien de temps il n'a pas bougé, et quelle
+// relance est due aujourd'hui selon la règle J+3 / J+7 / J+15.
+function pipeEtat(p){
+  var ref=p.maj||p.cree;
+  var j=pipeJoursDepuis(ref);
+  var actif=PIPE_ACTIVES.indexOf(p.etape)>-1;
+  var faites=p.relances||0;
+  var due=null;
+  if(actif&&faites<PIPE_RELANCES.length&&j>=PIPE_RELANCES[faites])due=PIPE_RELANCES[faites];
+  return {jours:j, actif:actif, bloque:actif&&j>=PIPE_SEUIL_BLOQUE, relanceDue:due,
+          relancesFaites:faites, prochaine:actif&&faites<PIPE_RELANCES.length?PIPE_RELANCES[faites]:null};
+}
+// Chiffres du pipeline : ce qui compte, c'est ce qui est bloqué.
+function pipeKPI(){
+  var L=pipeLire(), par={}, bloques=[], relances=[];
+  for(var i=0;i<PIPE_ETAPES.length;i++)par[PIPE_ETAPES[i].k]=0;
+  for(var j=0;j<L.length;j++){
+    var p=L[j]; par[p.etape]=(par[p.etape]||0)+1;
+    var E=pipeEtat(p);
+    if(E.bloque)bloques.push(p);
+    if(E.relanceDue)relances.push(p);
+  }
+  var actifs=0;
+  for(var a=0;a<PIPE_ACTIVES.length;a++)actifs+=par[PIPE_ACTIVES[a]]||0;
+  var g=par.gagne||0, pe=par.perdu||0, decides=g+pe;
+  return {liste:L, par:par, actifs:actifs, bloques:bloques, relances:relances,
+          gagnes:g, perdus:pe,
+          // Taux de signature sur les dossiers TRANCHÉS seulement : inclure
+          // les prospects encore en cours écraserait le taux vers le bas.
+          taux:decides?Math.round(g/decides*100):null};
+}
+// Prochaine action concrète pour un prospect — jamais « je le tiens au courant ».
+function pipeAction(p){
+  var E=pipeEtat(p);
+  if(!E.actif)return "";
+  if(E.relanceDue)return "Relance "+(E.relancesFaites+1)+"/3 due (J+"+E.relanceDue+")";
+  if(E.bloque)return "Bloqué depuis "+E.jours+" j — fais-le avancer ou sors-le";
+  switch(p.etape){
+    case "contact": return "Qualifier : quelle est sa vraie douleur ?";
+    case "qualifie":return "Proposer le bilan gratuit";
+    case "propose": return "Fixer la date du bilan";
+    case "bilan":   return "Closer : une date, une action concrète";
+  }
+  return "";
+}
+
+// 📈 ÉCRAN KPI COMMERCIAL
+function viewCoachKPI(){
+  var K=pipeKPI();
+  var h='<div class="app" style="max-width:480px">'+
+    '<div class="hdr"><div style="display:flex;align-items:center;gap:12px">'+
+    '<button id="kpi-back" class="day-back">←</button>'+
+    '<div><div class="hdr-title" style="font-size:17px">Mon commercial</div>'+
+    '<div class="hdr-sub" style="color:#888;font-weight:400;font-size:12px">Pipeline · relances · KPI</div></div></div></div>'+
+    '<div style="padding:14px 14px 90px">';
+
+  // ── Les 3 chiffres qui comptent ─────────────────────────────
+  h+='<div style="display:flex;gap:8px;margin-bottom:14px">'+
+    '<div class="card" style="flex:1;padding:13px 10px;text-align:center;margin:0">'+
+    '<div style="font-size:24px;font-weight:900;color:var(--ink);line-height:1">'+K.actifs+'</div>'+
+    '<div style="font-size:10.5px;font-weight:700;color:var(--mute);margin-top:3px">en cours</div></div>'+
+    '<div class="card" style="flex:1;padding:13px 10px;text-align:center;margin:0;'+(K.bloques.length?'border:1.5px solid var(--warn-d)':'')+'">'+
+    '<div style="font-size:24px;font-weight:900;line-height:1;color:'+(K.bloques.length?'var(--warn-d)':'var(--ink)')+'">'+K.bloques.length+'</div>'+
+    '<div style="font-size:10.5px;font-weight:700;color:var(--mute);margin-top:3px">bloqués +7j</div></div>'+
+    '<div class="card" style="flex:1;padding:13px 10px;text-align:center;margin:0">'+
+    '<div style="font-size:24px;font-weight:900;color:var(--ok-d);line-height:1">'+(K.taux!=null?K.taux+'%':'—')+'</div>'+
+    '<div style="font-size:10.5px;font-weight:700;color:var(--mute);margin-top:3px">signés</div></div></div>';
+
+  // ── À FAIRE AUJOURD'HUI : la seule chose qui fait gagner de l'argent ──
+  if(K.relances.length||K.bloques.length){
+    h+='<div class="card" style="border-left:4px solid var(--warn-d);padding:14px 15px">'+
+      '<div style="font-weight:900;font-size:13.5px;margin-bottom:3px">🔥 À faire aujourd\'hui</div>'+
+      '<div style="font-size:11px;color:var(--mute);margin-bottom:10px;line-height:1.45">Ce sont les prospects qui refroidissent. Chaque jour compte.</div>';
+    var vus={};
+    for(var r=0;r<K.relances.length;r++){
+      var p=K.relances[r], E=pipeEtat(p); vus[p.id]=1;
+      h+='<div class="pipe-row" data-id="'+p.id+'" style="display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)">'+
+        '<span style="font-size:17px">'+pipeEtape(p.etape).e+'</span>'+
+        '<div style="flex:1;min-width:0"><div style="font-weight:800;font-size:13px">'+esc(p.nom)+'</div>'+
+        '<div style="font-size:11px;color:var(--warn-d);font-weight:700">Relance '+(E.relancesFaites+1)+'/3 · J+'+E.relanceDue+' dépassé</div></div>'+
+        '<button class="pipe-relance" data-id="'+p.id+'" style="flex:0 0 auto;padding:7px 11px;border-radius:10px;border:0;background:var(--warn-d);color:#fff;font-size:11.5px;font-weight:800">Relancé</button></div>';
+    }
+    for(var b=0;b<K.bloques.length;b++){
+      var q=K.bloques[b]; if(vus[q.id])continue;
+      var Eq=pipeEtat(q);
+      h+='<div class="pipe-row" data-id="'+q.id+'" style="display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)">'+
+        '<span style="font-size:17px">'+pipeEtape(q.etape).e+'</span>'+
+        '<div style="flex:1;min-width:0"><div style="font-weight:800;font-size:13px">'+esc(q.nom)+'</div>'+
+        '<div style="font-size:11px;color:var(--mute);font-weight:700">Immobile depuis '+Eq.jours+' jours</div></div></div>';
+    }
+    h+='</div>';
+  }else if(K.actifs){
+    h+='<div class="card" style="border-left:4px solid var(--ok-d);padding:13px 15px">'+
+      '<div style="font-weight:800;font-size:13px">✅ Pipeline propre</div>'+
+      '<div style="font-size:11.5px;color:var(--mute);margin-top:3px;line-height:1.45">Personne ne traîne depuis plus de 7 jours. C\'est exactement l\'objectif.</div></div>';
+  }
+
+  h+='<button id="pipe-add" class="big-btn" style="padding:14px 0;font-size:14px;margin:14px 0 12px">+ Ajouter un prospect</button>';
+
+  // ── LE PIPELINE, étape par étape ────────────────────────────
+  for(var e=0;e<PIPE_ETAPES.length;e++){
+    var ET=PIPE_ETAPES[e];
+    var dedans=[];
+    for(var i=0;i<K.liste.length;i++){if(K.liste[i].etape===ET.k)dedans.push(K.liste[i]);}
+    if(!dedans.length&&(ET.k==="gagne"||ET.k==="perdu"))continue;
+    h+='<div class="card" style="padding:0;overflow:hidden;margin-bottom:10px">'+
+      '<div style="display:flex;align-items:center;gap:9px;padding:12px 14px;background:'+ET.c+'14;border-left:4px solid '+ET.c+'">'+
+      '<span style="font-size:16px">'+ET.e+'</span>'+
+      '<div style="flex:1"><div style="font-weight:900;font-size:13px">'+ET.n+'</div>'+
+      '<div style="font-size:10.5px;color:var(--mute);line-height:1.35">'+ET.d+'</div></div>'+
+      '<span style="font-weight:900;font-size:15px;color:'+ET.c+'">'+dedans.length+'</span></div>';
+    if(!dedans.length){
+      h+='<div style="padding:12px 14px;font-size:11.5px;color:var(--mute);font-style:italic">Personne à cette étape</div>';
+    }
+    for(var d=0;d<dedans.length;d++){
+      var pr=dedans[d], PE=pipeEtat(pr), act=pipeAction(pr);
+      h+='<div style="padding:11px 14px;border-top:1px solid var(--line)">'+
+        '<div style="display:flex;align-items:center;gap:9px">'+
+        '<div style="flex:1;min-width:0">'+
+        '<div style="font-weight:800;font-size:13.5px">'+esc(pr.nom)+
+        (PE.bloque?' <span style="color:var(--warn-d);font-size:11px">⚠️ '+PE.jours+' j</span>':'')+'</div>'+
+        (pr.note?'<div style="font-size:11.5px;color:var(--ink2);line-height:1.4;margin-top:2px">'+esc(pr.note)+'</div>':'')+
+        (act?'<div style="font-size:11px;color:var(--brand);font-weight:700;margin-top:3px">→ '+act+'</div>':'')+
+        '<div style="font-size:10.5px;color:var(--mute);margin-top:3px">'+
+        (PE.actif?'Sans mouvement depuis '+PE.jours+' j · '+PE.relancesFaites+'/3 relances':'Depuis '+PE.jours+' j')+'</div></div></div>'+
+        '<div style="display:flex;gap:6px;margin-top:9px;flex-wrap:wrap">'+
+        (e>0?'<button class="pipe-mv" data-id="'+pr.id+'" data-dir="-1" style="padding:7px 10px;border-radius:9px;border:1px solid var(--line);background:#fff;font-size:11px;font-weight:800;color:var(--mute)">←</button>':'')+
+        (ET.k!=="gagne"&&ET.k!=="perdu"?'<button class="pipe-mv" data-id="'+pr.id+'" data-dir="1" style="flex:1;padding:7px 10px;border-radius:9px;border:0;background:var(--brand);color:#fff;font-size:11.5px;font-weight:800">Faire avancer →</button>':'')+
+        (PE.actif?'<button class="pipe-perdu" data-id="'+pr.id+'" style="padding:7px 10px;border-radius:9px;border:1px solid var(--line);background:#fff;font-size:11px;font-weight:800;color:var(--mute)">Perdu</button>':'')+
+        '<button class="pipe-edit" data-id="'+pr.id+'" style="padding:7px 10px;border-radius:9px;border:1px solid var(--line);background:#fff;font-size:11px;font-weight:800;color:var(--mute)">✏️</button>'+
+        '</div></div>';
+    }
+    h+='</div>';
+  }
+
+  // ── Les repères, toujours sous la main ──────────────────────
+  h+=cdSecOpen("kpi-sla","⏱️","Mon SLA","Les délais que je m'impose")+
+    '<div style="font-size:11.5px;color:var(--ink2);line-height:1.7">'+
+    '<div><strong>Réponse à un message</strong> — moins d\'1 h</div>'+
+    '<div><strong>Proposition de bilan</strong> — moins de 24 h</div>'+
+    '<div><strong>Relances après bilan</strong> — J+2, J+5, J+10</div>'+
+    '<div style="color:var(--mute);margin-top:8px;line-height:1.5">Ce n\'est pas une promesse au client, c\'est une discipline. Le premier à répondre ne gagne pas toujours ; celui qui répond trop tard a déjà perdu.</div></div>'+
+    cdSecClose();
+
+  h+=cdSecOpen("kpi-obj","💬","Les objections","Ce que je réponds quand ça bloque")+
+    '<div style="font-size:12px;line-height:1.6">'+
+    '<div style="margin-bottom:9px"><strong>« Trop cher »</strong><br><span style="color:var(--ink2)">Trop cher par rapport à quoi exactement ?</span></div>'+
+    '<div style="margin-bottom:9px"><strong>« Je réfléchis »</strong><br><span style="color:var(--ink2)">Qu\'est-ce qui te ferait dire oui aujourd\'hui ?</span></div>'+
+    '<div style="margin-bottom:9px"><strong>« J\'en parle à mon conjoint »</strong><br><span style="color:var(--ink2)">À anticiper EN bilan : y a-t-il quelqu\'un d\'autre dans cette décision ?</span></div>'+
+    '<div style="color:var(--mute);font-size:11px;line-height:1.5">Règle d\'or : ne jamais répondre à une objection sans l\'avoir d\'abord reformulée à voix haute.</div></div>'+
+    cdSecClose();
+
+  h+=cdSecOpen("kpi-suivi","📅","Après la signature","J+0 · J+7 · J+30 · J+90 · 1 an")+
+    '<div style="font-size:11.5px;color:var(--ink2);line-height:1.7">'+
+    '<div><strong>J+0</strong> — bienvenue personnalisée</div>'+
+    '<div><strong>J+7</strong> — comment se passe ta première semaine ?</div>'+
+    '<div><strong>J+30</strong> — bilan intermédiaire, ajustements</div>'+
+    '<div><strong>J+90</strong> — bilan final, résultats, suite</div>'+
+    '<div><strong>1 an</strong> — prise de nouvelles, sans rien vendre</div>'+
+    '<div style="color:var(--mute);margin-top:8px;line-height:1.5">Dès qu\'un client dit spontanément qu\'il est content : dans les 24 h, « si tu connais quelqu\'un dans la même situation, ça m\'aide énormément ».</div></div>'+
+    cdSecClose();
+
+  h+='</div></div>';
+  return h;
+}
+
 function viewCoachDash(){
   var clients=lsGet("amcoach_clients",[]);
   coachLoadAll(false); // télécharge les données de tous les clients au premier affichage
@@ -6233,7 +6431,12 @@ function viewCoachDash(){
     '<button id="form-toggle" class="big-btn'+(state.showForm?" gray":"")+'" style="padding:16px 0;font-size:14px">'+
     (state.showForm?"▲ Annuler":"+ Nouveau client")+'</button>'+
     '<button id="calc-open" class="big-btn" style="padding:14px 0;font-size:14px;background:var(--brand2);margin-bottom:10px">🧮 Calculateur bilan</button>'+
-    '<button id="stats-open" class="big-btn" style="padding:14px 0;font-size:14px;background:var(--ink);margin-bottom:16px">📊 Mes statistiques</button>';
+    '<button id="stats-open" class="big-btn" style="padding:14px 0;font-size:14px;background:var(--ink);margin-bottom:10px">📊 Mes statistiques</button>'+
+    // 📈 Le commercial : la pastille montre ce qui refroidit, sans ouvrir.
+    (function(){var K=pipeKPI();var n=K.relances.length+K.bloques.length;
+      return '<button id="kpi-open" class="big-btn" style="padding:14px 0;font-size:14px;background:#2E4560;margin-bottom:16px;position:relative">📈 Mon commercial'+
+        (n?'<span style="position:absolute;top:8px;right:12px;background:var(--warn-d);color:#fff;border-radius:100px;padding:2px 9px;font-size:11px;font-weight:900">'+n+' à faire</span>':'')+'</button>';
+    })();
 
   // 🚦 TABLEAU DE BORD UNIQUE — un seul bloc au lieu de trois.
   // Une ligne par client : feu, nom, ce qui cloche, assiduité et protéines du jour.
@@ -7804,6 +8007,106 @@ function bindCoach(){
     });
   }
 
+  // ═══ 📈 PIPELINE COMMERCIAL ═══
+  var kpiO=document.getElementById("kpi-open");
+  if(kpiO)kpiO.addEventListener("click",function(){state.coachKPI=true;render();});
+  var kpiB=document.getElementById("kpi-back");
+  if(kpiB)kpiB.addEventListener("click",function(){state.coachKPI=false;render();});
+
+  // Fiche prospect : création et modification par la même feuille.
+  function pipeFiche(existant){
+    var p=existant||{id:"p"+Date.now().toString(36),nom:"",note:"",etape:"contact",
+                     cree:isoLocal(),maj:isoLocal(),relances:0};
+    var ov=document.createElement("div");
+    ov.style.cssText="position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center";
+    var opts='';
+    for(var i=0;i<PIPE_ETAPES.length;i++){
+      opts+='<option value="'+PIPE_ETAPES[i].k+'"'+(PIPE_ETAPES[i].k===p.etape?' selected':'')+'>'+PIPE_ETAPES[i].e+' '+PIPE_ETAPES[i].n+'</option>';
+    }
+    ov.innerHTML='<div style="background:'+solid("var(--card)")+';width:100%;max-width:430px;border-radius:22px 22px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));max-height:88vh;overflow-y:auto">'+
+      '<div style="font-weight:900;font-size:18px;color:'+solid("var(--ink)")+'">'+(existant?"Modifier":"Nouveau prospect")+'</div>'+
+      '<div style="font-size:12px;color:'+solid("var(--mute)")+';margin-top:4px;line-height:1.45">Un prospect doit changer d\'étape ou être relancé sous 7 jours. Sinon il refroidit.</div>'+
+      '<input id="pp-nom" placeholder="Prénom, nom" value="'+esc(p.nom)+'" style="width:100%;margin-top:14px;padding:13px 15px;border-radius:12px;border:2px solid '+solid("var(--line)")+';font-size:16px;font-weight:700"/>'+
+      '<textarea id="pp-note" placeholder="Sa douleur, où tu l\'as rencontré, ce qu\'il a dit..." style="width:100%;margin-top:9px;padding:13px 15px;border-radius:12px;border:2px solid '+solid("var(--line)")+';font-size:14px;min-height:80px;font-family:inherit">'+esc(p.note||"")+'</textarea>'+
+      '<select id="pp-etape" style="width:100%;margin-top:9px;padding:13px 15px;border-radius:12px;border:2px solid '+solid("var(--line)")+';font-size:15px;font-weight:700;background:#fff">'+opts+'</select>'+
+      '<button id="pp-ok" style="width:100%;margin-top:13px;padding:14px 0;border-radius:13px;border:0;background:'+solid("var(--brand)")+';color:#fff;font-weight:900;font-size:14px">Enregistrer</button>'+
+      (existant?'<button id="pp-del" style="width:100%;margin-top:8px;padding:11px 0;border-radius:13px;border:1px solid '+solid("var(--line)")+';background:#fff;color:'+solid("var(--bad)")+';font-weight:800;font-size:13px">Supprimer</button>':'')+
+      '<button id="pp-no" style="width:100%;margin-top:8px;padding:11px 0;border-radius:13px;border:1px solid '+solid("var(--line)")+';background:#fff;color:'+solid("var(--mute)")+';font-weight:800;font-size:13px">Annuler</button></div>';
+    function fermer(){if(ov.parentNode)document.body.removeChild(ov);}
+    ov.addEventListener("click",function(e){if(e.target===ov)fermer();});
+    document.body.appendChild(ov);
+    setTimeout(function(){try{ov.querySelector("#pp-nom").focus();}catch(e){}},120);
+    ov.querySelector("#pp-ok").addEventListener("click",function(){
+      var nom=ov.querySelector("#pp-nom").value.trim();
+      if(!nom){feedback("Il faut au moins un nom","err");return;}
+      var L=pipeLire(), et=ov.querySelector("#pp-etape").value;
+      p.nom=nom; p.note=ov.querySelector("#pp-note").value.trim();
+      // Changer d'étape remet le compteur d'immobilité à zéro : c'est un
+      // mouvement, et les relances repartent de la nouvelle situation.
+      if(p.etape!==et){p.etape=et;p.maj=isoLocal();p.relances=0;}
+      var trouve=false;
+      for(var i=0;i<L.length;i++){if(L[i].id===p.id){L[i]=p;trouve=true;break;}}
+      if(!trouve)L.unshift(p);
+      pipeEcrire(L); fermer(); render();
+      feedback(trouve?"Prospect mis à jour":"Prospect ajouté","ok");
+    });
+    var del=ov.querySelector("#pp-del");
+    if(del)del.addEventListener("click",function(){
+      if(!confirm("Supprimer "+p.nom+" du pipeline ?"))return;
+      var L=pipeLire().filter(function(x){return x.id!==p.id;});
+      pipeEcrire(L); fermer(); render(); feedback("Prospect retiré","undo");
+    });
+    ov.querySelector("#pp-no").addEventListener("click",fermer);
+  }
+  function pipeTrouver(id){var L=pipeLire();for(var i=0;i<L.length;i++){if(L[i].id===id)return L[i];}return null;}
+  function pipeSauver(p){
+    var L=pipeLire();
+    for(var i=0;i<L.length;i++){if(L[i].id===p.id){L[i]=p;break;}}
+    pipeEcrire(L);
+  }
+
+  var pAdd=document.getElementById("pipe-add");
+  if(pAdd)pAdd.addEventListener("click",function(){pipeFiche(null);});
+
+  var pEd=document.querySelectorAll(".pipe-edit");
+  for(var pe=0;pe<pEd.length;pe++)pEd[pe].addEventListener("click",function(){
+    var p=pipeTrouver(this.getAttribute("data-id")); if(p)pipeFiche(p);
+  });
+
+  // Avancer ou reculer d'une étape
+  var pMv=document.querySelectorAll(".pipe-mv");
+  for(var pm=0;pm<pMv.length;pm++)pMv[pm].addEventListener("click",function(){
+    var p=pipeTrouver(this.getAttribute("data-id")); if(!p)return;
+    var dir=parseInt(this.getAttribute("data-dir"),10);
+    var idx=-1;
+    for(var i=0;i<PIPE_ETAPES.length;i++){if(PIPE_ETAPES[i].k===p.etape){idx=i;break;}}
+    var n=Math.max(0,Math.min(PIPE_ETAPES.length-1,idx+dir));
+    if(n===idx)return;
+    p.etape=PIPE_ETAPES[n].k; p.maj=isoLocal(); p.relances=0;
+    pipeSauver(p); render();
+    feedback(PIPE_ETAPES[n].e+" "+p.nom+" → "+PIPE_ETAPES[n].n, PIPE_ETAPES[n].k==="gagne"?"win":"ok");
+  });
+
+  var pPerdu=document.querySelectorAll(".pipe-perdu");
+  for(var pp=0;pp<pPerdu.length;pp++)pPerdu[pp].addEventListener("click",function(){
+    var p=pipeTrouver(this.getAttribute("data-id")); if(!p)return;
+    // Documenter le POURQUOI : c'est là qu'on apprend, pas dans les gagnés.
+    var r=prompt("Pourquoi est-il perdu ? (prix, timing, concurrent, silence...)","");
+    if(r===null)return;
+    p.etape="perdu"; p.maj=isoLocal();
+    p.note=(p.note?p.note+" · ":"")+"Perdu : "+(r||"non précisé");
+    pipeSauver(p); render(); feedback("Sorti du pipeline","undo");
+  });
+
+  // « Relancé » : on note le geste, le compteur repart pour le palier suivant
+  var pRel=document.querySelectorAll(".pipe-relance");
+  for(var pr=0;pr<pRel.length;pr++)pRel[pr].addEventListener("click",function(){
+    var p=pipeTrouver(this.getAttribute("data-id")); if(!p)return;
+    p.relances=(p.relances||0)+1; p.maj=isoLocal();
+    pipeSauver(p); render();
+    feedback(p.relances>=3?"3ᵉ relance faite — décide maintenant":"Relance "+p.relances+"/3 notée","ok");
+  });
+
   // 📂 Mémoriser quelles sections le coach laisse ouvertes
   var secs=document.querySelectorAll(".cd-sec");
   for(var sc=0;sc<secs.length;sc++){
@@ -9068,6 +9371,7 @@ function bindMain(name,start){
 
   function goBack(){
     if(state.selDay!==null&&state.selDay!==undefined){state.selDay=null;render();return true;}
+    if(typeof IS_COACH!=="undefined"&&IS_COACH&&state.coachKPI){state.coachKPI=false;render();return true;}
     if(typeof IS_COACH!=="undefined"&&IS_COACH&&state.coachCalc){state.coachCalc=false;render();return true;}
     if(typeof IS_COACH!=="undefined"&&IS_COACH&&state.cdTab==="bilan"){state.cdTab=null;render();return true;}
     if(typeof IS_COACH!=="undefined"&&IS_COACH&&state.coachDetail){state.coachDetail=null;render();return true;}

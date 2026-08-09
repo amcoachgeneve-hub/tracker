@@ -6279,8 +6279,26 @@ function pipeKPI(){
   var actifs=0;
   for(var a=0;a<PIPE_ACTIVES.length;a++)actifs+=par[PIPE_ACTIVES[a]]||0;
   var g=par.gagne||0, pe=par.perdu||0, decides=g+pe;
+  // 🔎 TAUX DE PASSAGE, étape par étape. Un prospect qui a signé est
+  // forcément passé par toutes les étapes avant : on compte donc, pour
+  // chaque étape, tous ceux qui l'ont ATTEINTE — pas seulement ceux qui
+  // y sont aujourd'hui. Sans ça, on ne voit pas OÙ on perd les gens.
+  var ORD=PIPE_ACTIVES.concat(["gagne"]);
+  var atteint={};
+  for(var o=0;o<ORD.length;o++)atteint[ORD[o]]=0;
+  for(var m=0;m<L.length;m++){
+    var pos=ORD.indexOf(L[m].etape);
+    // Un perdu a atteint l'étape où il s'est arrêté : on la retrouve dans
+    // sa dernière position connue avant la sortie.
+    if(L[m].etape==="perdu")pos=ORD.indexOf(L[m].avant||"contact");
+    for(var w=0;w<=pos&&pos>=0;w++)atteint[ORD[w]]++;
+  }
   return {liste:L, par:par, actifs:actifs, bloques:bloques, relances:relances,
-          gagnes:g, perdus:pe,
+          gagnes:g, perdus:pe, total:L.length, atteint:atteint, ordre:ORD,
+          // Taux de transformation global : sur TOUT ce qui est entré dans le
+          // pipeline, combien sont devenus clients. C'est le chiffre qui dit
+          // si le système fonctionne, indépendamment des dossiers en cours.
+          transfo:L.length?Math.round(g/L.length*100):null,
           // Taux de signature sur les dossiers TRANCHÉS seulement : inclure
           // les prospects encore en cours écraserait le taux vers le bas.
           taux:decides?Math.round(g/decides*100):null};
@@ -6351,6 +6369,33 @@ function viewCoachKPI(){
       '<div style="font-size:11.5px;color:var(--mute);margin-top:3px;line-height:1.45">Personne ne traîne depuis plus de 7 jours. C\'est exactement l\'objectif.</div></div>';
   }
 
+  // ── OÙ JE PERDS LES GENS ────────────────────────────────────
+  // Le seul tableau qui dise quoi corriger : pas « combien j'ai de
+  // prospects », mais « à quelle étape ils s'arrêtent ».
+  if(K.total){
+    h+='<div class="card" style="padding:14px 15px;margin-top:14px">'+
+      '<div style="font-weight:900;font-size:13.5px">🔎 Où je perds les gens</div>'+
+      '<div style="font-size:11px;color:var(--mute);margin:3px 0 11px;line-height:1.45">'+
+      K.total+' prospect'+(K.total>1?'s':'')+' entré'+(K.total>1?'s':'')+' · '+K.gagnes+' devenu'+(K.gagnes>1?'s':'')+' client'+(K.gagnes>1?'s':'')+
+      (K.transfo!=null?' · <strong style="color:var(--ok-d)">'+K.transfo+' % de transformation</strong>':'')+'</div>';
+    for(var o=0;o<K.ordre.length;o++){
+      var OK=pipeEtape(K.ordre[o]), nb=K.atteint[K.ordre[o]]||0;
+      var pct=K.total?Math.round(nb/K.total*100):0;
+      // La perte se lit entre deux lignes : combien n'ont pas franchi le cran
+      var perte=(o>0)?(K.atteint[K.ordre[o-1]]-nb):0;
+      h+='<div style="margin-bottom:9px">'+
+        '<div style="display:flex;align-items:baseline;gap:8px;font-size:12px">'+
+        '<span style="flex:1;font-weight:800">'+OK.e+' '+OK.n+'</span>'+
+        '<span style="font-weight:900">'+nb+'</span>'+
+        '<span style="color:var(--mute);font-size:11px;width:34px;text-align:right">'+pct+'%</span></div>'+
+        '<div style="height:7px;border-radius:100px;background:var(--soft2);margin-top:4px;overflow:hidden">'+
+        '<div style="height:100%;width:'+Math.max(pct,2)+'%;background:'+OK.c+';border-radius:100px"></div></div>'+
+        (perte>0?'<div style="font-size:10.5px;color:var(--warn-d);font-weight:700;margin-top:3px">−'+perte+' perdu'+(perte>1?'s':'')+' à ce passage</div>':'')+
+        '</div>';
+    }
+    h+='</div>';
+  }
+
   h+='<button id="pipe-add" class="big-btn" style="padding:14px 0;font-size:14px;margin:14px 0 12px">+ Ajouter un prospect</button>';
 
   // ── LE PIPELINE, étape par étape ────────────────────────────
@@ -6370,20 +6415,49 @@ function viewCoachKPI(){
     }
     for(var d=0;d<dedans.length;d++){
       var pr=dedans[d], PE=pipeEtat(pr), act=pipeAction(pr);
-      h+='<div style="padding:11px 14px;border-top:1px solid var(--line)">'+
-        '<div style="display:flex;align-items:center;gap:9px">'+
+      // 🪜 LE PARCOURS EN CASES À COCHER.
+      // On ne tape rien : on coche l'étape franchie, elle est datée toute
+      // seule. Les étapes déjà passées restent cochées, la suivante est
+      // proposée en clair. C'est plus rapide qu'un menu déroulant et ça
+      // montre le chemin parcouru d'un coup d'œil.
+      var idxCur=-1;
+      for(var ic=0;ic<PIPE_ACTIVES.length;ic++){if(PIPE_ACTIVES[ic]===pr.etape)idxCur=ic;}
+      var estClient=(pr.etape==="gagne"), estPerdu=(pr.etape==="perdu");
+      var etapesHtml='';
+      if(!estPerdu){
+        for(var se=0;se<PIPE_ACTIVES.length;se++){
+          var EK=pipeEtape(PIPE_ACTIVES[se]);
+          var fait=estClient||(idxCur>=se);
+          var suivante=(!estClient&&idxCur===se-1);
+          etapesHtml+='<button class="pipe-step" data-id="'+pr.id+'" data-k="'+PIPE_ACTIVES[se]+'" '+
+            'style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 10px;margin-bottom:5px;'+
+            'border-radius:10px;border:1.5px solid '+(fait?"transparent":suivante?"var(--brand)":"var(--line)")+';'+
+            'background:'+(fait?"rgba(47,191,113,.10)":suivante?"var(--soft)":"#fff")+';cursor:pointer">'+
+            '<span style="width:20px;height:20px;flex:0 0 20px;border-radius:6px;display:flex;align-items:center;justify-content:center;'+
+            'font-size:12px;font-weight:900;background:'+(fait?"var(--ok-d)":"#fff")+';border:1.5px solid '+(fait?"var(--ok-d)":"var(--line)")+';'+
+            'color:#fff">'+(fait?"✓":"")+'</span>'+
+            '<span style="flex:1;font-size:12.5px;font-weight:'+(fait||suivante?"800":"700")+';color:'+(fait?"var(--ink)":suivante?"var(--brand)":"var(--mute)")+'">'+EK.n+'</span>'+
+            (suivante?'<span style="font-size:10.5px;font-weight:800;color:var(--brand)">à cocher</span>':'')+
+            '</button>';
+        }
+      }
+      h+='<div style="padding:12px 14px;border-top:1px solid var(--line)">'+
+        '<div style="display:flex;align-items:flex-start;gap:9px;margin-bottom:9px">'+
         '<div style="flex:1;min-width:0">'+
         '<div style="font-weight:800;font-size:13.5px">'+esc(pr.nom)+
         (PE.bloque?' <span style="color:var(--warn-d);font-size:11px">⚠️ '+PE.jours+' j</span>':'')+'</div>'+
         (pr.note?'<div style="font-size:11.5px;color:var(--ink2);line-height:1.4;margin-top:2px">'+esc(pr.note)+'</div>':'')+
-        (act?'<div style="font-size:11px;color:var(--brand);font-weight:700;margin-top:3px">→ '+act+'</div>':'')+
         '<div style="font-size:10.5px;color:var(--mute);margin-top:3px">'+
-        (PE.actif?'Sans mouvement depuis '+PE.jours+' j · '+PE.relancesFaites+'/3 relances':'Depuis '+PE.jours+' j')+'</div></div></div>'+
-        '<div style="display:flex;gap:6px;margin-top:9px;flex-wrap:wrap">'+
-        (e>0?'<button class="pipe-mv" data-id="'+pr.id+'" data-dir="-1" style="padding:7px 10px;border-radius:9px;border:1px solid var(--line);background:#fff;font-size:11px;font-weight:800;color:var(--mute)">←</button>':'')+
-        (ET.k!=="gagne"&&ET.k!=="perdu"?'<button class="pipe-mv" data-id="'+pr.id+'" data-dir="1" style="flex:1;padding:7px 10px;border-radius:9px;border:0;background:var(--brand);color:#fff;font-size:11.5px;font-weight:800">Faire avancer →</button>':'')+
-        (PE.actif?'<button class="pipe-perdu" data-id="'+pr.id+'" style="padding:7px 10px;border-radius:9px;border:1px solid var(--line);background:#fff;font-size:11px;font-weight:800;color:var(--mute)">Perdu</button>':'')+
-        '<button class="pipe-edit" data-id="'+pr.id+'" style="padding:7px 10px;border-radius:9px;border:1px solid var(--line);background:#fff;font-size:11px;font-weight:800;color:var(--mute)">✏️</button>'+
+        (PE.actif?'Sans mouvement depuis '+PE.jours+' j · '+PE.relancesFaites+'/3 relances':'Depuis '+PE.jours+' j')+'</div></div>'+
+        '<button class="pipe-edit" data-id="'+pr.id+'" style="flex:0 0 auto;padding:6px 9px;border-radius:9px;border:1px solid var(--line);background:#fff;font-size:11px;font-weight:800;color:var(--mute)">✏️</button>'+
+        '</div>'+
+        etapesHtml+
+        (act&&!estClient&&!estPerdu?'<div style="font-size:11px;color:var(--brand);font-weight:700;margin:6px 0 8px">→ '+act+'</div>':'')+
+        '<div style="display:flex;gap:6px;margin-top:7px;flex-wrap:wrap">'+
+        // Le passage en client : le seul bouton qui compte vraiment.
+        (!estClient&&!estPerdu?'<button class="pipe-client" data-id="'+pr.id+'" style="flex:1;padding:9px 10px;border-radius:10px;border:0;background:var(--ok-d);color:#fff;font-size:12px;font-weight:900">✅ Devenu client</button>':'')+
+        (estClient?'<button class="pipe-mv" data-id="'+pr.id+'" data-dir="-1" style="padding:8px 11px;border-radius:10px;border:1px solid var(--line);background:#fff;font-size:11px;font-weight:800;color:var(--mute)">↩︎ Remettre en cours</button>':'')+
+        (PE.actif?'<button class="pipe-perdu" data-id="'+pr.id+'" style="padding:9px 11px;border-radius:10px;border:1px solid var(--line);background:#fff;font-size:11.5px;font-weight:800;color:var(--mute)">Perdu</button>':'')+
         '</div></div>';
     }
     h+='</div>';
@@ -6396,14 +6470,6 @@ function viewCoachKPI(){
     '<div><strong>Proposition de bilan</strong> — moins de 24 h</div>'+
     '<div><strong>Relances après bilan</strong> — J+2, J+5, J+10</div>'+
     '<div style="color:var(--mute);margin-top:8px;line-height:1.5">Ce n\'est pas une promesse au client, c\'est une discipline. Le premier à répondre ne gagne pas toujours ; celui qui répond trop tard a déjà perdu.</div></div>'+
-    cdSecClose();
-
-  h+=cdSecOpen("kpi-obj","💬","Les objections","Ce que je réponds quand ça bloque")+
-    '<div style="font-size:12px;line-height:1.6">'+
-    '<div style="margin-bottom:9px"><strong>« Trop cher »</strong><br><span style="color:var(--ink2)">Trop cher par rapport à quoi exactement ?</span></div>'+
-    '<div style="margin-bottom:9px"><strong>« Je réfléchis »</strong><br><span style="color:var(--ink2)">Qu\'est-ce qui te ferait dire oui aujourd\'hui ?</span></div>'+
-    '<div style="margin-bottom:9px"><strong>« J\'en parle à mon conjoint »</strong><br><span style="color:var(--ink2)">À anticiper EN bilan : y a-t-il quelqu\'un d\'autre dans cette décision ?</span></div>'+
-    '<div style="color:var(--mute);font-size:11px;line-height:1.5">Règle d\'or : ne jamais répondre à une objection sans l\'avoir d\'abord reformulée à voix haute.</div></div>'+
     cdSecClose();
 
   h+=cdSecOpen("kpi-suivi","📅","Après la signature","J+0 · J+7 · J+30 · J+90 · 1 an")+
@@ -6485,7 +6551,9 @@ function viewCoachDash(){
     h+='<div class="card" style="padding:18px 16px;margin-bottom:16px">'+
       '<div style="font-weight:900;font-size:14px;margin-bottom:16px">Nouveau client</div>'+
       '<div class="card-label">PRÉNOM</div>'+
-      '<input id="nc-name" class="num-input" style="font-size:15px;font-weight:400;margin-bottom:12px" placeholder="ex: Sarah"/>'+
+      // Nom pré-rempli quand on arrive depuis un prospect qui vient de signer
+      '<input id="nc-name" class="num-input" style="font-size:15px;font-weight:400;margin-bottom:12px" placeholder="ex: Sarah"'+
+      (state.prefillNom?' value="'+esc(state.prefillNom)+'"':'')+'/>'+
       '<div class="card-label">LIEN (identifiant)</div>'+
       '<input id="nc-slug" class="num-input" style="font-size:15px;font-weight:400;margin-bottom:4px" placeholder="ex: sarah"/>'+
       '<div id="nc-preview" style="font-size:11px;color:#666;margin-bottom:12px"></div>'+
@@ -7711,6 +7779,7 @@ function bindCoach(){
         try{localStorage.removeItem("amcoach_"+slug);}catch(e){}
         sbFetch("tracking?client_slug=eq."+encodeURIComponent(slug),{method:"DELETE"}).catch(function(){});
       }
+      state.prefillNom=null;
       var clients=lsGet("amcoach_clients",[]);
       var startDate=document.getElementById("nc-date").value;
       // Si ce lien avait été supprimé, on lève la marque : sinon le nouveau
@@ -8087,12 +8156,47 @@ function bindCoach(){
     feedback(PIPE_ETAPES[n].e+" "+p.nom+" → "+PIPE_ETAPES[n].n, PIPE_ETAPES[n].k==="gagne"?"win":"ok");
   });
 
+  // 🪜 Cocher une étape. Recocher l'étape courante la décoche (retour arrière).
+  var pStep=document.querySelectorAll(".pipe-step");
+  for(var ps=0;ps<pStep.length;ps++)pStep[ps].addEventListener("click",function(){
+    var p=pipeTrouver(this.getAttribute("data-id")); if(!p)return;
+    var k=this.getAttribute("data-k");
+    var i=PIPE_ACTIVES.indexOf(k), cur=PIPE_ACTIVES.indexOf(p.etape);
+    // Si le client était déjà gagné, cocher une étape le ramène en cours.
+    if(p.etape==="gagne"||p.etape==="perdu"){p.etape=k;}
+    else if(i===cur){
+      // Décocher : on redescend d'un cran, ou on retire la première étape
+      if(i===0){feedback("C'est la première étape","undo");return;}
+      p.etape=PIPE_ACTIVES[i-1];
+    }else{p.etape=k;}
+    p.maj=isoLocal(); p.relances=0;
+    pipeSauver(p); render();
+    feedback(pipeEtape(p.etape).e+" "+p.nom+" · "+pipeEtape(p.etape).n,"ok");
+  });
+
+  // ✅ Devenu client : on le compte comme signé, et on propose de le créer
+  // dans le dashboard pour ne pas retaper son nom une seconde fois.
+  var pCli=document.querySelectorAll(".pipe-client");
+  for(var pc=0;pc<pCli.length;pc++)pCli[pc].addEventListener("click",function(){
+    var p=pipeTrouver(this.getAttribute("data-id")); if(!p)return;
+    p.etape="gagne"; p.maj=isoLocal(); p.signe=isoLocal();
+    pipeSauver(p); render();
+    feedback("🎉 "+p.nom+" est client !","win");
+    setTimeout(function(){
+      if(confirm("Créer la fiche client de "+p.nom+" dans le dashboard ?")){
+        state.coachKPI=false; state.showForm=true; state.prefillNom=p.nom;
+        render();
+      }
+    },350);
+  });
+
   var pPerdu=document.querySelectorAll(".pipe-perdu");
   for(var pp=0;pp<pPerdu.length;pp++)pPerdu[pp].addEventListener("click",function(){
     var p=pipeTrouver(this.getAttribute("data-id")); if(!p)return;
     // Documenter le POURQUOI : c'est là qu'on apprend, pas dans les gagnés.
     var r=prompt("Pourquoi est-il perdu ? (prix, timing, concurrent, silence...)","");
     if(r===null)return;
+    p.avant=p.etape;   // on garde l'étape atteinte : c'est elle qui dit où on perd
     p.etape="perdu"; p.maj=isoLocal();
     p.note=(p.note?p.note+" · ":"")+"Perdu : "+(r||"non précisé");
     pipeSauver(p); render(); feedback("Sorti du pipeline","undo");

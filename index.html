@@ -3785,7 +3785,13 @@ function blocForteresse(allData,today90,start){
        VIV.penalite>0?'<div style="background:rgba(255,152,0,.14);border:1px solid rgba(255,152,0,.35);border-radius:14px;padding:12px 13px;margin-top:14px">'+
         '<div style="color:#FFC46B;font-weight:900;font-size:12.5px">'+(redescendu?'🔻 Tu es redescendu de niveau':'⚠️ Ton niveau glisse')+'</div>'+
         '<div style="color:rgba(255,255,255,.62);font-size:11.5px;line-height:1.5;margin-top:4px">'+
-        VIV.vides+' jour'+(VIV.vides>1?'s':'')+' sans rien poser sur les '+VIV.fenetre+' derniers — '+VIV.penalite+' brique'+(VIV.penalite>1?'s':'')+' retirée'+(VIV.penalite>1?'s':'')+'.'+
+        // Formulation revue : « 4 jours sans rien poser sur les 14 derniers »
+        // se lisait « ça fait 4 jours que tu n'as rien posé » — Akli l'a
+        // compris ainsi alors qu'il avait posé une brique l'avant-veille.
+        // Le chiffre était juste, la phrase trompeuse.
+        VIV.penalite+' brique'+(VIV.penalite>1?'s':'')+' retirée'+(VIV.penalite>1?'s':'')+
+        ' : '+VIV.vides+' journée'+(VIV.vides>1?'s':'')+' vide'+(VIV.vides>1?'s':'')+' sur tes '+VIV.fenetre+' derniers jours'+
+        ' ('+VIV.tolerance+' tolérée'+(VIV.tolerance>1?'s':'')+').'+
         (redescendu?'<br>Tu étais '+esc(lvlMax.name||qgc.identity)+'. On y retourne en reprenant dès aujourd\'hui.':'')+
         '</div></div>':'')+
       (function(){
@@ -4114,6 +4120,19 @@ function viewCalendar(name,start){
     var ch=chCfg(allData);
     if(!ch)return;
     var E=chEtat(ch);
+    // 🗓️ Un challenge terminé reste affiché 2 jours, le temps que le client
+    // voie son résultat — puis il disparaît de l'accueil. Sans ça, le défi
+    // de la semaine dernière trônait encore le lundi suivant et brouillait
+    // la page. Le badge décroché, lui, reste acquis dans les trophées.
+    if(E.fini){
+      var finIso=E.jours[E.jours.length-1];
+      var joursDepuis=0;
+      try{
+        var fd=new Date(finIso+"T12:00:00"), nd=new Date();
+        joursDepuis=Math.round((new Date(nd.getFullYear(),nd.getMonth(),nd.getDate())-new Date(fd.getFullYear(),fd.getMonth(),fd.getDate()))/86400000);
+      }catch(e){}
+      if(joursDepuis>2)return;
+    }
     var cases='';
     for(var i=0;i<E.jours.length;i++){
       var ok=(ch.done||{})[E.jours[i]];
@@ -4387,8 +4406,15 @@ function viewDay(name,start){
     '</div>';
 
   // mental
+  // 🔁 AFFICHÉ À L'ENVERS, volontairement. MENTAL est stocké du meilleur (0)
+  // au pire (4), ÉNERGIE du pire (0) au meilleur (4) : à l'écran, les deux
+  // échelles allaient donc en sens opposé, ce qui fait hésiter à chaque
+  // saisie. On les aligne sur le sens de lecture — gauche = bas, droite =
+  // haut — en inversant seulement l'AFFICHAGE. Les valeurs enregistrées ne
+  // bougent pas : inverser le stockage retournerait tout l'historique et
+  // fausserait les courbes déjà tracées.
   h+='<div class="card"><div class="card-label">🧠 RESSENTI MENTAL</div><div class="mood-row">';
-  for(var m=0;m<MENTAL.length;m++){
+  for(var m=MENTAL.length-1;m>=0;m--){
     var act=d.mental===m;
     h+='<button class="mood-btn'+(act?" active":"")+'" data-mental="'+m+'" style="'+(act?"background:"+MENTAL[m][1]:"")+'">'+MENTAL[m][0]+'</button>';
   }
@@ -5355,30 +5381,35 @@ function openRapportSimple(name,start,period,dataOverride){
   // nutrition n'est pas « tenir son programme » — et le féliciter pour ça,
   // c'est le laisser continuer jusqu'à ce qu'il constate, trois semaines plus
   // tard, que rien n'a bougé. Un compliment donné trop tôt coûte cher.
+  // 🎯 LE VERDICT se juge sur le NOMBRE de piliers décrochés, pas sur leur
+  // moyenne. Leila avait 61 % de moyenne — donc « pas si mal » — alors que
+  // trois piliers sur quatre étaient sous la barre : la moyenne était tirée
+  // par l'hydratation à 86 % et masquait le reste. Compter les piliers KO
+  // ne se laisse pas berner par une case facile qui compense les autres.
   var verdict,vcoul,vemo,salut;
-  var pilOk=(scorePil!=null&&scorePil>=65);
-  var pilFaible=(scorePil!=null&&scorePil<45);
-  if(assidu>=85&&pilOk){
-    verdict="Tu tiens ton programme. C'est exactement ce qui fait la différence sur la durée.";
+  var nbPil=piliers.length, pilKO=pilFaibles.length;
+  if(nbPil&&pilKO===0&&assidu>=85){
+    verdict="Tu tiens ton programme, et tu coches les cases qui comptent. C'est exactement ce qui fait la différence sur la durée.";
     vcoul="#2FBF71";vemo="🔥";salut="Bravo";
-  }else if(assidu>=85&&pilFaible){
-    // Le cas qu'on félicitait à tort : présent tous les jours, cases vides.
-    verdict="Tu es là tous les jours, et ça compte. Mais les cases qui transforment — sport, nutrition — restent vides. C'est là que tout se joue.";
+  }else if(nbPil&&pilKO===0&&assidu>=65){
+    verdict="Tous tes piliers sont tenus. Encore un cran de régularité dans le suivi et les résultats vont s'accélérer.";
+    vcoul="#2FBF71";vemo="💪";salut="Bien joué";
+  }else if(nbPil&&pilKO===1&&assidu>=65){
+    // Un seul pilier qui traîne : on peut féliciter, mais on nomme la case.
+    verdict="Tu tiens presque tout. Il reste « "+pilFaibles[0].lab+" » — c'est la seule case qui manque pour que ça avance vraiment.";
+    vcoul="#5B8FC7";vemo="🎯";salut="Bien parti";
+  }else if(pilKO>=2&&assidu>=80){
+    // LE cas de Leila : présente tous les jours, piliers vides.
+    verdict="Tu es là tous les jours, et ça compte vraiment. Mais "+pilKO+" piliers sur "+nbPil+" ne suivent pas — et sans eux, la transformation ne peut pas démarrer.";
     vcoul="#E0A03C";vemo="🎯";salut="On fait le point,";
-  }else if(assidu>=85){
-    verdict="Tu es très régulier dans le suivi. Il reste à remplir les cases qui font le résultat.";
-    vcoul="#5B8FC7";vemo="💪";salut="Bien joué";
-  }else if(assidu>=65&&pilOk){
-    verdict="Tu es bien engagé. Encore un cran de régularité et les résultats vont s'accélérer.";
-    vcoul="#5B8FC7";vemo="💪";salut="Bien joué";
-  }else if(assidu>=65){
-    verdict="Le suivi est là, mais les piliers décrochent. C'est eux qu'il faut reprendre en priorité.";
-    vcoul="#E0A03C";vemo="🎯";salut="On fait le point,";
-  }else if(assidu>=40){
+  }else if(pilKO>=2&&assidu>=50){
+    verdict=pilKO+" piliers sur "+nbPil+" décrochent. Ce n'est pas une question de volonté : c'est le programme qu'il faut réajuster ensemble.";
+    vcoul="#E0A03C";vemo="⚠️";salut="On fait le point,";
+  }else if(assidu>=50){
     verdict="La base est là, mais il manque de la régularité. C'est elle qui fait le résultat, pas l'intensité.";
     vcoul="#E0A03C";vemo="⚠️";salut="On fait le point,";
   }else{
-    verdict="Le programme n'a pas encore trouvé sa place dans ton quotidien. On va simplifier ensemble.";
+    verdict="Le programme n'a pas encore trouvé sa place dans ton quotidien. On va simplifier ensemble — mieux vaut deux cases tenues que six abandonnées.";
     vcoul="#C75B4A";vemo="🤝";salut="Parlons-en,";
   }
 

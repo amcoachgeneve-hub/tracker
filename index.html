@@ -4120,19 +4120,14 @@ function viewCalendar(name,start){
     var ch=chCfg(allData);
     if(!ch)return;
     var E=chEtat(ch);
-    // 🗓️ Un challenge terminé reste affiché 2 jours, le temps que le client
-    // voie son résultat — puis il disparaît de l'accueil. Sans ça, le défi
-    // de la semaine dernière trônait encore le lundi suivant et brouillait
-    // la page. Le badge décroché, lui, reste acquis dans les trophées.
-    if(E.fini){
-      var finIso=E.jours[E.jours.length-1];
-      var joursDepuis=0;
-      try{
-        var fd=new Date(finIso+"T12:00:00"), nd=new Date();
-        joursDepuis=Math.round((new Date(nd.getFullYear(),nd.getMonth(),nd.getDate())-new Date(fd.getFullYear(),fd.getMonth(),fd.getDate()))/86400000);
-      }catch(e){}
-      if(joursDepuis>2)return;
-    }
+    // 🗓️ Dès que les 7 jours sont écoulés, le challenge quitte l'accueil.
+    // chEtat pose fini = (dernier jour < aujourd'hui) : le défi reste donc
+    // visible tout son dernier jour — y compris le soir, pour cocher la
+    // dernière case — et disparaît le lendemain matin. Un délai de grâce de
+    // deux jours le laissait encore trôner le lundi suivant.
+    // Le résultat n'est pas perdu : le badge décroché reste dans les trophées
+    // et le coach garde le détail dans la fiche client.
+    if(E.fini)return;
     var cases='';
     for(var i=0;i<E.jours.length;i++){
       var ok=(ch.done||{})[E.jours[i]];

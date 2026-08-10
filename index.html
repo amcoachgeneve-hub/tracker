@@ -5227,9 +5227,15 @@ function viewRapport(name,start){
 function openRapportSimple(name,start,period,dataOverride){
   var allData=dataOverride||getAllData();
   var t90=start?getToday90(start):89;
-  var fin=Math.min(t90,period-1);
+  // FENÊTRE GLISSANTE : les `period` DERNIERS jours, pas les premiers.
+  // Le rapport détaillé est cumulatif depuis le début du programme ; pour un
+  // envoi hebdomadaire c'est trompeur — au jour 14, un « rapport 7 jours »
+  // montrait la première semaine, celle que la cliente a déjà lue. Ici on
+  // regarde la période écoulée, ce qui rend la comparaison possible.
+  var fin=Math.min(t90,89);
+  var deb=Math.max(0,fin-period+1);
   var jours=[],remplis=0,scores=[],poids=[],somm=[];
-  for(var i=0;i<=fin;i++){
+  for(var i=deb;i<=fin;i++){
     var d=allData[i]||{};
     var rempli=!!(d.habits&&Object.keys(d.habits).length);
     if(rempli)remplis++;
@@ -5238,10 +5244,31 @@ function openRapportSimple(name,start,period,dataOverride){
     if(d.poids!=null&&d.poids!=="")poids.push(parseFloat(d.poids));
     if(d.sommeilH)somm.push(parseFloat(d.sommeilH));
   }
-  var nbJours=fin+1;
+  var nbJours=fin-deb+1;
   var assidu=nbJours?Math.round(remplis/nbJours*100):0;
   var dPoids=(poids.length>=2)?Math.round((poids[poids.length-1]-poids[0])*10)/10:null;
-  var moySom=somm.length?Math.round(somm.reduce(function(a,b){return a+b;},0)/somm.length*10)/10:null;
+  // Garde-fou : une nuit se situe entre 2 et 14 heures. Une saisie hors de
+  // ces bornes est une faute de frappe (« 63 » pour 6,3) — l'inclure faussait
+  // la moyenne et affichait « 63 heures de sommeil / nuit » sur le rapport.
+  var sommOk=[];
+  for(var sx=0;sx<somm.length;sx++){if(somm[sx]>=2&&somm[sx]<=14)sommOk.push(somm[sx]);}
+  var moySom=sommOk.length?Math.round(sommOk.reduce(function(a,b){return a+b;},0)/sommOk.length*10)/10:null;
+
+  // 📊 COMPARAISON AVEC LA PÉRIODE PRÉCÉDENTE.
+  // Un rapport isolé ne dit pas si la personne a rectifié. Celui-ci compare
+  // la même durée juste avant : c'est là qu'on voit si le conseil de la
+  // dernière fois a été suivi.
+  var prevA=deb-period, prevB=deb-1;
+  var pRemplis=0,pNb=0,pSomm=[];
+  if(prevA>=0){
+    for(var q=prevA;q<=prevB;q++){
+      var dq=allData[q]||{}; pNb++;
+      if(dq.habits&&Object.keys(dq.habits).length)pRemplis++;
+      if(dq.sommeilH){var v=parseFloat(dq.sommeilH);if(v>=2&&v<=14)pSomm.push(v);}
+    }
+  }
+  var prevAssidu=pNb?Math.round(pRemplis/pNb*100):null;
+  var deltaAssidu=(prevAssidu!=null)?assidu-prevAssidu:null;
 
   // Habitudes : la meilleure et la plus faible. Deux lignes suffisent —
   // dire à quelqu'un que sept choses vont mal ne l'aide pas à en corriger une.
@@ -5252,9 +5279,26 @@ function openRapportSimple(name,start,period,dataOverride){
     for(var k in hb){if(comptes[k]&&hb[k])comptes[k].n++;}
   }
   var liste=[];
-  for(var c in comptes)liste.push({id:c,n:comptes[c].n,lab:comptes[c].lab,e:comptes[c].e,pct:nbJours?Math.round(comptes[c].n/nbJours*100):0});
+  for(var c in comptes){
+    // Les compléments sont facultatifs : ne pas les prendre n'est pas un
+    // manque de discipline. Les compter comme « ce qui traîne » désignait
+    // un faux coupable et détournait l'attention du vrai sujet.
+    if(HABITS_FACULT[c])continue;
+    liste.push({id:c,n:comptes[c].n,lab:comptes[c].lab,e:comptes[c].e,pct:nbJours?Math.round(comptes[c].n/nbJours*100):0});
+  }
   liste.sort(function(a,b){return b.n-a.n;});
   var top=liste[0]||null, bas=liste[liste.length-1]||null;
+
+  // 🔄 LES DEUX BOUCLES.
+  // Vertueuse : ce qui lui fait gagner des points, tenu au moins 2 jours sur 3.
+  // D'échec : ce qui la fait perdre, sous un jour sur deux. Nommer les deux
+  // côte à côte montre que la solution est déjà dans sa journée — il s'agit
+  // d'étendre ce qui marche, pas de tout reprendre à zéro.
+  var vertu=[], echec=[];
+  for(var b2=0;b2<liste.length;b2++){
+    if(liste[b2].pct>=66)vertu.push(liste[b2]);
+    else if(liste[b2].pct<50)echec.push(liste[b2]);
+  }
 
   // Le verdict : une phrase, choisie sur l'assiduité, qui dit quoi penser.
   var verdict,vcoul,vemo;
@@ -5267,6 +5311,7 @@ function openRapportSimple(name,start,period,dataOverride){
   var action;
   if(assidu<65)action="Remplir ta journée dans l'appli, tous les jours. Même une journée imparfaite compte — c'est le geste qui construit l'habitude.";
   else if(moySom!=null&&moySom<7)action="Te coucher 30 minutes plus tôt. Ton sommeil est à "+moySom+" h de moyenne : c'est la nuit que le corps transforme.";
+  else if(echec.length)action="Reprendre « "+echec[0].lab+" », et rien d'autre. C'est la case qui casse ta boucle — le reste tient déjà.";
   else if(bas&&bas.pct<50)action="Te concentrer sur « "+bas.lab+" ». C'est la seule case qui traîne — le reste est déjà en place.";
   else action="Garder exactement ce rythme. Il n'y a rien à changer, seulement à continuer.";
 
@@ -5301,23 +5346,47 @@ function openRapportSimple(name,start,period,dataOverride){
     '@media print{body{background:#fff;padding:0}.p{box-shadow:none}.pb{display:none}}'+
     '</style></head><body><div class="p">'+
     '<div class="hd"><h1>Bravo '+esc(name)+' 👏</h1><p>Ton bilan après '+nbJours+' jour'+(nbJours>1?'s':'')+'</p></div>'+
-    '<div class="v"><div class="e">'+vemo+'</div><div class="t" style="color:'+vcoul+'">'+verdict+'</div></div>'+
+    '<div class="v"><div class="e">'+vemo+'</div><div class="t" style="color:'+vcoul+'">'+verdict+'</div>'+
+    // La comparaison passe AVANT les chiffres : « as-tu rectifié depuis la
+    // dernière fois » compte plus que le niveau absolu.
+    (deltaAssidu!=null?'<div style="margin-top:11px;padding:11px 13px;border-radius:12px;background:'+
+      (deltaAssidu>0?'#EAF8F0':deltaAssidu<0?'#FDF1EC':'#F2F4F7')+'">'+
+      '<div style="font-size:11px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:#7A8698">Par rapport aux '+period+' jours d\'avant</div>'+
+      '<div style="font-size:14px;font-weight:800;margin-top:3px;color:'+(deltaAssidu>0?'#2FBF71':deltaAssidu<0?'#C75B4A':'#1B2430')+'">'+
+      (deltaAssidu>0?'▲ +'+deltaAssidu+' points d\'assiduité — tu as rectifié 👏':
+       deltaAssidu<0?'▼ '+deltaAssidu+' points — le rythme a baissé':'▬ Même niveau qu\'avant')+'</div>'+
+      '<div style="font-size:12px;color:#7A8698;margin-top:3px">'+prevAssidu+' % avant → '+assidu+' % maintenant</div></div>':'')+
+    '</div>'+
     '<div class="k">'+
     '<div><div class="n" style="color:'+vcoul+'">'+assidu+'%</div><div class="l">de tes journées<br>remplies</div></div>'+
     (dPoids!=null?'<div><div class="n" style="color:'+(dPoids<0?'#2FBF71':'#1B2430')+'">'+(dPoids>0?'+':'')+dPoids+'</div><div class="l">kg depuis<br>le départ</div></div>':'')+
     (moySom!=null?'<div><div class="n">'+moySom+'</div><div class="l">heures de<br>sommeil / nuit</div></div>':'')+
     '</div>';
 
-  if(top&&top.n>0){
+  // 🔄 Boucle vertueuse — ce qui lui fait gagner des points
+  if(vertu.length){
+    kh+='<div class="s"><h2>🔄 Ta boucle vertueuse</h2>'+
+      '<div style="font-size:12.5px;color:#7A8698;margin:-4px 0 8px;line-height:1.5">Ce que tu tiens déjà. Chaque case cochée en entraîne une autre — c\'est ça qui construit le résultat.</div>';
+    for(var v1=0;v1<vertu.length;v1++){
+      kh+='<div class="li"><span style="font-size:20px">'+vertu[v1].e+'</span><span class="lab">'+esc(vertu[v1].lab)+'</span>'+
+        '<span class="pc" style="color:#2FBF71">'+vertu[v1].pct+'%</span></div>';
+    }
+    kh+='</div>';
+  }
+  // ⚠️ Boucle d'échec — ce qui lui en fait perdre
+  if(echec.length){
+    kh+='<div class="s" style="background:#FDF6F3"><h2>⚠️ Ta boucle d\'échec</h2>'+
+      '<div style="font-size:12.5px;color:#7A8698;margin:-4px 0 8px;line-height:1.5">Ce qui décroche. Une case laissée de côté en entraîne une autre le lendemain : c\'est comme ça qu\'une semaine se perd.</div>';
+    for(var e1=0;e1<echec.length;e1++){
+      kh+='<div class="li"><span style="font-size:20px">'+echec[e1].e+'</span><span class="lab">'+esc(echec[e1].lab)+'</span>'+
+        '<span class="pc" style="color:#C75B4A">'+echec[e1].pct+'%</span></div>';
+    }
+    kh+='<div style="font-size:12.5px;color:#7A8698;margin-top:7px;line-height:1.5">On n\'en reprend qu\'UNE cette semaine. La première de la liste suffit.</div></div>';
+  }
+  if(!vertu.length&&!echec.length&&top&&top.n>0){
     kh+='<div class="s"><h2>Ce que tu tiens le mieux</h2>'+
       '<div class="li"><span style="font-size:20px">'+top.e+'</span><span class="lab">'+esc(top.lab)+'</span>'+
       '<span class="pc" style="color:#2FBF71">'+top.pct+'%</span></div></div>';
-  }
-  if(bas&&bas.id!==(top&&top.id)&&bas.pct<80){
-    kh+='<div class="s"><h2>Ce qui demande de l\'attention</h2>'+
-      '<div class="li"><span style="font-size:20px">'+bas.e+'</span><span class="lab">'+esc(bas.lab)+'</span>'+
-      '<span class="pc" style="color:#E0A03C">'+bas.pct+'%</span></div>'+
-      '<div style="font-size:12.5px;color:#7A8698;margin-top:6px;line-height:1.5">Une seule chose à la fois. Celle-ci suffit pour la semaine qui vient.</div></div>';
   }
   kh+='<div class="act"><h2>Ta priorité cette semaine</h2><p>'+action+'</p></div>'+
     '<div class="ft">AM Coach Genève · Akli<br>Ton coach reste disponible pour en parler.</div>'+

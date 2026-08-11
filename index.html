@@ -226,6 +226,10 @@ var HABITS_PILIERS={sport:1,nutrition:1,sommeil:1,hydratation:1};
 var HABITS_EQUILIBRE={famille:1,travail:1};
 var DAY_FULL=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
 var DAY_SHORT=["L","M","M","J","V","S","D"];
+// 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
+// la question « est-ce que j'ai bien la dernière version ? » — sans ça,
+// impossible de distinguer un bug d'un fichier pas rechargé.
+var APP_VERSION="11/08 17:30";
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
 var SCALE_COLORS=["var(--ok)","var(--ok)","var(--ok-l)","#CDDC39","var(--amber)","var(--amber)","var(--warn)","#FF5722","var(--brand)","var(--bad)"];
@@ -4114,6 +4118,25 @@ function viewCalendar(name,start){
   }else{
     h+='<div style="padding:0 14px;margin:0 0 14px"><button id="bday-edit" style="width:100%;padding:13px 0;border-radius:12px;border:2px dashed #F0B6B6;background:#FFF7F7;color:var(--brand);font-weight:800;font-size:13px">🎂 Ajouter mon anniversaire</button></div>';
   }
+
+  // 🗄️ ARCHIVAGE AUTOMATIQUE. Masquer à l'affichage ne suffisait pas : le
+  // challenge restait actif (on:true) et pouvait ressortir ailleurs. Une fois
+  // ses jours écoulés, on le désactive POUR DE BON, une seule fois, dans les
+  // données. Le badge éventuel a déjà été enregistré au moment du sans-faute.
+  (function(){
+    var ch0=chCfg(allData);
+    if(!ch0)return;
+    var E0=chEtat(ch0);
+    if(!E0.fini)return;
+    ch0.on=false;
+    ch0.archiveLe=isoLocal();
+    ch0.scoreFinal=E0.valides+"/"+ch0.jours;
+    try{saveDay(515,ch0);}catch(e){}
+    allData[515]=ch0;
+  })();
+
+  // Pied de page : version de l'application
+  h+='<div style="text-align:center;font-size:10px;color:var(--mute);opacity:.55;padding:14px 0 2px">v'+APP_VERSION+'</div>';
 
   // 🎯 CHALLENGE EN COURS
   (function(){

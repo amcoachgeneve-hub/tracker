@@ -745,12 +745,23 @@ var state={
   openMonth:0,
   filter:"all",
   showBilan:false,
-  coachAuthed:(function(){try{var t=localStorage.getItem("amcoach_coach_auth");return !!t&&(Date.now()-parseInt(t,10))<2592000000;}catch(e){return false;}})(),
+  coachAuthed:(function(){
+    // Échéance glissante : on vérifie, puis on repousse. Akli reste connecté
+    // tant qu'il ouvre l'appli au moins une fois par an.
+    try{
+      var t=localStorage.getItem("amcoach_coach_auth");
+      var ok=!!t&&(Date.now()-parseInt(t,10))<365*24*3600*1000;
+      if(ok)localStorage.setItem("amcoach_coach_auth",String(Date.now()));
+      return ok;
+    }catch(e){return false;}
+  })(),
   showForm:false,
   showGoalForm:false,
   coachDetail:null,
   coachKPI:false,      // écran commercial (pipeline, relances, KPI)
   rapFmt:"simple",     // format du rapport envoyé au client
+  blProspect:null,     // id du prospect dont on remplit le bilan (pas encore client)
+  blProfil:"",         // profil détecté pendant le bilan (signification/acceptation/sécurité)
   otForm:false,
   qgForm:false,
   otCountdown:false,
@@ -2939,7 +2950,7 @@ function render(){
 function renderView(){
   setTimeout(function(){try{applyTheme(getAllData());ancrerNav();}catch(e){}},0);
   var root=document.getElementById("root");
-  if(IS_COACH){root.innerHTML=state.coachAuthed?(state.coachKPI?viewCoachKPI():state.coachStats?viewCoachStats():state.coachCalc?viewCoachCalc():(state.coachDetail?(state.cdTab==="bilan"?viewCoachBilan():viewCoachDetail()):viewCoachDash())):viewCoachLogin();bindCoach();return;}
+  if(IS_COACH){root.innerHTML=state.coachAuthed?(state.blProspect?viewCoachBilan():state.coachKPI?viewCoachKPI():state.coachStats?viewCoachStats():state.coachCalc?viewCoachCalc():(state.coachDetail?(state.cdTab==="bilan"?viewCoachBilan():viewCoachDetail()):viewCoachDash())):viewCoachLogin();bindCoach();return;}
   if(!CLIENT){root.innerHTML=viewNoClient();return;}
   var name=lsGetStr("amcoach_name_"+CLIENT);
   var start=lsGetStr("amcoach_start_"+CLIENT);
@@ -4114,7 +4125,10 @@ function viewCalendar(name,start){
       '<div style="color:#fff;font-weight:900;font-size:17px;margin-top:4px">JOYEUX ANNIVERSAIRE '+esc(name).toUpperCase()+' !</div>'+
       '<div style="color:rgba(255,255,255,.9);font-size:12px;font-weight:700;margin-top:5px">Le plus beau cadeau : la version de toi que tu construis. 💪</div></div>';
   }else if(bd){
-    h+='<div style="text-align:right;padding:0 14px;margin:-8px 0 10px"><button id="bday-edit" style="font-size:11px;color:#777">🎂 '+bd.split("-")[1]+'/'+bd.split("-")[0]+'</button></div>';
+    // Date déjà connue : on n'affiche plus rien sur l'accueil. Elle n'a
+    // d'utilité que le jour J (message ci-dessus) et pour le coach, qui la
+    // voit dans la fiche client. Une ligne permanente occupait de la place
+    // pour une information que le client connaît déjà par cœur.
   }else{
     h+='<div style="padding:0 14px;margin:0 0 14px"><button id="bday-edit" style="width:100%;padding:13px 0;border-radius:12px;border:2px dashed #F0B6B6;background:#FFF7F7;color:var(--brand);font-weight:800;font-size:13px">🎂 Ajouter mon anniversaire</button></div>';
   }
@@ -5806,7 +5820,35 @@ function bindContract(name,start){
 "use strict";
 
 // ═══════════ COACH LOGIN ═══════════
-var COACH_PASS="akli2024";
+// 🔐 Le mot de passe n'est plus écrit en clair : seule son EMPREINTE figure
+// ici. Une empreinte SHA-256 ne se lit pas à l'envers — ouvrir le code source
+// ne donne plus le mot de passe. C'est une porte fermée, pas un coffre-fort :
+// la vraie protection des données se joue côté serveur (voir la note plus bas
+// sur Supabase), mais ça supprime le cas le plus bête, celui du curieux qui
+// affiche la source et entre directement.
+var COACH_PASS_HASH="96b4cc1ecb60f2f96a13a664e1aeb8ce680735b4220d48893253ece320bcd6ec";
+var COACH_SEL="AMCoachGeneve-D90::";
+function coachHash(txt){
+  // Web Crypto est disponible partout depuis des années ; en son absence on
+  // refuse la connexion plutôt que de retomber sur une comparaison en clair.
+  try{
+    if(!window.crypto||!crypto.subtle)return Promise.resolve(null);
+    var d=new TextEncoder().encode(COACH_SEL+txt);
+    return crypto.subtle.digest("SHA-256",d).then(function(buf){
+      var b=new Uint8Array(buf),o="";
+      for(var i=0;i<b.length;i++)o+=("0"+b[i].toString(16)).slice(-2);
+      return o;
+    });
+  }catch(e){return Promise.resolve(null);}
+}
+// 🔓 SESSION PERMANENTE, à la demande d'Akli : l'appli doit rester ouverte.
+// L'échéance est glissante — chaque ouverture repousse la date d'un an — donc
+// tant qu'il utilise l'appli il ne ressaisit jamais rien. Le jeton ne survit
+// qu'à SON navigateur : sur un autre appareil, il faudra le mot de passe.
+var COACH_SESSION_MS=365*24*3600*1000;
+function coachSessionRenouveler(){
+  try{localStorage.setItem("amcoach_coach_auth",String(Date.now()));}catch(e){}
+}
 function viewCoachLogin(){
   return '<div class="dark-screen">'+
     '<div class="dark-brand"><div class="bar bar-r"></div><span>AM Coach</span><div class="bar bar-b"></div></div>'+
@@ -6543,6 +6585,213 @@ function coachPouls(){
   });
   return out;
 }
+// ═══════════════ 💸 MES DÉPENSES ═══════════════
+// Saisie manuelle, volontairement. Aucune banque ne donne d'accès à un compte
+// personnel sans agrément d'établissement financier — et les services qui
+// promettent le contraire réclament les identifiants bancaires, ce qu'il ne
+// faut jamais donner. Par ailleurs, noter une dépense est déjà la moitié du
+// travail : un import automatique fait défiler des chiffres qu'on ne regarde
+// plus. Deux tapes suffisent ici, comme pour le pipeline.
+var DEP_CATS=[
+  {k:"courses",  n:"Courses",     e:"🛒", c:"#5B8FC7"},
+  {k:"resto",    n:"Restaurant",  e:"🍽️", c:"#E0A03C"},
+  {k:"essence",  n:"Essence",     e:"⛽", c:"#7E6BB5"},
+  {k:"salle",    n:"Salle",       e:"🏋️", c:"#2FBF71"},
+  {k:"transport",n:"Transport",   e:"🚆", c:"#4AA3B8"},
+  {k:"materiel", n:"Matériel pro",e:"🎥", c:"#8E9AAF"},
+  {k:"maison",   n:"Maison",      e:"🏠", c:"#C77B5B"},
+  {k:"extras",   n:"Extras",      e:"✨", c:"#C75B4A"}
+];
+function depCat(k){for(var i=0;i<DEP_CATS.length;i++){if(DEP_CATS[i].k===k)return DEP_CATS[i];}return DEP_CATS[DEP_CATS.length-1];}
+function depLire(){var o=lsGet("amcoach_depenses",{});return (o&&typeof o==="object")?o:{};}
+function depEcrire(o){lsSet("amcoach_depenses",o);}
+// Les ABONNEMENTS sont à part : saisis UNE fois avec leur montant mensuel.
+// C'est là que l'argent part sans qu'on le voie — un prélèvement ne se
+// ressent pas, contrairement à un achat. Les compter à chaque mois
+// automatiquement est le seul moyen de les rendre visibles.
+function aboLire(){var l=lsGet("amcoach_abos",[]);return Array.isArray(l)?l:[];}
+function aboEcrire(l){lsSet("amcoach_abos",l);}
+function aboTotal(){var l=aboLire(),t=0;for(var i=0;i<l.length;i++){if(l[i].actif!==false)t+=(+l[i].montant||0);}return t;}
+
+function moisCle(d){d=d||new Date();return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2);}
+function moisNom(cle){
+  var p=cle.split("-");
+  var M=["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+  return M[(+p[1])-1]+" "+p[0];
+}
+function moisPrecedent(cle){
+  var p=cle.split("-"), d=new Date(+p[0],(+p[1])-1,1);
+  d.setMonth(d.getMonth()-1);
+  return moisCle(d);
+}
+function depAjouter(cat,montant,note){
+  var o=depLire(), m=moisCle();
+  if(!o[m])o[m]=[];
+  o[m].push({id:"d"+Date.now().toString(36),cat:cat,montant:+montant||0,note:note||"",d:isoLocal()});
+  depEcrire(o);
+}
+function depSupprimer(m,id){
+  var o=depLire();
+  if(!o[m])return;
+  o[m]=o[m].filter(function(x){return x.id!==id;});
+  depEcrire(o);
+}
+// Bilan d'un mois : par catégorie, avec les abonnements ajoutés d'office.
+function depMois(cle){
+  var o=depLire(), L=o[cle]||[], par={}, total=0;
+  for(var i=0;i<DEP_CATS.length;i++)par[DEP_CATS[i].k]=0;
+  for(var j=0;j<L.length;j++){par[L[j].cat]=(par[L[j].cat]||0)+(+L[j].montant||0);total+=(+L[j].montant||0);}
+  var abo=aboTotal();
+  return {liste:L, par:par, saisi:Math.round(total), abo:Math.round(abo), total:Math.round(total+abo)};
+}
+// Comparaison avec le mois précédent, catégorie par catégorie : c'est la
+// variation qui informe, pas le montant absolu.
+function depCompare(cle){
+  var A=depMois(cle), B=depMois(moisPrecedent(cle));
+  var lignes=[];
+  for(var i=0;i<DEP_CATS.length;i++){
+    var k=DEP_CATS[i].k, a=Math.round(A.par[k]||0), b=Math.round(B.par[k]||0);
+    if(!a&&!b)continue;
+    lignes.push({cat:DEP_CATS[i], now:a, prev:b, delta:a-b,
+                 pct:A.saisi?Math.round(a/A.saisi*100):0});
+  }
+  lignes.sort(function(x,y){return y.now-x.now;});
+  return {mois:A, prec:B, lignes:lignes, deltaTotal:A.total-B.total, precVide:!B.saisi};
+}
+// Conseils : uniquement ce qui est calculé depuis SES chiffres. Pas de
+// leçon générale sur l'épargne — un conseil qui ne s'appuie pas sur un
+// montant réel se lit comme un slogan et ne fait rien changer.
+function depConseils(cle,prixClient){
+  var C=depCompare(cle), out=[];
+  var abos=aboLire().filter(function(a){return a.actif!==false;});
+  // 1. Les abonnements, ramenés à ce qu'ils coûtent sur un an
+  if(C.mois.abo>0){
+    out.push({t:"Tes abonnements",
+      m:C.mois.abo+" CHF par mois, soit "+(C.mois.abo*12)+" CHF sur l'année. "+
+        (abos.length>1?"Passe-les en revue : lequel n'a pas servi ce mois-ci ?":"")});
+  }
+  // 2. La catégorie qui a le plus augmenté
+  var pire=null;
+  for(var i=0;i<C.lignes.length;i++){if(!pire||C.lignes[i].delta>pire.delta)pire=C.lignes[i];}
+  if(pire&&pire.delta>0&&!C.precVide){
+    out.push({t:pire.cat.n+" : +"+pire.delta+" CHF",
+      m:"C'est le poste qui a le plus augmenté par rapport au mois dernier ("+pire.prev+" → "+pire.now+" CHF)."});
+  }
+  // 3. Le poste le plus lourd
+  if(C.lignes.length&&C.lignes[0].now>0){
+    out.push({t:C.lignes[0].cat.n+" pèse le plus",
+      m:C.lignes[0].now+" CHF, soit "+C.lignes[0].pct+" % de ce que tu as saisi ce mois-ci."});
+  }
+  // 4. Le croisement avec le coaching : ce qui rend le chiffre concret
+  if(prixClient>0&&C.mois.total>0){
+    var mois=Math.round(C.mois.total/prixClient*10)/10;
+    out.push({t:"En clients",
+      m:"Ton mois représente "+mois+" client"+(mois>1?"s":"")+" à "+prixClient+" CHF. "+
+        (C.mois.abo>0?"Tes seuls abonnements coûtent "+(Math.round(C.mois.abo*12/prixClient*10)/10)+" client par an.":"")});
+  }
+  return out;
+}
+
+// ═══════════════ 💰 CHIFFRE D'AFFAIRES ═══════════════
+// Le CA se calcule depuis les prospects SIGNÉS : chacun porte son montant et
+// sa date de signature. Pas de saisie en double — l'argent découle du
+// pipeline, il ne se note pas à part.
+var CA_PRIX_DEFAUT=1200;   // sert quand un client signé n'a pas de montant saisi
+function caMoisCle(iso){return String(iso||"").slice(0,7);}
+function caNomMois(m){
+  var M=["janv.","févr.","mars","avr.","mai","juin","juil.","août","sept.","oct.","nov.","déc."];
+  return M[(+m)-1]||"";
+}
+// Tous les mois où il y a eu au moins une signature, du plus ancien au plus récent
+function caParMois(){
+  var L=pipeLire(), par={};
+  for(var i=0;i<L.length;i++){
+    var p=L[i];
+    if(p.etape!=="gagne")continue;
+    var cle=caMoisCle(p.signe||p.maj||p.cree);
+    if(!cle||cle.length<7)continue;
+    if(!par[cle])par[cle]={cle:cle,n:0,ca:0,clients:[]};
+    var m=(+p.montant>0)?+p.montant:CA_PRIX_DEFAUT;
+    par[cle].n++; par[cle].ca+=m; par[cle].clients.push(p);
+  }
+  var out=[];
+  for(var k in par)out.push(par[k]);
+  out.sort(function(a,b){return a.cle<b.cle?-1:1;});
+  return out;
+}
+// Comparaison ANNÉE SUR ANNÉE : le même mois, un an plus tôt. C'est la seule
+// comparaison honnête pour une activité saisonnière — comparer août à juillet
+// ne dit rien quand l'été est structurellement creux.
+function caAnneeSurAnnee(cle){
+  var L=caParMois(), map={};
+  for(var i=0;i<L.length;i++)map[L[i].cle]=L[i];
+  var p=cle.split("-");
+  var precCle=(+p[0]-1)+"-"+p[1];
+  var now=map[cle]?map[cle].ca:0, prev=map[precCle]?map[precCle].ca:null;
+  return {now:now, prev:prev, cle:precCle,
+          delta:(prev!=null)?now-prev:null,
+          pct:(prev>0)?Math.round((now-prev)/prev*100):null};
+}
+// MOIS CREUX : moyenne par mois de l'année, tous exercices confondus.
+// Un mois n'est déclaré creux que s'il a au moins 2 années d'historique OU
+// s'il est nettement sous la moyenne générale — sinon on prendrait un mois
+// simplement récent pour un mois faible.
+function caSaisonnalite(){
+  var L=caParMois();
+  if(!L.length)return null;
+  var parMois={}, total=0, nbMois=0;
+  for(var i=0;i<L.length;i++){
+    var m=L[i].cle.split("-")[1];
+    if(!parMois[m])parMois[m]={m:m,ca:0,annees:0};
+    parMois[m].ca+=L[i].ca; parMois[m].annees++;
+    total+=L[i].ca; nbMois++;
+  }
+  var moy=nbMois?total/nbMois:0;
+  var lignes=[];
+  for(var k in parMois){
+    var moyMois=parMois[k].ca/parMois[k].annees;
+    lignes.push({m:k, nom:caNomMois(k), moy:Math.round(moyMois), annees:parMois[k].annees,
+                 ecart:moy?Math.round((moyMois-moy)/moy*100):0});
+  }
+  lignes.sort(function(a,b){return a.m<b.m?-1:1;});
+  var creux=[], forts=[];
+  for(var j=0;j<lignes.length;j++){
+    if(lignes[j].ecart<=-25)creux.push(lignes[j]);
+    else if(lignes[j].ecart>=25)forts.push(lignes[j]);
+  }
+  return {lignes:lignes, moyenne:Math.round(moy), creux:creux, forts:forts,
+          fiable:nbMois>=6};   // en dessous, la saisonnalité ne veut rien dire
+}
+// Quel mois arrive, et faut-il s'en méfier ?
+function caMoisAVenir(){
+  var S=caSaisonnalite();
+  if(!S||!S.fiable)return null;
+  var d=new Date(); d.setMonth(d.getMonth()+1);
+  var m=("0"+(d.getMonth()+1)).slice(-2);
+  for(var i=0;i<S.creux.length;i++){
+    if(S.creux[i].m===m)return S.creux[i];
+  }
+  return null;
+}
+// 🎯 CALCULATEUR D'OBJECTIF INVERSÉ (Marvin) : combien de bilans faut-il
+// caler pour atteindre un CA visé, compte tenu de MON taux de signature réel.
+function caObjectif(cible){
+  var K=pipeKPI(), L=pipeLire();
+  var somme=0,n=0;
+  for(var i=0;i<L.length;i++){
+    if(L[i].etape==="gagne"){somme+=(+L[i].montant>0)?+L[i].montant:CA_PRIX_DEFAUT;n++;}
+  }
+  var panier=n?Math.round(somme/n):CA_PRIX_DEFAUT;
+  var taux=(K.taux!=null&&K.taux>0)?K.taux:null;
+  var clients=panier?Math.ceil(cible/panier):null;
+  var bilans=(clients!=null&&taux)?Math.ceil(clients/(taux/100)):null;
+  return {panier:panier, taux:taux, clients:clients, bilans:bilans,
+          // Le nombre de contacts est un ordre de grandeur : il suppose que
+          // le taux de passage contact → bilan reste celui du pipeline actuel.
+          contacts:(bilans!=null&&K.total&&K.atteint&&K.atteint.bilan)?
+                   Math.ceil(bilans*(K.total/Math.max(1,K.atteint.bilan))):null};
+}
+
 // ═══════════════ 📈 KPI COMMERCIAL — PIPELINE ═══════════════
 // Un prospect ne se perd presque jamais en rendez-vous. Il se perd ENTRE deux
 // étapes, parce que personne ne savait qu'il était bloqué. Ce module sert à
@@ -7133,6 +7382,8 @@ function viewCoachKPI(){
         '<div style="font-size:10.5px;color:var(--mute);margin-top:3px">'+
         (PE.actif?'Sans mouvement depuis '+PE.jours+' j · '+PE.relancesFaites+'/3 relances':'Depuis '+PE.jours+' j')+'</div></div>'+
         '<button class="pipe-edit" data-id="'+pr.id+'" style="flex:0 0 auto;padding:6px 9px;border-radius:9px;border:1px solid var(--line);background:#fff;font-size:11px;font-weight:800;color:var(--mute)">✏️</button>'+
+        // 📋 Le bilan se fait AVANT la signature : c'est lui qui vend.
+        '<button class="pipe-bilan" data-id="'+pr.id+'" style="flex:0 0 auto;padding:6px 9px;border-radius:9px;border:1px solid var(--brand);background:#fff;font-size:11px;font-weight:800;color:var(--brand)">📋'+((pr.bilans&&pr.bilans.length)?' '+pr.bilans.length:'')+'</button>'+
         '</div>'+
         etapesHtml+
         (act&&!estClient&&!estPerdu?'<div style="font-size:11px;color:var(--brand);font-weight:700;margin:6px 0 8px">→ '+act+'</div>':'')+
@@ -7191,6 +7442,179 @@ function viewCoachKPI(){
   }
 
   // ── Les repères, toujours sous la main ──────────────────────
+  // ── 💰 MON CHIFFRE D'AFFAIRES ───────────────────────────────
+  (function(){
+    var M=caParMois();
+    if(!M.length)return;
+    var cleAuj=moisCle(), AA=caAnneeSurAnnee(cleAuj), S=caSaisonnalite(), AV=caMoisAVenir();
+    var moisAuj=null;
+    for(var z=0;z<M.length;z++){if(M[z].cle===cleAuj)moisAuj=M[z];}
+    var caAuj=moisAuj?moisAuj.ca:0, nAuj=moisAuj?moisAuj.n:0;
+    var totalAn=0, cleAn=cleAuj.slice(0,4);
+    for(var y=0;y<M.length;y++){if(M[y].cle.slice(0,4)===cleAn)totalAn+=M[y].ca;}
+
+    h+=cdSecOpen("kpi-ca","💰","Mon chiffre d'affaires",moisNom(cleAuj)+" · "+caAuj+" CHF")+
+      '<div style="display:flex;gap:8px;margin-bottom:12px">'+
+      '<div style="flex:1;text-align:center;padding:12px 6px;border-radius:12px;background:var(--soft)">'+
+      '<div style="font-size:20px;font-weight:900">'+caAuj+'</div>'+
+      '<div style="font-size:10px;font-weight:700;color:var(--mute);margin-top:2px">CHF ce mois<br>('+nAuj+' signé'+(nAuj>1?'s':'')+')</div></div>'+
+      '<div style="flex:1;text-align:center;padding:12px 6px;border-radius:12px;background:var(--soft)">'+
+      '<div style="font-size:20px;font-weight:900">'+totalAn+'</div>'+
+      '<div style="font-size:10px;font-weight:700;color:var(--mute);margin-top:2px">CHF en '+cleAn+'</div></div>'+
+      (AA.prev!=null?'<div style="flex:1;text-align:center;padding:12px 6px;border-radius:12px;background:var(--soft)">'+
+      '<div style="font-size:20px;font-weight:900;color:'+(AA.delta>=0?'var(--ok-d)':'var(--bad)')+'">'+(AA.delta>0?'+':'')+(AA.pct!=null?AA.pct+'%':AA.delta)+'</div>'+
+      '<div style="font-size:10px;font-weight:700;color:var(--mute);margin-top:2px">vs '+caNomMois(cleAuj.split("-")[1])+' '+(+cleAn-1)+'</div></div>':'')+
+      '</div>';
+
+    // L'histogramme des 12 derniers mois
+    var derniers=M.slice(-12), maxCA=1;
+    for(var d1=0;d1<derniers.length;d1++)maxCA=Math.max(maxCA,derniers[d1].ca);
+    h+='<div style="display:flex;align-items:flex-end;gap:4px;height:70px;margin-bottom:4px">';
+    for(var d2=0;d2<derniers.length;d2++){
+      var D=derniers[d2], hh=Math.max(4,Math.round(D.ca/maxCA*58)), auj=(D.cle===cleAuj);
+      h+='<div style="flex:1;text-align:center">'+
+        '<div style="height:58px;display:flex;align-items:flex-end"><div style="width:100%;height:'+hh+'px;border-radius:4px 4px 0 0;background:'+(auj?'var(--brand)':'var(--brand2)')+';opacity:'+(auj?'1':'.65')+'"></div></div>'+
+        '<div style="font-size:8.5px;font-weight:'+(auj?'900':'700')+';color:var(--mute);margin-top:3px">'+caNomMois(D.cle.split("-")[1])+'</div></div>';
+    }
+    h+='</div>';
+
+    // Saisonnalité : les mois creux, et l'alerte sur le mois qui arrive
+    if(S&&S.fiable){
+      if(AV){
+        h+='<div style="background:rgba(255,152,0,.13);border:1px solid rgba(255,152,0,.35);border-radius:12px;padding:11px 13px;margin-top:10px">'+
+          '<div style="font-size:12px;font-weight:900;color:var(--warn-d)">⚠️ '+AV.nom+' arrive</div>'+
+          '<div style="font-size:11.5px;color:var(--ink2);line-height:1.5;margin-top:3px">Historiquement '+Math.abs(AV.ecart)+' % sous ta moyenne ('+AV.moy+' CHF). '+
+          'Le seul moment où ça se rattrape, c\'est maintenant : les bilans calés ce mois-ci signent le mois prochain.</div></div>';
+      }
+      if(S.creux.length||S.forts.length){
+        h+='<div style="border-top:1px solid var(--line);margin-top:11px;padding-top:10px">'+
+          '<div style="font-size:12px;font-weight:900;margin-bottom:6px">📅 Tes saisons</div>';
+        if(S.forts.length){
+          var nf=[];for(var f=0;f<S.forts.length;f++)nf.push(S.forts[f].nom);
+          h+='<div style="font-size:11.5px;color:var(--ink2);line-height:1.5;margin-bottom:4px">Tes bons mois : <strong style="color:var(--ok-d)">'+nf.join(", ")+'</strong></div>';
+        }
+        if(S.creux.length){
+          var nc=[];for(var c2=0;c2<S.creux.length;c2++)nc.push(S.creux[c2].nom);
+          h+='<div style="font-size:11.5px;color:var(--ink2);line-height:1.5">Tes mois creux : <strong style="color:var(--warn-d)">'+nc.join(", ")+'</strong> — à préparer un mois à l\'avance.</div>';
+        }
+        h+='</div>';
+      }
+    }else{
+      h+='<div style="font-size:11px;color:var(--mute);line-height:1.5;margin-top:8px;font-style:italic">Il faut au moins 6 mois de signatures pour repérer tes saisons. Continue de renseigner le montant de chaque client.</div>';
+    }
+
+    // 🎯 Objectif inversé : combien de bilans pour atteindre un CA
+    (function(){
+      var O=caObjectif(10000);
+      if(!O.taux){
+        h+='<div style="border-top:1px solid var(--line);margin-top:11px;padding-top:10px;font-size:11px;color:var(--mute);line-height:1.5;font-style:italic">Ton objectif en nombre de bilans s\'affichera dès que tu auras quelques dossiers tranchés (gagnés ou perdus).</div>';
+        return;
+      }
+      h+='<div style="border-top:1px solid var(--line);margin-top:11px;padding-top:10px">'+
+        '<div style="font-size:12px;font-weight:900;margin-bottom:3px">🎯 Pour 10 000 CHF</div>'+
+        '<div style="font-size:11.5px;color:var(--ink2);line-height:1.6">'+
+        'Panier moyen <strong>'+O.panier+' CHF</strong> · taux de signature <strong>'+O.taux+' %</strong><br>'+
+        '→ il te faut <strong>'+O.clients+' client'+(O.clients>1?'s':'')+'</strong>, donc <strong style="color:var(--brand)">'+O.bilans+' bilan'+(O.bilans>1?'s':'')+'</strong> à caler.'+
+        (O.contacts?'<br>Soit environ <strong>'+O.contacts+' contacts</strong> à engager, au rythme actuel.':'')+
+        '</div></div>';
+    })();
+
+    // Détail des signatures du mois
+    if(moisAuj&&moisAuj.clients.length){
+      h+='<div style="border-top:1px solid var(--line);margin-top:11px;padding-top:10px">'+
+        '<div style="font-size:12px;font-weight:900;margin-bottom:6px">Signatures de '+moisNom(cleAuj)+'</div>';
+      for(var s2=0;s2<moisAuj.clients.length;s2++){
+        var CL=moisAuj.clients[s2];
+        h+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12px">'+
+          '<span style="flex:1;font-weight:800">'+esc(pipeNomComplet(CL))+'</span>'+
+          '<span style="font-weight:900">'+((+CL.montant>0)?(+CL.montant):CA_PRIX_DEFAUT)+' CHF</span>'+
+          ((+CL.montant>0)?'':'<span style="font-size:10px;color:var(--mute)">estimé</span>')+'</div>';
+      }
+      h+='</div>';
+    }
+    h+=cdSecClose();
+  })();
+
+  // ── 💸 MES DÉPENSES ─────────────────────────────────────────
+  (function(){
+    var cle=moisCle(), C=depCompare(cle), CO=depConseils(cle,1200);
+    h+=cdSecOpen("kpi-dep","💸","Mes dépenses",moisNom(cle)+" · "+C.mois.total+" CHF")+
+      '<div style="display:flex;gap:8px;margin-bottom:11px">'+
+      '<div style="flex:1;text-align:center;padding:11px 6px;border-radius:12px;background:var(--soft)">'+
+      '<div style="font-size:19px;font-weight:900">'+C.mois.total+'</div>'+
+      '<div style="font-size:10px;font-weight:700;color:var(--mute);margin-top:2px">CHF ce mois</div></div>'+
+      '<div style="flex:1;text-align:center;padding:11px 6px;border-radius:12px;background:var(--soft)">'+
+      '<div style="font-size:19px;font-weight:900;color:'+(C.mois.abo?'var(--warn-d)':'var(--ink)')+'">'+C.mois.abo+'</div>'+
+      '<div style="font-size:10px;font-weight:700;color:var(--mute);margin-top:2px">CHF d\'abonnements</div></div>'+
+      (!C.precVide?'<div style="flex:1;text-align:center;padding:11px 6px;border-radius:12px;background:var(--soft)">'+
+      '<div style="font-size:19px;font-weight:900;color:'+(C.deltaTotal>0?'var(--bad)':'var(--ok-d)')+'">'+(C.deltaTotal>0?'+':'')+C.deltaTotal+'</div>'+
+      '<div style="font-size:10px;font-weight:700;color:var(--mute);margin-top:2px">vs mois dernier</div></div>':'')+
+      '</div>'+
+      '<button id="dep-add" style="width:100%;padding:13px 0;border-radius:12px;border:0;background:var(--brand);color:#fff;font-weight:900;font-size:13.5px;margin-bottom:10px">+ Noter une dépense</button>';
+
+    // Répartition, la plus lourde en premier
+    if(C.lignes.length){
+      for(var i=0;i<C.lignes.length;i++){
+        var L=C.lignes[i];
+        h+='<div style="padding:8px 0;border-top:1px solid var(--line)">'+
+          '<div style="display:flex;align-items:center;gap:8px;font-size:12.5px">'+
+          '<span style="font-size:15px">'+L.cat.e+'</span>'+
+          '<span style="flex:1;font-weight:800">'+L.cat.n+'</span>'+
+          '<span style="font-weight:900">'+L.now+' CHF</span>'+
+          (!C.precVide&&L.delta!==0?'<span style="font-size:11px;font-weight:800;min-width:46px;text-align:right;color:'+(L.delta>0?'var(--bad)':'var(--ok-d)')+'">'+(L.delta>0?'+':'')+L.delta+'</span>':'<span style="min-width:46px"></span>')+
+          '</div>'+
+          '<div style="height:5px;border-radius:100px;background:var(--soft2);margin-top:5px;overflow:hidden">'+
+          '<div style="height:100%;width:'+Math.max(L.pct,2)+'%;background:'+L.cat.c+';border-radius:100px"></div></div></div>';
+      }
+    }else{
+      h+='<div style="font-size:11.5px;color:var(--mute);font-style:italic;padding:6px 0">Aucune dépense saisie ce mois-ci.</div>';
+    }
+
+    // Abonnements : la liste, et le total annuel qui fait réfléchir
+    var abos=aboLire();
+    h+='<div style="border-top:1px solid var(--line);margin-top:11px;padding-top:11px">'+
+      '<div style="display:flex;align-items:baseline;gap:7px;margin-bottom:7px">'+
+      '<span style="flex:1;font-size:12px;font-weight:900">🔁 Mes abonnements</span>'+
+      '<span style="font-size:11px;color:var(--mute);font-weight:700">'+aboTotal()+' CHF/mois · '+(aboTotal()*12)+' CHF/an</span></div>';
+    for(var a=0;a<abos.length;a++){
+      var A=abos[a], off=(A.actif===false);
+      h+='<div style="display:flex;align-items:center;gap:8px;padding:6px 0;'+(off?'opacity:.45':'')+'">'+
+        '<span style="flex:1;font-size:12.5px;font-weight:'+(off?'600':'800')+'">'+esc(A.nom)+(off?' <span style="font-size:10px;color:var(--mute)">résilié</span>':'')+'</span>'+
+        '<span style="font-size:12.5px;font-weight:900">'+(+A.montant||0)+' CHF</span>'+
+        '<button class="abo-off" data-i="'+a+'" style="padding:5px 9px;border-radius:8px;border:1px solid var(--line);background:#fff;font-size:10.5px;font-weight:800;color:var(--mute)">'+(off?'Réactiver':'Résilié')+'</button>'+
+        '<button class="abo-del" data-i="'+a+'" style="padding:5px 8px;border-radius:8px;border:1px solid var(--line);background:#fff;font-size:10.5px;color:var(--mute)">✕</button></div>';
+    }
+    h+='<button id="abo-add" style="width:100%;margin-top:7px;padding:10px 0;border-radius:11px;border:1.5px dashed var(--line);background:#fff;font-size:12px;font-weight:800;color:var(--mute)">+ Ajouter un abonnement</button></div>';
+
+    // Ce que les chiffres disent — jamais de conseil générique
+    if(CO.length){
+      h+='<div style="border-top:1px solid var(--line);margin-top:11px;padding-top:11px">'+
+        '<div style="font-size:12px;font-weight:900;margin-bottom:7px">🔎 Ce que ça dit</div>';
+      for(var c=0;c<CO.length;c++){
+        h+='<div style="background:var(--soft);border-radius:11px;padding:10px 12px;margin-bottom:6px">'+
+          '<div style="font-size:12px;font-weight:900">'+CO[c].t+'</div>'+
+          '<div style="font-size:11.5px;color:var(--ink2);line-height:1.5;margin-top:2px">'+CO[c].m+'</div></div>';
+      }
+      h+='</div>';
+    }
+
+    // Le détail du mois, pour pouvoir corriger une saisie
+    if(C.mois.liste.length){
+      h+='<div style="border-top:1px solid var(--line);margin-top:11px;padding-top:11px">'+
+        '<div style="font-size:12px;font-weight:900;margin-bottom:6px">Détail du mois</div>';
+      for(var d=C.mois.liste.length-1;d>=0;d--){
+        var D=C.mois.liste[d], CA=depCat(D.cat);
+        h+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:11.5px">'+
+          '<span style="font-size:14px">'+CA.e+'</span>'+
+          '<span style="flex:1;min-width:0;color:var(--ink2);font-weight:700">'+(D.note?esc(D.note):CA.n)+'</span>'+
+          '<span style="font-weight:900">'+(+D.montant||0)+'</span>'+
+          '<button class="dep-del" data-m="'+cle+'" data-id="'+D.id+'" style="padding:3px 7px;border-radius:7px;border:1px solid var(--line);background:#fff;font-size:10px;color:var(--mute)">✕</button></div>';
+      }
+      h+='</div>';
+    }
+    h+=cdSecClose();
+  })();
+
   h+=cdSecOpen("kpi-sla","⏱️","Mon SLA","Les délais que je m'impose")+
     '<div style="font-size:11.5px;color:var(--ink2);line-height:1.7">'+
     '<div><strong>Réponse à un message</strong> — moins d\'1 h</div>'+
@@ -7264,6 +7688,73 @@ function viewCoachDash(){
       if(!P[k].length)return;
       resume+='<span style="font-size:12.5px;font-weight:800;color:'+COUL[k].c+'">'+COUL[k].p+' '+P[k].length+'</span>';
     });
+  // ── 🆘 ALERTES HUMAINES : moral en berne, risque de décrochage ──
+  // Ces deux signaux se lisent AVANT la liste des clients : ce sont des
+  // appels à passer aujourd'hui, pas des statistiques à consulter.
+  (function(){
+    var cl=lsGet("amcoach_clients",[]), moral=[], churn=[];
+    for(var i=0;i<cl.length;i++){
+      var c=cl[i], dat=lsGet("amcoach_"+c.slug,{});
+      var st=c.start_date||isoLocal();
+      var t90=getToday90(st);
+      if(t90<0)continue;
+      // MORAL : deux jours de suite sous « moyen ». MENTAL est stocké du
+      // meilleur (0) au pire (4) : « sous moyen » signifie donc index >= 3.
+      var bas=0, jours=[];
+      for(var j=Math.max(0,t90-1);j<=t90;j++){
+        var d=dat[j]||{};
+        if(d.mental!=null&&d.mental>=3){bas++;jours.push(MENTAL[d.mental][0]);}
+      }
+      if(bas>=2)moral.push({c:c,mots:jours});
+      // DÉCROCHAGE : on additionne des signaux faibles. Un seul ne veut rien
+      // dire ; trois ensemble annoncent un abandon dans la semaine.
+      var pts=0, causes=[];
+      var der=-1;
+      for(var k=t90;k>=0;k--){if(dat[k]&&Object.keys(dat[k]).length){der=k;break;}}
+      var silence=(der<0)?t90+1:(t90-der);
+      if(silence>=3){pts+=40;causes.push(silence+" j sans rien remplir");}
+      else if(silence>=2){pts+=20;causes.push("2 j de silence");}
+      var somOk=0,nutOk=0,vus=0;
+      for(var w=Math.max(0,t90-6);w<=t90;w++){
+        var dw=dat[w]||{}, hw=dw.habits||{};
+        if(Object.keys(dw).length)vus++;
+        if(hw.sommeil)somOk++;
+        if(hw.nutrition)nutOk++;
+      }
+      if(vus>=3){
+        if(somOk<=2){pts+=20;causes.push("sommeil "+somOk+"/7");}
+        if(nutOk<=2){pts+=20;causes.push("nutrition "+nutOk+"/7");}
+      }
+      if(bas>=2){pts+=20;causes.push("moral bas");}
+      if(pts>=60)churn.push({c:c,pts:pts,causes:causes});
+    }
+    if(moral.length||churn.length){
+      h+='<div class="card" style="padding:15px 16px;margin-bottom:14px;border-left:4px solid var(--bad)">'+
+        '<div style="font-weight:900;font-size:15px;margin-bottom:3px">🆘 À appeler aujourd\'hui</div>'+
+        '<div style="font-size:11px;color:var(--mute);line-height:1.45;margin-bottom:10px">Un message ne suffira pas ici. Un appel, oui.</div>';
+      for(var m=0;m<moral.length;m++){
+        var MM=moral[m];
+        h+='<div class="cd-open" data-detail="'+MM.c.slug+'" style="display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line);cursor:pointer">'+
+          '<span style="font-size:18px">😔</span>'+
+          '<div style="flex:1;min-width:0"><div style="font-weight:800;font-size:13.5px">'+esc(MM.c.name||MM.c.slug)+'</div>'+
+          '<div style="font-size:11px;color:var(--bad);font-weight:700">Moral bas 2 jours de suite ('+MM.mots.join(", ")+')</div></div>'+
+          '<span style="color:var(--mute);font-size:18px">›</span></div>';
+      }
+      for(var n=0;n<churn.length;n++){
+        var CH=churn[n];
+        var dejaMoral=false;
+        for(var q=0;q<moral.length;q++){if(moral[q].c.slug===CH.c.slug)dejaMoral=true;}
+        if(dejaMoral)continue;
+        h+='<div class="cd-open" data-detail="'+CH.c.slug+'" style="display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line);cursor:pointer">'+
+          '<span style="font-size:18px">⚠️</span>'+
+          '<div style="flex:1;min-width:0"><div style="font-weight:800;font-size:13.5px">'+esc(CH.c.name||CH.c.slug)+'</div>'+
+          '<div style="font-size:11px;color:var(--warn-d);font-weight:700">Risque de décrochage — '+CH.causes.join(" · ")+'</div></div>'+
+          '<span style="color:var(--mute);font-size:18px">›</span></div>';
+      }
+      h+='</div>';
+    }
+  })();
+
     h+='<div class="card" style="padding:16px 17px;margin-bottom:16px">'+
       '<div style="display:flex;align-items:baseline;gap:10px;margin-bottom:6px">'+
       '<span style="font-weight:900;font-size:16px;flex:1">🚦 Mes clients</span>'+
@@ -7843,7 +8334,32 @@ function coachSaveSlot(slug,idx,data){
 var BILAN_MESURES=[["brasD","Bras droit",1],["brasG","Bras gauche",1],["poitrine","Poitrine",0],["nombril","Nombril",0],["ventre","Ventre",1],["fessiers","Fessiers/Hanches",0],["jambeD","Jambe droite",1],["jambeG","Jambe gauche",1],["molletD","Mollet droit",1],["molletG","Mollet gauche",1]];
 // Le barème n'est pas une note : ce sont des questions ouvertes.
 var BILAN_SCORES=[["puissance","Puissance personnelle — action ou excuse ?"],["vitalite","Vitalité — énergie physique ou épuisement ?"],["temps","Le temps — maîtrise ou gaspillage ?"],["emotions","Gestion émotionnelle — conséquences mental/alimentation, fringales ?"]];
-var BILAN_CONTEXTE=[["pourquoi","1. Raison — POURQUOI c'est important ?","area"],["ressenti","Comment tu te sentirais avec cet objectif réussi ? Et si tu l'as, quel est l'objectif suivant ?","area"],["freins","2. Qu'est-ce qui pourrait t'empêcher de faire ce challenge et d'atteindre ton objectif ? (finances, entourage, environnement...)","area"],["prof","3. Profession et stress ?","text"],["horaires","4. Horaires de travail ?","text"],["fatphy","5. Fatigue physique de 1 à 10 — si en dessous de 6, pourquoi ?","text"],["fatmen","6. Fatigue mentale de 1 à 10 — si en dessous de 6, pourquoi ?","text"]];
+// 🧭 PROFILS (Chase Hughes) — trois moteurs, trois peurs. La détection se
+// fait sur UNE seule question ouverte : ce que la personne met en avant
+// spontanément trahit son besoin dominant. Le coach coche ce qu'il entend,
+// l'appli lui rend le ton à tenir. Aucun questionnaire en plus.
+var BILAN_PROFILS=[
+  {k:"signification", n:"Signification", e:"🎯",
+   ind:"Parle de LUI, de performance, de niveau, de se démarquer. « Je veux le meilleur », « passer un cap ».",
+   peur:"Se sentir insignifiant, stagner, être un client parmi d'autres.",
+   ton:"Direct, challengeant, orienté résultat.",
+   dire:"« On vise l'excellence et on construit un programme fait pour toi. »",
+   eviter:"Le mettre dans un groupe ou lui vendre du standard."},
+  {k:"acceptation", n:"Acceptation", e:"🤝",
+   ind:"Parle du REGARD DES AUTRES, doute de lui. « Est-ce que d'autres y arrivent ? », « j'ai peur de me tromper ».",
+   peur:"Le rejet, le ridicule, l'échec visible.",
+   ton:"Chaleureux, rassurant, jamais de défi frontal.",
+   dire:"« Tu n'es pas seul. Beaucoup sont passés par là, et je t'accompagne pas à pas. »",
+   eviter:"Le challenger ou le mettre en compétition — il se braque."},
+  {k:"securite", n:"Sécurité", e:"🛡️",
+   ind:"Pose des questions TECHNIQUES, veut le détail, les étapes, les risques.",
+   peur:"L'imprévu, la perte de contrôle, la décision impulsive.",
+   ton:"Structuré, méthodique, chiffré.",
+   dire:"« Voici la méthode exacte, étape par étape, avec les points de contrôle. »",
+   eviter:"Presser la décision ou rester vague sur le déroulé."}
+];
+function bilanProfil(k){for(var i=0;i<BILAN_PROFILS.length;i++){if(BILAN_PROFILS[i].k===k)return BILAN_PROFILS[i];}return null;}
+var BILAN_CONTEXTE=[["compte","0. Qu'est-ce qui compte le PLUS pour toi dans ce projet ? (laisse-le parler, n'oriente pas)","area"],["pourquoi","1. Raison — POURQUOI c'est important ?","area"],["ressenti","Comment tu te sentirais avec cet objectif réussi ? Et si tu l'as, quel est l'objectif suivant ?","area"],["freins","2. Qu'est-ce qui pourrait t'empêcher de faire ce challenge et d'atteindre ton objectif ? (finances, entourage, environnement...)","area"],["prof","3. Profession et stress ?","text"],["horaires","4. Horaires de travail ?","text"],["fatphy","5. Fatigue physique de 1 à 10 — si en dessous de 6, pourquoi ?","text"],["fatmen","6. Fatigue mentale de 1 à 10 — si en dessous de 6, pourquoi ?","text"]];
 var BILAN_SEMAINE=["semaine","Bilan semaine — lundi à dimanche","area"];
 var BILAN_HAB=[["h1","1° À quelle heure vous levez-vous ?"],["h2","2° Faites-vous un petit déjeuner ?"],["h3","3° De quoi est composé ce petit déjeuner ?"],["h4","4° Vous sentez-vous fatigué dans la matinée ?"],["h5","5° Mangez-vous en matinée ?"],["h6","6° À quelle heure déjeunez-vous ?"],["h7","7° De quoi est composé votre déjeuner ?"],["h8","8° Êtes-vous fatigué dans l'après-midi ?"],["h9","9° Avez-vous faim dans l'après-midi ?"],["h10","10° Faites-vous un goûter ?"],["h11","11° À quelle heure mangez-vous le soir ?"],["h12","12° Que mangez-vous le soir ?"],["h13","13° Vous couchez-vous rapidement après manger ?"],["h14","14° Remangez-vous avant de dormir ?"],["h15","15° Vivez-vous en couple / avec des enfants ?"],["h16","16° Mangez-vous avec ces personnes ?"],["h17","17° Est-ce vous qui préparez votre repas ?"],["h18","18° Sortez-vous souvent en soirée ?"],["h19","19° Buvez-vous de l'alcool ?"],["h20","20° Buvez-vous des sodas ?"],["h21","21° Combien de litres d'eau buvez-vous ?"],["h22","22° Buvez-vous du café ? Combien par jour ?"],["h23","23° Fumez-vous (cigarettes) ? Combien ?"],["h24","24° Combien de temps par jour sur les réseaux sociaux ?"]];
 function bilanQ(id,label,type,val){
@@ -7896,10 +8412,23 @@ function blDraftRestaurer(){
   return n>0;
 }
 function viewCoachBilan(){
-  var slug=state.coachDetail;
-  var clients=lsGet("amcoach_clients",[]),cName=slug;
-  for(var i=0;i<clients.length;i++){if(clients[i].slug===slug){cName=clients[i].name;break;}}
-  var bl=(lsGet("amcoach_"+slug,{})[600]||{}).list||[];
+  // 📋 Un bilan peut porter sur un CLIENT (lien tracker existant) ou sur un
+  // PROSPECT (pas encore signé, donc aucun lien). C'est le bilan qui fait
+  // vendre : exiger un lien tracker avant de pouvoir le remplir revenait à
+  // demander au prospect de s'inscrire avant qu'on lui ait rien montré.
+  var estProspect=!!state.blProspect;
+  var slug=estProspect?state.blProspect:state.coachDetail;
+  var cName=slug, bl=[];
+  if(estProspect){
+    var pp=null,LP=pipeLire();
+    for(var z=0;z<LP.length;z++){if(LP[z].id===slug)pp=LP[z];}
+    cName=pp?pipeNomComplet(pp):"Prospect";
+    bl=(pp&&pp.bilans)||[];
+  }else{
+    var clients=lsGet("amcoach_clients",[]);
+    for(var i=0;i<clients.length;i++){if(clients[i].slug===slug){cName=clients[i].name;break;}}
+    bl=(lsGet("amcoach_"+slug,{})[600]||{}).list||[];
+  }
   var h='<div class="app" style="max-width:480px">'+
     '<div class="hdr"><div style="display:flex;align-items:center;gap:12px">'+
     '<button id="bl-back" class="day-back">←</button>'+
@@ -7996,7 +8525,35 @@ function viewCoachBilan(){
     bilanInput("bl-obj1","OBJECTIF 1","","text",pv("obj1"))+bilanInput("bl-obj2","OBJECTIF 2","","text",pv("obj2"))+bilanInput("bl-obj3","OBJECTIF 3","","text",pv("obj3"))+
     '<div class="card-label">PROBLÈMES PHYSIQUES</div><textarea id="bl-pb" class="num-input" rows="2" style="margin-bottom:10px;resize:vertical"></textarea>';
   h+='<div style="font-weight:900;font-size:12px;color:var(--violet);margin:8px 0 8px">POURQUOI & CONTEXTE</div>';
-  for(var qc=0;qc<BILAN_CONTEXTE.length;qc++){h+=bilanQ("bl-q-"+BILAN_CONTEXTE[qc][0],BILAN_CONTEXTE[qc][1],BILAN_CONTEXTE[qc][2],__ed&&__ed.q?__ed.q[BILAN_CONTEXTE[qc][0]]:"");}
+  for(var qc=0;qc<BILAN_CONTEXTE.length;qc++){
+    h+=bilanQ("bl-q-"+BILAN_CONTEXTE[qc][0],BILAN_CONTEXTE[qc][1],BILAN_CONTEXTE[qc][2],__ed&&__ed.q?__ed.q[BILAN_CONTEXTE[qc][0]]:"");
+    // 🧭 Le profil se coche juste après la question 0, tant que la réponse
+    // est fraîche. Trois cases, et l'appli rend le ton à tenir pour la suite
+    // de l'entretien — c'est utile MAINTENANT, pas dans un rapport après coup.
+    if(BILAN_CONTEXTE[qc][0]==="compte"){
+      var pfSel=(__ed&&__ed.profil)||state.blProfil||"";
+      h+='<div style="background:var(--soft);border-radius:13px;padding:12px 13px;margin:-4px 0 14px">'+
+        '<div style="font-size:11px;font-weight:900;letter-spacing:.6px;text-transform:uppercase;color:var(--mute);margin-bottom:7px">Ce qu\'il met en avant</div>'+
+        '<div style="display:flex;gap:6px;flex-wrap:wrap">';
+      for(var pf=0;pf<BILAN_PROFILS.length;pf++){
+        var PF=BILAN_PROFILS[pf], on=(PF.k===pfSel);
+        h+='<button type="button" class="bl-profil" data-k="'+PF.k+'" style="flex:1 1 30%;padding:9px 5px;border-radius:11px;border:1.5px solid '+(on?"var(--brand)":"var(--line)")+';background:'+(on?"var(--brand)":"#fff")+';color:'+(on?"#fff":"var(--mute)")+';font-size:11.5px;font-weight:800">'+PF.e+' '+PF.n+'</button>';
+      }
+      h+='</div>';
+      if(pfSel){
+        var P2=bilanProfil(pfSel);
+        h+='<div style="margin-top:10px;font-size:11.5px;line-height:1.55;color:var(--ink2)">'+
+          '<div><strong>Sa peur :</strong> '+P2.peur+'</div>'+
+          '<div style="margin-top:4px"><strong>Ton ton :</strong> '+P2.ton+'</div>'+
+          '<div style="margin-top:4px;font-style:italic;color:var(--ink)">'+P2.dire+'</div>'+
+          '<div style="margin-top:4px;color:var(--bad)"><strong>À éviter :</strong> '+P2.eviter+'</div></div>';
+      }else{
+        h+='<div style="margin-top:8px;font-size:11px;color:var(--mute);line-height:1.5">'+
+          '🎯 il parle de lui et de performance · 🤝 il parle du regard des autres · 🛡️ il pose des questions techniques</div>';
+      }
+      h+='</div>';
+    }
+  }
   h+='<div style="font-weight:900;font-size:12px;color:var(--violet);margin:8px 0 8px">BARÈME AM TRANSFO</div>';
   for(var s3=0;s3<BILAN_SCORES.length;s3++){
     h+=bilanQ("bl-s-"+BILAN_SCORES[s3][0],(s3+1)+". "+BILAN_SCORES[s3][1],"area",__ed&&__ed.scores?__ed.scores[BILAN_SCORES[s3][0]]:"");
@@ -8385,7 +8942,20 @@ function bilanReport(slug,idx,mode){
 function bindCoach(){
   var cp=document.getElementById("coach-pass"), cg=document.getElementById("coach-go");
   if(cp&&cg){
-    function tryLogin(){if(cp.value===COACH_PASS){state.coachAuthed=true;try{localStorage.setItem("amcoach_coach_auth",String(Date.now()));}catch(e){}loadCoachDataFromCloud();render();}}
+    function tryLogin(){
+      var saisi=cp.value;
+      coachHash(saisi).then(function(hx){
+        if(hx&&hx===COACH_PASS_HASH){
+          state.coachAuthed=true;
+          coachSessionRenouveler();
+          render();
+        }else{
+          cp.value="";
+          cp.style.borderColor="var(--bad)";
+          feedback(hx?"Mot de passe incorrect":"Navigateur trop ancien pour se connecter","err");
+        }
+      });
+    }
     cg.addEventListener("click",tryLogin);
     cp.addEventListener("keydown",function(e){if(e.key==="Enter")tryLogin();});
     return;
@@ -8506,6 +9076,18 @@ function bindCoach(){
         try{localStorage.removeItem("amcoach_"+slug);}catch(e){}
         sbFetch("tracking?client_slug=eq."+encodeURIComponent(slug),{method:"DELETE"}).catch(function(){});
       }
+      // 📋 Si ce client vient d'un prospect qui avait un bilan, on l'emporte :
+      // le travail fait avant la signature ne doit pas rester orphelin dans
+      // le pipeline. Le bilan devient l'analyse n°1 de sa fiche client.
+      var __blHerite=null;
+      if(state.prefillNom){
+        var __LP=pipeLire();
+        for(var __z=0;__z<__LP.length;__z++){
+          if(__LP[__z].etape==="gagne"&&(__LP[__z].bilans||[]).length&&pipeNomComplet(__LP[__z])===state.prefillNom){
+            __blHerite=__LP[__z].bilans.slice();
+          }
+        }
+      }
       state.prefillNom=null;
       var clients=lsGet("amcoach_clients",[]);
       var startDate=document.getElementById("nc-date").value;
@@ -8520,6 +9102,14 @@ function bindCoach(){
         var accN={end:endDate,off:false};
         var allN=lsGet("amcoach_"+slug,{});allN[504]=accN;lsSet("amcoach_"+slug,allN);
         sbFetch("tracking?on_conflict=client_slug,day_index",{method:"POST",prefer:"resolution=merge-duplicates",body:{client_slug:slug,day_index:504,data:accN}}).catch(function(){});
+      }
+      // Le bilan fait avant la signature devient l'analyse n°1 du client
+      if(__blHerite&&__blHerite.length){
+        var allB=lsGet("amcoach_"+slug,{});
+        allB[600]={list:__blHerite};
+        lsSet("amcoach_"+slug,allB);
+        try{coachSaveSlot(slug,600,{list:__blHerite});}catch(e){}
+        feedback("📋 Bilan du prospect repris dans sa fiche","ok");
       }
       state.showForm=false;
       render();
@@ -8803,6 +9393,80 @@ function bindCoach(){
     });
   }
 
+  // ═══ 💸 DÉPENSES ═══
+  // Deux tapes : une catégorie, un montant. Le clavier numérique s'ouvre
+  // tout seul — sur téléphone, chaque champ en plus est une saisie en moins.
+  var depB=document.getElementById("dep-add");
+  if(depB)depB.addEventListener("click",function(){
+    var cat="courses";
+    var ov=document.createElement("div");
+    ov.style.cssText="position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center";
+    function dessiner(){
+      var puces='';
+      for(var i=0;i<DEP_CATS.length;i++){
+        var C=DEP_CATS[i], on=(C.k===cat);
+        puces+='<button type="button" class="dp-cat" data-k="'+C.k+'" style="padding:9px 13px;border-radius:100px;font-size:12.5px;font-weight:800;cursor:pointer;'+
+          'border:1.5px solid '+(on?solid("var(--brand)"):solid("var(--line)"))+';background:'+(on?solid("var(--brand)"):"#fff")+';color:'+(on?"#fff":solid("var(--mute)"))+'">'+C.e+' '+C.n+'</button>';
+      }
+      var mv=ov.querySelector("#dp-montant"), nv=ov.querySelector("#dp-note");
+      var m0=mv?mv.value:"", n0=nv?nv.value:"";
+      ov.innerHTML='<div style="background:'+solid("var(--card)")+';width:100%;max-width:430px;border-radius:22px 22px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));max-height:88vh;overflow-y:auto">'+
+        '<div style="font-weight:900;font-size:18px;color:'+solid("var(--ink)")+'">💸 Nouvelle dépense</div>'+
+        '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:13px">'+puces+'</div>'+
+        '<input id="dp-montant" type="number" inputmode="decimal" step="0.05" placeholder="Montant en CHF" value="'+esc(m0)+'" style="width:100%;margin-top:13px;padding:15px;border-radius:12px;border:2px solid '+solid("var(--line)")+';font-size:22px;font-weight:900;text-align:center"/>'+
+        '<input id="dp-note" placeholder="Note (facultatif)" value="'+esc(n0)+'" style="width:100%;margin-top:9px;padding:12px 15px;border-radius:12px;border:2px solid '+solid("var(--line)")+';font-size:14px;font-weight:700"/>'+
+        '<button id="dp-ok" style="width:100%;margin-top:13px;padding:14px 0;border-radius:13px;border:0;background:'+solid("var(--brand)")+';color:#fff;font-weight:900;font-size:14px">Enregistrer</button>'+
+        '<button id="dp-no" style="width:100%;margin-top:8px;padding:11px 0;border-radius:13px;border:1px solid '+solid("var(--line)")+';background:#fff;color:'+solid("var(--mute)")+';font-weight:800;font-size:13px">Annuler</button></div>';
+      var cs=ov.querySelectorAll(".dp-cat");
+      for(var c=0;c<cs.length;c++)cs[c].addEventListener("click",function(){cat=this.getAttribute("data-k");dessiner();});
+      ov.querySelector("#dp-ok").addEventListener("click",function(){
+        var v=parseFloat(ov.querySelector("#dp-montant").value);
+        if(!v||v<=0){feedback("Indique un montant","err");return;}
+        depAjouter(cat,v,ov.querySelector("#dp-note").value.trim());
+        fermer(); render(); feedback("💸 "+Math.round(v)+" CHF · "+depCat(cat).n,"ok");
+      });
+      ov.querySelector("#dp-no").addEventListener("click",fermer);
+    }
+    function fermer(){if(ov.parentNode)document.body.removeChild(ov);}
+    ov.addEventListener("click",function(e){if(e.target===ov)fermer();});
+    document.body.appendChild(ov);
+    dessiner();
+    setTimeout(function(){try{ov.querySelector("#dp-montant").focus();}catch(e){}},140);
+  });
+
+  var depD=document.querySelectorAll(".dep-del");
+  for(var dd=0;dd<depD.length;dd++)depD[dd].addEventListener("click",function(){
+    depSupprimer(this.getAttribute("data-m"),this.getAttribute("data-id"));
+    render(); feedback("Dépense retirée","undo");
+  });
+
+  // Abonnements : saisis une fois, comptés tous les mois
+  var aboB=document.getElementById("abo-add");
+  if(aboB)aboB.addEventListener("click",function(){
+    var nom=prompt("Nom de l'abonnement (Netflix, Spotify, assurance...) :","");
+    if(!nom||!nom.trim())return;
+    var m=parseFloat(prompt("Montant par mois, en CHF :",""));
+    if(!m||m<=0){feedback("Montant invalide","err");return;}
+    var L=aboLire(); L.push({nom:nom.trim(),montant:m,actif:true,depuis:isoLocal()});
+    aboEcrire(L); render(); feedback("🔁 "+nom.trim()+" ajouté","ok");
+  });
+  // « Résilié » plutôt que supprimé : l'abonnement sort du total mais reste
+  // visible, pour se souvenir de ce qu'on a déjà coupé.
+  var aboO=document.querySelectorAll(".abo-off");
+  for(var ao=0;ao<aboO.length;ao++)aboO[ao].addEventListener("click",function(){
+    var L=aboLire(), i=+this.getAttribute("data-i");
+    if(!L[i])return;
+    L[i].actif=(L[i].actif===false);
+    aboEcrire(L); render();
+    feedback(L[i].actif?"Réactivé":"Marqué résilié — "+(+L[i].montant||0)*12+" CHF/an économisés",L[i].actif?"ok":"win");
+  });
+  var aboD=document.querySelectorAll(".abo-del");
+  for(var ad=0;ad<aboD.length;ad++)aboD[ad].addEventListener("click",function(){
+    var L=aboLire(), i=+this.getAttribute("data-i");
+    if(!L[i]||!confirm("Retirer « "+L[i].nom+" » de la liste ?"))return;
+    L.splice(i,1); aboEcrire(L); render();
+  });
+
   // ═══ 📣 PROSPECTION QUOTIDIENNE ═══
   // Le « + » ouvre une feuille : on note CE QU'ON A LAISSÉ et À QUI.
   // Un compteur seul ne dit pas si la journée a servi à quelque chose.
@@ -8906,6 +9570,7 @@ function bindCoach(){
         '<input id="pp-nom" placeholder="Nom" value="'+esc(p.prenom?(p.nom||""):"")+'" style="flex:1;min-width:0;padding:13px 14px;border-radius:12px;border:2px solid '+solid("var(--line)")+';font-size:16px;font-weight:700"/></div>'+
         '<div style="display:flex;gap:8px;margin-top:8px">'+
         '<input id="pp-tel" type="tel" inputmode="tel" placeholder="Téléphone" value="'+esc(p.tel||"")+'" style="flex:1.6;min-width:0;padding:13px 14px;border-radius:12px;border:2px solid '+solid("var(--line)")+';font-size:15px;font-weight:700"/>'+
+        '<input id="pp-montant" inputmode="decimal" type="number" step="10" placeholder="Montant signé (CHF)" value="'+esc(p.montant||"")+'" style="width:100%;margin-top:8px;padding:13px 15px;border-radius:12px;border:2px solid '+solid("var(--line)")+';font-size:15px;font-weight:800"/>'+
         '<input id="pp-cp" inputmode="numeric" placeholder="Code postal" value="'+esc(p.cp||"")+'" style="flex:1;min-width:0;padding:13px 14px;border-radius:12px;border:2px solid '+solid("var(--line)")+';font-size:15px;font-weight:700"/></div>'+
         puces()+
         '<div style="font-size:11.5px;font-weight:800;color:'+solid("var(--ink2)")+';margin:14px 0 6px">Étape</div>'+
@@ -8924,6 +9589,7 @@ function bindCoach(){
       if(pn)p.prenom=pn.value;
       if(tl)p.tel=tl.value;
       if(cp)p.cp=cp.value;
+      var mt=ov.querySelector("#pp-montant"); if(mt)p.montant=mt.value;
       if(n)p.nom=n.value;
       if(nt)p.note=nt.value;
       if(et)p.etapeChoisie=et.value;
@@ -8956,6 +9622,8 @@ function bindCoach(){
         p.prenom=prenom; p.nom=nom;
         p.tel=ov.querySelector("#pp-tel").value.trim();
         p.cp=ov.querySelector("#pp-cp").value.trim();
+        var __mt=parseFloat(ov.querySelector("#pp-montant").value);
+        p.montant=(!isNaN(__mt)&&__mt>0)?__mt:null;
         p.note=ov.querySelector("#pp-note").value.trim();
         p.source=srcSel;
         p.douleurs=doulSel.slice();
@@ -8993,6 +9661,13 @@ function bindCoach(){
 
   var pAdd=document.getElementById("pipe-add");
   if(pAdd)pAdd.addEventListener("click",function(){pipeFiche(null);});
+
+  var pBil=document.querySelectorAll(".pipe-bilan");
+  for(var pb=0;pb<pBil.length;pb++)pBil[pb].addEventListener("click",function(){
+    state.blProspect=this.getAttribute("data-id");
+    state.blForm=false; state.blEdit=null;
+    render();
+  });
 
   var pEd=document.querySelectorAll(".pipe-edit");
   for(var pe=0;pe<pEd.length;pe++)pEd[pe].addEventListener("click",function(){
@@ -9038,7 +9713,7 @@ function bindCoach(){
     var p=pipeTrouver(this.getAttribute("data-id")); if(!p)return;
     p.etape="gagne"; p.maj=isoLocal(); p.signe=isoLocal();
     pipeSauver(p); render();
-    feedback("🎉 "+p.nom+" est client !","win");
+    feedback("🎉 "+pipeNomComplet(p)+" est client !","win");
     setTimeout(function(){
       if(confirm("Créer la fiche client de "+p.nom+" dans le dashboard ?")){
         state.coachKPI=false; state.showForm=true; state.prefillNom=p.nom;
@@ -9225,8 +9900,19 @@ function bindCoach(){
   if(cdBilan)cdBilan.addEventListener("click",function(){state.cdTab="bilan";render();});
   var cdCalc=document.getElementById("cd-calc");
   if(cdCalc)cdCalc.addEventListener("click",function(){state.coachCalc=true;render();});
+  var blPf=document.querySelectorAll(".bl-profil");
+  for(var bp=0;bp<blPf.length;bp++)blPf[bp].addEventListener("click",function(){
+    var k=this.getAttribute("data-k");
+    state.blProfil=(state.blProfil===k)?"":k;
+    render();
+  });
+
   var blBack=document.getElementById("bl-back");
-  if(blBack)blBack.addEventListener("click",function(){state.cdTab=null;render();});
+  if(blBack)blBack.addEventListener("click",function(){
+    if(state.blProspect){state.blProspect=null;state.blForm=false;state.blEdit=null;}
+    else state.cdTab=null;
+    render();
+  });
   var blReps=document.querySelectorAll(".bl-report");
   for(var br2=0;br2<blReps.length;br2++){
     blReps[br2].addEventListener("click",function(){bilanReport(state.coachDetail,parseInt(this.getAttribute("data-i"),10),this.getAttribute("data-mode")||"full");});
@@ -9364,11 +10050,29 @@ function bindCoach(){
     for(var bs=0;bs<BILAN_SCORES.length;bs++){a.scores[BILAN_SCORES[bs][0]]=gv2("bl-s-"+BILAN_SCORES[bs][0]);}
     var allQ=BILAN_CONTEXTE.concat([BILAN_SEMAINE]).concat(BILAN_HAB);
     for(var qq=0;qq<allQ.length;qq++){a.q[allQ[qq][0]]=gv2("bl-q-"+allQ[qq][0]);}
+    a.profil=state.blProfil||(state.blEdit!=null?a.profil:"")||"";
     if(!a.poids&&!a.obj1){alert("Renseigne au moins le poids ou un objectif.");return;}
+    var pos;
+    if(state.blProspect){
+      // Bilan de prospect : il vit dans la fiche du pipeline, pas dans un
+      // tracker client qui n'existe pas encore. Il suivra la personne si
+      // elle signe — le travail du bilan n'est jamais perdu.
+      var LP2=pipeLire(), cible=null;
+      for(var y=0;y<LP2.length;y++){if(LP2[y].id===state.blProspect)cible=LP2[y];}
+      if(!cible){alert("Prospect introuvable.");return;}
+      cible.bilans=(cible.bilans||[]).slice();
+      if(state.blEdit!=null&&cible.bilans[state.blEdit]){cible.bilans[state.blEdit]=a;pos=state.blEdit;}
+      else {cible.bilans.push(a);pos=cible.bilans.length-1;}
+      for(var y2=0;y2<LP2.length;y2++){if(LP2[y2].id===cible.id)LP2[y2]=cible;}
+      pipeEcrire(LP2);
+      state.blEdit=null; state.blForm=false;
+      feedback("📋 Bilan enregistré","ok");
+      render();
+      return;
+    }
     var slug=state.coachDetail;
     var b6=lsGet("amcoach_"+slug,{})[600]||{};
     var list=(b6.list||[]).slice();
-    var pos;
     if(state.blEdit!=null&&list[state.blEdit]){list[state.blEdit]=a;pos=state.blEdit;}
     else {list.push(a);pos=list.length-1;}
     coachSaveSlot(slug,600,{list:list});
@@ -10358,6 +11062,7 @@ function bindMain(name,start){
     if(state.selDay!==null&&state.selDay!==undefined){state.selDay=null;render();return true;}
     if(typeof IS_COACH!=="undefined"&&IS_COACH&&state.coachKPI){state.coachKPI=false;render();return true;}
     if(typeof IS_COACH!=="undefined"&&IS_COACH&&state.coachCalc){state.coachCalc=false;render();return true;}
+    if(typeof IS_COACH!=="undefined"&&IS_COACH&&state.blProspect){state.blProspect=null;state.blForm=false;render();return true;}
     if(typeof IS_COACH!=="undefined"&&IS_COACH&&state.cdTab==="bilan"){state.cdTab=null;render();return true;}
     if(typeof IS_COACH!=="undefined"&&IS_COACH&&state.coachDetail){state.coachDetail=null;render();return true;}
     return false;

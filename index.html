@@ -8359,7 +8359,20 @@ var BILAN_PROFILS=[
    eviter:"Presser la décision ou rester vague sur le déroulé."}
 ];
 function bilanProfil(k){for(var i=0;i<BILAN_PROFILS.length;i++){if(BILAN_PROFILS[i].k===k)return BILAN_PROFILS[i];}return null;}
-var BILAN_CONTEXTE=[["compte","0. Qu'est-ce qui compte le PLUS pour toi dans ce projet ? (laisse-le parler, n'oriente pas)","area"],["pourquoi","1. Raison — POURQUOI c'est important ?","area"],["ressenti","Comment tu te sentirais avec cet objectif réussi ? Et si tu l'as, quel est l'objectif suivant ?","area"],["freins","2. Qu'est-ce qui pourrait t'empêcher de faire ce challenge et d'atteindre ton objectif ? (finances, entourage, environnement...)","area"],["prof","3. Profession et stress ?","text"],["horaires","4. Horaires de travail ?","text"],["fatphy","5. Fatigue physique de 1 à 10 — si en dessous de 6, pourquoi ?","text"],["fatmen","6. Fatigue mentale de 1 à 10 — si en dessous de 6, pourquoi ?","text"]];
+var BILAN_CONTEXTE=[["freins","Qu'est-ce qui pourrait t'empêcher de faire ce challenge et d'atteindre ton objectif ? (finances, entourage, environnement...)","area"],["prof","Profession et stress ?","text"],["horaires","Horaires de travail ?","text"],["fatphy","Fatigue physique de 1 à 10 — si en dessous de 6, pourquoi ?","text"],["fatmen","Fatigue mentale de 1 à 10 — si en dessous de 6, pourquoi ?","text"]];
+// 🧭 LES TROIS QUESTIONS DE PROFILAGE. Une seule question ne suffisait pas :
+// un prospect qui répond « perdre du poids » ne révèle aucun moteur. Ces
+// trois-là sont choisies pour faire parler de trois angles différents — ce
+// qu'il vise, ce qui l'a bloqué avant, et ce qu'il redoute. Un même profil
+// ressort en général sur au moins deux des trois.
+var BILAN_PROFIL_Q=[
+  {k:"pq1", q:"1. Qu'est-ce qui compte le PLUS pour toi dans ce projet ?",
+   aide:"Laisse-le parler. N'oriente pas, ne propose pas de réponse."},
+  {k:"pq2", q:"2. Tu as déjà essayé avant ? Qu'est-ce qui s'est passé ?",
+   aide:"Sa façon de raconter l'échec dit son moteur : il en a honte, il en veut aux méthodes, ou il analyse."},
+  {k:"pq3", q:"3. Dans 6 mois, qu'est-ce qui aura changé pour toi ? Et qui le remarquera en premier ?",
+   aide:"« Moi » → Signification · « mon entourage » → Acceptation · une étape précise → Sécurité."}
+];
 var BILAN_SEMAINE=["semaine","Bilan semaine — lundi à dimanche","area"];
 var BILAN_HAB=[["h1","1° À quelle heure vous levez-vous ?"],["h2","2° Faites-vous un petit déjeuner ?"],["h3","3° De quoi est composé ce petit déjeuner ?"],["h4","4° Vous sentez-vous fatigué dans la matinée ?"],["h5","5° Mangez-vous en matinée ?"],["h6","6° À quelle heure déjeunez-vous ?"],["h7","7° De quoi est composé votre déjeuner ?"],["h8","8° Êtes-vous fatigué dans l'après-midi ?"],["h9","9° Avez-vous faim dans l'après-midi ?"],["h10","10° Faites-vous un goûter ?"],["h11","11° À quelle heure mangez-vous le soir ?"],["h12","12° Que mangez-vous le soir ?"],["h13","13° Vous couchez-vous rapidement après manger ?"],["h14","14° Remangez-vous avant de dormir ?"],["h15","15° Vivez-vous en couple / avec des enfants ?"],["h16","16° Mangez-vous avec ces personnes ?"],["h17","17° Est-ce vous qui préparez votre repas ?"],["h18","18° Sortez-vous souvent en soirée ?"],["h19","19° Buvez-vous de l'alcool ?"],["h20","20° Buvez-vous des sodas ?"],["h21","21° Combien de litres d'eau buvez-vous ?"],["h22","22° Buvez-vous du café ? Combien par jour ?"],["h23","23° Fumez-vous (cigarettes) ? Combien ?"],["h24","24° Combien de temps par jour sur les réseaux sociaux ?"]];
 function bilanQ(id,label,type,val){
@@ -8435,6 +8448,25 @@ function viewCoachBilan(){
     '<div style="flex:1"><div style="color:#fff;font-weight:900;font-size:16px">📋 Bilans — '+esc(cName)+'</div>'+
     '<div style="color:#666;font-size:12px">Analyse '+(bl.length+1)+' · Méthode AM Transfo Physique</div></div></div></div>'+
     '<div style="padding:16px 14px 40px">';
+  // 🚀 CONVERSION : le prospect signe → on crée son lien tracker et ses
+  // bilans le suivent. C'est le geste qui manquait — jusqu'ici il fallait
+  // recréer le client à la main et le bilan restait orphelin.
+  if(estProspect){
+    var __pp=null,__LP=pipeLire();
+    for(var __y=0;__y<__LP.length;__y++){if(__LP[__y].id===slug)__pp=__LP[__y];}
+    var dejaClient=false;
+    if(__pp){
+      var __cl=lsGet("amcoach_clients",[]);
+      for(var __c=0;__c<__cl.length;__c++){if(__cl[__c].name===pipeNomComplet(__pp))dejaClient=true;}
+    }
+    h+='<div class="card" style="padding:14px 16px;margin-bottom:14px;border-left:4px solid '+(dejaClient?'var(--ok-d)':'var(--brand)')+'">'+
+      '<div style="font-weight:900;font-size:13.5px">'+(dejaClient?'✅ Déjà transformé en client':'🚀 Il signe ?')+'</div>'+
+      '<div style="font-size:11.5px;color:var(--mute);line-height:1.5;margin:3px 0 '+(dejaClient?'0':'10px')+'">'+
+      (dejaClient?'Ce prospect a déjà sa fiche client et son lien de suivi.'
+                 :'Crée son lien de suivi 90 jours. Ses bilans seront repris automatiquement dans sa fiche.')+'</div>'+
+      (dejaClient?'':'<button id="bl-convertir" style="width:100%;padding:13px 0;border-radius:12px;border:0;background:var(--ok-d);color:#fff;font-weight:900;font-size:13.5px">✅ Transformer en client</button>')+
+      '</div>';
+  }
   if(bl.length){
     h+='<div class="card" style="padding:14px 16px;margin-bottom:14px"><div style="font-weight:900;font-size:13px;margin-bottom:8px">Analyses enregistrées</div>';
     for(var b=0;b<bl.length;b++){
@@ -8525,35 +8557,46 @@ function viewCoachBilan(){
     bilanInput("bl-obj1","OBJECTIF 1","","text",pv("obj1"))+bilanInput("bl-obj2","OBJECTIF 2","","text",pv("obj2"))+bilanInput("bl-obj3","OBJECTIF 3","","text",pv("obj3"))+
     '<div class="card-label">PROBLÈMES PHYSIQUES</div><textarea id="bl-pb" class="num-input" rows="2" style="margin-bottom:10px;resize:vertical"></textarea>';
   h+='<div style="font-weight:900;font-size:12px;color:var(--violet);margin:8px 0 8px">POURQUOI & CONTEXTE</div>';
+  // 🧭 PROFILAGE — trois questions, puis le profil qu'on en tire.
+  // Elles passent AVANT le reste du contexte : le profil détermine le ton de
+  // tout l'entretien, il faut l'avoir en tête dès les premières minutes.
+  for(var pq=0;pq<BILAN_PROFIL_Q.length;pq++){
+    var PQ=BILAN_PROFIL_Q[pq];
+    h+=bilanQ("bl-q-"+PQ.k,PQ.q,"area",__ed&&__ed.q?__ed.q[PQ.k]:"");
+    h+='<div style="font-size:11px;color:var(--mute);line-height:1.45;margin:-10px 0 14px;font-style:italic">'+PQ.aide+'</div>';
+  }
+  // Le profil se coche après les trois réponses, tant qu'elles sont fraîches.
+  (function(){
+    var pfSel=(state.blProfil!==undefined&&state.blProfil!=="")?state.blProfil:((__ed&&__ed.profil)||"");
+    h+='<div style="background:var(--soft);border-radius:13px;padding:13px 14px;margin:0 0 16px">'+
+      '<div style="font-size:11px;font-weight:900;letter-spacing:.6px;text-transform:uppercase;color:var(--mute);margin-bottom:4px">Le profil que j\'ai en face</div>'+
+      '<div style="font-size:11px;color:var(--mute);line-height:1.45;margin-bottom:8px">Un même profil ressort en général sur au moins deux des trois réponses.</div>'+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap">';
+    for(var pf=0;pf<BILAN_PROFILS.length;pf++){
+      var PF=BILAN_PROFILS[pf], on=(PF.k===pfSel);
+      h+='<button type="button" class="bl-profil" data-k="'+PF.k+'" style="flex:1 1 30%;padding:10px 5px;border-radius:11px;border:1.5px solid '+(on?"var(--brand)":"var(--line)")+';background:'+(on?"var(--brand)":"#fff")+';color:'+(on?"#fff":"var(--mute)")+';font-size:11.5px;font-weight:800">'+PF.e+'<br>'+PF.n+'</button>';
+    }
+    h+='</div>';
+    if(pfSel){
+      var P2=bilanProfil(pfSel);
+      h+='<div style="margin-top:11px;font-size:11.5px;line-height:1.55;color:var(--ink2)">'+
+        '<div><strong>Ce qu\'il montre :</strong> '+P2.ind+'</div>'+
+        '<div style="margin-top:5px"><strong>Sa peur :</strong> '+P2.peur+'</div>'+
+        '<div style="margin-top:5px"><strong>Ton ton :</strong> '+P2.ton+'</div>'+
+        '<div style="margin-top:5px;font-style:italic;color:var(--ink)">'+P2.dire+'</div>'+
+        '<div style="margin-top:5px;color:var(--bad)"><strong>À éviter :</strong> '+P2.eviter+'</div></div>';
+    }else{
+      h+='<div style="margin-top:9px;font-size:11px;color:var(--mute);line-height:1.6">'+
+        '🎯 il parle de LUI, de niveau, de se démarquer<br>'+
+        '🤝 il parle du REGARD DES AUTRES, il doute de lui<br>'+
+        '🛡️ il pose des questions TECHNIQUES, il veut le détail</div>';
+    }
+    h+='</div>';
+  })();
   for(var qc=0;qc<BILAN_CONTEXTE.length;qc++){
     h+=bilanQ("bl-q-"+BILAN_CONTEXTE[qc][0],BILAN_CONTEXTE[qc][1],BILAN_CONTEXTE[qc][2],__ed&&__ed.q?__ed.q[BILAN_CONTEXTE[qc][0]]:"");
-    // 🧭 Le profil se coche juste après la question 0, tant que la réponse
-    // est fraîche. Trois cases, et l'appli rend le ton à tenir pour la suite
-    // de l'entretien — c'est utile MAINTENANT, pas dans un rapport après coup.
-    if(BILAN_CONTEXTE[qc][0]==="compte"){
-      var pfSel=(__ed&&__ed.profil)||state.blProfil||"";
-      h+='<div style="background:var(--soft);border-radius:13px;padding:12px 13px;margin:-4px 0 14px">'+
-        '<div style="font-size:11px;font-weight:900;letter-spacing:.6px;text-transform:uppercase;color:var(--mute);margin-bottom:7px">Ce qu\'il met en avant</div>'+
-        '<div style="display:flex;gap:6px;flex-wrap:wrap">';
-      for(var pf=0;pf<BILAN_PROFILS.length;pf++){
-        var PF=BILAN_PROFILS[pf], on=(PF.k===pfSel);
-        h+='<button type="button" class="bl-profil" data-k="'+PF.k+'" style="flex:1 1 30%;padding:9px 5px;border-radius:11px;border:1.5px solid '+(on?"var(--brand)":"var(--line)")+';background:'+(on?"var(--brand)":"#fff")+';color:'+(on?"#fff":"var(--mute)")+';font-size:11.5px;font-weight:800">'+PF.e+' '+PF.n+'</button>';
-      }
-      h+='</div>';
-      if(pfSel){
-        var P2=bilanProfil(pfSel);
-        h+='<div style="margin-top:10px;font-size:11.5px;line-height:1.55;color:var(--ink2)">'+
-          '<div><strong>Sa peur :</strong> '+P2.peur+'</div>'+
-          '<div style="margin-top:4px"><strong>Ton ton :</strong> '+P2.ton+'</div>'+
-          '<div style="margin-top:4px;font-style:italic;color:var(--ink)">'+P2.dire+'</div>'+
-          '<div style="margin-top:4px;color:var(--bad)"><strong>À éviter :</strong> '+P2.eviter+'</div></div>';
-      }else{
-        h+='<div style="margin-top:8px;font-size:11px;color:var(--mute);line-height:1.5">'+
-          '🎯 il parle de lui et de performance · 🤝 il parle du regard des autres · 🛡️ il pose des questions techniques</div>';
-      }
-      h+='</div>';
-    }
   }
+
   h+='<div style="font-weight:900;font-size:12px;color:var(--violet);margin:8px 0 8px">BARÈME AM TRANSFO</div>';
   for(var s3=0;s3<BILAN_SCORES.length;s3++){
     h+=bilanQ("bl-s-"+BILAN_SCORES[s3][0],(s3+1)+". "+BILAN_SCORES[s3][1],"area",__ed&&__ed.scores?__ed.scores[BILAN_SCORES[s3][0]]:"");
@@ -9900,6 +9943,53 @@ function bindCoach(){
   if(cdBilan)cdBilan.addEventListener("click",function(){state.cdTab="bilan";render();});
   var cdCalc=document.getElementById("cd-calc");
   if(cdCalc)cdCalc.addEventListener("click",function(){state.coachCalc=true;render();});
+  // 🚀 Transformer un prospect en client : lien de suivi + reprise des bilans
+  var blConv=document.getElementById("bl-convertir");
+  if(blConv)blConv.addEventListener("click",function(){
+    var LP=pipeLire(), pp=null;
+    for(var i=0;i<LP.length;i++){if(LP[i].id===state.blProspect)pp=LP[i];}
+    if(!pp){feedback("Prospect introuvable","err");return;}
+    var nom=pipeNomComplet(pp);
+    function slugOf(x){return String(x||"").toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");}
+    var base=slugOf(pp.prenom||nom)||"client", slug=base;
+    var clients=lsGet("amcoach_clients",[]);
+    // Un lien déjà pris porterait les données de quelqu'un d'autre : on
+    // suffixe jusqu'à trouver un identifiant libre, en local ET en mémoire.
+    var n=1;
+    while(true){
+      var pris=false;
+      for(var c=0;c<clients.length;c++){if(clients[c].slug===slug)pris=true;}
+      if(!pris&&!lsGet("amcoach_"+slug,null))break;
+      n++; slug=base+"-"+n;
+      if(n>50)break;
+    }
+    var propose=prompt("Lien de suivi pour "+nom+" :\n\nIl recevra ?client="+slug,slug);
+    if(propose===null)return;
+    slug=slugOf(propose)||slug;
+    var depart=prompt("Date de départ (AAAA-MM-JJ) :",isoLocal());
+    if(depart===null)return;
+    depart=(depart||"").trim()||isoLocal();
+    unmarkDeleted(slug);
+    clients.unshift({name:nom,slug:slug,start_date:depart,created_at:new Date().toISOString()});
+    lsSet("amcoach_clients",clients);
+    try{sbFetch("clients?on_conflict=slug",{method:"POST",prefer:"resolution=merge-duplicates",body:{slug:slug,name:nom,start_date:depart}}).catch(function(){});}catch(e){}
+    // Les bilans du prospect deviennent ses analyses de client
+    if((pp.bilans||[]).length){
+      var allB=lsGet("amcoach_"+slug,{});
+      allB[600]={list:pp.bilans.slice()};
+      lsSet("amcoach_"+slug,allB);
+      try{coachSaveSlot(slug,600,{list:pp.bilans.slice()});}catch(e){}
+    }
+    // Le prospect passe en gagné et garde le lien du client créé
+    pp.etape="gagne"; pp.signe=isoLocal(); pp.maj=isoLocal(); pp.clientSlug=slug;
+    for(var y=0;y<LP.length;y++){if(LP[y].id===pp.id)LP[y]=pp;}
+    pipeEcrire(LP);
+    state.blProspect=null; state.blForm=false; state.blEdit=null;
+    state.coachDetail=slug;
+    render();
+    feedback("🎉 "+nom+" est client — lien ?client="+slug,"win");
+  });
+
   var blPf=document.querySelectorAll(".bl-profil");
   for(var bp=0;bp<blPf.length;bp++)blPf[bp].addEventListener("click",function(){
     var k=this.getAttribute("data-k");
@@ -10049,6 +10139,7 @@ function bindCoach(){
     }
     for(var bs=0;bs<BILAN_SCORES.length;bs++){a.scores[BILAN_SCORES[bs][0]]=gv2("bl-s-"+BILAN_SCORES[bs][0]);}
     var allQ=BILAN_CONTEXTE.concat([BILAN_SEMAINE]).concat(BILAN_HAB);
+    for(var pz=0;pz<BILAN_PROFIL_Q.length;pz++)allQ=allQ.concat([[BILAN_PROFIL_Q[pz].k]]);
     for(var qq=0;qq<allQ.length;qq++){a.q[allQ[qq][0]]=gv2("bl-q-"+allQ[qq][0]);}
     a.profil=state.blProfil||(state.blEdit!=null?a.profil:"")||"";
     if(!a.poids&&!a.obj1){alert("Renseigne au moins le poids ou un objectif.");return;}

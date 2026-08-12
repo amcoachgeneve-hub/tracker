@@ -3661,6 +3661,91 @@ function viewFinance(name,start){
     }
   }
   
+  // ── 💸 MES DÉPENSES ─────────────────────────────────────────
+  (function(){
+    var cle=moisCle(), C=depCompare(cle), CO=depConseils(cle,1200);
+    h+='<div class="card" style="padding:15px 16px;margin-bottom:14px">'+
+      '<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:3px">'+
+      '<span style="flex:1;font-weight:900;font-size:15px">💸 Mes dépenses</span>'+
+      '<span style="font-size:12px;font-weight:800;color:var(--mute)">'+moisNom(cle)+'</span></div>'+
+      '<div style="font-size:11px;color:var(--mute);line-height:1.45;margin-bottom:11px">Note tes achats au fil du mois. Deux tapes suffisent.</div>'+
+      '<div style="display:flex;gap:8px;margin-bottom:11px">'+
+      '<div style="flex:1;text-align:center;padding:11px 6px;border-radius:12px;background:var(--soft)">'+
+      '<div style="font-size:19px;font-weight:900">'+C.mois.total+'</div>'+
+      '<div style="font-size:10px;font-weight:700;color:var(--mute);margin-top:2px">CHF ce mois</div></div>'+
+      '<div style="flex:1;text-align:center;padding:11px 6px;border-radius:12px;background:var(--soft)">'+
+      '<div style="font-size:19px;font-weight:900;color:'+(C.mois.abo?'var(--warn-d)':'var(--ink)')+'">'+C.mois.abo+'</div>'+
+      '<div style="font-size:10px;font-weight:700;color:var(--mute);margin-top:2px">CHF d\'abonnements</div></div>'+
+      (!C.precVide?'<div style="flex:1;text-align:center;padding:11px 6px;border-radius:12px;background:var(--soft)">'+
+      '<div style="font-size:19px;font-weight:900;color:'+(C.deltaTotal>0?'var(--bad)':'var(--ok-d)')+'">'+(C.deltaTotal>0?'+':'')+C.deltaTotal+'</div>'+
+      '<div style="font-size:10px;font-weight:700;color:var(--mute);margin-top:2px">vs mois dernier</div></div>':'')+
+      '</div>'+
+      '<button id="dep-add" style="width:100%;padding:13px 0;border-radius:12px;border:0;background:var(--brand);color:#fff;font-weight:900;font-size:13.5px;margin-bottom:10px">+ Noter une dépense</button>';
+
+    // Répartition, la plus lourde en premier
+    if(C.lignes.length){
+      for(var i=0;i<C.lignes.length;i++){
+        var L=C.lignes[i];
+        h+='<div style="padding:8px 0;border-top:1px solid var(--line)">'+
+          '<div style="display:flex;align-items:center;gap:8px;font-size:12.5px">'+
+          '<span style="font-size:15px">'+L.cat.e+'</span>'+
+          '<span style="flex:1;font-weight:800">'+L.cat.n+'</span>'+
+          '<span style="font-weight:900">'+L.now+' CHF</span>'+
+          (!C.precVide&&L.delta!==0?'<span style="font-size:11px;font-weight:800;min-width:46px;text-align:right;color:'+(L.delta>0?'var(--bad)':'var(--ok-d)')+'">'+(L.delta>0?'+':'')+L.delta+'</span>':'<span style="min-width:46px"></span>')+
+          '</div>'+
+          '<div style="height:5px;border-radius:100px;background:var(--soft2);margin-top:5px;overflow:hidden">'+
+          '<div style="height:100%;width:'+Math.max(L.pct,2)+'%;background:'+L.cat.c+';border-radius:100px"></div></div></div>';
+      }
+    }else{
+      h+='<div style="font-size:11.5px;color:var(--mute);font-style:italic;padding:6px 0">Aucune dépense saisie ce mois-ci.</div>';
+    }
+
+    // Abonnements : la liste, et le total annuel qui fait réfléchir
+    var abos=aboLire();
+    h+='<div style="border-top:1px solid var(--line);margin-top:11px;padding-top:11px">'+
+      '<div style="display:flex;align-items:baseline;gap:7px;margin-bottom:7px">'+
+      '<span style="flex:1;font-size:12px;font-weight:900">🔁 Mes abonnements</span>'+
+      '<span style="font-size:11px;color:var(--mute);font-weight:700">'+aboTotal()+' CHF/mois · '+(aboTotal()*12)+' CHF/an</span></div>';
+    for(var a=0;a<abos.length;a++){
+      var A=abos[a], off=(A.actif===false);
+      h+='<div style="display:flex;align-items:center;gap:8px;padding:6px 0;'+(off?'opacity:.45':'')+'">'+
+        '<span style="flex:1;font-size:12.5px;font-weight:'+(off?'600':'800')+'">'+esc(A.nom)+(off?' <span style="font-size:10px;color:var(--mute)">résilié</span>':'')+'</span>'+
+        '<span style="font-size:12.5px;font-weight:900">'+(+A.montant||0)+' CHF</span>'+
+        '<button class="abo-off" data-i="'+a+'" style="padding:5px 9px;border-radius:8px;border:1px solid var(--line);background:#fff;font-size:10.5px;font-weight:800;color:var(--mute)">'+(off?'Réactiver':'Résilié')+'</button>'+
+        '<button class="abo-del" data-i="'+a+'" style="padding:5px 8px;border-radius:8px;border:1px solid var(--line);background:#fff;font-size:10.5px;color:var(--mute)">✕</button></div>';
+    }
+    h+='<button id="abo-add" style="width:100%;margin-top:7px;padding:10px 0;border-radius:11px;border:1.5px dashed var(--line);background:#fff;font-size:12px;font-weight:800;color:var(--mute)">+ Ajouter un abonnement</button></div>';
+
+    // Ce que les chiffres disent — jamais de conseil générique
+    if(CO.length){
+      h+='<div style="border-top:1px solid var(--line);margin-top:11px;padding-top:11px">'+
+        '<div style="font-size:12px;font-weight:900;margin-bottom:7px">🔎 Ce que ça dit</div>';
+      for(var c=0;c<CO.length;c++){
+        h+='<div style="background:var(--soft);border-radius:11px;padding:10px 12px;margin-bottom:6px">'+
+          '<div style="font-size:12px;font-weight:900">'+CO[c].t+'</div>'+
+          '<div style="font-size:11.5px;color:var(--ink2);line-height:1.5;margin-top:2px">'+CO[c].m+'</div></div>';
+      }
+      h+='</div>';
+    }
+
+    // Le détail du mois, pour pouvoir corriger une saisie
+    if(C.mois.liste.length){
+      h+='<div style="border-top:1px solid var(--line);margin-top:11px;padding-top:11px">'+
+        '<div style="font-size:12px;font-weight:900;margin-bottom:6px">Détail du mois</div>';
+      for(var d=C.mois.liste.length-1;d>=0;d--){
+        var D=C.mois.liste[d], CA=depCat(D.cat);
+        h+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:11.5px">'+
+          '<span style="font-size:14px">'+CA.e+'</span>'+
+          '<span style="flex:1;min-width:0;color:var(--ink2);font-weight:700">'+(D.note?esc(D.note):CA.n)+'</span>'+
+          '<span style="font-weight:900">'+(+D.montant||0)+'</span>'+
+          '<button class="dep-del" data-m="'+cle+'" data-id="'+D.id+'" style="padding:3px 7px;border-radius:7px;border:1px solid var(--line);background:#fff;font-size:10px;color:var(--mute)">✕</button></div>';
+      }
+      h+='</div>';
+    }
+    h+='</div>';
+  })();
+
+
   h+='</div>';
   return h;
 }
@@ -7535,86 +7620,6 @@ function viewCoachKPI(){
     h+=cdSecClose();
   })();
 
-  // ── 💸 MES DÉPENSES ─────────────────────────────────────────
-  (function(){
-    var cle=moisCle(), C=depCompare(cle), CO=depConseils(cle,1200);
-    h+=cdSecOpen("kpi-dep","💸","Mes dépenses",moisNom(cle)+" · "+C.mois.total+" CHF")+
-      '<div style="display:flex;gap:8px;margin-bottom:11px">'+
-      '<div style="flex:1;text-align:center;padding:11px 6px;border-radius:12px;background:var(--soft)">'+
-      '<div style="font-size:19px;font-weight:900">'+C.mois.total+'</div>'+
-      '<div style="font-size:10px;font-weight:700;color:var(--mute);margin-top:2px">CHF ce mois</div></div>'+
-      '<div style="flex:1;text-align:center;padding:11px 6px;border-radius:12px;background:var(--soft)">'+
-      '<div style="font-size:19px;font-weight:900;color:'+(C.mois.abo?'var(--warn-d)':'var(--ink)')+'">'+C.mois.abo+'</div>'+
-      '<div style="font-size:10px;font-weight:700;color:var(--mute);margin-top:2px">CHF d\'abonnements</div></div>'+
-      (!C.precVide?'<div style="flex:1;text-align:center;padding:11px 6px;border-radius:12px;background:var(--soft)">'+
-      '<div style="font-size:19px;font-weight:900;color:'+(C.deltaTotal>0?'var(--bad)':'var(--ok-d)')+'">'+(C.deltaTotal>0?'+':'')+C.deltaTotal+'</div>'+
-      '<div style="font-size:10px;font-weight:700;color:var(--mute);margin-top:2px">vs mois dernier</div></div>':'')+
-      '</div>'+
-      '<button id="dep-add" style="width:100%;padding:13px 0;border-radius:12px;border:0;background:var(--brand);color:#fff;font-weight:900;font-size:13.5px;margin-bottom:10px">+ Noter une dépense</button>';
-
-    // Répartition, la plus lourde en premier
-    if(C.lignes.length){
-      for(var i=0;i<C.lignes.length;i++){
-        var L=C.lignes[i];
-        h+='<div style="padding:8px 0;border-top:1px solid var(--line)">'+
-          '<div style="display:flex;align-items:center;gap:8px;font-size:12.5px">'+
-          '<span style="font-size:15px">'+L.cat.e+'</span>'+
-          '<span style="flex:1;font-weight:800">'+L.cat.n+'</span>'+
-          '<span style="font-weight:900">'+L.now+' CHF</span>'+
-          (!C.precVide&&L.delta!==0?'<span style="font-size:11px;font-weight:800;min-width:46px;text-align:right;color:'+(L.delta>0?'var(--bad)':'var(--ok-d)')+'">'+(L.delta>0?'+':'')+L.delta+'</span>':'<span style="min-width:46px"></span>')+
-          '</div>'+
-          '<div style="height:5px;border-radius:100px;background:var(--soft2);margin-top:5px;overflow:hidden">'+
-          '<div style="height:100%;width:'+Math.max(L.pct,2)+'%;background:'+L.cat.c+';border-radius:100px"></div></div></div>';
-      }
-    }else{
-      h+='<div style="font-size:11.5px;color:var(--mute);font-style:italic;padding:6px 0">Aucune dépense saisie ce mois-ci.</div>';
-    }
-
-    // Abonnements : la liste, et le total annuel qui fait réfléchir
-    var abos=aboLire();
-    h+='<div style="border-top:1px solid var(--line);margin-top:11px;padding-top:11px">'+
-      '<div style="display:flex;align-items:baseline;gap:7px;margin-bottom:7px">'+
-      '<span style="flex:1;font-size:12px;font-weight:900">🔁 Mes abonnements</span>'+
-      '<span style="font-size:11px;color:var(--mute);font-weight:700">'+aboTotal()+' CHF/mois · '+(aboTotal()*12)+' CHF/an</span></div>';
-    for(var a=0;a<abos.length;a++){
-      var A=abos[a], off=(A.actif===false);
-      h+='<div style="display:flex;align-items:center;gap:8px;padding:6px 0;'+(off?'opacity:.45':'')+'">'+
-        '<span style="flex:1;font-size:12.5px;font-weight:'+(off?'600':'800')+'">'+esc(A.nom)+(off?' <span style="font-size:10px;color:var(--mute)">résilié</span>':'')+'</span>'+
-        '<span style="font-size:12.5px;font-weight:900">'+(+A.montant||0)+' CHF</span>'+
-        '<button class="abo-off" data-i="'+a+'" style="padding:5px 9px;border-radius:8px;border:1px solid var(--line);background:#fff;font-size:10.5px;font-weight:800;color:var(--mute)">'+(off?'Réactiver':'Résilié')+'</button>'+
-        '<button class="abo-del" data-i="'+a+'" style="padding:5px 8px;border-radius:8px;border:1px solid var(--line);background:#fff;font-size:10.5px;color:var(--mute)">✕</button></div>';
-    }
-    h+='<button id="abo-add" style="width:100%;margin-top:7px;padding:10px 0;border-radius:11px;border:1.5px dashed var(--line);background:#fff;font-size:12px;font-weight:800;color:var(--mute)">+ Ajouter un abonnement</button></div>';
-
-    // Ce que les chiffres disent — jamais de conseil générique
-    if(CO.length){
-      h+='<div style="border-top:1px solid var(--line);margin-top:11px;padding-top:11px">'+
-        '<div style="font-size:12px;font-weight:900;margin-bottom:7px">🔎 Ce que ça dit</div>';
-      for(var c=0;c<CO.length;c++){
-        h+='<div style="background:var(--soft);border-radius:11px;padding:10px 12px;margin-bottom:6px">'+
-          '<div style="font-size:12px;font-weight:900">'+CO[c].t+'</div>'+
-          '<div style="font-size:11.5px;color:var(--ink2);line-height:1.5;margin-top:2px">'+CO[c].m+'</div></div>';
-      }
-      h+='</div>';
-    }
-
-    // Le détail du mois, pour pouvoir corriger une saisie
-    if(C.mois.liste.length){
-      h+='<div style="border-top:1px solid var(--line);margin-top:11px;padding-top:11px">'+
-        '<div style="font-size:12px;font-weight:900;margin-bottom:6px">Détail du mois</div>';
-      for(var d=C.mois.liste.length-1;d>=0;d--){
-        var D=C.mois.liste[d], CA=depCat(D.cat);
-        h+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:11.5px">'+
-          '<span style="font-size:14px">'+CA.e+'</span>'+
-          '<span style="flex:1;min-width:0;color:var(--ink2);font-weight:700">'+(D.note?esc(D.note):CA.n)+'</span>'+
-          '<span style="font-weight:900">'+(+D.montant||0)+'</span>'+
-          '<button class="dep-del" data-m="'+cle+'" data-id="'+D.id+'" style="padding:3px 7px;border-radius:7px;border:1px solid var(--line);background:#fff;font-size:10px;color:var(--mute)">✕</button></div>';
-      }
-      h+='</div>';
-    }
-    h+=cdSecClose();
-  })();
-
   h+=cdSecOpen("kpi-sla","⏱️","Mon SLA","Les délais que je m'impose")+
     '<div style="font-size:11.5px;color:var(--ink2);line-height:1.7">'+
     '<div><strong>Réponse à un message</strong> — moins d\'1 h</div>'+
@@ -9436,80 +9441,6 @@ function bindCoach(){
     });
   }
 
-  // ═══ 💸 DÉPENSES ═══
-  // Deux tapes : une catégorie, un montant. Le clavier numérique s'ouvre
-  // tout seul — sur téléphone, chaque champ en plus est une saisie en moins.
-  var depB=document.getElementById("dep-add");
-  if(depB)depB.addEventListener("click",function(){
-    var cat="courses";
-    var ov=document.createElement("div");
-    ov.style.cssText="position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center";
-    function dessiner(){
-      var puces='';
-      for(var i=0;i<DEP_CATS.length;i++){
-        var C=DEP_CATS[i], on=(C.k===cat);
-        puces+='<button type="button" class="dp-cat" data-k="'+C.k+'" style="padding:9px 13px;border-radius:100px;font-size:12.5px;font-weight:800;cursor:pointer;'+
-          'border:1.5px solid '+(on?solid("var(--brand)"):solid("var(--line)"))+';background:'+(on?solid("var(--brand)"):"#fff")+';color:'+(on?"#fff":solid("var(--mute)"))+'">'+C.e+' '+C.n+'</button>';
-      }
-      var mv=ov.querySelector("#dp-montant"), nv=ov.querySelector("#dp-note");
-      var m0=mv?mv.value:"", n0=nv?nv.value:"";
-      ov.innerHTML='<div style="background:'+solid("var(--card)")+';width:100%;max-width:430px;border-radius:22px 22px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));max-height:88vh;overflow-y:auto">'+
-        '<div style="font-weight:900;font-size:18px;color:'+solid("var(--ink)")+'">💸 Nouvelle dépense</div>'+
-        '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:13px">'+puces+'</div>'+
-        '<input id="dp-montant" type="number" inputmode="decimal" step="0.05" placeholder="Montant en CHF" value="'+esc(m0)+'" style="width:100%;margin-top:13px;padding:15px;border-radius:12px;border:2px solid '+solid("var(--line)")+';font-size:22px;font-weight:900;text-align:center"/>'+
-        '<input id="dp-note" placeholder="Note (facultatif)" value="'+esc(n0)+'" style="width:100%;margin-top:9px;padding:12px 15px;border-radius:12px;border:2px solid '+solid("var(--line)")+';font-size:14px;font-weight:700"/>'+
-        '<button id="dp-ok" style="width:100%;margin-top:13px;padding:14px 0;border-radius:13px;border:0;background:'+solid("var(--brand)")+';color:#fff;font-weight:900;font-size:14px">Enregistrer</button>'+
-        '<button id="dp-no" style="width:100%;margin-top:8px;padding:11px 0;border-radius:13px;border:1px solid '+solid("var(--line)")+';background:#fff;color:'+solid("var(--mute)")+';font-weight:800;font-size:13px">Annuler</button></div>';
-      var cs=ov.querySelectorAll(".dp-cat");
-      for(var c=0;c<cs.length;c++)cs[c].addEventListener("click",function(){cat=this.getAttribute("data-k");dessiner();});
-      ov.querySelector("#dp-ok").addEventListener("click",function(){
-        var v=parseFloat(ov.querySelector("#dp-montant").value);
-        if(!v||v<=0){feedback("Indique un montant","err");return;}
-        depAjouter(cat,v,ov.querySelector("#dp-note").value.trim());
-        fermer(); render(); feedback("💸 "+Math.round(v)+" CHF · "+depCat(cat).n,"ok");
-      });
-      ov.querySelector("#dp-no").addEventListener("click",fermer);
-    }
-    function fermer(){if(ov.parentNode)document.body.removeChild(ov);}
-    ov.addEventListener("click",function(e){if(e.target===ov)fermer();});
-    document.body.appendChild(ov);
-    dessiner();
-    setTimeout(function(){try{ov.querySelector("#dp-montant").focus();}catch(e){}},140);
-  });
-
-  var depD=document.querySelectorAll(".dep-del");
-  for(var dd=0;dd<depD.length;dd++)depD[dd].addEventListener("click",function(){
-    depSupprimer(this.getAttribute("data-m"),this.getAttribute("data-id"));
-    render(); feedback("Dépense retirée","undo");
-  });
-
-  // Abonnements : saisis une fois, comptés tous les mois
-  var aboB=document.getElementById("abo-add");
-  if(aboB)aboB.addEventListener("click",function(){
-    var nom=prompt("Nom de l'abonnement (Netflix, Spotify, assurance...) :","");
-    if(!nom||!nom.trim())return;
-    var m=parseFloat(prompt("Montant par mois, en CHF :",""));
-    if(!m||m<=0){feedback("Montant invalide","err");return;}
-    var L=aboLire(); L.push({nom:nom.trim(),montant:m,actif:true,depuis:isoLocal()});
-    aboEcrire(L); render(); feedback("🔁 "+nom.trim()+" ajouté","ok");
-  });
-  // « Résilié » plutôt que supprimé : l'abonnement sort du total mais reste
-  // visible, pour se souvenir de ce qu'on a déjà coupé.
-  var aboO=document.querySelectorAll(".abo-off");
-  for(var ao=0;ao<aboO.length;ao++)aboO[ao].addEventListener("click",function(){
-    var L=aboLire(), i=+this.getAttribute("data-i");
-    if(!L[i])return;
-    L[i].actif=(L[i].actif===false);
-    aboEcrire(L); render();
-    feedback(L[i].actif?"Réactivé":"Marqué résilié — "+(+L[i].montant||0)*12+" CHF/an économisés",L[i].actif?"ok":"win");
-  });
-  var aboD=document.querySelectorAll(".abo-del");
-  for(var ad=0;ad<aboD.length;ad++)aboD[ad].addEventListener("click",function(){
-    var L=aboLire(), i=+this.getAttribute("data-i");
-    if(!L[i]||!confirm("Retirer « "+L[i].nom+" » de la liste ?"))return;
-    L.splice(i,1); aboEcrire(L); render();
-  });
-
   // ═══ 📣 PROSPECTION QUOTIDIENNE ═══
   // Le « + » ouvre une feuille : on note CE QU'ON A LAISSÉ et À QUI.
   // Un compteur seul ne dit pas si la journée a servi à quelque chose.
@@ -10648,6 +10579,81 @@ function finPatch(patch){
   finSaveCfg(cfg);
 }
 function bindFinance(){
+  // ═══ 💸 DÉPENSES ═══
+  // Deux tapes : une catégorie, un montant. Le clavier numérique s'ouvre
+  // tout seul — sur téléphone, chaque champ en plus est une saisie en moins.
+  var depB=document.getElementById("dep-add");
+  if(depB)depB.addEventListener("click",function(){
+    var cat="courses";
+    var ov=document.createElement("div");
+    ov.style.cssText="position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center";
+    function dessiner(){
+      var puces='';
+      for(var i=0;i<DEP_CATS.length;i++){
+        var C=DEP_CATS[i], on=(C.k===cat);
+        puces+='<button type="button" class="dp-cat" data-k="'+C.k+'" style="padding:9px 13px;border-radius:100px;font-size:12.5px;font-weight:800;cursor:pointer;'+
+          'border:1.5px solid '+(on?solid("var(--brand)"):solid("var(--line)"))+';background:'+(on?solid("var(--brand)"):"#fff")+';color:'+(on?"#fff":solid("var(--mute)"))+'">'+C.e+' '+C.n+'</button>';
+      }
+      var mv=ov.querySelector("#dp-montant"), nv=ov.querySelector("#dp-note");
+      var m0=mv?mv.value:"", n0=nv?nv.value:"";
+      ov.innerHTML='<div style="background:'+solid("var(--card)")+';width:100%;max-width:430px;border-radius:22px 22px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));max-height:88vh;overflow-y:auto">'+
+        '<div style="font-weight:900;font-size:18px;color:'+solid("var(--ink)")+'">💸 Nouvelle dépense</div>'+
+        '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:13px">'+puces+'</div>'+
+        '<input id="dp-montant" type="number" inputmode="decimal" step="0.05" placeholder="Montant en CHF" value="'+esc(m0)+'" style="width:100%;margin-top:13px;padding:15px;border-radius:12px;border:2px solid '+solid("var(--line)")+';font-size:22px;font-weight:900;text-align:center"/>'+
+        '<input id="dp-note" placeholder="Note (facultatif)" value="'+esc(n0)+'" style="width:100%;margin-top:9px;padding:12px 15px;border-radius:12px;border:2px solid '+solid("var(--line)")+';font-size:14px;font-weight:700"/>'+
+        '<button id="dp-ok" style="width:100%;margin-top:13px;padding:14px 0;border-radius:13px;border:0;background:'+solid("var(--brand)")+';color:#fff;font-weight:900;font-size:14px">Enregistrer</button>'+
+        '<button id="dp-no" style="width:100%;margin-top:8px;padding:11px 0;border-radius:13px;border:1px solid '+solid("var(--line)")+';background:#fff;color:'+solid("var(--mute)")+';font-weight:800;font-size:13px">Annuler</button></div>';
+      var cs=ov.querySelectorAll(".dp-cat");
+      for(var c=0;c<cs.length;c++)cs[c].addEventListener("click",function(){cat=this.getAttribute("data-k");dessiner();});
+      ov.querySelector("#dp-ok").addEventListener("click",function(){
+        var v=parseFloat(ov.querySelector("#dp-montant").value);
+        if(!v||v<=0){feedback("Indique un montant","err");return;}
+        depAjouter(cat,v,ov.querySelector("#dp-note").value.trim());
+        fermer(); render(); feedback("💸 "+Math.round(v)+" CHF · "+depCat(cat).n,"ok");
+      });
+      ov.querySelector("#dp-no").addEventListener("click",fermer);
+    }
+    function fermer(){if(ov.parentNode)document.body.removeChild(ov);}
+    ov.addEventListener("click",function(e){if(e.target===ov)fermer();});
+    document.body.appendChild(ov);
+    dessiner();
+    setTimeout(function(){try{ov.querySelector("#dp-montant").focus();}catch(e){}},140);
+  });
+
+  var depD=document.querySelectorAll(".dep-del");
+  for(var dd=0;dd<depD.length;dd++)depD[dd].addEventListener("click",function(){
+    depSupprimer(this.getAttribute("data-m"),this.getAttribute("data-id"));
+    render(); feedback("Dépense retirée","undo");
+  });
+
+  // Abonnements : saisis une fois, comptés tous les mois
+  var aboB=document.getElementById("abo-add");
+  if(aboB)aboB.addEventListener("click",function(){
+    var nom=prompt("Nom de l'abonnement (Netflix, Spotify, assurance...) :","");
+    if(!nom||!nom.trim())return;
+    var m=parseFloat(prompt("Montant par mois, en CHF :",""));
+    if(!m||m<=0){feedback("Montant invalide","err");return;}
+    var L=aboLire(); L.push({nom:nom.trim(),montant:m,actif:true,depuis:isoLocal()});
+    aboEcrire(L); render(); feedback("🔁 "+nom.trim()+" ajouté","ok");
+  });
+  // « Résilié » plutôt que supprimé : l'abonnement sort du total mais reste
+  // visible, pour se souvenir de ce qu'on a déjà coupé.
+  var aboO=document.querySelectorAll(".abo-off");
+  for(var ao=0;ao<aboO.length;ao++)aboO[ao].addEventListener("click",function(){
+    var L=aboLire(), i=+this.getAttribute("data-i");
+    if(!L[i])return;
+    L[i].actif=(L[i].actif===false);
+    aboEcrire(L); render();
+    feedback(L[i].actif?"Réactivé":"Marqué résilié — "+(+L[i].montant||0)*12+" CHF/an économisés",L[i].actif?"ok":"win");
+  });
+  var aboD=document.querySelectorAll(".abo-del");
+  for(var ad=0;ad<aboD.length;ad++)aboD[ad].addEventListener("click",function(){
+    var L=aboLire(), i=+this.getAttribute("data-i");
+    if(!L[i]||!confirm("Retirer « "+L[i].nom+" » de la liste ?"))return;
+    L.splice(i,1); aboEcrire(L); render();
+  });
+
+
   // Choix du statut
   var stabs=document.querySelectorAll(".fin-statut");
   for(var s=0;s<stabs.length;s++){

@@ -761,6 +761,9 @@ var state={
   coachKPI:false,      // écran commercial (pipeline, relances, KPI)
   rapFmt:"simple",     // format du rapport envoyé au client
   blProspect:null,     // id du prospect dont on remplit le bilan (pas encore client)
+  coachBilans:false,   // écran « Mes bilans » (personnes reçues, sans tracker)
+  blLibre:null,        // id de la personne dont on remplit le bilan libre
+  blvQ:"",             // recherche dans la liste des bilans
   blProfil:"",         // profil détecté pendant le bilan (signification/acceptation/sécurité)
   otForm:false,
   qgForm:false,
@@ -2950,7 +2953,7 @@ function render(){
 function renderView(){
   setTimeout(function(){try{applyTheme(getAllData());ancrerNav();}catch(e){}},0);
   var root=document.getElementById("root");
-  if(IS_COACH){root.innerHTML=state.coachAuthed?(state.blProspect?viewCoachBilan():state.coachKPI?viewCoachKPI():state.coachStats?viewCoachStats():state.coachCalc?viewCoachCalc():(state.coachDetail?(state.cdTab==="bilan"?viewCoachBilan():viewCoachDetail()):viewCoachDash())):viewCoachLogin();bindCoach();return;}
+  if(IS_COACH){root.innerHTML=state.coachAuthed?((state.blProspect||state.blLibre)?viewCoachBilan():state.coachBilans?viewCoachBilans():state.coachKPI?viewCoachKPI():state.coachStats?viewCoachStats():state.coachCalc?viewCoachCalc():(state.coachDetail?(state.cdTab==="bilan"?viewCoachBilan():viewCoachDetail()):viewCoachDash())):viewCoachLogin();bindCoach();return;}
   if(!CLIENT){root.innerHTML=viewNoClient();return;}
   var name=lsGetStr("amcoach_name_"+CLIENT);
   var start=lsGetStr("amcoach_start_"+CLIENT);
@@ -6877,6 +6880,92 @@ function caObjectif(cible){
                    Math.ceil(bilans*(K.total/Math.max(1,K.atteint.bilan))):null};
 }
 
+// ═══════════════ 📋 BILANS LIBRES ═══════════════
+// Un bilan sans tracker. Akli reçoit des gens en rendez-vous : il prend les
+// mesures, fait le questionnaire — et tous ne signent pas. Ceux-là ne doivent
+// pas avoir de lien DISCIPLINE 90, mais leur bilan doit rester consultable.
+// Stockage à part du pipeline : ces personnes ne sont pas des prospects en
+// cours de closing, ce sont des bilans faits. Les compter dans le pipeline
+// fausserait tous les taux de conversion.
+function blvLire(){var l=lsGet("amcoach_bilans_libres",[]);return Array.isArray(l)?l:[];}
+function blvEcrire(l){lsSet("amcoach_bilans_libres",l);}
+function blvTrouver(id){var L=blvLire();for(var i=0;i<L.length;i++){if(L[i].id===id)return L[i];}return null;}
+function blvNom(p){
+  if(!p)return "";
+  var n=((p.prenom||"")+" "+(p.nom||"")).trim();
+  return n||p.nomComplet||"Sans nom";
+}
+function blvSauver(p){
+  var L=blvLire(),trouve=false;
+  for(var i=0;i<L.length;i++){if(L[i].id===p.id){L[i]=p;trouve=true;}}
+  if(!trouve)L.unshift(p);
+  blvEcrire(L);
+}
+function blvDate(p){
+  var b=(p.bilans||[]);
+  if(!b.length)return p.cree||"";
+  return b[b.length-1].date||p.maj||p.cree||"";
+}
+
+// 📋 ÉCRAN « MES BILANS » — la liste de tous les gens vus en rendez-vous
+function viewCoachBilans(){
+  var L=blvLire();
+  var q=(state.blvQ||"").toLowerCase();
+  var vus=L.slice();
+  if(q)vus=vus.filter(function(p){return blvNom(p).toLowerCase().indexOf(q)>-1;});
+  // Un bilan libre peut avoir donné un client : on le signale.
+  var clients=lsGet("amcoach_clients",[]);
+  function estClient(p){
+    if(p.clientSlug)return p.clientSlug;
+    for(var i=0;i<clients.length;i++){if(clients[i].name===blvNom(p))return clients[i].slug;}
+    return null;
+  }
+  var signes=0;
+  for(var s=0;s<L.length;s++){if(estClient(L[s]))signes++;}
+
+  var h='<div class="app" style="max-width:480px">'+
+    '<div class="hdr"><div style="display:flex;align-items:center;gap:12px">'+
+    '<button id="blv-back" class="day-back">←</button>'+
+    '<div style="flex:1"><div style="color:#fff;font-weight:900;font-size:16px">📋 Mes bilans</div>'+
+    '<div style="color:#888;font-weight:400;font-size:12px">'+L.length+' personne'+(L.length>1?'s':'')+' reçue'+(L.length>1?'s':'')+
+    (L.length?' · '+signes+' signé'+(signes>1?'s':''):'')+'</div></div></div></div>'+
+    '<div style="padding:14px 14px 90px">'+
+    '<button id="blv-new" class="big-btn" style="padding:15px 0;font-size:14.5px;margin-bottom:14px">+ Nouveau bilan</button>';
+
+  if(!L.length){
+    h+='<div class="card" style="padding:18px 16px;text-align:center">'+
+      '<div style="font-size:30px">📋</div>'+
+      '<div style="font-weight:800;font-size:14px;margin-top:6px">Aucun bilan pour l\'instant</div>'+
+      '<div style="font-size:12px;color:var(--mute);line-height:1.5;margin-top:5px">Quand tu reçois quelqu\'un en rendez-vous, ouvre un bilan ici. Pas besoin de lui créer un lien tant qu\'il n\'a pas signé.</div></div>';
+  }else{
+    if(L.length>4){
+      h+='<input id="blv-q" placeholder="🔍 Rechercher un nom..." value="'+esc(state.blvQ||"")+'" style="width:100%;padding:12px 15px;border-radius:12px;border:1.5px solid var(--line);font-size:14px;font-weight:700;margin-bottom:12px"/>';
+    }
+    for(var i=0;i<vus.length;i++){
+      var p=vus[i], nb=(p.bilans||[]).length, slug=estClient(p);
+      var d=blvDate(p);
+      h+='<div class="card" style="padding:13px 15px;margin-bottom:9px">'+
+        '<div style="display:flex;align-items:center;gap:10px">'+
+        '<div style="flex:1;min-width:0">'+
+        '<div style="font-weight:800;font-size:14px">'+esc(blvNom(p))+
+        (slug?' <span style="font-size:10.5px;font-weight:800;color:var(--ok-d)">✅ client</span>':'')+'</div>'+
+        '<div style="font-size:11.5px;color:var(--mute);margin-top:2px">'+
+        // Une fiche sans analyse est une personne reçue dont le bilan reste
+        // à remplir : le dire explicitement vaut mieux qu'un « 0 analyse »
+        // qui se lit comme une erreur.
+        (nb?nb+' analyse'+(nb>1?'s':'')+(d?' · '+esc(d):''):'<span style="color:var(--warn-d);font-weight:700">bilan à remplir</span>')+
+        (p.tel?' · '+esc(p.tel):'')+'</div></div>'+
+        '<button class="blv-open" data-id="'+p.id+'" style="flex:0 0 auto;padding:9px 13px;border-radius:11px;border:0;background:var(--brand);color:#fff;font-size:12px;font-weight:800">Ouvrir</button>'+
+        '</div></div>';
+    }
+    if(!vus.length){
+      h+='<div style="font-size:12px;color:var(--mute);font-style:italic;text-align:center;padding:14px 0">Aucun nom ne correspond.</div>';
+    }
+  }
+  h+='</div></div>';
+  return h;
+}
+
 // ═══════════════ 📈 KPI COMMERCIAL — PIPELINE ═══════════════
 // Un prospect ne se perd presque jamais en rendez-vous. Il se perd ENTRE deux
 // étapes, parce que personne ne savait qu'il était bloqué. Ce module sert à
@@ -7656,7 +7745,8 @@ function viewCoachDash(){
     '<button id="stats-open" class="big-btn" style="padding:14px 0;font-size:14px;background:var(--ink);margin-bottom:10px">📊 Mes statistiques</button>'+
     // 📈 Le commercial : la pastille montre ce qui refroidit, sans ouvrir.
     (function(){var K=pipeKPI();var n=K.relances.length+K.bloques.length;
-      return '<button id="kpi-open" class="big-btn" style="padding:14px 0;font-size:14px;background:#2E4560;margin-bottom:16px;position:relative">📈 Mon commercial'+
+      return '<button id="blv-open" class="big-btn" style="padding:14px 0;font-size:14px;background:#5B4B8A;margin-bottom:10px">📋 Mes bilans</button>'+
+        '<button id="kpi-open" class="big-btn" style="padding:14px 0;font-size:14px;background:#2E4560;margin-bottom:16px;position:relative">📈 Mon commercial'+
         (n?'<span style="position:absolute;top:8px;right:12px;background:var(--warn-d);color:#fff;border-radius:100px;padding:2px 9px;font-size:11px;font-weight:900">'+n+' à faire</span>':'')+'</button>';
     })();
 
@@ -8434,10 +8524,15 @@ function viewCoachBilan(){
   // PROSPECT (pas encore signé, donc aucun lien). C'est le bilan qui fait
   // vendre : exiger un lien tracker avant de pouvoir le remplir revenait à
   // demander au prospect de s'inscrire avant qu'on lui ait rien montré.
+  var estLibre=!!state.blLibre;
   var estProspect=!!state.blProspect;
-  var slug=estProspect?state.blProspect:state.coachDetail;
+  var slug=estLibre?state.blLibre:(estProspect?state.blProspect:state.coachDetail);
   var cName=slug, bl=[];
-  if(estProspect){
+  if(estLibre){
+    var lp=blvTrouver(slug);
+    cName=lp?blvNom(lp):"Bilan";
+    bl=(lp&&lp.bilans)||[];
+  }else if(estProspect){
     var pp=null,LP=pipeLire();
     for(var z=0;z<LP.length;z++){if(LP[z].id===slug)pp=LP[z];}
     cName=pp?pipeNomComplet(pp):"Prospect";
@@ -8456,13 +8551,19 @@ function viewCoachBilan(){
   // 🚀 CONVERSION : le prospect signe → on crée son lien tracker et ses
   // bilans le suivent. C'est le geste qui manquait — jusqu'ici il fallait
   // recréer le client à la main et le bilan restait orphelin.
-  if(estProspect){
-    var __pp=null,__LP=pipeLire();
-    for(var __y=0;__y<__LP.length;__y++){if(__LP[__y].id===slug)__pp=__LP[__y];}
+  if(estProspect||estLibre){
+    var __nomSujet="", __pp=null;
+    if(estLibre){__pp=blvTrouver(slug); __nomSujet=__pp?blvNom(__pp):"";}
+    else{
+      var __LP=pipeLire();
+      for(var __y=0;__y<__LP.length;__y++){if(__LP[__y].id===slug)__pp=__LP[__y];}
+      __nomSujet=__pp?pipeNomComplet(__pp):"";
+    }
     var dejaClient=false;
     if(__pp){
+      if(__pp.clientSlug)dejaClient=true;
       var __cl=lsGet("amcoach_clients",[]);
-      for(var __c=0;__c<__cl.length;__c++){if(__cl[__c].name===pipeNomComplet(__pp))dejaClient=true;}
+      for(var __c=0;__c<__cl.length;__c++){if(__cl[__c].name===__nomSujet)dejaClient=true;}
     }
     h+='<div class="card" style="padding:14px 16px;margin-bottom:14px;border-left:4px solid '+(dejaClient?'var(--ok-d)':'var(--brand)')+'">'+
       '<div style="font-weight:900;font-size:13.5px">'+(dejaClient?'✅ Déjà transformé en client':'🚀 Il signe ?')+'</div>'+
@@ -9874,13 +9975,52 @@ function bindCoach(){
   if(cdBilan)cdBilan.addEventListener("click",function(){state.cdTab="bilan";render();});
   var cdCalc=document.getElementById("cd-calc");
   if(cdCalc)cdCalc.addEventListener("click",function(){state.coachCalc=true;render();});
+  // ═══ 📋 MES BILANS (personnes reçues, sans tracker) ═══
+  var blvO=document.getElementById("blv-open");
+  if(blvO)blvO.addEventListener("click",function(){state.coachBilans=true;state.blvQ="";render();});
+  var blvB=document.getElementById("blv-back");
+  if(blvB)blvB.addEventListener("click",function(){state.coachBilans=false;render();});
+  var blvQ=document.getElementById("blv-q");
+  if(blvQ)blvQ.addEventListener("input",function(){
+    state.blvQ=this.value;
+    var pos=this.selectionStart;
+    render();
+    var el=document.getElementById("blv-q");
+    if(el){el.focus();try{el.setSelectionRange(pos,pos);}catch(e){}}
+  });
+  var blvN=document.getElementById("blv-new");
+  if(blvN)blvN.addEventListener("click",function(){
+    // On ne demande que le prénom : le reste se remplit dans le bilan.
+    // Exiger une fiche complète avant de commencer ferait perdre du temps
+    // au moment précis où la personne est en face de soi.
+    var pn=prompt("Prénom (ou prénom et nom) de la personne reçue :","");
+    if(pn===null)return;
+    pn=(pn||"").trim();
+    if(!pn){feedback("Il faut au moins un prénom","err");return;}
+    var parts=pn.split(/\s+/);
+    var p={id:"b"+Date.now().toString(36),
+           prenom:parts[0], nom:parts.slice(1).join(" "),
+           cree:isoLocal(), maj:isoLocal(), bilans:[]};
+    blvSauver(p);
+    state.blLibre=p.id; state.coachBilans=false;
+    state.blForm=true; state.blEdit=null;
+    render();
+  });
+  var blvOp=document.querySelectorAll(".blv-open");
+  for(var bo=0;bo<blvOp.length;bo++)blvOp[bo].addEventListener("click",function(){
+    state.blLibre=this.getAttribute("data-id");
+    state.coachBilans=false; state.blForm=false; state.blEdit=null;
+    render();
+  });
+
   // 🚀 Transformer un prospect en client : lien de suivi + reprise des bilans
   var blConv=document.getElementById("bl-convertir");
   if(blConv)blConv.addEventListener("click",function(){
-    var LP=pipeLire(), pp=null;
-    for(var i=0;i<LP.length;i++){if(LP[i].id===state.blProspect)pp=LP[i];}
-    if(!pp){feedback("Prospect introuvable","err");return;}
-    var nom=pipeNomComplet(pp);
+    var libre=!!state.blLibre, LP=null, pp=null;
+    if(libre){pp=blvTrouver(state.blLibre);}
+    else{LP=pipeLire();for(var i=0;i<LP.length;i++){if(LP[i].id===state.blProspect)pp=LP[i];}}
+    if(!pp){feedback("Fiche introuvable","err");return;}
+    var nom=libre?blvNom(pp):pipeNomComplet(pp);
     function slugOf(x){return String(x||"").toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");}
     var base=slugOf(pp.prenom||nom)||"client", slug=base;
     var clients=lsGet("amcoach_clients",[]);
@@ -9911,11 +10051,17 @@ function bindCoach(){
       lsSet("amcoach_"+slug,allB);
       try{coachSaveSlot(slug,600,{list:pp.bilans.slice()});}catch(e){}
     }
-    // Le prospect passe en gagné et garde le lien du client créé
-    pp.etape="gagne"; pp.signe=isoLocal(); pp.maj=isoLocal(); pp.clientSlug=slug;
-    for(var y=0;y<LP.length;y++){if(LP[y].id===pp.id)LP[y]=pp;}
-    pipeEcrire(LP);
-    state.blProspect=null; state.blForm=false; state.blEdit=null;
+    // On garde le lien du client créé, des deux côtés
+    pp.clientSlug=slug; pp.maj=isoLocal();
+    if(libre){
+      pp.signe=isoLocal();
+      blvSauver(pp);
+    }else{
+      pp.etape="gagne"; pp.signe=isoLocal();
+      for(var y=0;y<LP.length;y++){if(LP[y].id===pp.id)LP[y]=pp;}
+      pipeEcrire(LP);
+    }
+    state.blProspect=null; state.blLibre=null; state.blForm=false; state.blEdit=null; state.coachBilans=false;
     state.coachDetail=slug;
     render();
     feedback("🎉 "+nom+" est client — lien ?client="+slug,"win");
@@ -9930,7 +10076,8 @@ function bindCoach(){
 
   var blBack=document.getElementById("bl-back");
   if(blBack)blBack.addEventListener("click",function(){
-    if(state.blProspect){state.blProspect=null;state.blForm=false;state.blEdit=null;}
+    if(state.blLibre){state.blLibre=null;state.blForm=false;state.blEdit=null;state.coachBilans=true;}
+    else if(state.blProspect){state.blProspect=null;state.blForm=false;state.blEdit=null;}
     else state.cdTab=null;
     render();
   });
@@ -10075,6 +10222,26 @@ function bindCoach(){
     a.profil=state.blProfil||(state.blEdit!=null?a.profil:"")||"";
     if(!a.poids&&!a.obj1){alert("Renseigne au moins le poids ou un objectif.");return;}
     var pos;
+    if(state.blLibre){
+      // Bilan libre : la personne n'a ni tracker ni fiche pipeline. Son bilan
+      // vit dans sa propre entrée — c'est tout ce dont Akli a besoin tant
+      // qu'elle n'a pas signé.
+      var lpx=blvTrouver(state.blLibre);
+      if(!lpx){alert("Fiche introuvable.");return;}
+      lpx.bilans=(lpx.bilans||[]).slice();
+      if(state.blEdit!=null&&lpx.bilans[state.blEdit]){lpx.bilans[state.blEdit]=a;pos=state.blEdit;}
+      else {lpx.bilans.push(a);pos=lpx.bilans.length-1;}
+      // On reprend le nom saisi dans le bilan : souvent plus complet que
+      // celui tapé à la volée en créant la fiche.
+      if(a.prenom)lpx.prenom=a.prenom;
+      if(a.nom)lpx.nom=a.nom;
+      lpx.maj=isoLocal();
+      blvSauver(lpx);
+      state.blEdit=null; state.blForm=false;
+      feedback("📋 Bilan enregistré","ok");
+      render();
+      return;
+    }
     if(state.blProspect){
       // Bilan de prospect : il vit dans la fiche du pipeline, pas dans un
       // tracker client qui n'existe pas encore. Il suivra la personne si
@@ -11159,6 +11326,8 @@ function bindMain(name,start){
     if(state.selDay!==null&&state.selDay!==undefined){state.selDay=null;render();return true;}
     if(typeof IS_COACH!=="undefined"&&IS_COACH&&state.coachKPI){state.coachKPI=false;render();return true;}
     if(typeof IS_COACH!=="undefined"&&IS_COACH&&state.coachCalc){state.coachCalc=false;render();return true;}
+    if(typeof IS_COACH!=="undefined"&&IS_COACH&&state.blLibre){state.blLibre=null;state.blForm=false;state.coachBilans=true;render();return true;}
+    if(typeof IS_COACH!=="undefined"&&IS_COACH&&state.coachBilans){state.coachBilans=false;render();return true;}
     if(typeof IS_COACH!=="undefined"&&IS_COACH&&state.blProspect){state.blProspect=null;state.blForm=false;render();return true;}
     if(typeof IS_COACH!=="undefined"&&IS_COACH&&state.cdTab==="bilan"){state.cdTab=null;render();return true;}
     if(typeof IS_COACH!=="undefined"&&IS_COACH&&state.coachDetail){state.coachDetail=null;render();return true;}

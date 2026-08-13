@@ -1897,6 +1897,182 @@ for(var __sk in TON_SIGNAUX){if(TONS[__sk])TONS[__sk].signaux=TON_SIGNAUX[__sk];
 // Décide de CE QUE le superviseur doit dire aujourd'hui.
 // Un signal de résultat passe TOUJOURS devant la phrase de remplissage :
 // féliciter quelqu'un dont le poids stagne, c'est le laisser dans le mur.
+// ═══ 🎬 LES MOMENTS — ce qui change quand le niveau ne change plus ═══
+// Un client très régulier reste au même palier des semaines : la phrase
+// d'état tourne alors dans un réservoir fermé et finit par ne plus être lue.
+// Les MOMENTS règlent ça autrement qu'en ajoutant du volume — ils parlent de
+// ce qui bouge VRAIMENT : la série en cours, l'avancée dans les 90 jours,
+// les kilos franchis. Un message qui tombe le jour d'un cap se lit, parce
+// qu'il ne pouvait pas tomber la veille.
+// Chaque moment ne se déclenche QU'UNE FOIS (mémorisé), sinon on retombe
+// dans la répétition qu'on cherche à fuir.
+var MOMENTS={
+  // La série revient 8 fois sur 90 jours : une formule unique se répéterait
+  // mot pour mot. Chaque palier a donc sa propre phrase, qui dit quelque
+  // chose de différent — 7 jours et 75 jours ne se célèbrent pas pareil.
+  serie:{   // tableau indexé sur MOMENT_SERIES : 7,14,21,30,45,60,75,90
+    normal:["7 jours d'affilée. La première semaine est toujours la plus dure — elle est derrière.",
+      "14 jours. Deux semaines, c'est le moment où le corps commence à suivre.",
+      "21 jours d'affilée. Ce n'est plus de la motivation, c'est une habitude.",
+      "30 jours sans interruption. Un mois entier — tu ne recommences plus, tu continues.",
+      "45 jours de suite. À ce stade, arrêter serait plus difficile que continuer.",
+      "60 jours. Deux mois pleins. Ce que tu as construit ne se défait plus en une semaine.",
+      "75 jours d'affilée. Il en reste peu — et tu n'as pas manqué un seul.",
+      "90 jours consécutifs. Personne ne pourra te dire que tu n'es pas allé au bout."],
+    marseillais:["7 jours sans lâcher, collègue. La première semaine, c'est la pire.",
+      "14 jours ! Té, deux semaines, le corps commence à suivre.",
+      "21 jours d'affilée. Là c'est plus de la volonté, c'est devenu une habitude.",
+      "30 jours, un mois plein ! Té, dégun peut rien te dire.",
+      "45 jours de suite, collègue. Arrêter serait plus dur que continuer.",
+      "60 jours ! Deux mois pleins, ça se défait pas comme ça.",
+      "75 jours sans en manquer un. Té, on est presque au bout.",
+      "90 jours d'affilée ! Oh bonne mère, t'es allé au bout du bout."],
+    italien:["7 giorni de suite. La première semaine est toujours la plus dure.",
+      "14 giorni ! Deux semaines, le corps commence à suivre.",
+      "21 jours d'affilée. Non è più motivazione, c'est une habitude.",
+      "30 giorni, un mois entier ! Bravissimo, tu ne recommences plus.",
+      "45 jours de suite. Adesso, arrêter serait plus dur que continuer.",
+      "60 giorni ! Deux mois pleins — ça ne se défait plus.",
+      "75 jours sans en manquer un seul. Siamo quasi alla fine.",
+      "90 giorni consecutivi ! Sei andato fino in fondo. Bravissimo."],
+    drole:["7 jours d'affilée. La semaine 1 est passée, celle où tout le monde abandonne.",
+      "14 jours. Deux semaines. Tes bonnes résolutions ont survécu au record mondial.",
+      "21 jours d'affilée. À ce stade c'est une habitude, plus un effort.",
+      "30 jours. Un mois entier. Tu peux commencer à te la raconter un peu.",
+      "45 jours de suite. Arrêter maintenant demanderait presque plus d'efforts.",
+      "60 jours. Deux mois. À ce niveau-là, ça devient suspect.",
+      "75 jours sans en rater un. Franchement, c'est agaçant de perfection.",
+      "90 jours d'affilée. Rideau. Tu peux sortir sous les applaudissements."],
+    sarcastique:["7 jours d'affilée. Une semaine. Ne nous emballons pas.",
+      "14 jours. Deux semaines. Là je commence à faire attention.",
+      "21 jours d'affilée. Bon. Je commence à te croire.",
+      "30 jours sans interruption. Un mois. C'est difficile à mettre sur le compte du hasard.",
+      "45 jours de suite. À ce stade, arrêter te demanderait un effort. Ironique.",
+      "60 jours. Deux mois pleins. Je n'ai rien à redire, c'est rare.",
+      "75 jours sans en manquer un. Tu fais exprès de me rendre inutile ?",
+      "90 jours consécutifs. Voilà. Rien à ajouter, et ça ne m'arrive jamais."],
+    vulgaire:["7 jours d'affilée. La première semaine c'est la pire, elle est passée.",
+      "14 jours sans lâcher. Deux semaines, le corps commence à suivre.",
+      "21 jours d'affilée. Là c'est plus de la motivation, c'est ancré.",
+      "30 jours, un mois plein. Putain, respect.",
+      "45 jours de suite. Arrêter maintenant serait plus dur que continuer.",
+      "60 jours. Deux mois pleins. Ça se défait pas en une semaine, ça.",
+      "75 jours sans en rater un seul. T'es à deux doigts du bout.",
+      "90 jours d'affilée. Personne peut te dire que t'es pas allé au bout."],
+    jeune:["7 jours d'affilée, sah. La première semaine c'est la plus dure.",
+      "14 jours, wesh. Deux semaines, le corps commence à suivre.",
+      "21 jours d'affilée. C'est plus du hasard là, c'est ancré.",
+      "30 jours, un mois plein. Grosse dinguerie.",
+      "45 jours de suite. Arrêter serait plus chaud que continuer maintenant.",
+      "60 jours, deux mois. Ça se défait plus, c'est carré.",
+      "75 jours sans en rater un. T'es chaud, reste dessus.",
+      "90 jours d'affilée. T'es allé au bout, personne peut dire le contraire."],
+    commentateur:["7 jours consécutifs ! La première semaine est bouclée, la plus difficile.",
+      "14 jours ! Deux semaines pleines, l'organisme commence à répondre.",
+      "21 jours d'affilée — le seuil où le geste devient automatique !",
+      "30 jours sans interruption ! Un mois complet, le public se lève.",
+      "45 jours consécutifs ! À ce stade, s'arrêter coûterait plus que continuer.",
+      "60 jours ! Deux mois pleins, cette série entre dans les annales.",
+      "75 jours sans un seul manqué ! L'arrivée est en vue.",
+      "90 jours consécutifs ! Série parfaite, il est allé au bout !"]
+  },
+  cap:{     // {n} = jour du programme
+    normal:"Jour {n}. Tu as passé le stade où la plupart abandonnent.",
+    marseillais:"Jour {n} ! La plupart ont déjà lâché avant. Pas toi, collègue.",
+    italien:"Giorno {n}. La plupart abandonnent avant — toi tu es encore là.",
+    drole:"Jour {n}. Statistiquement, tu devrais déjà avoir abandonné. Bravo pour l'anomalie.",
+    sarcastique:"Jour {n}. La plupart lâchent bien avant. Tu es donc minoritaire.",
+    vulgaire:"Jour {n}. La plupart des gens ont lâché depuis longtemps. Pas toi.",
+    jeune:"Jour {n}, wesh. La plupart ont lâché avant, t'es encore là.",
+    commentateur:"Jour {n} ! Le cap où la majorité quitte la course — il est toujours dedans."
+  },
+  moitie:{  // mi-parcours
+    normal:"Mi-parcours. Ce que tu as construit ne se perd plus — la suite se joue sur la régularité.",
+    marseillais:"On est à la moitié ! Té, le plus dur est derrière, maintenant on tient.",
+    italien:"Metà del cammino. Le plus dur est fait, adesso on tient le cap.",
+    drole:"Mi-parcours. Le moment où on se dit « déjà ? » et « encore ? » en même temps.",
+    sarcastique:"Mi-parcours. La moitié la plus facile est derrière. Enfin, on verra.",
+    vulgaire:"Moitié du chemin. Le plus dur est fait, lâche rien maintenant.",
+    jeune:"Mi-parcours, carré. Le plus dur est passé, reste sur le rythme.",
+    commentateur:"Mi-temps ! Le score est bon, tout se joue maintenant sur la seconde période."
+  },
+  final:{   // derniers jours
+    normal:"Dernière ligne droite. C'est ici que se gagnent les résultats qu'on garde.",
+    marseillais:"Dernière ligne droite, collègue ! On finit en beauté.",
+    italien:"Ultima linea retta ! On termine en beauté, non si molla adesso.",
+    drole:"Dernière ligne droite. Ce n'est pas le moment de découvrir les apéros.",
+    sarcastique:"Dernière ligne droite. Ce serait dommage de tout gâcher maintenant.",
+    vulgaire:"Dernière ligne droite. Tu vas pas tout foutre en l'air maintenant.",
+    jeune:"Dernière ligne droite. Finis le taf, t'es trop près.",
+    commentateur:"Dernière ligne droite ! Il ne reste que quelques mètres, le stade est debout !"
+  },
+  kilos:{   // {n} = kilos perdus depuis le départ
+    normal:"{n} kg depuis le départ. Ce n'est pas de la chance, c'est ce que tu as fait tous les jours.",
+    marseillais:"{n} kg de moins, collègue ! Té, c'est pas tombé du ciel.",
+    italien:"{n} kg in meno ! Ce n'est pas de la chance, c'est ton travail.",
+    drole:"{n} kg envolés. Personne ne les cherche, tu peux les laisser partir.",
+    sarcastique:"{n} kg de moins. Difficile de mettre ça sur le compte du hasard.",
+    vulgaire:"{n} kg de moins, bordel. C'est toi qui les as perdus, personne d'autre.",
+    jeune:"{n} kg en moins, carré. C'est toi qui l'as fait.",
+    commentateur:"{n} kg envolés depuis le départ ! La performance parle d'elle-même."
+  }
+};
+// Les caps qui déclenchent un moment. Choisis pour tomber rarement — un cap
+// tous les deux jours n'est plus un cap.
+var MOMENT_SERIES=[7,14,21,30,45,60,75,90];
+var MOMENT_JOURS=[30,60];          // « jour {n} » : les paliers qui parlent
+function momentVus(){var v=lsGet("amcoach_moments_"+CLIENT,{});return (v&&typeof v==="object")?v:{};}
+function momentMarquer(k){var v=momentVus();v[k]=isoLocal();lsSet("amcoach_moments_"+CLIENT,v);}
+function momentTexte(cle,ton,n,idx){
+  var M=MOMENTS[cle]; if(!M)return null;
+  var t=M[ton]||M.normal;
+  // La série stocke un tableau (une phrase par palier) ; les autres moments
+  // gardent une chaîne unique avec {n} à remplacer.
+  if(Object.prototype.toString.call(t)==="[object Array]"){
+    return t[idx!=null&&t[idx]?idx:0];
+  }
+  return String(t).replace("{n}",n);
+}
+// Cherche un moment à célébrer aujourd'hui. Retourne null la plupart du temps
+// — c'est voulu : un moment qui tombe tous les jours n'en est plus un.
+function supMoment(allData,today90,ton){
+  var vus=momentVus();
+  var jour=today90+1;
+  // 1. Fin de programme : le plus fort, il passe devant tout
+  if(jour>=85&&!vus.final)return {cle:"final",txt:momentTexte("final",ton,jour)};
+  // 2. Mi-parcours
+  if(jour>=45&&jour<=47&&!vus.moitie)return {cle:"moitie",txt:momentTexte("moitie",ton,jour)};
+  // 3. Série en cours
+  try{
+    var st=computeStreak(allData,today90);
+    for(var i=MOMENT_SERIES.length-1;i>=0;i--){
+      var pal=MOMENT_SERIES[i];
+      if(st>=pal&&!vus["serie"+pal])return {cle:"serie"+pal,txt:momentTexte("serie",ton,pal,i)};
+    }
+  }catch(e){}
+  // 4. Kilos perdus, par paliers de 2
+  try{
+    var pv=[],dep=null,act=null;
+    for(var d=0;d<=today90;d++){
+      var dd=allData[d]||{};
+      if(dd.poids!=null&&dd.poids!==""){
+        var v=parseFloat(dd.poids);
+        if(!isNaN(v)){if(dep===null)dep=v;act=v;}
+      }
+    }
+    if(dep!=null&&act!=null){
+      var perdu=Math.round((dep-act)*10)/10;
+      var pal2=Math.floor(perdu/2)*2;
+      if(pal2>=2&&!vus["kg"+pal2])return {cle:"kg"+pal2,txt:momentTexte("kilos",ton,pal2)};
+    }
+  }catch(e){}
+  // 5. Jours-caps du programme
+  for(var j=0;j<MOMENT_JOURS.length;j++){
+    var jj=MOMENT_JOURS[j];
+    if(jour>=jj&&jour<jj+2&&!vus["jour"+jj])return {cle:"jour"+jj,txt:momentTexte("cap",ton,jj)};
+  }
+  return null;
+}
 function supMessage(allData,today90,pct){
   var ton=tonActif(allData), T=TONS[ton], S=(T&&T.signaux)||TONS.normal.signaux;
   function dire(cle){
@@ -1951,7 +2127,17 @@ function supMessage(allData,today90,pct){
     if(al&&al.habit==="sommeil")return dire("sommeil");
     if(al&&al.habit==="nutrition")return dire("nutrition");
   }catch(e){}
-  // 3. Rien d'alarmant : la phrase d'état habituelle
+  // 3. Un MOMENT à célébrer ? Il passe devant la phrase d'état : quand
+  // quelqu'un tient depuis des semaines, son niveau ne bouge plus et seule
+  // une vraie nouvelle — un cap, des kilos, une série — mérite d'être lue.
+  try{
+    var MO=supMoment(allData,today90,ton);
+    if(MO){
+      momentMarquer(MO.cle);
+      return {texte:MO.txt,alerte:false,moment:true,cle:MO.cle};
+    }
+  }catch(e){}
+  // 4. Rien d'alarmant, rien à fêter : la phrase d'état habituelle
   var niv=pct>=85?"haut":pct>=65?"bon":pct>=45?"moyen":pct>=25?"bas":"zero";
   return {texte:pickEtat(T[niv],ton+"-"+niv,today90),alerte:false,cle:niv};
 }
@@ -4050,6 +4236,15 @@ function viewCalendar(name,start){
     // s'adresse à toi — c'est ce qui faisait perdre son caractère au message.
     (function(){
       var S=supGet(allData),TT=TONS[S.ton];
+      if(__msg.moment)
+        // Un cap franchi mérite d'être vu : encadré, signé, pas une ligne
+        // de plus dans le flux.
+        return '<div style="background:rgba(93,242,160,.13);border:1px solid rgba(93,242,160,.34);border-radius:14px;padding:13px 15px;margin-top:14px;text-align:left">'+
+          '<div style="display:flex;align-items:center;gap:7px;margin-bottom:5px">'+
+          '<span style="font-size:16px;line-height:1">'+TT.emoji+'</span>'+
+          '<span style="font-size:12.5px;font-weight:900;color:var(--ink)">'+esc(S.prenom)+'</span>'+
+          '<span style="flex:1;text-align:right;font-size:10px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:var(--ok-d)">🎉 cap franchi</span></div>'+
+          '<div style="font-size:13.5px;font-weight:800;color:var(--ink);line-height:1.5">'+etat+'</div></div>';
       if(!__msg.alerte)
         return '<div style="font-size:13.5px;font-weight:800;color:'+pctColor+';margin-top:14px">'+etat+'</div>';
       return '<div style="background:rgba(255,152,0,.12);border:1px solid rgba(255,152,0,.4);border-radius:14px;padding:12px 14px;margin-top:14px;text-align:left">'+

@@ -1547,11 +1547,21 @@ var TONS={
   vulgaire:{
     nom:"Le taré", emoji:"🥊", desc:"Fou, agressif, aucun filtre. Il gueule pour te faire bouger.",
     prenoms:{h:["Serge","Rocky","Didier"],f:["Jacky","Sandra","Patricia"]},
-    haut:["Putain, là t'assures","Bordel, tu déroules","T'as rien lâché, respect","Ça c'est du boulot, continue","Personne peut rien te dire","T'es une machine, point"],
-    bon:["Ça commence à ressembler à quelque chose","Bien, mais lâche rien maintenant","T'es dans le bon, accroche-toi","Ça bosse, continue comme ça","Le rythme est là, garde-le","Pas mal, mais t'as de la marge"],
-    moyen:["Bon, tu fais le minimum là","Tu te fous de qui ? T'es capable de mieux","Ni bien ni mal, décide-toi bordel","La base y est, le reste t'es passé où ?","Serre les dents, c'est pas la mer à boire","Arrête de te chercher des excuses"],
-    bas:["Qu'est-ce que tu fous ? T'as rien rempli","T'es en train de lâcher, assume","Bouge-toi le cul, t'as de la chance que j'aie pas de corps","Une journée pleine et on n'en parle plus","Recommencer c'est chiant, et alors ?","Ton objectif t'attend, il s'impatiente"],
-    zero:["Zéro. Rien. Nada. On fait quoi ?","T'as rien foutu, on repart d'ici","Aujourd'hui rattrape ça, alors bouge","Un jour. Un seul. C'est pas la lune","Tout le monde se plante, c'est de repartir qui compte","Le premier pas, maintenant, pas demain"]
+    haut:["Putain, là t'assures","Bordel, tu déroules","T'as rien lâché, respect","Ça c'est du boulot, continue","Personne peut rien te dire","T'es une machine, point",
+      "Là t'es chirurgical, rien à redire","Tu fais le taf sans discuter, c'est rare","Franchement chapeau, j'ai rien à dire","T'as pris le pli, ça se voit","Ça tourne comme une horloge, continue","T'es en train de devenir quelqu'un d'autre",
+      "Rien à jeter cette semaine","Tu t'es pas cherché d'excuse une seule fois","Là tu me facilites pas le boulot, tout va bien","T'as arrêté de négocier avec toi-même","C'est ça, la différence entre parler et faire","Tu tiens quand les autres lâchent, point"],
+    bon:["Ça commence à ressembler à quelque chose","Bien, mais lâche rien maintenant","T'es dans le bon, accroche-toi","Ça bosse, continue comme ça","Le rythme est là, garde-le","Pas mal, mais t'as de la marge",
+      "T'avances, faut juste pas relâcher","C'est propre, sans plus — t'es capable de mieux","Bien joué, mais on est pas au bout","Ça prend forme, continue de pousser","T'es sur la bonne voie, reste dessus","Correct. Maintenant transforme l'essai",
+      "T'es régulier, c'est déjà énorme","Ça tient, faut que ça devienne automatique","Bon boulot, mais garde le pied dessus","T'as trouvé ton rythme, garde-le","Pas mal du tout, on continue","Solide. Serre encore un peu"],
+    moyen:["Bon, tu fais le minimum là","Tu te fous de qui ? T'es capable de mieux","Ni bien ni mal, décide-toi bordel","La base y est, le reste t'es passé où ?","Serre les dents, c'est pas la mer à boire","Arrête de te chercher des excuses",
+      "T'es en pilote automatique, réveille-toi","À moitié, ça donne des résultats à moitié","T'as fait le strict nécessaire, on va pas se mentir","Tu tiens le minimum syndical, c'est tout","Y'a mieux à faire et tu le sais","Là t'es tiède, et tiède ça transforme rien",
+      "Tu coches sans y croire, ça se voit","Faudrait remettre un peu d'envie là-dedans","Tu subis au lieu de conduire, reprends la main","C'est mou. Deux jours propres et ça repart","T'as l'habitude mais plus l'énergie","Sors de ta zone de confort, elle te sert plus"],
+    bas:["Qu'est-ce que tu fous ? T'as rien rempli","T'es en train de lâcher, assume","Bouge-toi le cul, t'as de la chance que j'aie pas de corps","Une journée pleine et on n'en parle plus","Recommencer c'est chiant, et alors ?","Ton objectif t'attend, il s'impatiente",
+      "Là tu glisses, et tu le sais très bien","T'as coupé le moteur, faut le relancer","Faut arrêter les conneries, on reprend","T'es en train de tout défaire, réagis","Le plus con serait de s'arrêter maintenant","T'as pas fait tout ça pour lâcher là",
+      "Deux jours propres et t'as tout rattrapé","Arrête de reporter à demain, demain c'est aujourd'hui","Tu vaux mieux que cette semaine","Reprends une case, une seule, et ça repart","T'as le droit de fatiguer, pas de disparaître","Bouge, même mal, mais bouge"],
+    zero:["Zéro. Rien. Nada. On fait quoi ?","T'as rien foutu, on repart d'ici","Aujourd'hui rattrape ça, alors bouge","Un jour. Un seul. C'est pas la lune","Tout le monde se plante, c'est de repartir qui compte","Le premier pas, maintenant, pas demain",
+      "Page blanche. Bon. On la remplit ?","T'es sorti du truc, faut y revenir","Zéro c'est pas une fatalité, c'est un lundi","On efface, on reprend, on ferme sa gueule et on avance","Personne te juge, mais faut s'y remettre","T'as arrêté, pas échoué. Nuance",
+      "Une case aujourd'hui, une seule, et t'es reparti","Le vide c'est chiant mais ça se remplit vite","Reprends au plus simple : une chose, aujourd'hui","T'as pas besoin d'une semaine parfaite, juste d'un jour","Le plus dur c'est le premier jour, fais-le","On repart de zéro et alors ? Moi j'y crois encore"]
   },
   jeune:{
     nom:"Le jeune", emoji:"🔥", desc:"Argot d'aujourd'hui, phrases courtes, ça va vite.",
@@ -2964,8 +2974,11 @@ function renderView(){
   var todayIso=isoLocal();
   var acc0=getAllData()[504]||{};
   // 🔒 Verrou de silence : plus de N jours sans ouvrir l'app.
-  // Le seuil est réglable par le coach (0 = désactivé), 7 jours par défaut.
-  var seuilSil=(acc0.silence===undefined?7:acc0.silence);
+  // Le seuil est réglable par le coach (0 = désactivé), 3 jours par défaut.
+  // Akli : « sept jours c'est trop long, c'est déjà trop tard ». À 3 jours,
+  // le verrou tombe le 4ᵉ jour de silence — assez tôt pour rattraper
+  // quelqu'un qui décroche, pas assez pour punir un week-end chargé.
+  var seuilSil=(acc0.silence===undefined?3:acc0.silence);
   var joursSil=0;
   if(lastAct&&lastAct.d)joursSil=Math.floor((new Date(todayIso)-new Date(lastAct.d))/86400000);
   var verrouSil=!!(CLIENT&&seuilSil>0&&lastAct&&lastAct.d&&joursSil>seuilSil);
@@ -2980,8 +2993,9 @@ function renderView(){
       '<div style="font-size:46px;margin:22px 0 10px">🔒</div>'+
       '<div style="color:#fff;font-weight:900;font-size:20px;margin-bottom:12px;text-align:center">Ton accès est en pause</div>'+
       '<div style="color:#8A8A8A;font-size:13.5px;line-height:1.8;max-width:310px;text-align:center;margin-bottom:22px">'+
-      'Tu es restée silencieuse pendant <strong style="color:#fff">'+joursSil+' jours</strong>.<br>'+
-      'Ton suivi ne fonctionne que si tu le remplis — c\'est pour ça qu\'il se met en pause.</div>'+
+      'Tu es resté'+(joursSil>1?'':'')+' silencieux pendant <strong style="color:#fff">'+joursSil+' jours</strong>.<br>'+
+      'Ton suivi ne fonctionne que si tu le remplis — c\'est pour ça qu\'il se met en pause.<br>'+
+      '<span style="color:#fff;font-weight:800">Un message à ton coach suffit à le rouvrir.</span></div>'+
       '<div style="background:rgba(255,255,255,.07);border-radius:16px;padding:15px 18px;text-align:center;margin-bottom:22px">'+
       '<div style="color:#fff;font-weight:900;font-size:22px">'+vRem+' jour'+(vRem>1?'s':'')+'</div>'+
       '<div style="color:#7A7A7A;font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;margin-top:3px">déjà construits</div></div>'+
@@ -7812,8 +7826,15 @@ function viewCoachDash(){
       var der=-1;
       for(var k=t90;k>=0;k--){if(dat[k]&&Object.keys(dat[k]).length){der=k;break;}}
       var silence=(der<0)?t90+1:(t90-der);
-      if(silence>=3){pts+=40;causes.push(silence+" j sans rien remplir");}
-      else if(silence>=2){pts+=20;causes.push("2 j de silence");}
+      // 🔒 Le verrou tombe au 4ᵉ jour de silence. On alerte AVANT : à 2 et 3
+      // jours, il est encore temps d'un message ; une fois l'accès fermé,
+      // c'est le client qui doit faire le premier pas, et beaucoup ne le font
+      // jamais. Une alerte qui arrive après la fermeture ne sert à rien.
+      var silSeuil=3;
+      try{var accS=dat[504]||{};if(accS.silence!==undefined)silSeuil=accS.silence;}catch(e){}
+      if(silSeuil>0&&silence>silSeuil){pts+=60;causes.push("🔒 accès fermé — "+silence+" j de silence");}
+      else if(silSeuil>0&&silence===silSeuil){pts+=50;causes.push("⏳ accès fermé demain — "+silence+" j de silence");}
+      else if(silence>=2){pts+=30;causes.push(silence+" j sans rien remplir");}
       var somOk=0,nutOk=0,vus=0;
       for(var w=Math.max(0,t90-6);w<=t90;w++){
         var dw=dat[w]||{}, hw=dw.habits||{};
@@ -7914,7 +7935,13 @@ function viewCoachDash(){
         (function(){var la=lastActLabel(lsGet("amcoach_"+c.slug,{}));return '<div style="font-size:11px;font-weight:800;margin-top:3px;color:'+la.c+'">📱 Dernière activité : '+la.t+'</div>';})()+'</div></div>'+
         // 📊 Indicateurs 7 derniers jours : briques identité · missions du jour · journal
         (function(){
-          var from=Math.max(0,t90-6), nd=Math.min(t90,89)-from+1;
+          // 📅 SEMAINE CALENDAIRE, du lundi à aujourd'hui. Remise à zéro le
+          // dimanche à minuit. Akli : « comme ça sur la semaine je sais qui
+          // est à jour ». Une fenêtre glissante de 7 jours mélangeait la
+          // semaine en cours et la précédente — impossible de dire, un jeudi,
+          // qui avait tenu SA semaine.
+          var jourSem=(new Date().getDay()+6)%7;   // 0 = lundi … 6 = dimanche
+          var from=Math.max(0,t90-jourSem), nd=Math.min(t90,89)-from+1;
           if(nd<1)return "";
           var briq=0,miss=0,nut=0,som=0,spo=0;
           for(var z=from;z<=Math.min(t90,89);z++){
@@ -7955,12 +7982,26 @@ function viewCoachDash(){
             }
             finChip=chip("💰",fOk,Math.max(fTot,1),"💰 "+fOk+" mois à l'objectif d'épargne (6 derniers mois)");
           }
-          return '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px">'+
-            chip("🧱",briq,nd*2,"Briques identité posées (2/jour) — 7 derniers jours")+
-            chip("⚡",miss,nd,"Missions du jour gagnées — 7 derniers jours")+
-            chip("🏋️",spo,nd,"Sport coché — 7 derniers jours")+
-            chip("🥗",nut,nd,"Nutrition cochée — 7 derniers jours")+
-            chip("😴",som,nd,"Sommeil coché — 7 derniers jours")+
+          // 📅 La période est écrite en clair. Ces compteurs portent sur les
+          // 7 DERNIERS JOURS GLISSANTS, pas sur la semaine calendaire : un
+          // « 5/7 » un jeudi se lit sinon comme une impossibilité, alors que
+          // la fenêtre remonte au vendredi précédent. Les titres au survol le
+          // disaient déjà, mais une infobulle ne s'affiche pas sur téléphone.
+          var __dates="";
+          try{
+            var __d1=new Date(); __d1.setDate(__d1.getDate()-(nd-1));
+            __dates=__d1.toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"});
+          }catch(e){}
+          var __J=["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
+          return '<div style="font-size:10.5px;font-weight:800;color:#999;letter-spacing:.4px;text-transform:uppercase;margin-bottom:5px">'+
+            'Cette semaine · '+nd+' jour'+(nd>1?'s':'')+' écoulé'+(nd>1?'s':'')+
+            (nd<7?' (lundi → '+__J[jourSem]+')':' (semaine complète)')+'</div>'+
+            '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px">'+
+            chip("🧱",briq,nd*2,"Briques identité posées (2/jour) — cette semaine (depuis lundi)")+
+            chip("⚡",miss,nd,"Missions du jour gagnées — cette semaine (depuis lundi)")+
+            chip("🏋️",spo,nd,"Sport coché — cette semaine (depuis lundi)")+
+            chip("🥗",nut,nd,"Nutrition cochée — cette semaine (depuis lundi)")+
+            chip("😴",som,nd,"Sommeil coché — cette semaine (depuis lundi)")+
             protChip+finChip+
             '</div>';
         })()+

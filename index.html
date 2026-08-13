@@ -6957,6 +6957,10 @@ function viewCoachBilans(){
         (nb?nb+' analyse'+(nb>1?'s':'')+(d?' · '+esc(d):''):'<span style="color:var(--warn-d);font-weight:700">bilan à remplir</span>')+
         (p.tel?' · '+esc(p.tel):'')+'</div></div>'+
         '<button class="blv-open" data-id="'+p.id+'" style="flex:0 0 auto;padding:9px 13px;border-radius:11px;border:0;background:var(--brand);color:#fff;font-size:12px;font-weight:800">Ouvrir</button>'+
+        // 🗑️ Retirer la personne de la liste — pour les essais, et pour les
+        // fiches créées par erreur. Distinct du 🗑️ des analyses, qui ne
+        // supprime qu'une analyse à l'intérieur d'un bilan.
+        '<button class="blv-del" data-id="'+p.id+'" style="flex:0 0 auto;padding:9px 11px;border-radius:11px;border:1.5px solid var(--line);background:#fff;color:var(--bad);font-size:12px;font-weight:800">🗑️</button>'+
         '</div></div>';
     }
     if(!vus.length){
@@ -10129,6 +10133,27 @@ function bindCoach(){
     state.blForm=true; state.blEdit=null;
     render();
   });
+  // 🗑️ Retirer une personne de la liste des bilans
+  var blvDl=document.querySelectorAll(".blv-del");
+  for(var bv=0;bv<blvDl.length;bv++)blvDl[bv].addEventListener("click",function(){
+    var id=this.getAttribute("data-id");
+    var L=blvLire(), c=null;
+    for(var i=0;i<L.length;i++){if(L[i].id===id)c=L[i];}
+    if(!c)return;
+    var nb=(c.bilans||[]).length;
+    // On annonce ce qui part : une fiche avec des analyses n'est pas la même
+    // perte qu'une fiche vide créée par erreur.
+    var msg="Supprimer "+blvNom(c)+" ?";
+    if(nb)msg+="\n\n"+nb+" analyse"+(nb>1?"s":"")+" seront perdue"+(nb>1?"s":"")+".";
+    if(c.clientSlug)msg+="\n\nSa fiche client et son lien de suivi ne sont PAS touchés.";
+    if(!confirm(msg))return;
+    // Le brouillon en cours pour cette personne n'a plus d'objet
+    try{blDraftEffacer("libre-"+id);}catch(e){}
+    blvEcrire(L.filter(function(x){return x.id!==id;}));
+    render();
+    feedback("Fiche supprimée","undo");
+  });
+
   var blvOp=document.querySelectorAll(".blv-open");
   for(var bo=0;bo<blvOp.length;bo++)blvOp[bo].addEventListener("click",function(){
     state.blLibre=this.getAttribute("data-id");

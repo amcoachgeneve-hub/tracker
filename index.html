@@ -765,6 +765,7 @@ var state={
   blLibre:null,        // id de la personne dont on remplit le bilan libre
   blvQ:"",             // recherche dans la liste des bilans
   blProfil:"",         // profil détecté pendant le bilan (signification/acceptation/sécurité)
+  blRep:null,          // brouillon des 3 réponses, pour recalculer sans perdre la saisie
   otForm:false,
   qgForm:false,
   otCountdown:false,
@@ -8453,6 +8454,80 @@ var BILAN_PROFILS=[
    dire:"« Voici la méthode exacte, étape par étape, avec les points de contrôle. »",
    eviter:"Presser la décision ou rester vague sur le déroulé."}
 ];
+// ═══ 🧠 DÉTECTION AUTOMATIQUE DU PROFIL ═══
+// Le coach n'a pas à trancher lui-même : l'appli lit les trois réponses et
+// propose un profil. Elle marque des points sur des MARQUEURS DE LANGAGE —
+// ce que la personne dit spontanément trahit son besoin dominant.
+// Le coach garde le dernier mot : une phrase courte ou ambiguë ne doit pas
+// produire un verdict tranché, et il peut toujours corriger d'un clic.
+var BILAN_MARQUEURS={
+  signification:{
+    // Il parle de LUI, de niveau, de dépassement, d'exception
+    mots:["moi","mon corps","ma transfo","je veux le meilleur","le meilleur","passer un cap","niveau","me depasser","depasser","performance","exception","unique","sur-mesure","sur mesure","haut de gamme","excellence","fier","fierte","reussir","reussite","gagner","objectif","resultat","record","progresser","ambition","top","different","me demarquer","demarquer","challenge","competition","serieux","pro","optimiser","maximum"],
+    // Certaines tournures pèsent plus lourd que d'autres
+    forts:["moi","mon corps","le meilleur","passer un cap","me depasser","excellence","me demarquer","performance"]
+  },
+  acceptation:{
+    // Il parle des AUTRES, du regard porté sur lui, de ses doutes
+    mots:["les autres","mon entourage","entourage","ma femme","mon mari","mes enfants","ma famille","famille","mes amis","amis","mes collegues","collegues","regard","juge","jugement","honte","complexe","complexee","ridicule","peur","doute","doutes","j'y arrive pas","j'ai jamais reussi","jamais reussi","echoue","echec","seul","accompagne","soutien","aide","rassure","confiance","legitime","ose","plage","photos","maillot","mariage","vetements","m'habiller","regarder"],
+    forts:["les autres","mon entourage","regard","honte","ridicule","jugement","complexe","seul","doute"]
+  },
+  securite:{
+    // Il parle du COMMENT, des étapes, des risques, du cadre
+    mots:["comment","methode","methodes","programme","etape","etapes","plan","structure","organisation","precis","precise","details","detail","suivi","cadre","garantie","risque","risques","blessure","douleur","dos","medecin","sante","controle","regulier","progressif","doucement","securite","serieux","science","prouve","combien de temps","duree","frequence","planning","horaire","rigueur","discipline","cadrer","savoir","comprendre"],
+    forts:["methode","etapes","plan","structure","garantie","risque","blessure","precis","comment","controle"]
+  }
+};
+// On enlève les accents et la ponctuation pour que « dépassé » et « depasse »
+// comptent pareil — sinon la détection dépend de l'orthographe du coach.
+function blNorm(t){
+  return String(t||"").toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/['’]/g," ").replace(/[^a-z0-9 ]/g," ")
+    .replace(/\s+/g," ").trim();
+}
+// Analyse les 3 réponses et renvoie un classement.
+// La question 3 (« qui le remarquera en premier ? ») est la plus
+// discriminante : elle force un choix entre soi et les autres. On la
+// pondère double. La question 2 (l'échec passé) vient ensuite.
+function bilanProfilAuto(rep){
+  var poidsQ={pq1:1, pq2:1.2, pq3:2};
+  var score={signification:0, acceptation:0, securite:0};
+  var touches={signification:[], acceptation:[], securite:[]};
+  var motsTotal=0;
+  for(var q in poidsQ){
+    var txt=blNorm(rep[q]);
+    if(!txt)continue;
+    motsTotal+=txt.split(" ").length;
+    for(var k in BILAN_MARQUEURS){
+      var M=BILAN_MARQUEURS[k];
+      for(var i=0;i<M.mots.length;i++){
+        var m=M.mots[i];
+        // On cherche le mot entouré d'espaces pour éviter qu'« ose » morde
+        // dans « chose » ou « seul » dans « seulement ».
+        if((" "+txt+" ").indexOf(" "+m+" ")>-1||(m.indexOf(" ")>-1&&txt.indexOf(m)>-1)){
+          var pts=(M.forts.indexOf(m)>-1)?2:1;
+          score[k]+=pts*poidsQ[q];
+          if(touches[k].indexOf(m)===-1)touches[k].push(m);
+        }
+      }
+    }
+  }
+  var classe=[];
+  for(var c in score)classe.push({k:c, s:Math.round(score[c]*10)/10, mots:touches[c]});
+  classe.sort(function(a,b){return b.s-a.s;});
+  var total=classe[0].s+classe[1].s+classe[2].s;
+  var ecart=classe[0].s-classe[1].s;
+  // Trois raisons de ne PAS trancher : rien trouvé, réponses trop courtes,
+  // ou deux profils au coude à coude. Dans ces cas on le dit franchement
+  // plutôt que d'afficher un profil que le coach croirait fiable.
+  var etat="ok";
+  if(!total)etat="rien";
+  else if(motsTotal<12)etat="court";
+  else if(ecart<2)etat="serre";
+  return {classe:classe, top:classe[0], total:total, ecart:ecart, etat:etat, motsTotal:motsTotal,
+          part:total?Math.round(classe[0].s/total*100):0};
+}
 function bilanProfil(k){for(var i=0;i<BILAN_PROFILS.length;i++){if(BILAN_PROFILS[i].k===k)return BILAN_PROFILS[i];}return null;}
 var BILAN_CONTEXTE=[["freins","Qu'est-ce qui pourrait t'empêcher de faire ce challenge et d'atteindre ton objectif ? (finances, entourage, environnement...)","area"],["prof","Profession et stress ?","text"],["horaires","Horaires de travail ?","text"],["fatphy","Fatigue physique de 1 à 10 — si en dessous de 6, pourquoi ?","text"],["fatmen","Fatigue mentale de 1 à 10 — si en dessous de 6, pourquoi ?","text"]];
 // 🧭 LES TROIS QUESTIONS DE PROFILAGE. Une seule question ne suffisait pas :
@@ -8668,15 +8743,56 @@ function viewCoachBilan(){
   // tout l'entretien, il faut l'avoir en tête dès les premières minutes.
   for(var pq=0;pq<BILAN_PROFIL_Q.length;pq++){
     var PQ=BILAN_PROFIL_Q[pq];
-    h+=bilanQ("bl-q-"+PQ.k,PQ.q,"area",__ed&&__ed.q?__ed.q[PQ.k]:"");
+    // Le brouillon (state.blRep) reprend la main sur la valeur enregistrée :
+    // sans lui, redessiner pour recalculer le profil viderait les champs.
+    var __v=(state.blRep&&state.blRep[PQ.k]!=null)?state.blRep[PQ.k]:(__ed&&__ed.q?__ed.q[PQ.k]:"");
+    h+=bilanQ("bl-q-"+PQ.k,PQ.q,"area",__v);
     h+='<div style="font-size:11px;color:var(--mute);line-height:1.45;margin:-10px 0 14px;font-style:italic">'+PQ.aide+'</div>';
   }
-  // Le profil se coche après les trois réponses, tant qu'elles sont fraîches.
+  // Le profil est DÉDUIT des trois réponses. Le coach n'a rien à trancher :
+  // l'appli lit ce qui a été écrit et propose. Il garde la main pour corriger,
+  // parce qu'il a entendu le ton de la voix, lui — pas l'appli.
   (function(){
-    var pfSel=(state.blProfil!==undefined&&state.blProfil!=="")?state.blProfil:((__ed&&__ed.profil)||"");
+    var rep={};
+    for(var r=0;r<BILAN_PROFIL_Q.length;r++){
+      var K=BILAN_PROFIL_Q[r].k;
+      rep[K]=(state.blRep&&state.blRep[K])||(document.getElementById("bl-q-"+K)?document.getElementById("bl-q-"+K).value:"")||(__ed&&__ed.q&&__ed.q[K])||"";
+    }
+    var A=bilanProfilAuto(rep);
+    // Le choix manuel prime toujours sur la détection
+    var manuel=(state.blProfil!==undefined&&state.blProfil!=="")?state.blProfil:"";
+    var pfSel=manuel||((__ed&&__ed.profil)||"")||((A.etat==="ok")?A.top.k:"");
+    var auto=(!manuel&&A.etat==="ok"&&pfSel===A.top.k);
     h+='<div style="background:var(--soft);border-radius:13px;padding:13px 14px;margin:0 0 16px">'+
-      '<div style="font-size:11px;font-weight:900;letter-spacing:.6px;text-transform:uppercase;color:var(--mute);margin-bottom:4px">Le profil que j\'ai en face</div>'+
-      '<div style="font-size:11px;color:var(--mute);line-height:1.45;margin-bottom:8px">Un même profil ressort en général sur au moins deux des trois réponses.</div>'+
+      '<div style="font-size:11px;font-weight:900;letter-spacing:.6px;text-transform:uppercase;color:var(--mute);margin-bottom:7px">Le profil que j\'ai en face</div>';
+    // Ce que l'analyse a trouvé, et sur quels mots — pour que le coach puisse
+    // juger si la déduction tient, au lieu de croire une boîte noire.
+    if(A.etat==="rien"){
+      h+='<div style="font-size:11.5px;color:var(--mute);line-height:1.5;margin-bottom:9px">Réponds aux trois questions ci-dessus : le profil se déduira tout seul.</div>';
+    }else if(A.etat==="court"){
+      h+='<div style="font-size:11.5px;color:var(--warn-d);line-height:1.5;margin-bottom:9px">⚠️ Réponses trop courtes pour trancher. Fais-le développer, ou choisis toi-même.</div>';
+    }else if(A.etat==="serre"){
+      var n1=bilanProfil(A.classe[0].k), n2=bilanProfil(A.classe[1].k);
+      h+='<div style="font-size:11.5px;color:var(--warn-d);line-height:1.5;margin-bottom:9px">⚠️ Deux profils au coude à coude : '+n1.e+' '+n1.n+' et '+n2.e+' '+n2.n+'. À toi de trancher — tu as entendu le ton, pas moi.</div>';
+    }else{
+      var TP=bilanProfil(A.top.k);
+      h+='<div style="background:#fff;border-radius:11px;padding:10px 12px;margin-bottom:9px;border:1.5px solid var(--brand)">'+
+        '<div style="font-size:12.5px;font-weight:900;color:var(--brand)">'+TP.e+' Profil détecté : '+TP.n+' · '+A.part+' %</div>'+
+        '<div style="font-size:11px;color:var(--mute);line-height:1.45;margin-top:3px">D\'après ce qu\'il a dit : « '+esc(A.top.mots.slice(0,5).join(" », « "))+' »</div></div>';
+    }
+    // Les trois scores, pour voir d'où vient la déduction
+    if(A.total){
+      for(var c=0;c<A.classe.length;c++){
+        var CC=A.classe[c], PC=bilanProfil(CC.k);
+        var pct=A.total?Math.round(CC.s/A.total*100):0;
+        h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">'+
+          '<span style="font-size:11.5px;font-weight:800;flex:0 0 108px">'+PC.e+' '+PC.n+'</span>'+
+          '<div style="flex:1;height:6px;border-radius:100px;background:var(--soft2);overflow:hidden">'+
+          '<div style="height:100%;width:'+pct+'%;background:'+(c===0&&A.etat==="ok"?"var(--brand)":"var(--mute)")+';border-radius:100px"></div></div>'+
+          '<span style="font-size:11px;font-weight:800;color:var(--mute);min-width:32px;text-align:right">'+pct+'%</span></div>';
+      }
+    }
+    h+='<div style="font-size:10.5px;color:var(--mute);margin:9px 0 6px">'+(auto?"Détecté automatiquement — corrige si tu n\'es pas d\'accord :":"Choisis le profil :")+'</div>'+
       '<div style="display:flex;gap:6px;flex-wrap:wrap">';
     for(var pf=0;pf<BILAN_PROFILS.length;pf++){
       var PF=BILAN_PROFILS[pf], on=(PF.k===pfSel);
@@ -8685,17 +8801,11 @@ function viewCoachBilan(){
     h+='</div>';
     if(pfSel){
       var P2=bilanProfil(pfSel);
-      h+='<div style="margin-top:11px;font-size:11.5px;line-height:1.55;color:var(--ink2)">'+
-        '<div><strong>Ce qu\'il montre :</strong> '+P2.ind+'</div>'+
-        '<div style="margin-top:5px"><strong>Sa peur :</strong> '+P2.peur+'</div>'+
+      h+='<div style="margin-top:11px;font-size:11.5px;line-height:1.55;color:var(--ink2);border-top:1px solid var(--line);padding-top:10px">'+
+        '<div><strong>Sa peur :</strong> '+P2.peur+'</div>'+
         '<div style="margin-top:5px"><strong>Ton ton :</strong> '+P2.ton+'</div>'+
         '<div style="margin-top:5px;font-style:italic;color:var(--ink)">'+P2.dire+'</div>'+
         '<div style="margin-top:5px;color:var(--bad)"><strong>À éviter :</strong> '+P2.eviter+'</div></div>';
-    }else{
-      h+='<div style="margin-top:9px;font-size:11px;color:var(--mute);line-height:1.6">'+
-        '🎯 il parle de LUI, de niveau, de se démarquer<br>'+
-        '🤝 il parle du REGARD DES AUTRES, il doute de lui<br>'+
-        '🛡️ il pose des questions TECHNIQUES, il veut le détail</div>';
     }
     h+='</div>';
   })();
@@ -9739,7 +9849,7 @@ function bindCoach(){
 
   var pBil=document.querySelectorAll(".pipe-bilan");
   for(var pb=0;pb<pBil.length;pb++)pBil[pb].addEventListener("click",function(){
-    state.blProspect=this.getAttribute("data-id");
+    state.blProspect=this.getAttribute("data-id"); state.blRep=null; state.blProfil="";
     state.blForm=false; state.blEdit=null;
     render();
   });
@@ -10002,7 +10112,7 @@ function bindCoach(){
            prenom:parts[0], nom:parts.slice(1).join(" "),
            cree:isoLocal(), maj:isoLocal(), bilans:[]};
     blvSauver(p);
-    state.blLibre=p.id; state.coachBilans=false;
+    state.blLibre=p.id; state.coachBilans=false; state.blRep=null; state.blProfil="";
     state.blForm=true; state.blEdit=null;
     render();
   });
@@ -10066,6 +10176,32 @@ function bindCoach(){
     render();
     feedback("🎉 "+nom+" est client — lien ?client="+slug,"win");
   });
+
+  // 🧠 RECALCUL DU PROFIL. La détection lit les trois champs au moment du
+  // rendu — sans ce branchement, elle ne voyait jamais ce qui vient d'être
+  // tapé et le profil restait vide. On réagit sur "change" (déclenché quand
+  // le champ perd le focus), et jamais sur "input" : redessiner à chaque
+  // frappe ferait perdre le curseur au milieu d'une phrase.
+  (function(){
+    if(typeof BILAN_PROFIL_Q==="undefined")return;
+    for(var i=0;i<BILAN_PROFIL_Q.length;i++){
+      var el=document.getElementById("bl-q-"+BILAN_PROFIL_Q[i].k);
+      if(!el||el.__pfOk)continue;
+      el.__pfOk=true;
+      el.addEventListener("change",function(){
+        // On mémorise la saisie avant de redessiner : le rendu relit les
+        // champs, mais un brouillon non enregistré serait perdu sinon.
+        try{
+          state.blRep=state.blRep||{};
+          for(var j=0;j<BILAN_PROFIL_Q.length;j++){
+            var e2=document.getElementById("bl-q-"+BILAN_PROFIL_Q[j].k);
+            if(e2)state.blRep[BILAN_PROFIL_Q[j].k]=e2.value;
+          }
+        }catch(e){}
+        render();
+      });
+    }
+  })();
 
   var blPf=document.querySelectorAll(".bl-profil");
   for(var bp=0;bp<blPf.length;bp++)blPf[bp].addEventListener("click",function(){
@@ -10219,7 +10355,15 @@ function bindCoach(){
     var allQ=BILAN_CONTEXTE.concat([BILAN_SEMAINE]).concat(BILAN_HAB);
     for(var pz=0;pz<BILAN_PROFIL_Q.length;pz++)allQ=allQ.concat([[BILAN_PROFIL_Q[pz].k]]);
     for(var qq=0;qq<allQ.length;qq++){a.q[allQ[qq][0]]=gv2("bl-q-"+allQ[qq][0]);}
-    a.profil=state.blProfil||(state.blEdit!=null?a.profil:"")||"";
+    // On enregistre le profil retenu : le choix manuel s'il y en a eu un,
+    // sinon celui que l'analyse a déduit des réponses.
+    if(state.blProfil)a.profil=state.blProfil;
+    else{
+      var __rp={};
+      for(var __r=0;__r<BILAN_PROFIL_Q.length;__r++)__rp[BILAN_PROFIL_Q[__r].k]=a.q[BILAN_PROFIL_Q[__r].k]||"";
+      var __A=bilanProfilAuto(__rp);
+      a.profil=(__A.etat==="ok")?__A.top.k:"";
+    }
     if(!a.poids&&!a.obj1){alert("Renseigne au moins le poids ou un objectif.");return;}
     var pos;
     if(state.blLibre){
@@ -10237,7 +10381,7 @@ function bindCoach(){
       if(a.nom)lpx.nom=a.nom;
       lpx.maj=isoLocal();
       blvSauver(lpx);
-      state.blEdit=null; state.blForm=false;
+      state.blEdit=null; state.blForm=false; state.blRep=null; state.blProfil="";
       feedback("📋 Bilan enregistré","ok");
       render();
       return;
@@ -10254,7 +10398,7 @@ function bindCoach(){
       else {cible.bilans.push(a);pos=cible.bilans.length-1;}
       for(var y2=0;y2<LP2.length;y2++){if(LP2[y2].id===cible.id)LP2[y2]=cible;}
       pipeEcrire(LP2);
-      state.blEdit=null; state.blForm=false;
+      state.blEdit=null; state.blForm=false; state.blRep=null; state.blProfil="";
       feedback("📋 Bilan enregistré","ok");
       render();
       return;

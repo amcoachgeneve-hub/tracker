@@ -8557,12 +8557,21 @@ function bilanInput(id,label,ph,type,val){
 // ═══════════ 💾 BROUILLON DE BILAN ═══════════
 // Un bilan se remplit en plusieurs fois, parfois pendant la séance.
 // Tout ce qui est tapé est sauvegardé au fil de l'eau : fermer l'app ne perd rien.
+// 🔑 IDENTIFIANT DU BILAN EN COURS, quelle que soit son origine.
+// Le brouillon se repérait par `state.coachDetail` — vide pour un bilan de
+// prospect ou un bilan libre. Résultat : rien n'était sauvegardé pour eux, et
+// tout se perdait à la fermeture. Un seul point de vérité désormais.
+function blSujet(){
+  if(state.blLibre)return "libre-"+state.blLibre;
+  if(state.blProspect)return "prosp-"+state.blProspect;
+  return state.coachDetail||null;
+}
 function blDraftKey(slug){return "amcoach_bldraft_"+slug;}
 function blDraftLire(slug){return lsGet(blDraftKey(slug),null);}
 function blDraftEffacer(slug){try{localStorage.removeItem(blDraftKey(slug));}catch(e){}}
 var __blTimer=null;
 function blDraftSauver(){
-  var slug=state.coachDetail;
+  var slug=blSujet();
   if(!slug||state.blJusteEnregistre)return;
   var d={champs:{},maj:new Date().toISOString(),edit:state.blEdit||null};
   var n=document.querySelectorAll("#bl-form input,#bl-form textarea,#bl-form select");
@@ -8581,7 +8590,7 @@ function blDraftPlanifier(){
   __blTimer=setTimeout(blDraftSauver,600);
 }
 function blDraftRestaurer(){
-  var slug=state.coachDetail;
+  var slug=blSujet();
   var d=blDraftLire(slug);
   if(!d||!d.champs)return false;
   var n=0;
@@ -8657,6 +8666,10 @@ function viewCoachBilan(){
         '<button class="bl-report" data-i="'+b+'" data-mode="client" style="font-size:11px;font-weight:800;color:#fff;padding:5px 10px;border:0;border-radius:14px;background:var(--ok)">📤 Client</button>'+
         '<button class="bl-report" data-i="'+b+'" data-mode="full" style="font-size:11px;font-weight:800;color:var(--brand2);padding:5px 10px;border:1.5px solid var(--brand2);border-radius:14px;background:#fff">📄 Complet</button>'+
         '<button class="bl-edit" data-i="'+b+'" style="font-size:11px;font-weight:800;color:var(--mute);padding:5px 10px;border:1.5px solid var(--line);border-radius:14px;background:#fff">✏️</button></span></div>';
+        // 🗑️ Suppression d'une analyse — il en faut une pour les essais, et
+        // pour corriger une saisie faite sur la mauvaise personne.
+        '<button class="bl-del" data-i="'+b+'" style="font-size:11px;font-weight:800;color:var(--bad);padding:5px 9px;border:1.5px solid var(--line);border-radius:8px;background:#fff">🗑️</button>'+
+        '</span></div>';
     }
     h+='</div>';
     // 📊 Comparaison / progression (dès 2 analyses)
@@ -8681,7 +8694,7 @@ function viewCoachBilan(){
   }
   var today=new Date();
   var dstr=("0"+today.getDate()).slice(-2)+"/"+("0"+(today.getMonth()+1)).slice(-2)+"/"+today.getFullYear();
-  var __dr=blDraftLire(state.coachDetail);
+  var __dr=blDraftLire(blSujet());
   // Date de naissance déjà connue côté cliente (slot 503)
   var __allC=lsGet("amcoach_"+slug,{});
   var __bdayTracker=bdayLire(__allC).bday||"";
@@ -10293,7 +10306,7 @@ function bindCoach(){
   var blClr=document.getElementById("bl-draft-clear");
   if(blClr)blClr.addEventListener("click",function(){
     if(!confirm("Effacer le brouillon et repartir d'une analyse vide ?"))return;
-    blDraftEffacer(state.coachDetail);
+    blDraftEffacer(blSujet());
     feedback("Brouillon effacé","undo");
     render();
   });
@@ -10302,11 +10315,46 @@ function bindCoach(){
     state.blEdit=null; render();
   });
   // ✏️ Reprendre une analyse déjà enregistrée
+  // 🗑️ Supprimer une analyse — la suppression route vers la bonne origine :
+  // fiche client (slot 600), prospect du pipeline, ou bilan libre.
+  var blDl=document.querySelectorAll(".bl-del");
+  for(var bd=0;bd<blDl.length;bd++)blDl[bd].addEventListener("click",function(){
+    var i=parseInt(this.getAttribute("data-i"),10);
+    if(!confirm("Supprimer l'analyse "+(i+1)+" ? C'est définitif."))return;
+    if(state.blLibre){
+      var L=blvLire(), c=null;
+      for(var a=0;a<L.length;a++){if(L[a].id===state.blLibre)c=L[a];}
+      if(!c)return;
+      c.bilans=(c.bilans||[]).slice(); c.bilans.splice(i,1); c.maj=isoLocal();
+      for(var a2=0;a2<L.length;a2++){if(L[a2].id===c.id)L[a2]=c;}
+      blvEcrire(L);
+    }else if(state.blProspect){
+      var P=pipeLire(), q=null;
+      for(var b2=0;b2<P.length;b2++){if(P[b2].id===state.blProspect)q=P[b2];}
+      if(!q)return;
+      q.bilans=(q.bilans||[]).slice(); q.bilans.splice(i,1); q.maj=isoLocal();
+      for(var b3=0;b3<P.length;b3++){if(P[b3].id===q.id)P[b3]=q;}
+      pipeEcrire(P);
+    }else{
+      var slug=state.coachDetail;
+      var b6=lsGet("amcoach_"+slug,{})[600]||{};
+      var list=(b6.list||[]).slice();
+      list.splice(i,1);
+      coachSaveSlot(slug,600,{list:list});
+    }
+    // Une modification en cours sur l'analyse supprimée n'a plus d'objet
+    if(state.blEdit===i){state.blEdit=null;state.blForm=false;}
+    else if(state.blEdit!=null&&state.blEdit>i)state.blEdit--;
+    state.blCmpA=null; state.blCmpB=null;   // les index de comparaison ont glissé
+    render();
+    feedback("Analyse supprimée","undo");
+  });
+
   var blEd=document.querySelectorAll(".bl-edit");
   for(var be=0;be<blEd.length;be++){
     blEd[be].addEventListener("click",function(){
       state.blEdit=parseInt(this.getAttribute("data-i"),10);
-      blDraftEffacer(state.coachDetail);
+      blDraftEffacer(blSujet());
       render();
       setTimeout(function(){
         var f=document.getElementById("bl-form");

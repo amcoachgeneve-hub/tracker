@@ -1892,6 +1892,47 @@ var TON_SIGNAUX={
     nutrition:["L'assiette faiblit, et c'est 70 % du match.","La nutrition décroche. Impossible de compenser ailleurs.","L'assiette ne suit pas. On reprend dès le prochain repas."]
   }
 };
+
+// Deux signaux ajoutés après coup : le SPORT (pilier que computeAlert
+// détectait déjà mais que supMessage ne lisait pas) et la PESÉE (plus de
+// 7 jours sans chiffre = rien n'est vérifiable, donc on ne félicite pas).
+var TON_SIGNAUX_PLUS={
+  normal:{
+    sport:["Le sport a manqué cette semaine. Sans séances, le reste ne suffit pas.","Tes séances sautent trop souvent. Vingt minutes valent mieux que zéro.","L'entraînement décroche. C'est lui qui protège ton muscle pendant la perte."],
+    pesee:["Tu ne t'es pas pesé depuis plus d'une semaine. Sans chiffre, personne ne peut dire où tu en es.","Aucune pesée récente. Monte sur la balance demain matin à jeun, on repart de là.","Ton dernier poids date. Une pesée, et on saura si le travail paie."]
+  },
+  marseillais:{
+    sport:["Le sport a sauté cette semaine, collègue. Sans séance, tu peux rien attendre.","Té, t'as pas bougé de la semaine. Vingt minutes, c'est déjà mieux que rien.","L'entraînement part en cacade. C'est lui qui garde ton muscle."],
+    pesee:["Ça fait plus d'une semaine sans pesée, collègue. Sans chiffre, dégun peut rien te dire.","T'es pas monté sur la balance. Demain matin à jeun, et on regarde.","Ton dernier poids date de loin. Une pesée et on sait où on va."]
+  },
+  italien:{
+    sport:["L'allenamento a manqué cette semaine. Sans séance, niente résultat.","Tu n'as pas bougé, mamma mia. Venti minuti valent mieux que zéro.","Le sport décroche. C'est lui qui protège le muscle, sempre."],
+    pesee:["Più di una settimana sans pesée. Sans chiffre, on avance à l'aveugle.","Tu ne montes plus sur la bilancia. Demain matin à jeun, subito.","Ton dernier poids è vecchio. Une pesée et on saura, coraggio."]
+  },
+  drole:{
+    sport:["Tes baskets prennent la poussière. Le corps ne change pas tout seul.","Le sport a fait la grève cette semaine. Vingt minutes, même mal fait, ça compte.","L'entraînement a disparu. C'est pourtant lui qui garde ton muscle."],
+    pesee:["Ta balance se demande si tu existes encore. Plus d'une semaine sans nouvelles.","Aucune pesée récente. Difficile de juger un match sans le score.","Ton dernier poids commence à dater. Demain matin, à jeun, sans négocier."]
+  },
+  sarcastique:{
+    sport:["Le sport a manqué cette semaine. Curieux, pour un programme sportif.","Tes séances sautent. Le corps, lui, ne saute pas les conséquences.","L'entraînement décroche. C'est pourtant la seule chose qui protège ton muscle."],
+    pesee:["Plus d'une semaine sans pesée. Pratique, pour ne pas savoir.","Aucun chiffre récent. On jugera donc au ressenti. Excellente méthode.","Ton dernier poids date. Une pesée demain matin, et on parlera de faits."]
+  },
+  vulgaire:{
+    sport:["T'as pas fait de sport cette semaine, putain. Sans séance tu attends quoi ?","Les séances sautent. Vingt minutes, c'est pas la mer à boire.","L'entraînement lâche. C'est lui qui garde ton muscle, bordel."],
+    pesee:["Plus d'une semaine sans te peser, sérieux ? Sans chiffre on sait rien.","Monte sur cette balance demain matin. À jeun. Pas d'excuse.","Ton dernier poids date d'une éternité. Pèse-toi, on verra bien."]
+  },
+  jeune:{
+    sport:["T'as zappé le sport cette semaine, sah. Sans séance ça bouge pas.","Les séances sautent, c'est le seum. Vingt minutes et c'est carré.","L'entraînement décroche. C'est lui qui protège ton muscle, wesh."],
+    pesee:["Plus d'une semaine sans pesée, chelou. Sans chiffre on est dans le flou.","Balance demain matin à jeun. Direct.","Ton dernier poids date, sah. Une pesée et on sait où t'en es."]
+  },
+  commentateur:{
+    sport:["Le sport a manqué cette semaine, et c'est le poste le plus coûteux.","Séances absentes. Aucune tactique ne compense un entraînement sauté.","L'entraînement décroche : c'est lui qui protège la masse musculaire."],
+    pesee:["Plus d'une semaine sans pesée : impossible d'établir le score.","Aucune donnée récente sur la balance. On avance sans chiffre, et ça ne se juge pas.","Le dernier relevé date. Une pesée demain matin, et on aura la vraie tendance."]
+  }
+};
+for(var __sp in TON_SIGNAUX_PLUS){
+  if(TON_SIGNAUX[__sp]){for(var __sk2 in TON_SIGNAUX_PLUS[__sp]){TON_SIGNAUX[__sp][__sk2]=TON_SIGNAUX_PLUS[__sp][__sk2];}}
+}
 for(var __sk in TON_SIGNAUX){if(TONS[__sk])TONS[__sk].signaux=TON_SIGNAUX[__sk];}
 
 // Décide de CE QUE le superviseur doit dire aujourd'hui.
@@ -2023,6 +2064,25 @@ var MOMENT_SERIES=[7,14,21,30,45,60,75,90];
 var MOMENT_JOURS=[30,60];          // « jour {n} » : les paliers qui parlent
 function momentVus(){var v=lsGet("amcoach_moments_"+CLIENT,{});return (v&&typeof v==="object")?v:{};}
 function momentMarquer(k){var v=momentVus();v[k]=isoLocal();lsSet("amcoach_moments_"+CLIENT,v);}
+// Retire des moments SANS les annoncer. Sert au rattrapage : quelqu'un qui
+// arrive au jour 41 avec 41 jours de série a franchi 7, 14, 21 et 30 avant
+// que la fonctionnalité existe. Les lui sortir un par un, du plus grand au
+// plus petit, donne exactement ce qu'il a vu : « super 30 jours » la veille,
+// « super 14 jours » le lendemain.
+function momentRetirer(cles){
+  var v=momentVus(),i;
+  for(i=0;i<cles.length;i++){if(!v[cles[i]])v[cles[i]]="rattrape";}
+  lsSet("amcoach_moments_"+CLIENT,v);
+  return v;
+}
+// Un seul moment par jour. momentMarquer est appelé au rendu, et render() est
+// rappelé à chaque case cochée : sans ce garde-fou, une pile de moments en
+// retard se viderait en quelques clics dans la même journée.
+function momentDuJour(vus){
+  var t=isoLocal(),k;
+  for(k in vus){if(vus[k]===t)return true;}
+  return false;
+}
 function momentTexte(cle,ton,n,idx){
   var M=MOMENTS[cle]; if(!M)return null;
   var t=M[ton]||M.normal;
@@ -2038,16 +2098,34 @@ function momentTexte(cle,ton,n,idx){
 function supMoment(allData,today90,ton){
   var vus=momentVus();
   var jour=today90+1;
+  // Règle de base : UN cap par jour maximum.
+  if(momentDuJour(vus))return null;
   // 1. Fin de programme : le plus fort, il passe devant tout
   if(jour>=85&&!vus.final)return {cle:"final",txt:momentTexte("final",ton,jour)};
-  // 2. Mi-parcours
+  // 2. Mi-parcours — passé la fenêtre, il est retiré au lieu d'être gardé en
+  //    réserve : un mi-parcours annoncé au jour 60 ne veut plus rien dire.
   if(jour>=45&&jour<=47&&!vus.moitie)return {cle:"moitie",txt:momentTexte("moitie",ton,jour)};
-  // 3. Série en cours
+  if(jour>47&&!vus.moitie)vus=momentRetirer(["moitie"]);
+  // 3. Série en cours — SEUL LE PALIER LE PLUS HAUT ATTEINT se célèbre.
+  //    Les paliers inférieurs sont retirés en silence : ils sont derrière, et
+  //    les annoncer après coup revient à féliciter pour 14 jours quelqu'un
+  //    qui en est à 41.
   try{
-    var st=computeStreak(allData,today90);
-    for(var i=MOMENT_SERIES.length-1;i>=0;i--){
-      var pal=MOMENT_SERIES[i];
-      if(st>=pal&&!vus["serie"+pal])return {cle:"serie"+pal,txt:momentTexte("serie",ton,pal,i)};
+    var st=computeStreak(allData,today90),hi=-1,i,bas=[];
+    for(i=0;i<MOMENT_SERIES.length;i++){if(st>=MOMENT_SERIES[i])hi=i;}
+    if(hi>=0){
+      // Un cap se fête quand il TOMBE, pas onze jours après. Au-delà de
+      // 3 jours de retard (l'appli n'a pas été ouverte, la fonctionnalité
+      // vient d'arriver), le palier est derrière : on le retire sans rien dire
+      // et on attend le suivant.
+      var frais=(st-MOMENT_SERIES[hi])<=3;
+      for(i=0;i<=hi;i++){
+        if(i===hi&&frais)continue;
+        if(!vus["serie"+MOMENT_SERIES[i]])bas.push("serie"+MOMENT_SERIES[i]);
+      }
+      if(bas.length)vus=momentRetirer(bas);
+      if(frais&&!vus["serie"+MOMENT_SERIES[hi]])
+        return {cle:"serie"+MOMENT_SERIES[hi],txt:momentTexte("serie",ton,MOMENT_SERIES[hi],hi)};
     }
   }catch(e){}
   // 4. Kilos perdus, par paliers de 2
@@ -2063,15 +2141,56 @@ function supMoment(allData,today90,ton){
     if(dep!=null&&act!=null){
       var perdu=Math.round((dep-act)*10)/10;
       var pal2=Math.floor(perdu/2)*2;
-      if(pal2>=2&&!vus["kg"+pal2])return {cle:"kg"+pal2,txt:momentTexte("kilos",ton,pal2)};
+      // Même règle que la série : on fête les 6 kg, pas les 2 kg d'il y a un
+      // mois. Les paliers dépassés sont retirés sans rien dire.
+      if(pal2>=2){
+        // Quand ce palier a-t-il été franchi ? Un « 2 kg de moins » annoncé
+        // trois semaines après le jour où la balance l'a affiché sonne faux.
+        var jFranchi=-1;
+        for(var q=0;q<=today90;q++){
+          var dq=allData[q]||{};
+          if(dq.poids!=null&&dq.poids!==""){
+            var vq=parseFloat(dq.poids);
+            if(!isNaN(vq)&&(dep-vq)>=pal2){jFranchi=q;break;}
+          }
+        }
+        var kFrais=(jFranchi>=0&&(today90-jFranchi)<=5);
+        var basK=[],p;
+        for(p=2;p<=pal2;p+=2){
+          if(p===pal2&&kFrais)continue;
+          if(!vus["kg"+p])basK.push("kg"+p);
+        }
+        if(basK.length)vus=momentRetirer(basK);
+        if(kFrais&&!vus["kg"+pal2])return {cle:"kg"+pal2,txt:momentTexte("kilos",ton,pal2)};
+      }
     }
   }catch(e){}
-  // 5. Jours-caps du programme
+  // 5. Jours-caps du programme : fenêtre de 2 jours, puis retiré.
   for(var j=0;j<MOMENT_JOURS.length;j++){
     var jj=MOMENT_JOURS[j];
     if(jour>=jj&&jour<jj+2&&!vus["jour"+jj])return {cle:"jour"+jj,txt:momentTexte("cap",ton,jj)};
+    if(jour>=jj+2&&!vus["jour"+jj])vus=momentRetirer(["jour"+jj]);
   }
   return null;
+}
+// Taux de tenue des trois piliers sur les 7 derniers jours REMPLIS.
+// Sous 50 %, le pilier est décroché : on en parle avant de féliciter.
+// Ordre en cas d'égalité : nutrition (70 % du résultat), puis sport, puis
+// sommeil — l'ordre de priorité posé par Akli.
+function pilierFaible(allData,today90){
+  var jours=[],i;
+  for(i=today90;i>=0&&jours.length<7;i--){
+    if(allData[i]&&allData[i].habits)jours.push(allData[i].habits);
+  }
+  if(jours.length<4)return null;   // moins de 4 jours : rien de fiable
+  var ordre=["nutrition","sport","sommeil"],pire=null,pireTaux=0.5;
+  for(i=0;i<ordre.length;i++){
+    var fait=0;
+    for(var d=0;d<jours.length;d++){if(jours[d][ordre[i]])fait++;}
+    var taux=fait/jours.length;
+    if(taux<pireTaux){pireTaux=taux;pire=ordre[i];}
+  }
+  return pire;
 }
 function supMessage(allData,today90,pct){
   var ton=tonActif(allData), T=TONS[ton], S=(T&&T.signaux)||TONS.normal.signaux;
@@ -2121,11 +2240,19 @@ function supMessage(allData,today90,pct){
     if(remonteVraiment()||TG.pente>0.02)return dire("poidsMonte");
     if(TG.pente>=-0.005&&TG.pente<=0.005)return dire(pct>=65?"faitSansResultat":"poidsBloque");
   }
-  // 2. Les deux piliers : sommeil et nutrition
+  // 1 bis. AUCUNE PESÉE RÉCENTE : on ne félicite pas dans le noir.
+  // Le bloc du dessus se tait quand la donnée est périmée ou trop rare, et ce
+  // silence laissait passer les caps. Féliciter sans savoir si le poids bouge,
+  // c'est exactement le reproche : on réclame le chiffre d'abord.
+  if(today90>=9&&(dernierePesee<0||(today90-dernierePesee)>7))return dire("pesee");
+  // 2. Les trois piliers : NUTRITION, SPORT, SOMMEIL — lus directement.
+  // Avant, on passait par computeAlert, qui ne renvoie QUE l'habitude la plus
+  // basse, toutes catégories confondues : une mission du jour jamais définie
+  // (taux 0) sortait devant le sport à 2 séances sur 7, et le sport n'était
+  // donc jamais dit. Ici on regarde les trois piliers pour eux-mêmes.
   try{
-    var al=computeAlert(allData,today90,true);
-    if(al&&al.habit==="sommeil")return dire("sommeil");
-    if(al&&al.habit==="nutrition")return dire("nutrition");
+    var pf=pilierFaible(allData,today90);
+    if(pf)return dire(pf);
   }catch(e){}
   // 3. Un MOMENT à célébrer ? Il passe devant la phrase d'état : quand
   // quelqu'un tient depuis des semaines, son niveau ne bouge plus et seule

@@ -215,11 +215,6 @@ var HABITS=[
 // Habitudes facultatives : exclues de l'analyse de la boucle d'échec.
 // Un client qui ne prend simplement pas de compléments n'a pas un problème de discipline.
 var HABITS_FACULT={complements:1};
-// 🔒 SEUIL DU VERROU DE SILENCE — une seule valeur pour toute l'app.
-// Elle était écrite en dur à QUATRE endroits : le verrou lui-même (3), la
-// fiche client du coach (7), le réglage (7) et l'alerte de décrochage (3).
-// Résultat : le verrou tombait au 4e jour pendant que la fiche annonçait 7.
-var SIL_DEFAUT=3;
 // 🎯 LES PILIERS DE LA TRANSFORMATION. Sans sport ni nutrition, aucun résultat
 // n'est possible — ce sont eux qui décident si un programme fonctionne.
 // Le verdict d'un rapport doit s'appuyer là-dessus, pas sur le simple fait
@@ -255,7 +250,7 @@ var FOODS={
   "sanglier":{p:21,u:100},"cheval":{p:21,u:100},"mouton":{p:18,u:100},"merguez":{p:14,u:100},
   "chipolata":{p:13,u:100},"saucisse":{p:13,u:100},"saucisson":{p:26,u:100},"chorizo":{p:24,u:100},
   "bacon":{p:20,u:100},"lardons":{p:15,u:100},"jambon cru":{p:27,u:100},"jambon de dinde":{p:19,u:100},
-  "escalope de dinde":{p:23,u:100},"escalope de veau":{p:21,u:100},
+  "blanc de dinde":{p:23,u:100},"escalope de dinde":{p:23,u:100},"escalope de veau":{p:21,u:100},
   "côte de porc":{p:21,u:100},"filet mignon":{p:21,u:100},"rôti de porc":{p:21,u:100},
   "bavette":{p:21,u:100},"entrecôte":{p:20,u:100},"faux-filet":{p:21,u:100},"rumsteck":{p:22,u:100},
   "onglet":{p:21,u:100},"paleron":{p:20,u:100},"jarret":{p:20,u:100},"osso buco":{p:20,u:100},
@@ -266,38 +261,46 @@ var FOODS={
   "dorade":{p:19,u:100},"bar":{p:18,u:100},"loup":{p:18,u:100},"sole":{p:17,u:100},
   "turbot":{p:17,u:100},"raie":{p:18,u:100},"julienne":{p:18,u:100},"églefin":{p:18,u:100},
   "haddock":{p:23,u:100},"hareng":{p:18,u:100},"hareng fumé":{p:20,u:100},"rouget":{p:19,u:100},
-  "espadon":{p:20,u:100},"flétan":{p:19,u:100},"truite fumée":{p:22,u:100},
-  "sardines à l'huile":{p:25,u:100},"maquereau au vin blanc":{p:19,u:100},"thon au naturel":{p:26,u:100},"thon à l'huile":{p:24,u:100},
-  "chair de crabe":{p:18,u:100},"homard":{p:19,u:100},"langoustine":{p:17,u:100},
-  "gambas":{p:20,u:100},"huîtres":{p:9,u:100},"palourdes":{p:12,u:100},
+  "espadon":{p:20,u:100},"flétan":{p:19,u:100},"saumon fumé":{p:23,u:100},"truite fumée":{p:22,u:100},
+  "sardine":{p:20,u:100},"sardines à l'huile":{p:25,u:100},"anchois":{p:20,u:100},
+  "maquereau au vin blanc":{p:19,u:100},"thon au naturel":{p:26,u:100},"thon à l'huile":{p:24,u:100},
+  "crabe":{p:18,u:100},"chair de crabe":{p:18,u:100},"homard":{p:19,u:100},"langoustine":{p:17,u:100},
+  "gambas":{p:20,u:100},"moules":{p:12,u:100},"huîtres":{p:9,u:100},"palourdes":{p:12,u:100},
   "coquilles saint-jacques":{p:17,u:100},"calamar":{p:16,u:100},"poulpe":{p:16,u:100},
   "seiche":{p:16,u:100},"bulot":{p:20,u:100},"oeufs de saumon":{p:29,u:100},"tarama":{p:9,u:100},
   "brandade":{p:11,u:100},"colin d'alaska":{p:17,u:100},"panga":{p:15,u:100},"tilapia":{p:20,u:100},
   // ─── VÉGÉTAL ───
-  "tofu ferme":{p:16,u:100},"tofu soyeux":{p:5,u:100},"tofu fumé":{p:17,u:100},
-  "protéine de soja":{p:50,u:100},"soja texturé":{p:50,u:100},"houmous":{p:8,u:100},"haricots blancs":{p:8,u:100},"flageolets":{p:8,u:100},"fèves":{p:8,u:100},
-  "lentilles corail":{p:9,u:100},"lentilles vertes":{p:9,u:100},"sarrasin":{p:4,u:100},"épeautre":{p:5,u:100},
-  "millet":{p:3.5,u:100},"muesli":{p:10,u:100},"pain de seigle":{p:8,u:100},
+  "tempeh":{p:19,u:100},"tofu ferme":{p:16,u:100},"tofu soyeux":{p:5,u:100},"tofu fumé":{p:17,u:100},
+  "protéine de soja":{p:50,u:100},"soja texturé":{p:50,u:100},"edamame":{p:11,u:100},
+  "pois chiches":{p:9,u:100},"houmous":{p:8,u:100},"haricots rouges":{p:9,u:100},
+  "haricots blancs":{p:8,u:100},"flageolets":{p:8,u:100},"fèves":{p:8,u:100},
+  "lentilles corail":{p:9,u:100},"lentilles vertes":{p:9,u:100},"petits pois":{p:5,u:100},
+  "quinoa":{p:4.4,u:100},"boulgour":{p:3.5,u:100},"sarrasin":{p:4,u:100},"épeautre":{p:5,u:100},
+  "millet":{p:3.5,u:100},"avoine":{p:13,u:100},"flocons d'avoine":{p:13,u:100},
+  "muesli":{p:10,u:100},"pain complet":{p:9,u:100},"pain de seigle":{p:8,u:100},
   "galette de sarrasin":{p:5,u:100},"steak végétal":{p:17,u:100},"nuggets végétaux":{p:16,u:100},
   "falafel":{p:13,u:100},"levure maltée":{p:45,u:100},"spiruline":{p:57,u:100},
   // ─── FRUITS À COQUE ET GRAINES ───
-  "noix de cajou":{p:18,u:100},
+  "amandes":{p:21,u:100},"noix":{p:15,u:100},"noisettes":{p:15,u:100},"noix de cajou":{p:18,u:100},
+  "pistaches":{p:20,u:100},"cacahuètes":{p:26,u:100},"beurre de cacahuète":{p:25,u:100},
   "purée d'amande":{p:21,u:100},"graines de courge":{p:30,u:100},"graines de tournesol":{p:21,u:100},
   "graines de chia":{p:17,u:100},"graines de lin":{p:18,u:100},"graines de chanvre":{p:31,u:100},
   "sésame":{p:18,u:100},"tahini":{p:17,u:100},"noix du brésil":{p:14,u:100},"noix de pécan":{p:9,u:100},
   // ─── LAITAGES ───
-  "fromage blanc 20%":{p:7,u:100},
-  "faisselle":{p:7,u:100},"yaourt grec 0%":{p:10,u:100},
-  "yaourt bulgare":{p:4,u:100},"kéfir":{p:3.5,u:100},"lait d'amande":{p:0.5,u:100},"lait d'avoine":{p:1,u:100},"boisson protéinée":{p:8,u:100},
-  "burrata":{p:14,u:100},"chèvre frais":{p:13,u:100},
+  "skyr":{p:11,u:100},"fromage blanc 0%":{p:8,u:100},"fromage blanc 20%":{p:7,u:100},
+  "faisselle":{p:7,u:100},"cottage cheese":{p:12,u:100},"yaourt grec 0%":{p:10,u:100},
+  "yaourt bulgare":{p:4,u:100},"kéfir":{p:3.5,u:100},"lait":{p:3.3,u:100},"lait écrémé":{p:3.4,u:100},
+  "lait d'amande":{p:0.5,u:100},"lait d'avoine":{p:1,u:100},"boisson protéinée":{p:8,u:100},
+  "mozzarella":{p:18,u:100},"burrata":{p:14,u:100},"feta":{p:14,u:100},"chèvre frais":{p:13,u:100},
   "camembert":{p:20,u:100},"brie":{p:19,u:100},"roquefort":{p:19,u:100},"bleu":{p:20,u:100},
-  "raclette":{p:23,u:100},"reblochon":{p:20,u:100},"gruyère":{p:27,u:100},
+  "raclette":{p:23,u:100},"reblochon":{p:20,u:100},"parmesan":{p:36,u:100},"gruyère":{p:27,u:100},
   "cantal":{p:24,u:100},"tomme":{p:25,u:100},"beaufort":{p:26,u:100},"emmental râpé":{p:28,u:100},
   "fromage à tartiner":{p:6,u:100},"kiri":{p:8,u:100},"babybel":{p:23,u:100},
   // ─── ŒUFS ───
-  "blancs d'oeufs":{p:11,u:100},"jaune d'oeuf":{p:16,u:100},
+  "blanc d'oeuf":{p:11,u:100},"blancs d'oeufs":{p:11,u:100},"jaune d'oeuf":{p:16,u:100},
   "oeuf dur":{p:6.5,u:1},"oeuf au plat":{p:6.5,u:1},"omelette":{p:13,u:100},
   "oeufs brouillés":{p:11,u:100},"oeuf de caille":{p:1.2,u:1},
+
   "blanc de poulet":{p:23,u:100},"poulet":{p:22,u:100},"escalope de poulet":{p:23,u:100},
   "escalope":{p:23,u:100},"dinde":{p:22,u:100},"blanc de dinde":{p:24,u:100},
   "boeuf":{p:21,u:100},"bœuf":{p:21,u:100},"steak":{p:21,u:100},"steak haché":{p:20,u:100},
@@ -1530,7 +1533,7 @@ var TONS={
     bon:["Ça sent bon, continue de cuisiner","T'es sur la bonne pente, la montante","Ça pousse, comme du basilic","Pas mal du tout, presque impressionnant","Le rythme s'installe, le dérange pas","Tu deviens fréquentable"],
     moyen:["Bof. Voilà, c'est dit","Ni héros ni catastrophe, un mardi","T'es en mode économie d'énergie ?","La base est là, le reste s'est perdu","Un petit coup de rein, allez","Mi-figue mi-raisin, choisis un fruit"],
     bas:["Ton streak fait la sieste","Ça sent le mou, ouvre une fenêtre","T'as pris un abonnement au canapé ?","Un jour rempli et on n'en parle plus","Recommencer c'est le pire, après ça glisse","Ton objectif t'a envoyé un message"],
-    zero:["Zéro. Le vide. Mais un beau vide","On repart de rien, c'est plus léger","Aujourd'hui suffit à tout changer","Un seul jour, même pas parfait","Personne n'a jamais commencé un lundi parfait","Le premier pas attend depuis un moment"]
+    zero:["Zéro. Le vide. Mais un beau vide","On repart de rien, c'est plus léger","Aujourd'hui suffit à tout changer","Un seul jour, même pas parfait","Tout le monde repart un jour","Le premier pas attend depuis un moment"]
   },
   sarcastique:{
     nom:"Le sarcastique", emoji:"🙃", desc:"Piquant et froid. Ça pique là où ça motive.",
@@ -1564,7 +1567,7 @@ var TONS={
     nom:"Le jeune", emoji:"🔥", desc:"Argot d'aujourd'hui, phrases courtes, ça va vite.",
     prenoms:{h:["Ryan","Ilyes","Noah"],f:["Inès","Maya","Lina"]},
     haut:["Wesh c'est un banger cette journée","T'es chaud de ouf, sah","Grosse dinguerie, continue","C'est carré, rien à dire","T'as le rizz de la discipline","Là t'es en main character energy"],
-    bon:["Ça commence à être carré","T'es dans le bail, lâche pas","Ça monte tranquille, sah","Propre. Continue comme ça","Le rythme est posé, lâche pas","Pas mal wesh, t'assures"],
+    bon:["Ça commence à être carré","T'es dans le bail, lâche pas","Ça monte tranquille, sah","Propre. Continue comme ça","Le rythme est là, garde-le","Pas mal wesh, t'assures"],
     moyen:["Bof, t'es en mode PNJ là","Tu fais le strict minimum, sah","Ni ouf ni cringe, faut choisir","La base y est, le reste il est où ?","Tu peux clairement mieux, wesh","Reprends le contrôle du bail"],
     bas:["Là c'est un peu le seum","T'es en train de ghoster tes objectifs","Faut se remettre dedans, sah","Une journée pleine et c'est reparti","Le plus dur c'est de relancer, après ça passe crème","Reviens dans le game, wesh"],
     zero:["Zéro. Chokbar. On repart de là","T'as rien fait, on efface","Aujourd'hui ça change tout, sah","Un jour rempli, juste un, c'est pas la mort","Tout le monde repart un jour, miskine","Premier pas, go"]
@@ -1645,7 +1648,7 @@ var TON_EXTRA={
       onething:"⚡ Tes missions passent à la trappe. Una sola, cinq minutes. Prépare-la ce soir.",
       travail:"💼 Le travail déborde sur tout. Structure ta journée, la transformation a besoin de calme."
     },
-    phrases:["Le poids bouge piano, l'habitude bouge vite ⚡","Ce que tu fais oggi se verra dans trois semaines 🌱","Un jour parfait, niente. Trente jours corrects, tutto 📆","Non è une ligne droite, c'est une tendance 📉","La costanza bat l'intensité, toujours 🏆","Le plus dur è passato : tu as commencé 🚀"]
+    phrases:["Le poids bouge piano, l'habitude bouge vite ⚡","Ce que tu fais oggi se verra dans trois semaines 🌱","Un jour parfait, niente. Trente jours corrects, tutto 📆","Ce n'est pas une ligne droite, c'est une tendance 📉","La costanza bat l'intensité, toujours 🏆","Le plus dur est derrière : tu as commencé 🚀"]
   },
   drole:{
     alertes:{
@@ -1673,7 +1676,7 @@ var TON_EXTRA={
       onething:"⚡ Les missions, cette semaine : néant. Cinq minutes par jour. Cinq.",
       travail:"💼 Le travail prend toute la place. Structurer sa journée, ça existe."
     },
-    phrases:["Le poids bouge lentement. L'habitude, elle, va vite ⚡","Ce que tu fais aujourd'hui se verra dans trois semaines. Patience 🌱","Un jour parfait ne sert à rien. Trente jours corrects, curieusement, si 📆","Ce n'est pas une ligne droite. Personne n'a promis ça 📉","La constance bat l'intensité. Toujours. Sans exception 🏆","Le plus dur est derrière. Enfin, le début du plus dur 🚀"]
+    phrases:["Le poids bouge lentement. L'habitude, elle, va vite ⚡","Ce que tu fais aujourd'hui se verra dans trois semaines. Patience 🌱","Un jour parfait ne sert à rien. Trente jours corrects, tout 📆","Ce n'est pas une ligne droite. Personne n'a promis ça 📉","La constance bat l'intensité. Toujours. Sans exception 🏆","Le plus dur est derrière : tu as commencé 🚀"]
   },
   vulgaire:{
     alertes:{
@@ -1687,7 +1690,7 @@ var TON_EXTRA={
       onething:"⚡ Tes missions, t'as rien fait. Une seule, cinq minutes. Prépare-la ce soir et exécute.",
       travail:"💼 Le boulot bouffe tout. Cadre ta journée, sinon tu tiendras pas 90 jours."
     },
-    phrases:["Le poids bouge lentement, l'habitude va vite ⚡","Ce que tu fais aujourd'hui, tu le vois dans trois semaines 🌱","Un jour parfait sert à rien. Trente jours corrects, tout 📆","C'est pas droit, mais ça descend quand même 📉","La constance bat la force, toujours 🏆","Le plus dur est fait, t'as commencé 🚀"]
+    phrases:["Le poids bouge lentement, l'habitude va vite ⚡","Ce que tu fais aujourd'hui, tu le vois dans trois semaines 🌱","Un jour parfait sert à rien. Trente jours corrects, tout 📆","C'est pas une ligne droite, c'est une tendance 📉","La constance bat la force, toujours 🏆","Le plus dur est fait, t'as commencé 🚀"]
   },
   jeune:{
     alertes:{
@@ -1701,7 +1704,7 @@ var TON_EXTRA={
       onething:"⚡ Tes missions t'as rien fait. Une seule, 5 minutes, tu la prépares ce soir.",
       travail:"💼 Le taf prend toute la place. Cadre ta journée sinon tu tiens pas."
     },
-    phrases:["Le poids bouge doucement, l'habitude va vite ⚡","Ce que tu fais aujourd'hui, tu le vois dans 3 semaines 🌱","Un jour parfait ça sert à R. 30 jours corrects, c'est tout 📆","Ça fait des vagues, mais ça descend 📉","La régularité bat le talent, toujours 🏆","Le plus dur est fait, t'as lancé le truc 🚀"]
+    phrases:["Le poids bouge doucement, l'habitude va vite ⚡","Ce que tu fais aujourd'hui, tu le vois dans 3 semaines 🌱","Un jour parfait ça sert à R. 30 jours corrects, c'est tout 📆","C'est pas une ligne droite, c'est une tendance 📉","La régularité bat le talent, toujours 🏆","Le plus dur est fait, t'as lancé le truc 🚀"]
   },
   commentateur:{
     alertes:{
@@ -1715,7 +1718,7 @@ var TON_EXTRA={
       onething:"⚡ Les missions du jour sont restées au vestiaire. Cinq minutes, une seule action.",
       travail:"💼 Le travail déborde et déséquilibre tout le reste. Il faut structurer la journée."
     },
-    phrases:["Le poids bouge lentement, l'habitude bien plus vite ⚡","Ce qui se joue aujourd'hui se verra dans trois semaines 🌱","Un jour parfait ne gagne rien. Trente jours corrects gagnent le match 📆","Ce n'est pas une ligne droite : c'est une courbe de saison 📉","Sur la durée, la régularité bat le coup d'éclat 🏆","Le plus dur est derrière : le match a commencé 🚀"]
+    phrases:["Le poids bouge lentement, l'habitude bien plus vite ⚡","Ce qui se joue aujourd'hui se verra dans trois semaines 🌱","Un jour parfait ne fait rien. Trente jours corrects font tout 📆","Ce n'est pas une ligne droite, c'est une tendance 📉","La constance bat l'intensité, toujours 🏆","Le plus dur est derrière : le match a commencé 🚀"]
   }
 };
 for(var __tk in TON_EXTRA){if(TONS[__tk]){TONS[__tk].alertes=TON_EXTRA[__tk].alertes;TONS[__tk].phrases=TON_EXTRA[__tk].phrases;}}
@@ -1889,306 +1892,11 @@ var TON_SIGNAUX={
     nutrition:["L'assiette faiblit, et c'est 70 % du match.","La nutrition décroche. Impossible de compenser ailleurs.","L'assiette ne suit pas. On reprend dès le prochain repas."]
   }
 };
-
-// Deux signaux ajoutés après coup : le SPORT (pilier que computeAlert
-// détectait déjà mais que supMessage ne lisait pas) et la PESÉE (plus de
-// 7 jours sans chiffre = rien n'est vérifiable, donc on ne félicite pas).
-var TON_SIGNAUX_PLUS={
-  normal:{
-    sport:["Le sport a manqué cette semaine. Sans séances, le reste ne suffit pas.","Tes séances sautent trop souvent. Vingt minutes valent mieux que zéro.","L'entraînement décroche. C'est lui qui protège ton muscle pendant la perte."],
-    pesee:["Tu ne t'es pas pesé depuis plus d'une semaine. Sans chiffre, personne ne peut dire où tu en es.","Aucune pesée récente. Monte sur la balance demain matin à jeun, on repart de là.","Ton dernier poids date. Une pesée, et on saura si le travail paie."]
-  },
-  marseillais:{
-    sport:["Le sport a sauté cette semaine, collègue. Sans séance, tu peux rien attendre.","Té, t'as pas bougé de la semaine. Vingt minutes, c'est déjà mieux que rien.","L'entraînement part en cacade. C'est lui qui garde ton muscle."],
-    pesee:["Ça fait plus d'une semaine sans pesée, collègue. Sans chiffre, dégun peut rien te dire.","T'es pas monté sur la balance. Demain matin à jeun, et on regarde.","Ton dernier poids date de loin. Une pesée et on sait où on va."]
-  },
-  italien:{
-    sport:["L'allenamento a manqué cette semaine. Sans séance, niente résultat.","Tu n'as pas bougé, mamma mia. Venti minuti valent mieux que zéro.","Le sport décroche. C'est lui qui protège le muscle, sempre."],
-    pesee:["Più di una settimana sans pesée. Sans chiffre, on avance à l'aveugle.","Tu ne montes plus sur la bilancia. Demain matin à jeun, subito.","Ton dernier poids è vecchio. Une pesée et on saura, coraggio."]
-  },
-  drole:{
-    sport:["Tes baskets prennent la poussière. Le corps ne change pas tout seul.","Le sport a fait la grève cette semaine. Vingt minutes, même mal fait, ça compte.","L'entraînement a disparu. C'est pourtant lui qui garde ton muscle."],
-    pesee:["Ta balance se demande si tu existes encore. Plus d'une semaine sans nouvelles.","Aucune pesée récente. Difficile de juger un match sans le score.","Ton dernier poids commence à dater. Demain matin, à jeun, sans négocier."]
-  },
-  sarcastique:{
-    sport:["Le sport a manqué cette semaine. Curieux, pour un programme sportif.","Tes séances sautent. Le corps, lui, ne saute pas les conséquences.","L'entraînement décroche. C'est pourtant la seule chose qui protège ton muscle."],
-    pesee:["Plus d'une semaine sans pesée. Pratique, pour ne pas savoir.","Aucun chiffre récent. On jugera donc au ressenti. Excellente méthode.","Ton dernier poids date. Une pesée demain matin, et on parlera de faits."]
-  },
-  vulgaire:{
-    sport:["T'as pas fait de sport cette semaine, putain. Sans séance tu attends quoi ?","Les séances sautent. Vingt minutes, c'est pas la mer à boire.","L'entraînement lâche. C'est lui qui garde ton muscle, bordel."],
-    pesee:["Plus d'une semaine sans te peser, sérieux ? Sans chiffre on sait rien.","Monte sur cette balance demain matin. À jeun. Pas d'excuse.","Ton dernier poids date d'une éternité. Pèse-toi, on verra bien."]
-  },
-  jeune:{
-    sport:["T'as zappé le sport cette semaine, sah. Sans séance ça bouge pas.","Les séances sautent, c'est le seum. Vingt minutes et c'est carré.","L'entraînement décroche. C'est lui qui protège ton muscle, wesh."],
-    pesee:["Plus d'une semaine sans pesée, chelou. Sans chiffre on est dans le flou.","Balance demain matin à jeun. Direct.","Ton dernier poids date, sah. Une pesée et on sait où t'en es."]
-  },
-  commentateur:{
-    sport:["Le sport a manqué cette semaine, et c'est le poste le plus coûteux.","Séances absentes. Aucune tactique ne compense un entraînement sauté.","L'entraînement décroche : c'est lui qui protège la masse musculaire."],
-    pesee:["Plus d'une semaine sans pesée : impossible d'établir le score.","Aucune donnée récente sur la balance. On avance sans chiffre, et ça ne se juge pas.","Le dernier relevé date. Une pesée demain matin, et on aura la vraie tendance."]
-  }
-};
-for(var __sp in TON_SIGNAUX_PLUS){
-  if(TON_SIGNAUX[__sp]){for(var __sk2 in TON_SIGNAUX_PLUS[__sp]){TON_SIGNAUX[__sp][__sk2]=TON_SIGNAUX_PLUS[__sp][__sk2];}}
-}
 for(var __sk in TON_SIGNAUX){if(TONS[__sk])TONS[__sk].signaux=TON_SIGNAUX[__sk];}
 
 // Décide de CE QUE le superviseur doit dire aujourd'hui.
 // Un signal de résultat passe TOUJOURS devant la phrase de remplissage :
 // féliciter quelqu'un dont le poids stagne, c'est le laisser dans le mur.
-// ═══ 🎬 LES MOMENTS — ce qui change quand le niveau ne change plus ═══
-// Un client très régulier reste au même palier des semaines : la phrase
-// d'état tourne alors dans un réservoir fermé et finit par ne plus être lue.
-// Les MOMENTS règlent ça autrement qu'en ajoutant du volume — ils parlent de
-// ce qui bouge VRAIMENT : la série en cours, l'avancée dans les 90 jours,
-// les kilos franchis. Un message qui tombe le jour d'un cap se lit, parce
-// qu'il ne pouvait pas tomber la veille.
-// Chaque moment ne se déclenche QU'UNE FOIS (mémorisé), sinon on retombe
-// dans la répétition qu'on cherche à fuir.
-var MOMENTS={
-  // La série revient 8 fois sur 90 jours : une formule unique se répéterait
-  // mot pour mot. Chaque palier a donc sa propre phrase, qui dit quelque
-  // chose de différent — 7 jours et 75 jours ne se célèbrent pas pareil.
-  serie:{   // tableau indexé sur MOMENT_SERIES : 7,14,21,30,45,60,75,90
-    normal:["7 jours d'affilée. La première semaine est toujours la plus dure — elle est derrière.",
-      "14 jours. Deux semaines, c'est le moment où le corps commence à suivre.",
-      "21 jours d'affilée. Ce n'est plus de la motivation, c'est une habitude.",
-      "30 jours sans interruption. Un mois entier — tu ne recommences plus, tu continues.",
-      "45 jours de suite. À ce stade, arrêter serait plus difficile que continuer.",
-      "60 jours. Deux mois pleins. Ce que tu as construit ne se défait plus en une semaine.",
-      "75 jours d'affilée. Il en reste peu — et tu n'as pas manqué un seul.",
-      "90 jours consécutifs. Personne ne pourra te dire que tu n'es pas allé au bout."],
-    marseillais:["7 jours sans lâcher, collègue. La première semaine, c'est la pire.",
-      "14 jours ! Té, deux semaines, le corps commence à suivre.",
-      "21 jours d'affilée. Là c'est plus de la volonté, c'est devenu une habitude.",
-      "30 jours, un mois plein ! Té, dégun peut rien te dire.",
-      "45 jours de suite, collègue. Arrêter serait plus dur que continuer.",
-      "60 jours ! Deux mois pleins, ça se défait pas comme ça.",
-      "75 jours sans en manquer un. Té, on est presque au bout.",
-      "90 jours d'affilée ! Oh bonne mère, t'es allé au bout du bout."],
-    italien:["7 giorni de suite. La première semaine est toujours la plus dure.",
-      "14 giorni ! Deux semaines, le corps commence à suivre.",
-      "21 jours d'affilée. Non è più motivazione, c'est une habitude.",
-      "30 giorni, un mois entier ! Bravissimo, tu ne recommences plus.",
-      "45 jours de suite. Adesso, arrêter serait plus dur que continuer.",
-      "60 giorni ! Deux mois pleins — ça ne se défait plus.",
-      "75 jours sans en manquer un seul. Siamo quasi alla fine.",
-      "90 giorni consecutivi ! Sei andato fino in fondo. Bravissimo."],
-    drole:["7 jours d'affilée. La semaine 1 est passée, celle où tout le monde abandonne.",
-      "14 jours. Deux semaines. Tes bonnes résolutions ont survécu au record mondial.",
-      "21 jours d'affilée. À ce stade c'est une habitude, plus un effort.",
-      "30 jours. Un mois entier. Tu peux commencer à te la raconter un peu.",
-      "45 jours de suite. Arrêter maintenant demanderait presque plus d'efforts.",
-      "60 jours. Deux mois. À ce niveau-là, ça devient suspect.",
-      "75 jours sans en rater un. Franchement, c'est agaçant de perfection.",
-      "90 jours d'affilée. Rideau. Tu peux sortir sous les applaudissements."],
-    sarcastique:["7 jours d'affilée. Une semaine. Ne nous emballons pas.",
-      "14 jours. Deux semaines. Là je commence à faire attention.",
-      "21 jours d'affilée. Bon. Je commence à te croire.",
-      "30 jours sans interruption. Un mois. C'est difficile à mettre sur le compte du hasard.",
-      "45 jours de suite. À ce stade, arrêter te demanderait un effort. Ironique.",
-      "60 jours. Deux mois pleins. Je n'ai rien à redire, c'est rare.",
-      "75 jours sans en manquer un. Tu fais exprès de me rendre inutile ?",
-      "90 jours consécutifs. Voilà. Rien à ajouter, et ça ne m'arrive jamais."],
-    vulgaire:["7 jours d'affilée. La première semaine c'est la pire, elle est passée.",
-      "14 jours sans lâcher. Deux semaines, le corps commence à suivre.",
-      "21 jours d'affilée. Là c'est plus de la motivation, c'est ancré.",
-      "30 jours, un mois plein. Putain, respect.",
-      "45 jours de suite. Arrêter maintenant serait plus dur que continuer.",
-      "60 jours. Deux mois pleins. Ça se défait pas en une semaine, ça.",
-      "75 jours sans en rater un seul. T'es à deux doigts du bout.",
-      "90 jours d'affilée. Personne peut te dire que t'es pas allé au bout."],
-    jeune:["7 jours d'affilée, sah. La première semaine c'est la plus dure.",
-      "14 jours, wesh. Deux semaines, le corps commence à suivre.",
-      "21 jours d'affilée. C'est plus du hasard là, c'est ancré.",
-      "30 jours, un mois plein. Grosse dinguerie.",
-      "45 jours de suite. Arrêter serait plus chaud que continuer maintenant.",
-      "60 jours, deux mois. Ça se défait plus, c'est carré.",
-      "75 jours sans en rater un. T'es chaud, reste dessus.",
-      "90 jours d'affilée. T'es allé au bout, personne peut dire le contraire."],
-    commentateur:["7 jours consécutifs ! La première semaine est bouclée, la plus difficile.",
-      "14 jours ! Deux semaines pleines, l'organisme commence à répondre.",
-      "21 jours d'affilée — le seuil où le geste devient automatique !",
-      "30 jours sans interruption ! Un mois complet, le public se lève.",
-      "45 jours consécutifs ! À ce stade, s'arrêter coûterait plus que continuer.",
-      "60 jours ! Deux mois pleins, cette série entre dans les annales.",
-      "75 jours sans un seul manqué ! L'arrivée est en vue.",
-      "90 jours consécutifs ! Série parfaite, il est allé au bout !"]
-  },
-  cap:{     // {n} = jour du programme
-    normal:"Jour {n}. Tu as passé le stade où la plupart abandonnent.",
-    marseillais:"Jour {n} ! La plupart ont déjà lâché avant. Pas toi, collègue.",
-    italien:"Giorno {n}. La plupart abandonnent avant — toi tu es encore là.",
-    drole:"Jour {n}. Statistiquement, tu devrais déjà avoir abandonné. Bravo pour l'anomalie.",
-    sarcastique:"Jour {n}. La plupart lâchent bien avant. Tu es donc minoritaire.",
-    vulgaire:"Jour {n}. La plupart des gens ont lâché depuis longtemps. Pas toi.",
-    jeune:"Jour {n}, wesh. La plupart ont lâché avant, t'es encore là.",
-    commentateur:"Jour {n} ! Le cap où la majorité quitte la course — il est toujours dedans."
-  },
-  moitie:{  // mi-parcours
-    normal:"Mi-parcours. Ce que tu as construit ne se perd plus — la suite se joue sur la régularité.",
-    marseillais:"On est à la moitié ! Té, le plus dur est derrière, maintenant on tient.",
-    italien:"Metà del cammino. Le plus dur est fait, adesso on tient le cap.",
-    drole:"Mi-parcours. Le moment où on se dit « déjà ? » et « encore ? » en même temps.",
-    sarcastique:"Mi-parcours. La moitié la plus facile est derrière. Enfin, on verra.",
-    vulgaire:"Moitié du chemin. Le plus dur est fait, lâche rien maintenant.",
-    jeune:"Mi-parcours, carré. Le plus dur est passé, reste sur le rythme.",
-    commentateur:"Mi-temps ! Le score est bon, tout se joue maintenant sur la seconde période."
-  },
-  final:{   // derniers jours
-    normal:"Dernière ligne droite. C'est ici que se gagnent les résultats qu'on garde.",
-    marseillais:"Dernière ligne droite, collègue ! On finit en beauté.",
-    italien:"Ultima linea retta ! On termine en beauté, non si molla adesso.",
-    drole:"Dernière ligne droite. Ce n'est pas le moment de découvrir les apéros.",
-    sarcastique:"Dernière ligne droite. Ce serait dommage de tout gâcher maintenant.",
-    vulgaire:"Dernière ligne droite. Tu vas pas tout foutre en l'air maintenant.",
-    jeune:"Dernière ligne droite. Finis le taf, t'es trop près.",
-    commentateur:"Dernière ligne droite ! Il ne reste que quelques mètres, le stade est debout !"
-  },
-  kilos:{   // {n} = kilos perdus depuis le départ
-    normal:"{n} kg depuis le départ. Ce n'est pas de la chance, c'est ce que tu as fait tous les jours.",
-    marseillais:"{n} kg de moins, collègue ! Té, c'est pas tombé du ciel.",
-    italien:"{n} kg in meno ! Ce n'est pas de la chance, c'est ton travail.",
-    drole:"{n} kg envolés. Personne ne les cherche, tu peux les laisser partir.",
-    sarcastique:"{n} kg de moins. Difficile de mettre ça sur le compte du hasard.",
-    vulgaire:"{n} kg de moins, bordel. C'est toi qui les as perdus, personne d'autre.",
-    jeune:"{n} kg en moins, carré. C'est toi qui l'as fait.",
-    commentateur:"{n} kg envolés depuis le départ ! La performance parle d'elle-même."
-  }
-};
-// Les caps qui déclenchent un moment. Choisis pour tomber rarement — un cap
-// tous les deux jours n'est plus un cap.
-var MOMENT_SERIES=[7,14,21,30,45,60,75,90];
-var MOMENT_JOURS=[30,60];          // « jour {n} » : les paliers qui parlent
-function momentVus(){var v=lsGet("amcoach_moments_"+CLIENT,{});return (v&&typeof v==="object")?v:{};}
-function momentMarquer(k){var v=momentVus();v[k]=isoLocal();lsSet("amcoach_moments_"+CLIENT,v);}
-// Retire des moments SANS les annoncer. Sert au rattrapage : quelqu'un qui
-// arrive au jour 41 avec 41 jours de série a franchi 7, 14, 21 et 30 avant
-// que la fonctionnalité existe. Les lui sortir un par un, du plus grand au
-// plus petit, donne exactement ce qu'il a vu : « super 30 jours » la veille,
-// « super 14 jours » le lendemain.
-function momentRetirer(cles){
-  var v=momentVus(),i;
-  for(i=0;i<cles.length;i++){if(!v[cles[i]])v[cles[i]]="rattrape";}
-  lsSet("amcoach_moments_"+CLIENT,v);
-  return v;
-}
-// Un seul moment par jour. momentMarquer est appelé au rendu, et render() est
-// rappelé à chaque case cochée : sans ce garde-fou, une pile de moments en
-// retard se viderait en quelques clics dans la même journée.
-function momentDuJour(vus){
-  var t=isoLocal(),k;
-  for(k in vus){if(vus[k]===t)return true;}
-  return false;
-}
-function momentTexte(cle,ton,n,idx){
-  var M=MOMENTS[cle]; if(!M)return null;
-  var t=M[ton]||M.normal;
-  // La série stocke un tableau (une phrase par palier) ; les autres moments
-  // gardent une chaîne unique avec {n} à remplacer.
-  if(Object.prototype.toString.call(t)==="[object Array]"){
-    return t[idx!=null&&t[idx]?idx:0];
-  }
-  return String(t).replace("{n}",n);
-}
-// Cherche un moment à célébrer aujourd'hui. Retourne null la plupart du temps
-// — c'est voulu : un moment qui tombe tous les jours n'en est plus un.
-function supMoment(allData,today90,ton){
-  var vus=momentVus();
-  var jour=today90+1;
-  // Règle de base : UN cap par jour maximum.
-  if(momentDuJour(vus))return null;
-  // 1. Fin de programme : le plus fort, il passe devant tout
-  if(jour>=85&&!vus.final)return {cle:"final",txt:momentTexte("final",ton,jour)};
-  // 2. Mi-parcours — passé la fenêtre, il est retiré au lieu d'être gardé en
-  //    réserve : un mi-parcours annoncé au jour 60 ne veut plus rien dire.
-  if(jour>=45&&jour<=47&&!vus.moitie)return {cle:"moitie",txt:momentTexte("moitie",ton,jour)};
-  if(jour>47&&!vus.moitie)vus=momentRetirer(["moitie"]);
-  // 3. Série en cours — SEUL LE PALIER LE PLUS HAUT ATTEINT se célèbre.
-  //    Les paliers inférieurs sont retirés en silence : ils sont derrière, et
-  //    les annoncer après coup revient à féliciter pour 14 jours quelqu'un
-  //    qui en est à 41.
-  try{
-    var st=computeStreak(allData,today90),hi=-1,i,bas=[];
-    for(i=0;i<MOMENT_SERIES.length;i++){if(st>=MOMENT_SERIES[i])hi=i;}
-    if(hi>=0){
-      // Un cap se fête quand il TOMBE, pas onze jours après. Au-delà de
-      // 3 jours de retard (l'appli n'a pas été ouverte, la fonctionnalité
-      // vient d'arriver), le palier est derrière : on le retire sans rien dire
-      // et on attend le suivant.
-      var frais=(st-MOMENT_SERIES[hi])<=3;
-      for(i=0;i<=hi;i++){
-        if(i===hi&&frais)continue;
-        if(!vus["serie"+MOMENT_SERIES[i]])bas.push("serie"+MOMENT_SERIES[i]);
-      }
-      if(bas.length)vus=momentRetirer(bas);
-      if(frais&&!vus["serie"+MOMENT_SERIES[hi]])
-        return {cle:"serie"+MOMENT_SERIES[hi],txt:momentTexte("serie",ton,MOMENT_SERIES[hi],hi)};
-    }
-  }catch(e){}
-  // 4. Kilos perdus, par paliers de 2
-  try{
-    var pv=[],dep=null,act=null;
-    for(var d=0;d<=today90;d++){
-      var dd=allData[d]||{};
-      if(dd.poids!=null&&dd.poids!==""){
-        var v=parseFloat(dd.poids);
-        if(!isNaN(v)){if(dep===null)dep=v;act=v;}
-      }
-    }
-    if(dep!=null&&act!=null){
-      var perdu=Math.round((dep-act)*10)/10;
-      var pal2=Math.floor(perdu/2)*2;
-      // Même règle que la série : on fête les 6 kg, pas les 2 kg d'il y a un
-      // mois. Les paliers dépassés sont retirés sans rien dire.
-      if(pal2>=2){
-        // Quand ce palier a-t-il été franchi ? Un « 2 kg de moins » annoncé
-        // trois semaines après le jour où la balance l'a affiché sonne faux.
-        var jFranchi=-1;
-        for(var q=0;q<=today90;q++){
-          var dq=allData[q]||{};
-          if(dq.poids!=null&&dq.poids!==""){
-            var vq=parseFloat(dq.poids);
-            if(!isNaN(vq)&&(dep-vq)>=pal2){jFranchi=q;break;}
-          }
-        }
-        var kFrais=(jFranchi>=0&&(today90-jFranchi)<=5);
-        var basK=[],p;
-        for(p=2;p<=pal2;p+=2){
-          if(p===pal2&&kFrais)continue;
-          if(!vus["kg"+p])basK.push("kg"+p);
-        }
-        if(basK.length)vus=momentRetirer(basK);
-        if(kFrais&&!vus["kg"+pal2])return {cle:"kg"+pal2,txt:momentTexte("kilos",ton,pal2)};
-      }
-    }
-  }catch(e){}
-  // 5. Jours-caps du programme : fenêtre de 2 jours, puis retiré.
-  for(var j=0;j<MOMENT_JOURS.length;j++){
-    var jj=MOMENT_JOURS[j];
-    if(jour>=jj&&jour<jj+2&&!vus["jour"+jj])return {cle:"jour"+jj,txt:momentTexte("cap",ton,jj)};
-    if(jour>=jj+2&&!vus["jour"+jj])vus=momentRetirer(["jour"+jj]);
-  }
-  return null;
-}
-// Taux de tenue des trois piliers sur les 7 derniers jours REMPLIS.
-// Sous 50 %, le pilier est décroché : on en parle avant de féliciter.
-// Ordre en cas d'égalité : nutrition (70 % du résultat), puis sport, puis
-// sommeil — l'ordre de priorité posé par Akli.
-function pilierFaible(allData,today90){
-  var jours=[],i;
-  for(i=today90;i>=0&&jours.length<7;i--){
-    if(allData[i]&&allData[i].habits)jours.push(allData[i].habits);
-  }
-  if(jours.length<4)return null;   // moins de 4 jours : rien de fiable
-  var ordre=["nutrition","sport","sommeil"],pire=null,pireTaux=0.5;
-  for(i=0;i<ordre.length;i++){
-    var fait=0;
-    for(var d=0;d<jours.length;d++){if(jours[d][ordre[i]])fait++;}
-    var taux=fait/jours.length;
-    if(taux<pireTaux){pireTaux=taux;pire=ordre[i];}
-  }
-  return pire;
-}
 function supMessage(allData,today90,pct){
   var ton=tonActif(allData), T=TONS[ton], S=(T&&T.signaux)||TONS.normal.signaux;
   function dire(cle){
@@ -2237,31 +1945,13 @@ function supMessage(allData,today90,pct){
     if(remonteVraiment()||TG.pente>0.02)return dire("poidsMonte");
     if(TG.pente>=-0.005&&TG.pente<=0.005)return dire(pct>=65?"faitSansResultat":"poidsBloque");
   }
-  // 1 bis. AUCUNE PESÉE RÉCENTE : on ne félicite pas dans le noir.
-  // Le bloc du dessus se tait quand la donnée est périmée ou trop rare, et ce
-  // silence laissait passer les caps. Féliciter sans savoir si le poids bouge,
-  // c'est exactement le reproche : on réclame le chiffre d'abord.
-  if(today90>=9&&(dernierePesee<0||(today90-dernierePesee)>7))return dire("pesee");
-  // 2. Les trois piliers : NUTRITION, SPORT, SOMMEIL — lus directement.
-  // Avant, on passait par computeAlert, qui ne renvoie QUE l'habitude la plus
-  // basse, toutes catégories confondues : une mission du jour jamais définie
-  // (taux 0) sortait devant le sport à 2 séances sur 7, et le sport n'était
-  // donc jamais dit. Ici on regarde les trois piliers pour eux-mêmes.
+  // 2. Les deux piliers : sommeil et nutrition
   try{
-    var pf=pilierFaible(allData,today90);
-    if(pf)return dire(pf);
+    var al=computeAlert(allData,today90,true);
+    if(al&&al.habit==="sommeil")return dire("sommeil");
+    if(al&&al.habit==="nutrition")return dire("nutrition");
   }catch(e){}
-  // 3. Un MOMENT à célébrer ? Il passe devant la phrase d'état : quand
-  // quelqu'un tient depuis des semaines, son niveau ne bouge plus et seule
-  // une vraie nouvelle — un cap, des kilos, une série — mérite d'être lue.
-  try{
-    var MO=supMoment(allData,today90,ton);
-    if(MO){
-      momentMarquer(MO.cle);
-      return {texte:MO.txt,alerte:false,moment:true,cle:MO.cle};
-    }
-  }catch(e){}
-  // 4. Rien d'alarmant, rien à fêter : la phrase d'état habituelle
+  // 3. Rien d'alarmant : la phrase d'état habituelle
   var niv=pct>=85?"haut":pct>=65?"bon":pct>=45?"moyen":pct>=25?"bas":"zero";
   return {texte:pickEtat(T[niv],ton+"-"+niv,today90),alerte:false,cle:niv};
 }
@@ -3288,7 +2978,7 @@ function renderView(){
   // Akli : « sept jours c'est trop long, c'est déjà trop tard ». À 3 jours,
   // le verrou tombe le 4ᵉ jour de silence — assez tôt pour rattraper
   // quelqu'un qui décroche, pas assez pour punir un week-end chargé.
-  var seuilSil=(acc0.silence===undefined?SIL_DEFAUT:acc0.silence);
+  var seuilSil=(acc0.silence===undefined?3:acc0.silence);
   var joursSil=0;
   if(lastAct&&lastAct.d)joursSil=Math.floor((new Date(todayIso)-new Date(lastAct.d))/86400000);
   var verrouSil=!!(CLIENT&&seuilSil>0&&lastAct&&lastAct.d&&joursSil>seuilSil);
@@ -3339,7 +3029,7 @@ function renderView(){
   else if(state.view==="finance")html+=viewFinance(name,start);
   else if(state.view==="stats")html+=viewStats(name);
   else if(state.view==="dream")html+=viewDream(name);
-  else if(state.view==="sport"||state.view==="training")html+=viewSport(name,start);
+  else if(state.view==="training")html+=viewTraining(name,start);
   else html+=viewRapport(name,start);
   html+=navBar();
   html+='</div>';
@@ -3466,9 +3156,7 @@ function navBar(){
   var is14=progLen(start)<=14;
   var tabs=[["calendar","📅","Agenda"],["stats","📈","Stats"],["dream","🌟","Dream"],
     ];
-  // 🏋️ Sport : visible pour tous — c'est là que vivent les deux minuteurs.
-  // En programme court, le plan des 14 jours s'affiche dessous, dans le même onglet.
-  tabs.push(["sport","🏋️","Sport"]);
+  if(is14)tabs.push(["training","🏋️","Sport"]);
   // 🍗 Onglet Nutrition : visible seulement si le coach l'a activé (slot 510.on)
   if(nutCfg(getAllData()).on){
     tabs.splice(1,0,["nutrition","🍗","Prot"]); // en 2e position, après Agenda
@@ -4362,15 +4050,6 @@ function viewCalendar(name,start){
     // s'adresse à toi — c'est ce qui faisait perdre son caractère au message.
     (function(){
       var S=supGet(allData),TT=TONS[S.ton];
-      if(__msg.moment)
-        // Un cap franchi mérite d'être vu : encadré, signé, pas une ligne
-        // de plus dans le flux.
-        return '<div style="background:rgba(93,242,160,.13);border:1px solid rgba(93,242,160,.34);border-radius:14px;padding:13px 15px;margin-top:14px;text-align:left">'+
-          '<div style="display:flex;align-items:center;gap:7px;margin-bottom:5px">'+
-          '<span style="font-size:16px;line-height:1">'+TT.emoji+'</span>'+
-          '<span style="font-size:12.5px;font-weight:900;color:var(--ink)">'+esc(S.prenom)+'</span>'+
-          '<span style="flex:1;text-align:right;font-size:10px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:var(--ok-d)">🎉 cap franchi</span></div>'+
-          '<div style="font-size:13.5px;font-weight:800;color:var(--ink);line-height:1.5">'+etat+'</div></div>';
       if(!__msg.alerte)
         return '<div style="font-size:13.5px;font-weight:800;color:'+pctColor+';margin-top:14px">'+etat+'</div>';
       return '<div style="background:rgba(255,152,0,.12);border:1px solid rgba(255,152,0,.4);border-radius:14px;padding:12px 14px;margin-top:14px;text-align:left">'+
@@ -6085,15 +5764,20 @@ function openRapport(name,start,period,dataOverride){
 }
 
 // ═══════════ ENTRAÎNEMENTS (mode 14 jours) ═══════════
-function training14HTML(name,start){
+function viewTraining(name,start){
   var allData=getAllData();
   var today90=getToday90(start);
   var week2=today90>=7;
   var tr7=allData[507]||{};
   var dayNames=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
   var wdToday=(new Date().getDay()+6)%7;
+  var tmDur=state.tmDur||300;
 
-  var h='';
+  var h='<div class="hdr"><div class="hdr-brand"><div class="bar bar-r"></div>'+
+    '<span class="hdr-title">Entraînements</span><div class="bar bar-b"></div></div>'+
+    '<div class="hdr-sub">'+esc(name)+' · Reset 14 jours</div></div>'+
+    '<div style="padding:16px 14px 20px">';
+
   // Philosophie
   h+='<div class="card" style="padding:15px 16px;margin-bottom:14px;border-left:4px solid var(--violet)">'+
     '<div style="font-size:12.5px;color:#444;line-height:1.8">14 jours pour installer le sport <strong>tous les jours</strong> — sans te cramer. '+
@@ -6120,6 +5804,18 @@ function training14HTML(name,start){
     }).join("")+'</div>'+
     '<div style="font-size:11px;color:var(--mute);margin-top:9px;line-height:1.6">Au bip toutes les 30 s : tu fais tes répétitions, puis tu récupères jusqu\'au bip suivant. Simple. Répétable. Automatique.</div></div>';
 
+  // ⏱️ MINUTEUR 30s
+  h+='<div class="card" style="padding:16px;margin-bottom:14px;background:'+K+';border:none">'+
+    '<div style="color:var(--gold);font-weight:800;font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">⏱️ Minuteur — alarme forte de 3 s toutes les 30 s</div>'+
+    '<div style="display:flex;gap:8px;margin-bottom:12px">'+
+    '<button data-tmdur="300" style="flex:1;padding:10px 0;border-radius:10px;font-weight:900;font-size:13px;background:'+(tmDur===300?"var(--violet)":"var(--ink2)")+';color:#fff">5 min</button>'+
+    '<button data-tmdur="600" style="flex:1;padding:10px 0;border-radius:10px;font-weight:900;font-size:13px;background:'+(tmDur===600?"var(--violet)":"var(--ink2)")+';color:#fff">10 min</button></div>'+
+    '<div style="text-align:center;margin-bottom:12px">'+
+    '<div id="tm-cycle" style="color:#fff;font-weight:900;font-size:52px;line-height:1">30</div>'+
+    '<div style="color:#888;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px">secondes avant le bip</div>'+
+    '<div id="tm-total" style="color:var(--gold);font-weight:800;font-size:13px;margin-top:6px">'+(tmDur/60)+':00 au total</div></div>'+
+    '<button id="tm-start" style="width:100%;padding:15px 0;border-radius:12px;background:'+R+';color:#fff;font-weight:900;font-size:15px;letter-spacing:1px">▶️ START</button></div>';
+
   // 7 jours d'entraînement
   h+='<div style="display:flex;align-items:center;gap:8px;margin:4px 0 10px"><div class="bar bar-r"></div><span style="font-weight:900;font-size:14px;text-transform:uppercase;letter-spacing:1px">Tes 7 jours</span></div>';
   for(var d7=0;d7<7;d7++){
@@ -6134,427 +5830,8 @@ function training14HTML(name,start){
       '<div style="font-size:11px;color:#666;margin-top:3px">Les deux, chaque jour — c\'est ça le deal.</div></div>';
   }
   h+='<div style="font-size:11px;color:#666;text-align:center;line-height:1.7;margin-top:6px">La marche se fait <strong>non-stop</strong> : c\'est la régularité qui compte, pas la vitesse.</div>';
-  return h;
+  return h+'</div>';
 }
-
-// L'onglet Sport a remplacé l'ancien onglet Entraînements : on garde le nom
-// d'origine comme alias, pour qu'un état enregistré « training » continue de
-// tomber sur la bonne vue.
-function viewTraining(name,start){return viewSport(name,start);}
-
-// ═══════════ 🏋️ ONGLET SPORT — LES DEUX MINUTEURS ═══════════
-// Deux problèmes très différents à régler, et une solution pour chacun.
-//
-// 1) LE TEMPS QUI DÉRIVE. Un setInterval qui décrémente une variable se fige
-//    dès que le téléphone se verrouille ou qu'on passe sur une autre appli :
-//    au retour, le minuteur a « perdu » les minutes écoulées. Ici RIEN ne se
-//    décrémente. On note l'heure de départ une fois pour toutes et on
-//    RECALCULE la position à chaque rafraîchissement. Écran éteint dix
-//    minutes, appel entrant, changement d'onglet : au retour l'affichage est
-//    juste à la seconde près.
-//
-// 2) LE SON QUI DOIT SONNER PENDANT QUE JAVASCRIPT DORT. C'est le vrai
-//    verrou. On ne joue donc pas les bips « au moment venu » : toute la
-//    séance est PROGRAMMÉE D'AVANCE sur l'horloge audio, qui continue de
-//    tourner quand le navigateur gèle les minuteurs. Une boucle inaudible
-//    garde la session audio ouverte, sinon iOS la ferme dès l'écran éteint.
-//
-// Ce qu'on ne peut pas contourner, et qui est donc un CHOIX offert au client :
-// sur iPhone, garder la musique ET sonner écran verrouillé s'excluent. Mode
-// 🎧 = la musique continue, l'écran doit rester allumé (Wake Lock s'en
-// charge). Mode 🔒 = ça sonne écran éteint, mais la musique se coupe.
-
-var SPT = { ctx: null, keep: null, wake: null, sources: [], iv: null, run: null };
-var SPT_PRESETS = [
-  { k: "tabata", nom: "Tabata", prep: 10, effort: 20, repos: 10, tours: 8, series: 1, rserie: 60 },
-  { k: "3030", nom: "30 / 30", prep: 10, effort: 30, repos: 30, tours: 10, series: 1, rserie: 60 },
-  { k: "4020", nom: "40 / 20", prep: 10, effort: 40, repos: 20, tours: 8, series: 1, rserie: 60 },
-  { k: "4515", nom: "45 / 15", prep: 10, effort: 45, repos: 15, tours: 10, series: 1, rserie: 60 },
-  { k: "emom", nom: "EMOM", prep: 10, effort: 60, repos: 0, tours: 10, series: 1, rserie: 60 }
-];
-var SPT_PHASES = {
-  prep: { nom: "Préparation", col: "var(--gold)" },
-  effort: { nom: "EFFORT", col: "var(--ok)" },
-  repos: { nom: "Repos", col: "var(--brand2)" },
-  serie: { nom: "Repos de série", col: "var(--violet)" },
-  cycle: { nom: "En cours", col: "var(--ok)" }
-};
-
-function sptCfg() {
-  var d = { prep: 10, effort: 30, repos: 30, tours: 8, series: 1, rserie: 60, mode: "musique", dur: 300, cycle: 30 };
-  var c = lsGet("amcoach_sport_" + CLIENT, null) || {};
-  for (var k in d) if (c[k] !== undefined && c[k] !== null) d[k] = c[k];
-  return d;
-}
-function sptCfgSet(c) { lsSet("amcoach_sport_" + CLIENT, c); }
-
-// ─── Audio : contexte, boucle de maintien, bips programmés ───
-function sptCtx(mode) {
-  try {
-    // "playback" = sonne écran verrouillé mais prend la main sur la musique.
-    // "transient" = se mixe par-dessus la musique, qui baisse le temps du bip.
-    if (navigator.audioSession) navigator.audioSession.type = (mode === "verrou" ? "playback" : "transient");
-  } catch (e) { }
-  if (!SPT.ctx) SPT.ctx = new (window.AudioContext || window.webkitAudioContext)();
-  if (SPT.ctx.state === "suspended") SPT.ctx.resume();
-  return SPT.ctx;
-}
-function sptKeepAlive(on, mode) {
-  try {
-    if (!on) { if (SPT.keep) { try { SPT.keep.stop(); } catch (e) { } SPT.keep = null; } return; }
-    if (SPT.keep) return;
-    var ctx = sptCtx(mode);
-    var buf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate), d = buf.getChannelData(0);
-    for (var i = 0; i < d.length; i++) d[i] = (i % 2 ? 1 : -1) * 0.00002; // très en dessous du seuil audible
-    var s = ctx.createBufferSource(); s.buffer = buf; s.loop = true;
-    s.connect(ctx.destination); s.start();
-    SPT.keep = s;
-  } catch (e) { }
-}
-function sptWake(on) {
-  try {
-    if (!on) { if (SPT.wake) { try { SPT.wake.release(); } catch (e) { } SPT.wake = null; } return; }
-    if (!navigator.wakeLock || SPT.wake) return;
-    navigator.wakeLock.request("screen").then(function (w) { SPT.wake = w; }).catch(function () { });
-  } catch (e) { }
-}
-function sptBip(quand, freq, duree, vol, forme) {
-  try {
-    var ctx = SPT.ctx, o = ctx.createOscillator(), g = ctx.createGain();
-    o.connect(g); g.connect(ctx.destination);
-    o.frequency.value = freq; o.type = forme || "sine";
-    g.gain.setValueAtTime(0.0001, quand);
-    g.gain.exponentialRampToValueAtTime(vol, quand + 0.015);
-    g.gain.setValueAtTime(vol, quand + duree * 0.6);
-    g.gain.exponentialRampToValueAtTime(0.0001, quand + duree);
-    o.start(quand); o.stop(quand + duree + 0.03);
-    SPT.sources.push(o);
-  } catch (e) { }
-}
-function sptVider() {
-  for (var i = 0; i < SPT.sources.length; i++) { try { SPT.sources[i].stop(); } catch (e) { } }
-  SPT.sources = [];
-}
-// Programme TOUTE la séance d'un coup, à partir de la seconde `depuis`.
-function sptProgrammer(plan, depuis, mode) {
-  var ctx = sptCtx(mode), a0 = ctx.currentTime + 0.08, pos = 0, n = 0, i, c;
-  sptVider();
-  for (i = 0; i < plan.length; i++) {
-    var seg = plan[i], fin = pos + seg.d, suiv = plan[i + 1];
-    for (c = 3; c >= 1; c--) {                       // décompte des 3 dernières secondes
-      var tc = fin - c;
-      if (tc > depuis && seg.d > 4 && n < 700) { sptBip(a0 + (tc - depuis), 880, 0.08, 0.22, "sine"); n++; }
-    }
-    if (fin > depuis && n < 700) {                    // bascule : aigu vers l'effort, grave vers le repos
-      if (suiv) sptBip(a0 + (fin - depuis), suiv.t === "effort" ? 1250 : 640, 0.32, 0.5, "square");
-      n++;
-    }
-    pos = fin;
-  }
-  if (pos > depuis) {                                 // fin de séance : alarme longue, impossible à louper
-    for (var b = 0; b < 6; b++) sptBip(a0 + (pos - depuis) + b * 0.45, b % 2 ? 1150 : 950, 0.34, 0.6, "square");
-  }
-  return ctx;
-}
-
-// ─── Construction des séances ───
-function sptPlanIntervalles(c) {
-  var plan = [], s, t;
-  if (c.prep > 0) plan.push({ t: "prep", d: c.prep, tour: 0, serie: 1 });
-  for (s = 1; s <= c.series; s++) {
-    for (t = 1; t <= c.tours; t++) {
-      plan.push({ t: "effort", d: c.effort, tour: t, serie: s });
-      var dernier = (s === c.series && t === c.tours);
-      if (!dernier && c.repos > 0) plan.push({ t: "repos", d: c.repos, tour: t, serie: s });
-    }
-    if (s < c.series && c.rserie > 0) plan.push({ t: "serie", d: c.rserie, tour: c.tours, serie: s });
-  }
-  return plan;
-}
-function sptPlanBips(total, cycle) {          // le minuteur du mode 14 jours
-  var plan = [], reste = total, n = 1;
-  while (reste > 0) { var d = Math.min(cycle, reste); plan.push({ t: "cycle", d: d, tour: n++, serie: 1 }); reste -= d; }
-  return plan;
-}
-function sptTotal(plan) { var t = 0; for (var i = 0; i < plan.length; i++) t += plan[i].d; return t; }
-function sptFmt(s) { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ":" + ("0" + (s % 60)).slice(-2); }
-
-// ─── Position : recalculée depuis l'heure de départ, jamais décrémentée ───
-function sptPosition(run) {
-  var e = run.pause != null ? run.pause : (Date.now() - run.t0) / 1000;
-  if (e < 0) e = 0;
-  var pos = 0;
-  for (var i = 0; i < run.plan.length; i++) {
-    var seg = run.plan[i];
-    if (e < pos + seg.d) return { i: i, seg: seg, reste: Math.ceil(pos + seg.d - e), passe: e - pos, e: e, fini: false };
-    pos += seg.d;
-  }
-  return { i: run.plan.length - 1, seg: run.plan[run.plan.length - 1] || { t: "cycle", d: 1 }, reste: 0, passe: 0, e: e, fini: true };
-}
-
-// ─── Démarrage / pause / arrêt ───
-function sptDemarrer(plan, type, mode) {
-  sptArreter(true);
-  SPT.run = { plan: plan, type: type, mode: mode, t0: Date.now(), pause: null, total: sptTotal(plan) };
-  lsSet("amcoach_sptrun_" + CLIENT, SPT.run);
-  sptProgrammer(plan, 0, mode);
-  sptKeepAlive(true, mode);
-  sptWake(true);
-  try { if (navigator.vibrate) navigator.vibrate(30); } catch (e) { }
-  sptBoucle();
-}
-function sptReprendre() {
-  if (!SPT.run || SPT.run.pause == null) return;
-  var depuis = SPT.run.pause;
-  SPT.run.t0 = Date.now() - depuis * 1000;
-  SPT.run.pause = null;
-  lsSet("amcoach_sptrun_" + CLIENT, SPT.run);
-  sptProgrammer(SPT.run.plan, depuis, SPT.run.mode);
-  sptKeepAlive(true, SPT.run.mode);
-  sptWake(true);
-  sptBoucle();
-}
-function sptPause() {
-  if (!SPT.run || SPT.run.pause != null) return;
-  SPT.run.pause = (Date.now() - SPT.run.t0) / 1000;
-  lsSet("amcoach_sptrun_" + CLIENT, SPT.run);
-  sptVider(); sptWake(false);
-  sptAfficher();
-}
-function sptArreter(silencieux) {
-  sptVider(); sptKeepAlive(false); sptWake(false);
-  if (SPT.iv) { clearInterval(SPT.iv); SPT.iv = null; }
-  SPT.run = null;
-  try { localStorage.removeItem("amcoach_sptrun_" + CLIENT); } catch (e) { }
-  if (!silencieux) sptAfficher();
-}
-function sptBoucle() {
-  if (SPT.iv) clearInterval(SPT.iv);
-  SPT.iv = setInterval(sptAfficher, 240);
-  sptAfficher();
-}
-// Reprise après un rechargement de page ou un retour d'arrière-plan
-function sptRestaurer() {
-  var r = lsGet("amcoach_sptrun_" + CLIENT, null);
-  if (!r || !r.plan) return;
-  SPT.run = r;
-  if (r.pause != null) { sptAfficher(); return; }
-  var p = sptPosition(r);
-  if (p.fini) { sptArreter(true); return; }
-  sptProgrammer(r.plan, p.e, r.mode);   // on reprogramme ce qui reste à sonner
-  sptKeepAlive(true, r.mode);
-  sptBoucle();
-}
-
-// ─── Affichage (mise à jour ciblée, jamais de re-render) ───
-function sptAfficher() {
-  var min = document.getElementById("spt-time");
-  if (!min) { if (SPT.iv) { clearInterval(SPT.iv); SPT.iv = null; } return; }
-  var run = SPT.run;
-  var ph = document.getElementById("spt-phase"), tr = document.getElementById("spt-tour"),
-    tt = document.getElementById("spt-reste"), ring = document.getElementById("spt-ring"),
-    go = document.getElementById("spt-go"), zone = document.getElementById("spt-zone");
-  if (!run) {
-    var c0 = sptCfg(), p0 = sptPlanIntervalles(c0);
-    min.textContent = sptFmt(c0.prep > 0 ? c0.prep : c0.effort);
-    ph.textContent = "Prêt"; ph.style.color = "var(--gold)";
-    tr.textContent = c0.tours + " tours" + (c0.series > 1 ? " × " + c0.series + " séries" : "");
-    tt.textContent = "Séance de " + sptFmt(sptTotal(p0));
-    if (ring) { ring.setAttribute("stroke-dasharray", "0 100"); ring.setAttribute("stroke", "var(--gold)"); }
-    if (go) { go.textContent = "▶️ DÉMARRER"; go.style.background = R; }
-    if (zone) zone.style.background = "var(--ink)";
-    return;
-  }
-  var p = sptPosition(run);
-  if (p.fini) {
-    min.textContent = "0:00";
-    ph.textContent = "TERMINÉ 💪"; ph.style.color = "var(--ok)";
-    tt.textContent = "Séance bouclée — " + sptFmt(run.total);
-    if (ring) { ring.setAttribute("stroke-dasharray", "100 100"); ring.setAttribute("stroke", "var(--ok)"); }
-    if (go) { go.textContent = "🔁 RECOMMENCER"; go.style.background = "var(--ok)"; }
-    if (SPT.iv) { clearInterval(SPT.iv); SPT.iv = null; }
-    sptKeepAlive(false); sptWake(false);
-    try { localStorage.removeItem("amcoach_sptrun_" + CLIENT); } catch (e) { }
-    SPT.run = null;
-    return;
-  }
-  var inf = SPT_PHASES[p.seg.t] || SPT_PHASES.cycle;
-  min.textContent = sptFmt(p.reste);
-  ph.textContent = run.pause != null ? "EN PAUSE" : inf.nom;
-  ph.style.color = run.pause != null ? "var(--gold)" : inf.col;
-  tr.textContent = run.type === "bips"
-    ? "Bip " + p.seg.tour + " · toutes les " + p.seg.d + " s"
-    : (p.seg.t === "prep" ? "Ça commence" : "Tour " + p.seg.tour + "/" + (run.plan.filter ? sptNbTours(run.plan) : "?") + (sptNbSeries(run.plan) > 1 ? " · série " + p.seg.serie + "/" + sptNbSeries(run.plan) : ""));
-  tt.textContent = "Reste " + sptFmt(run.total - p.e) + " sur " + sptFmt(run.total);
-  if (ring) {
-    ring.setAttribute("stroke-dasharray", Math.round((p.passe / p.seg.d) * 100) + " 100");
-    ring.setAttribute("stroke", inf.col);
-  }
-  if (go) {
-    go.textContent = run.pause != null ? "▶️ REPRENDRE" : "⏸️ PAUSE";
-    go.style.background = run.pause != null ? "var(--ok)" : "var(--ink2)";
-  }
-  if (zone) zone.style.background = run.pause != null ? "var(--ink)" : (p.seg.t === "effort" ? "#173A22" : p.seg.t === "prep" ? "#3A3117" : "var(--ink)");
-}
-function sptNbTours(plan) { var m = 0; for (var i = 0; i < plan.length; i++) if (plan[i].t === "effort" && plan[i].tour > m) m = plan[i].tour; return m || 1; }
-function sptNbSeries(plan) { var m = 0; for (var i = 0; i < plan.length; i++) if (plan[i].serie > m) m = plan[i].serie; return m || 1; }
-
-// ═══════════ VUE SPORT ═══════════
-function viewSport(name, start) {
-  var c = sptCfg();
-  var is14 = progLen(start) <= 14;
-  var plan = sptPlanIntervalles(c);
-  var h = '<div class="hdr"><div class="hdr-brand"><div class="bar bar-r"></div>' +
-    '<span class="hdr-title">Sport</span><div class="bar bar-b"></div></div>' +
-    '<div class="hdr-sub">' + esc(name) + ' · Minuteurs d\'entraînement</div></div>' +
-    '<div style="padding:16px 14px 20px">';
-
-  // ─── Le minuteur à intervalles ───
-  h += '<div id="spt-zone" class="card" style="padding:18px 16px;margin-bottom:12px;background:var(--ink);border:none;transition:background .4s">' +
-    '<div style="color:var(--gold);font-weight:800;font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px">⏱️ Intervalles — effort / repos</div>' +
-    '<div style="display:flex;justify-content:center;margin-bottom:10px">' +
-    '<svg viewBox="0 0 120 120" style="width:190px;height:190px">' +
-    '<circle cx="60" cy="60" r="52" fill="none" stroke="#2A2A2A" stroke-width="9"/>' +
-    '<circle id="spt-ring" cx="60" cy="60" r="52" fill="none" stroke="var(--gold)" stroke-width="9" stroke-linecap="round" pathLength="100" stroke-dasharray="0 100" transform="rotate(-90 60 60)"/>' +
-    '<text id="spt-time" x="60" y="62" text-anchor="middle" fill="#fff" font-size="26" font-weight="900">0:10</text>' +
-    '<text id="spt-phase" x="60" y="78" text-anchor="middle" fill="var(--gold)" font-size="9" font-weight="800" letter-spacing="1">Prêt</text>' +
-    '</svg></div>' +
-    '<div style="text-align:center;margin-bottom:14px">' +
-    '<div id="spt-tour" style="color:#fff;font-weight:900;font-size:14px">' + c.tours + ' tours</div>' +
-    '<div id="spt-reste" style="color:#888;font-size:11.5px;font-weight:700;margin-top:3px">Séance de ' + sptFmt(sptTotal(plan)) + '</div></div>' +
-    '<div style="display:flex;gap:8px">' +
-    '<button id="spt-go" style="flex:1;padding:15px 0;border-radius:12px;background:' + R + ';color:#fff;font-weight:900;font-size:15px;letter-spacing:1px">▶️ DÉMARRER</button>' +
-    '<button id="spt-stop" style="flex:0 0 74px;padding:15px 0;border-radius:12px;background:var(--ink2);color:#fff;font-weight:900;font-size:13px">⏹️</button>' +
-    '</div></div>';
-
-  // ─── Réglages ───
-  var pres = '';
-  for (var pi = 0; pi < SPT_PRESETS.length; pi++) {
-    var P = SPT_PRESETS[pi];
-    var actif = (c.effort === P.effort && c.repos === P.repos && c.tours === P.tours);
-    pres += '<button data-spt-preset="' + P.k + '" style="flex:1;min-width:62px;padding:9px 0;border-radius:10px;font-weight:900;font-size:11.5px;border:1.5px solid ' + (actif ? 'var(--brand)' : 'var(--line)') + ';background:' + (actif ? 'var(--brand)' : 'var(--card)') + ';color:' + (actif ? '#fff' : 'var(--mute)') + '">' + P.nom + '</button>';
-  }
-  function champ(id, lbl, val, min, max) {
-    return '<div style="flex:1;min-width:88px">' +
-      '<div style="font-size:10.5px;color:var(--mute);font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">' + lbl + '</div>' +
-      '<input id="' + id + '" type="number" inputmode="numeric" min="' + min + '" max="' + max + '" value="' + val + '" style="width:100%;padding:9px 8px;border-radius:10px;border:1.5px solid var(--line);background:var(--card);font-size:15px;font-weight:900;text-align:center"/></div>';
-  }
-  h += '<div class="card" style="padding:14px 15px;margin-bottom:12px">' +
-    '<div class="card-label">⚙️ MA SÉANCE</div>' +
-    '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">' + pres + '</div>' +
-    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">' +
-    champ("spt-prep", "Prépa (s)", c.prep, 0, 120) +
-    champ("spt-effort", "Effort (s)", c.effort, 5, 600) +
-    champ("spt-repos", "Repos (s)", c.repos, 0, 600) + '</div>' +
-    '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
-    champ("spt-tours", "Tours", c.tours, 1, 60) +
-    champ("spt-series", "Séries", c.series, 1, 20) +
-    champ("spt-rserie", "Repos série (s)", c.rserie, 0, 900) + '</div></div>';
-
-  // ─── Le minuteur du mode 14 jours ───
-  h += '<div class="card" style="padding:16px;margin-bottom:12px;background:var(--ink);border:none">' +
-    '<div style="color:var(--gold);font-weight:800;font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">🔔 Minuteur au bip — méthode 14 jours</div>' +
-    '<div style="color:#888;font-size:11.5px;line-height:1.6;margin-bottom:11px">Au bip, tu fais tes répétitions. Puis tu récupères jusqu\'au bip suivant.</div>' +
-    '<div style="display:flex;gap:7px;margin-bottom:8px">' +
-    [300, 600, 900].map(function (d) {
-      return '<button data-spt-dur="' + d + '" style="flex:1;padding:10px 0;border-radius:10px;font-weight:900;font-size:13px;background:' + (c.dur === d ? "var(--violet)" : "var(--ink2)") + ';color:#fff">' + (d / 60) + ' min</button>';
-    }).join("") + '</div>' +
-    '<div style="display:flex;gap:7px;margin-bottom:12px">' +
-    [20, 30, 45, 60].map(function (s) {
-      return '<button data-spt-cycle="' + s + '" style="flex:1;padding:9px 0;border-radius:10px;font-weight:900;font-size:12px;background:' + (c.cycle === s ? "var(--gold-d)" : "var(--ink2)") + ';color:#fff">' + s + ' s</button>';
-    }).join("") + '</div>' +
-    '<button id="spt-bips" style="width:100%;padding:14px 0;border-radius:12px;background:var(--violet);color:#fff;font-weight:900;font-size:14px;letter-spacing:1px">🔔 LANCER LE BIP ' + c.cycle + ' S</button>' +
-    '<div style="color:#777;font-size:11px;text-align:center;margin-top:8px;line-height:1.5">Il s\'affiche dans le cercle du haut, comme la séance à intervalles.</div></div>';
-
-  // ─── Le choix qu'on ne peut pas éviter ───
-  h += '<div class="card" style="padding:14px 15px;margin-bottom:12px">' +
-    '<div class="card-label">🔊 PENDANT LA SÉANCE</div>' +
-    '<div style="display:flex;gap:8px;margin-bottom:9px">' +
-    '<button data-spt-mode="musique" style="flex:1;padding:11px 6px;border-radius:11px;font-weight:900;font-size:12px;border:2px solid ' + (c.mode === "musique" ? "var(--brand)" : "var(--line)") + ';background:' + (c.mode === "musique" ? "var(--brand)" : "var(--card)") + ';color:' + (c.mode === "musique" ? "#fff" : "var(--mute)") + '">🎧 Je garde ma musique</button>' +
-    '<button data-spt-mode="verrou" style="flex:1;padding:11px 6px;border-radius:11px;font-weight:900;font-size:12px;border:2px solid ' + (c.mode === "verrou" ? "var(--brand)" : "var(--line)") + ';background:' + (c.mode === "verrou" ? "var(--brand)" : "var(--card)") + ';color:' + (c.mode === "verrou" ? "#fff" : "var(--mute)") + '">🔒 Écran éteint</button>' +
-    '</div>' +
-    '<div style="font-size:11.5px;color:#555;line-height:1.7">' +
-    (c.mode === "musique"
-      ? 'Les bips passent <strong>par-dessus ta musique</strong> — elle baisse une demi-seconde puis reprend. L\'écran reste allumé tout seul pendant la séance.'
-      : 'Les bips continuent <strong>écran éteint ou sur une autre appli</strong>. En échange, ta musique se met en pause : sur iPhone les deux ne peuvent pas cohabiter.') +
-    '</div>' +
-    '<div style="font-size:11px;color:var(--mute);line-height:1.6;margin-top:8px;border-top:1px solid var(--line);padding-top:8px">Dans les deux cas le <strong>chrono ne dérive jamais</strong> : il se recale sur l\'heure réelle. Tu peux quitter l\'appli et revenir, il sera à la bonne seconde.</div></div>';
-
-  if (is14) h += training14HTML(name, start);
-  return h + '</div>';
-}
-
-function bindSport() {
-  var c = sptCfg();
-  function maj(k, v) { var cc = sptCfg(); cc[k] = v; sptCfgSet(cc); }
-  function lire() {
-    var cc = sptCfg();
-    [["spt-prep", "prep", 0, 120], ["spt-effort", "effort", 5, 600], ["spt-repos", "repos", 0, 600],
-    ["spt-tours", "tours", 1, 60], ["spt-series", "series", 1, 20], ["spt-rserie", "rserie", 0, 900]].forEach(function (f) {
-      var el = document.getElementById(f[0]);
-      if (!el) return;
-      var v = parseInt(el.value, 10);
-      if (isNaN(v)) v = cc[f[1]];
-      cc[f[1]] = Math.max(f[2], Math.min(f[3], v));
-    });
-    sptCfgSet(cc); return cc;
-  }
-  ["spt-prep", "spt-effort", "spt-repos", "spt-tours", "spt-series", "spt-rserie"].forEach(function (id) {
-    var el = document.getElementById(id);
-    if (el) el.addEventListener("change", function () { lire(); if (!SPT.run) sptAfficher(); });
-  });
-  var pres = document.querySelectorAll("[data-spt-preset]");
-  for (var i = 0; i < pres.length; i++) pres[i].addEventListener("click", function () {
-    var k = this.getAttribute("data-spt-preset"), cc = sptCfg();
-    for (var j = 0; j < SPT_PRESETS.length; j++) {
-      if (SPT_PRESETS[j].k === k) {
-        var P = SPT_PRESETS[j];
-        cc.prep = P.prep; cc.effort = P.effort; cc.repos = P.repos; cc.tours = P.tours; cc.series = P.series; cc.rserie = P.rserie;
-      }
-    }
-    sptCfgSet(cc); sptArreter(true); render();
-  });
-  var modes = document.querySelectorAll("[data-spt-mode]");
-  for (var m = 0; m < modes.length; m++) modes[m].addEventListener("click", function () {
-    maj("mode", this.getAttribute("data-spt-mode")); render();
-  });
-  var durs = document.querySelectorAll("[data-spt-dur]");
-  for (var d = 0; d < durs.length; d++) durs[d].addEventListener("click", function () {
-    maj("dur", parseInt(this.getAttribute("data-spt-dur"), 10)); render();
-  });
-  var cyc = document.querySelectorAll("[data-spt-cycle]");
-  for (var y = 0; y < cyc.length; y++) cyc[y].addEventListener("click", function () {
-    maj("cycle", parseInt(this.getAttribute("data-spt-cycle"), 10)); render();
-  });
-
-  var go = document.getElementById("spt-go");
-  if (go) go.addEventListener("click", function () {
-    var cc = lire();
-    if (!SPT.run) { sptDemarrer(sptPlanIntervalles(cc), "intervalles", cc.mode); return; }
-    if (SPT.run.pause != null) sptReprendre(); else sptPause();
-  });
-  var stop = document.getElementById("spt-stop");
-  if (stop) stop.addEventListener("click", function () { sptArreter(false); });
-  var bips = document.getElementById("spt-bips");
-  if (bips) bips.addEventListener("click", function () {
-    var cc = sptCfg();
-    sptDemarrer(sptPlanBips(cc.dur, cc.cycle), "bips", cc.mode);
-    try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch (e) { window.scrollTo(0, 0); }
-  });
-
-  // Retour d'arrière-plan : on recale l'affichage et on reprend le wake lock
-  if (!window.__sptVis) {
-    window.__sptVis = true;
-    document.addEventListener("visibilitychange", function () {
-      if (document.visibilityState !== "visible") return;
-      if (SPT.run && SPT.run.pause == null) { sptWake(true); sptBoucle(); }
-      else sptAfficher();
-    });
-  }
-  sptRestaurer();
-  sptAfficher();
-}
-
 
 // ═══════════ CONTRAT AVEC SOI-MÊME (#13) ═══════════
 // Slot 508 : {why, e1, e2, e3, date}
@@ -6898,7 +6175,7 @@ function viewCoachDetail(){
   // 🔒 VERROU DE SILENCE
   (function(){
     var ac=allData[504]||{};
-    var seuil=(ac.silence===undefined?SIL_DEFAUT:ac.silence);
+    var seuil=(ac.silence===undefined?7:ac.silence);
     var la=allData[505]&&allData[505].d;
     var sil=la?Math.floor((new Date(isoLocal())-new Date(la))/86400000):null;
     var verrou=!!(seuil>0&&la&&sil>seuil);
@@ -6906,7 +6183,7 @@ function viewCoachDetail(){
       '<div style="font-weight:800;font-size:13px;margin-bottom:7px">🔒 Verrou de silence</div>'+
       '<div style="font-size:12px;color:'+(verrou?"var(--bad)":"var(--mute)")+';font-weight:700;line-height:1.5;margin-bottom:10px">'+
       (verrou?'⛔ Accès verrouillé — '+sil+' jours sans ouvrir l\'app'
-             :(seuil>0?(la?'Dernière ouverture il y a '+sil+' jour'+(sil>1?'s':'')+' · verrouillage après '+seuil+' jours'
+             :(seuil>0?(la?'Dernière ouverture il y a '+sil+' jour'+(sil>1?'s':'')+' · verrouillage à '+seuil+' jours'
                           :'Jamais ouverte — le verrou s\'activera après la première visite')
                      :'Désactivé pour ce client'))+'</div>'+
       '<div style="display:flex;gap:7px">'+
@@ -8553,7 +7830,7 @@ function viewCoachDash(){
       // jours, il est encore temps d'un message ; une fois l'accès fermé,
       // c'est le client qui doit faire le premier pas, et beaucoup ne le font
       // jamais. Une alerte qui arrive après la fermeture ne sert à rien.
-      var silSeuil=SIL_DEFAUT;
+      var silSeuil=3;
       try{var accS=dat[504]||{};if(accS.silence!==undefined)silSeuil=accS.silence;}catch(e){}
       if(silSeuil>0&&silence>silSeuil){pts+=60;causes.push("🔒 accès fermé — "+silence+" j de silence");}
       else if(silSeuil>0&&silence===silSeuil){pts+=50;causes.push("⏳ accès fermé demain — "+silence+" j de silence");}
@@ -10278,8 +9555,8 @@ function bindCoach(){
   if(sel)sel.addEventListener("click",function(){
     var slug=state.coachDetail;
     var ac=lsGet("amcoach_"+slug,{})[504]||{};
-    var cur=(ac.silence===undefined?SIL_DEFAUT:ac.silence);
-    var r=prompt("Verrouiller l'accès après combien de jours sans ouvrir l'app ?\n\n0 = jamais verrouiller\nRecommandé : "+SIL_DEFAUT,String(cur));
+    var cur=(ac.silence===undefined?7:ac.silence);
+    var r=prompt("Verrouiller l'accès après combien de jours sans ouvrir l'app ?\n\n0 = jamais verrouiller\nRecommandé : 7",String(cur));
     if(r===null)return;
     var v=parseInt(r,10);
     if(isNaN(v)||v<0){alert("Nombre non valide");return;}
@@ -10728,8 +10005,8 @@ function bindCoach(){
 
   // 📂 Mémoriser quelles sections le coach laisse ouvertes
   var secs=document.querySelectorAll(".cd-sec");
-  for(var sec0=0;sec0<secs.length;sec0++){
-    secs[sec0].addEventListener("toggle",function(){
+  for(var sc=0;sc<secs.length;sc++){
+    secs[sc].addEventListener("toggle",function(){
       try{localStorage.setItem("amcoach_sec_"+this.getAttribute("data-sec"),this.open?"1":"0");}catch(e){}
     });
   }
@@ -10749,7 +10026,7 @@ function bindCoach(){
 
   // 📄 Choix du format de rapport
   var rfm=document.querySelectorAll(".cd-rapfmt");
-  for(var rf0=0;rf0<rfm.length;rf0++)rfm[rf0].addEventListener("click",function(){
+  for(var rf=0;rf<rfm.length;rf++)rfm[rf].addEventListener("click",function(){
     state.rapFmt=this.getAttribute("data-f"); render();
   });
 
@@ -11058,8 +10335,8 @@ function bindCoach(){
     if(el)el.addEventListener("input",blPlanCompute);
   });
   var blProfs=document.querySelectorAll(".bl-profil");
-  for(var bpf=0;bpf<blProfs.length;bpf++){
-    blProfs[bpf].addEventListener("click",function(){
+  for(var bp=0;bp<blProfs.length;bp++){
+    blProfs[bp].addEventListener("click",function(){
       state.blProfil=this.getAttribute("data-profil");
       for(var bq=0;bq<blProfs.length;bq++){
         if(blProfs[bq]===this){blProfs[bq].classList.remove("gray");blProfs[bq].style.background="var(--violet)";}
@@ -11290,6 +10567,18 @@ function bindCoach(){
       feedback("🎂 Anniversaire enregistré","ok");
       render();
     },{raccourcis:false,aide:"Un message spécial apparaîtra ce jour-là dans son tracker."});
+    return;
+    var v=null;
+    if(!v)return;
+    var mm=v.match(/^(\d{1,2})[\/\-.](\d{1,2})(?:[\/\-.](\d{4}))?$/);
+    if(!mm){alert("Format : JJ/MM ou JJ/MM/AAAA");return;}
+    var bday=("0"+mm[2]).slice(-2)+"-"+("0"+mm[1]).slice(-2);
+    var slug=state.coachDetail;
+    var all=lsGet("amcoach_"+slug,{});
+    all[503]={bday:bday,year:mm[3]||null};
+    lsSet("amcoach_"+slug,all);
+    sbFetch("tracking?on_conflict=client_slug,day_index",{method:"POST",prefer:"resolution=merge-duplicates",body:{client_slug:slug,day_index:503,data:all[503]}}).catch(function(){});
+    render();
   });
   var cdDel=document.getElementById("cd-delete");
   if(cdDel)cdDel.addEventListener("click",function(){
@@ -11985,7 +11274,6 @@ function bindMain(name,start){
   if(state.view==="nutrition"){bindNutrition();bindNav();return;}
   if(state.view==="menus"){bindNav();return;}
   if(state.view==="finance"){bindFinance();bindNav();return;}
-  if(state.view==="sport"||state.view==="training"){bindSport();bindNav();return;}
   var oc=document.getElementById("open-contract");
   if(oc)oc.addEventListener("click",function(){state.view="contract";render();});
   // 🔔 Rappel quotidien 20h30 : événement calendrier récurrent avec alerte native
@@ -12179,6 +11467,94 @@ function bindMain(name,start){
     });
   }
 
+  // ⏱️ MINUTEUR ENTRAÎNEMENT (bip léger toutes les 30 s)
+  if(window.__tmIv){clearInterval(window.__tmIv);window.__tmIv=null;state.tmRun=false;}
+  var tmStart=document.getElementById("tm-start");
+  if(tmStart){
+    var tmDurBtns=document.querySelectorAll("[data-tmdur]");
+    for(var td=0;td<tmDurBtns.length;td++){
+      tmDurBtns[td].addEventListener("click",function(){
+        if(state.tmRun)return; // pas de changement en cours de route
+        state.tmDur=parseInt(this.getAttribute("data-tmdur"),10);
+        render();
+      });
+    }
+    var tmCycle=document.getElementById("tm-cycle"), tmTotal=document.getElementById("tm-total");
+    var tmLeft=0, tmIv=null, tmCtx=null;
+    function tmCtxGet(){
+      // 🎧 Mode "transient" : le bip se mixe PAR-DESSUS Deezer/YouTube/podcast sans les couper
+      // (la musique baisse une demi-seconde pendant le bip puis reprend)
+      try{if(navigator.audioSession)navigator.audioSession.type="transient";}catch(e){}
+      if(!tmCtx)tmCtx=new (window.AudioContext||window.webkitAudioContext)();
+      if(tmCtx.state==="suspended")tmCtx.resume();
+      return tmCtx;
+    }
+    function tmBeep(n){
+      // petit bip (départ)
+      try{
+        var ctx=tmCtxGet(), t=ctx.currentTime;
+        for(var b=0;b<n;b++){
+          var o=ctx.createOscillator(),g=ctx.createGain();
+          o.connect(g);g.connect(ctx.destination);
+          o.frequency.value=880;o.type="sine";
+          g.gain.setValueAtTime(0.0001,t+b*0.28);
+          g.gain.exponentialRampToValueAtTime(0.35,t+b*0.28+0.02);
+          g.gain.exponentialRampToValueAtTime(0.0001,t+b*0.28+0.2);
+          o.start(t+b*0.28);o.stop(t+b*0.28+0.22);
+        }
+      }catch(e){}
+    }
+    function tmAlarm(){
+      // 🔊 alarme forte : 3 secondes de bips (6 pulsations), impossible à louper
+      try{
+        var ctx=tmCtxGet(), t=ctx.currentTime;
+        for(var b=0;b<6;b++){
+          var o=ctx.createOscillator(),g=ctx.createGain();
+          o.connect(g);g.connect(ctx.destination);
+          o.frequency.value=b%2===0?950:1150; // alternance de tons, plus perçant
+          o.type="square";
+          g.gain.setValueAtTime(0.0001,t+b*0.5);
+          g.gain.exponentialRampToValueAtTime(0.6,t+b*0.5+0.02);
+          g.gain.setValueAtTime(0.6,t+b*0.5+0.3);
+          g.gain.exponentialRampToValueAtTime(0.0001,t+b*0.5+0.42);
+          o.start(t+b*0.5);o.stop(t+b*0.5+0.45);
+        }
+        if(navigator.vibrate)navigator.vibrate([300,150,300,150,300]); // vibration en bonus sur Android
+      }catch(e){}
+    }
+    function tmFmt(s){return Math.floor(s/60)+":"+("0"+(s%60)).slice(-2);}
+    function tmStop(done){
+      if(tmIv){clearInterval(tmIv);tmIv=null;window.__tmIv=null;}
+      state.tmRun=false;
+      tmStart.textContent=done?"💪 TERMINÉ — Recommencer":"▶️ START";
+      tmStart.style.background=done?"var(--ok)":R;
+      if(!done){tmCycle.textContent="30";tmTotal.textContent=tmFmt(state.tmDur||300)+" au total";}
+    }
+    tmStart.addEventListener("click",function(){
+      if(state.tmRun){tmStop(false);return;}
+      state.tmRun=true;
+      tmLeft=state.tmDur||300;
+      tmStart.textContent="⏹️ STOP";
+      tmStart.style.background="var(--ink2)";
+      tmBeep(1); // bip de départ
+      tmCycle.textContent="30";
+      tmTotal.textContent=tmFmt(tmLeft)+" restantes";
+      tmIv=window.__tmIv=setInterval(function(){
+        tmLeft--;
+        if(tmLeft<=0){
+          tmCycle.textContent="0";
+          tmTotal.textContent="0:00";
+          tmAlarm(); // alarme de fin — 3 secondes
+          tmStop(true);
+          return;
+        }
+        var cyc=tmLeft%30===0?30:tmLeft%30;
+        if(tmLeft%30===0)tmAlarm(); // alarme forte 3 s toutes les 30 s
+        tmCycle.textContent=String(cyc);
+        tmTotal.textContent=tmFmt(tmLeft)+" restantes";
+      },1000);
+    });
+  }
 }
 
 // ═══════════ BOOT ═══════════

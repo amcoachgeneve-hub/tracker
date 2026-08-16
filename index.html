@@ -215,6 +215,11 @@ var HABITS=[
 // Habitudes facultatives : exclues de l'analyse de la boucle d'échec.
 // Un client qui ne prend simplement pas de compléments n'a pas un problème de discipline.
 var HABITS_FACULT={complements:1};
+// 🔒 SEUIL DU VERROU DE SILENCE — une seule valeur pour toute l'app.
+// Elle était écrite en dur à QUATRE endroits : le verrou lui-même (3), la
+// fiche client du coach (7), le réglage (7) et l'alerte de décrochage (3).
+// Résultat : le verrou tombait au 4e jour pendant que la fiche annonçait 7.
+var SIL_DEFAUT=3;
 // 🎯 LES PILIERS DE LA TRANSFORMATION. Sans sport ni nutrition, aucun résultat
 // n'est possible — ce sont eux qui décident si un programme fonctionne.
 // Le verdict d'un rapport doit s'appuyer là-dessus, pas sur le simple fait
@@ -3291,7 +3296,7 @@ function renderView(){
   // Akli : « sept jours c'est trop long, c'est déjà trop tard ». À 3 jours,
   // le verrou tombe le 4ᵉ jour de silence — assez tôt pour rattraper
   // quelqu'un qui décroche, pas assez pour punir un week-end chargé.
-  var seuilSil=(acc0.silence===undefined?3:acc0.silence);
+  var seuilSil=(acc0.silence===undefined?SIL_DEFAUT:acc0.silence);
   var joursSil=0;
   if(lastAct&&lastAct.d)joursSil=Math.floor((new Date(todayIso)-new Date(lastAct.d))/86400000);
   var verrouSil=!!(CLIENT&&seuilSil>0&&lastAct&&lastAct.d&&joursSil>seuilSil);
@@ -6497,7 +6502,7 @@ function viewCoachDetail(){
   // 🔒 VERROU DE SILENCE
   (function(){
     var ac=allData[504]||{};
-    var seuil=(ac.silence===undefined?7:ac.silence);
+    var seuil=(ac.silence===undefined?SIL_DEFAUT:ac.silence);
     var la=allData[505]&&allData[505].d;
     var sil=la?Math.floor((new Date(isoLocal())-new Date(la))/86400000):null;
     var verrou=!!(seuil>0&&la&&sil>seuil);
@@ -6505,7 +6510,7 @@ function viewCoachDetail(){
       '<div style="font-weight:800;font-size:13px;margin-bottom:7px">🔒 Verrou de silence</div>'+
       '<div style="font-size:12px;color:'+(verrou?"var(--bad)":"var(--mute)")+';font-weight:700;line-height:1.5;margin-bottom:10px">'+
       (verrou?'⛔ Accès verrouillé — '+sil+' jours sans ouvrir l\'app'
-             :(seuil>0?(la?'Dernière ouverture il y a '+sil+' jour'+(sil>1?'s':'')+' · verrouillage à '+seuil+' jours'
+             :(seuil>0?(la?'Dernière ouverture il y a '+sil+' jour'+(sil>1?'s':'')+' · verrouillage après '+seuil+' jours'
                           :'Jamais ouverte — le verrou s\'activera après la première visite')
                      :'Désactivé pour ce client'))+'</div>'+
       '<div style="display:flex;gap:7px">'+
@@ -8152,7 +8157,7 @@ function viewCoachDash(){
       // jours, il est encore temps d'un message ; une fois l'accès fermé,
       // c'est le client qui doit faire le premier pas, et beaucoup ne le font
       // jamais. Une alerte qui arrive après la fermeture ne sert à rien.
-      var silSeuil=3;
+      var silSeuil=SIL_DEFAUT;
       try{var accS=dat[504]||{};if(accS.silence!==undefined)silSeuil=accS.silence;}catch(e){}
       if(silSeuil>0&&silence>silSeuil){pts+=60;causes.push("🔒 accès fermé — "+silence+" j de silence");}
       else if(silSeuil>0&&silence===silSeuil){pts+=50;causes.push("⏳ accès fermé demain — "+silence+" j de silence");}
@@ -9877,8 +9882,8 @@ function bindCoach(){
   if(sel)sel.addEventListener("click",function(){
     var slug=state.coachDetail;
     var ac=lsGet("amcoach_"+slug,{})[504]||{};
-    var cur=(ac.silence===undefined?7:ac.silence);
-    var r=prompt("Verrouiller l'accès après combien de jours sans ouvrir l'app ?\n\n0 = jamais verrouiller\nRecommandé : 7",String(cur));
+    var cur=(ac.silence===undefined?SIL_DEFAUT:ac.silence);
+    var r=prompt("Verrouiller l'accès après combien de jours sans ouvrir l'app ?\n\n0 = jamais verrouiller\nRecommandé : "+SIL_DEFAUT,String(cur));
     if(r===null)return;
     var v=parseInt(r,10);
     if(isNaN(v)||v<0){alert("Nombre non valide");return;}

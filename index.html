@@ -46,150 +46,122 @@
   --shadow-l:0 10px 26px rgba(88,118,148,.15);
 }
 
-/* ═══════════ 🏋️ MODE SPORT — ambiance salle, néon sur fond noir ═══════════
-   C'est le seul écran qu'on regarde de loin, en sueur, entre deux séries :
-   fond noir, contours lumineux, gros chiffres. Le reste de l'app garde sa
-   palette claire — le style est cloisonné dans .sport-mode. */
-.app.sport-mode{background:#05060D;background-attachment:fixed;color:#EDEBFF}
-.app.sport-mode .hdr{background:#05060D;border-radius:0;border-bottom:1px solid rgba(176,97,255,.28);box-shadow:0 6px 18px rgba(5,6,13,.9)}
-.app.sport-mode .hdr-title{color:#3FD8FF;text-shadow:0 0 16px rgba(63,216,255,.8)}
-.app.sport-mode .hdr-sub{color:#B98CFF}
-.sport-mode .bar-r{background:#3FD8FF;box-shadow:0 0 10px #3FD8FF}
-.sport-mode .bar-b{background:#B061FF;box-shadow:0 0 10px #B061FF}
-.sport-mode .nav{background:rgba(5,6,13,.94);border-top:1px solid rgba(176,97,255,.34)}
-.sport-mode .nav-lbl{color:#6E6A8A}
-.sport-mode .nav-btn.active .nav-lbl{color:#3FD8FF;text-shadow:0 0 10px rgba(63,216,255,.85)}
-.spt-card{background:linear-gradient(158deg,#0C0A1C 0%,#06060F 100%);border:1.5px solid rgba(176,97,255,.55);
-  border-radius:22px;padding:16px 15px;margin-bottom:13px;
-  box-shadow:0 0 20px rgba(176,97,255,.22),inset 0 0 26px rgba(63,216,255,.05);transition:border-color .4s,box-shadow .4s}
-.spt-lab{font-weight:900;font-size:11.5px;letter-spacing:1.3px;text-transform:uppercase;margin-bottom:12px;
-  color:#E9B75F;text-shadow:0 0 12px rgba(233,183,95,.55)}
-.spt-lab.cy{color:#3FD8FF;text-shadow:0 0 12px rgba(63,216,255,.55)}
-.spt-cy{color:#3FD8FF}
-.spt-txt{font-size:12.5px;color:#9A95B8;line-height:1.7}
-.spt-flab{font-size:10.5px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:#7FE0FF;margin-bottom:5px}
-.spt-inp{width:100%;padding:12px 8px;border-radius:14px;border:1.5px solid rgba(176,97,255,.6);background:#080714;
-  color:#fff;font-size:21px;font-weight:900;text-align:center;
-  box-shadow:inset 0 0 14px rgba(176,97,255,.2),0 0 10px rgba(176,97,255,.16);-moz-appearance:textfield}
+/* ═══════════ 🏋️ ONGLET SPORT — clair, contours colorés ═══════════
+   Akli : « fond blanc c'est plus joli ». On garde ce qui faisait l'identité
+   de l'écran — l'anneau lumineux, les dégradés cyan→violet des gros boutons,
+   les couleurs par phase — mais posés sur le blanc du reste de l'appli. */
+.app.sport-mode .hdr-title{color:#12B5EA}
+.app.sport-mode .hdr-sub{color:#8A6BC8}
+.sport-mode .bar-r{background:#12B5EA}
+.sport-mode .bar-b{background:#8A3FFF}
+.spt-card{background:#fff;border:1px solid var(--line);border-radius:22px;padding:16px 15px;margin-bottom:13px;
+  box-shadow:0 3px 14px rgba(16,24,40,.06);transition:border-color .4s,box-shadow .4s}
+.spt-lab{font-weight:900;font-size:11.5px;letter-spacing:1.3px;text-transform:uppercase;margin-bottom:12px;color:var(--ink)}
+.spt-lab.cy{color:var(--ink)}
+.spt-cy{color:#0EA5C6}
+.spt-txt{font-size:12.5px;color:var(--mute);line-height:1.7}
+.spt-flab{font-size:10.5px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--mute);margin-bottom:5px}
+.spt-inp{width:100%;padding:12px 8px;border-radius:14px;border:1.5px solid var(--line);background:var(--soft);
+  color:var(--ink);font-size:21px;font-weight:900;text-align:center;-moz-appearance:textfield}
 .spt-inp::-webkit-outer-spin-button,.spt-inp::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .spt-pill{flex:1;min-width:56px;padding:11px 4px;border-radius:13px;font-weight:900;font-size:12.5px;
-  background:#0A0918;border:1.5px solid rgba(176,97,255,.45);color:#C9C4E8}
+  background:#fff;border:1.5px solid var(--line);color:var(--ink)}
 .spt-pill.big{font-size:14px;padding:13px 4px}
-.spt-pill.on{border-color:#3FD8FF;color:#fff;box-shadow:0 0 16px rgba(63,216,255,.45),inset 0 0 14px rgba(63,216,255,.12)}
-.spt-pill.gold{border-color:#E9B75F;color:#fff;box-shadow:0 0 16px rgba(233,183,95,.5),inset 0 0 14px rgba(233,183,95,.14)}
+.spt-pill.on{border-color:#12B5EA;color:#0B7FA8;box-shadow:0 0 0 3px rgba(18,181,234,.14)}
+.spt-pill.gold{border-color:#E9A23B;color:#9A6511;box-shadow:0 0 0 3px rgba(233,162,59,.16)}
 .spt-go{flex:1;width:100%;padding:16px 0;border-radius:16px;color:#fff;font-weight:900;font-size:16px;letter-spacing:1.4px;
-  background:linear-gradient(90deg,#12B5EA 0%,#8A3FFF 100%);box-shadow:0 0 24px rgba(96,120,255,.55)}
-.spt-go.pause{background:linear-gradient(90deg,#2A2740 0%,#3A3358 100%);box-shadow:0 0 16px rgba(176,97,255,.3)}
-.spt-go.ok{background:linear-gradient(90deg,#12C98A 0%,#3FD8FF 100%);box-shadow:0 0 24px rgba(43,245,160,.5)}
-.spt-sq{flex:0 0 70px;padding:16px 0;border-radius:16px;background:#080714;border:1.5px solid rgba(63,216,255,.6);
-  color:#3FD8FF;font-size:17px;box-shadow:0 0 14px rgba(63,216,255,.25)}
-/* Le plan des 14 jours reprend les cartes claires : on les repeint ici */
+  background:linear-gradient(90deg,#12B5EA 0%,#8A3FFF 100%);box-shadow:0 8px 20px rgba(96,120,255,.28)}
+.spt-go.pause{background:linear-gradient(90deg,#8C93A8 0%,#6B7280 100%);box-shadow:0 8px 18px rgba(16,24,40,.16)}
+.spt-go.ok{background:linear-gradient(90deg,#12C98A 0%,#12B5EA 100%);box-shadow:0 8px 20px rgba(18,201,138,.3)}
+.spt-sq{flex:0 0 70px;padding:16px 0;border-radius:16px;background:var(--soft);border:1.5px solid var(--line);
+  color:#12B5EA;font-size:17px}
 .spt-plan{background:none;border:none;box-shadow:none;padding:0;margin-bottom:0}
-.spt-plan .card{background:rgba(255,255,255,.045);box-shadow:none;border:1px solid rgba(176,97,255,.25);color:#DCD8F5}
-.spt-plan .card-label{color:#7FE0FF}
-.spt-plan div,.spt-plan span,.spt-plan strong{color:inherit}
-.spt-plan a{background:linear-gradient(90deg,#12B5EA 0%,#8A3FFF 100%) !important;box-shadow:0 0 16px rgba(96,120,255,.45)}
 
-/* ═══════════ 📊 MODE STATS — lecture de nuit ═══════════
-   Même principe que l'onglet Sport : un écran de lecture, sombre et calme,
-   cloisonné dans .stats-mode pour ne pas déteindre sur le reste de l'app.
-   Ici pas de néon — on lit des chiffres, pas un chrono à trois mètres. */
-.app.stats-mode{--st-cy:#22D3EE;--st-vi:#A78BFA;--st-ok:#34D399;--st-bad:#F87171;
-  --st-dim:#64748B;--st-card:#14141C;--st-line:rgba(255,255,255,.07);
-  background:#0A0A0F;color:#F1F5F9}
-.app.stats-mode .hdr{background:#0A0A0F;border-radius:0;border-bottom:1px solid var(--st-line)}
-.app.stats-mode .hdr-title{color:#fff}
-.app.stats-mode .hdr-sub{color:#94A3B8}
-.app.stats-mode .nav{background:rgba(10,10,15,.95);border-top:1px solid var(--st-line)}
-.app.stats-mode .nav-lbl{color:#64748B}
-.app.stats-mode .nav-btn.active .nav-lbl{color:var(--st-cy)}
-.stats-mode .chart-card{background:var(--st-card);border:1px solid var(--st-line);box-shadow:none;border-radius:18px;padding:16px;margin-bottom:14px}
-.stats-mode .chart-title{color:#F1F5F9}
-.stats-mode .chart-avg{color:#94A3B8}
-.stats-mode .chart-empty{color:var(--st-dim)}
-/* Verdict du superviseur */
-.st-verdict{border-radius:18px;padding:17px 16px;margin-bottom:16px}
-.st-verdict-sig{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:900;color:rgba(255,255,255,.92);margin-bottom:9px}
+/* ═══════════ 📊 ONGLET STATS — clair ═══════════ */
+.app.stats-mode{--st-cy:#0EA5C6;--st-vi:#7C4DEF;--st-ok:#12A66B;--st-bad:#E24C4C;
+  --st-dim:var(--mute);--st-card:#fff;--st-line:var(--line)}
+.stats-mode .chart-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:14px;
+  box-shadow:0 3px 14px rgba(16,24,40,.06)}
+/* Le verdict du superviseur : une échelle de couleur, de l'orange quand ça
+   coince au vert fluo quand tout est aligné. La couleur porte l'info avant
+   même la lecture. */
+.st-verdict{border-radius:18px;padding:17px 16px;margin-bottom:16px;box-shadow:0 6px 18px rgba(16,24,40,.1)}
+.st-verdict-sig{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:900;margin-bottom:9px;opacity:.85}
 .st-verdict-ico{margin-left:auto;font-size:20px;line-height:1}
-.st-verdict-t{color:#fff;font-weight:900;font-size:19px;line-height:1.25}
-.st-verdict-s{color:rgba(255,255,255,.88);font-size:13px;font-weight:600;line-height:1.6;margin-top:6px}
-/* Titres de section */
+.st-verdict-t{font-weight:900;font-size:19px;line-height:1.25}
+.st-verdict-s{font-size:13px;font-weight:600;line-height:1.6;margin-top:6px;opacity:.92}
+.st-echelle{display:flex;gap:4px;margin-top:12px}
+.st-echelle i{flex:1;height:5px;border-radius:3px;background:rgba(0,0,0,.14)}
+.st-echelle i.on{background:rgba(255,255,255,.95)}
 .st-h3{display:flex;align-items:center;gap:9px;margin:20px 0 10px}
 .st-h3-bar{width:3px;height:17px;border-radius:2px}
-.st-h3 span{font-weight:900;font-size:13.5px;text-transform:uppercase;letter-spacing:1.1px;color:#E2E8F0}
-.st-note{font-size:12px;color:var(--st-dim);line-height:1.55;margin:-3px 0 11px}
+.st-h3 span{font-weight:900;font-size:13.5px;text-transform:uppercase;letter-spacing:1.1px;color:var(--ink)}
+.st-note{font-size:12px;color:var(--mute);line-height:1.55;margin:-3px 0 11px}
 .st-grid2{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:6px}
 .st-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;margin-bottom:6px}
-/* Cartes de la semaine et du ressenti */
-.st-w{background:var(--st-card);border:1px solid var(--st-line);border-radius:16px;padding:15px 14px}
-.st-w.cy{border-color:rgba(34,211,238,.28)}
-.st-w.vi{border-color:rgba(167,139,250,.28)}
-.st-w.vide{opacity:.55}
-.st-w-lbl{font-size:12.5px;font-weight:700;color:#94A3B8;margin-bottom:5px}
-.st-w-val{font-size:27px;font-weight:900;letter-spacing:-.5px;color:#F1F5F9;line-height:1.05}
-.st-w-val span{font-size:14px;font-weight:600;color:#94A3B8;margin-left:2px}
+.st-w{background:#fff;border:1px solid var(--line);border-radius:16px;padding:15px 14px;box-shadow:0 3px 12px rgba(16,24,40,.05)}
+.st-w.cy{border-color:rgba(14,165,198,.4)}
+.st-w.vi{border-color:rgba(124,77,239,.35)}
+.st-w.vide{opacity:.6}
+.st-w-lbl{font-size:12.5px;font-weight:700;color:var(--mute);margin-bottom:5px}
+.st-w-val{font-size:27px;font-weight:900;letter-spacing:-.5px;color:var(--ink);line-height:1.05}
+.st-w-val span{font-size:14px;font-weight:600;color:var(--mute);margin-left:2px}
 .st-w.cy .st-w-val{color:var(--st-cy)}
 .st-w.vi .st-w-val{color:var(--st-vi)}
-.st-w-sub{font-size:11.5px;font-weight:700;line-height:1.4;margin-top:5px;color:var(--st-dim)}
-/* Insights */
-.st-ins{display:flex;gap:12px;background:var(--st-card);border:1px solid var(--st-line);border-radius:15px;padding:14px 15px;margin-bottom:9px;font-size:13px;line-height:1.6;color:#94A3B8}
+.st-w-sub{font-size:11.5px;font-weight:700;line-height:1.4;margin-top:5px;color:var(--mute)}
+.st-ins{display:flex;gap:12px;background:#fff;border:1px solid var(--line);border-radius:15px;padding:14px 15px;
+  margin-bottom:9px;font-size:13px;line-height:1.6;color:var(--mute);box-shadow:0 3px 12px rgba(16,24,40,.05)}
 .st-ins-i{font-size:18px;line-height:1.3;flex-shrink:0}
-.st-ins strong{color:#F1F5F9;font-weight:700}
-/* Régularité */
-.st-kpi{background:var(--st-card);border:1px solid var(--st-line);border-radius:16px;padding:20px 14px;text-align:center}
+.st-ins strong{color:var(--ink);font-weight:800}
+.st-kpi{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px 14px;text-align:center;box-shadow:0 3px 12px rgba(16,24,40,.05)}
 .st-kpi-n{font-size:36px;font-weight:900;letter-spacing:-1px;line-height:1}
-.st-kpi-l{font-size:12.5px;color:#94A3B8;margin-top:5px}
-/* Trophées et badges */
-.st-badge{background:var(--st-card);border:2px solid var(--gold);border-radius:14px;padding:11px 8px;text-align:center}
-.st-badge-n{font-size:10px;font-weight:900;margin-top:4px;line-height:1.25;color:#F1F5F9}
-.st-badge-j{font-size:9.5px;color:#94A3B8;font-weight:700;margin-top:2px}
-.st-tro{background:var(--st-card);border:1px solid var(--st-line);border-radius:14px;padding:13px 10px;text-align:center}
+.st-kpi-l{font-size:12.5px;color:var(--mute);margin-top:5px}
+.st-badge{background:#fff;border:2px solid var(--gold);border-radius:14px;padding:11px 8px;text-align:center}
+.st-badge-n{font-size:10px;font-weight:900;margin-top:4px;line-height:1.25;color:var(--ink)}
+.st-badge-j{font-size:9.5px;color:var(--mute);font-weight:700;margin-top:2px}
+.st-tro{background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px 10px;text-align:center}
 .st-tro.on{border:2px solid var(--gold)}
-.st-tro:not(.on){opacity:.45}
+.st-tro:not(.on){opacity:.5}
 .st-tro:not(.on) .st-tro-i{filter:grayscale(1)}
 .st-tro-i{font-size:24px}
-.st-tro-n{font-weight:900;font-size:11.5px;margin-top:5px;color:#F1F5F9}
-.st-tro-d{font-size:11px;color:#94A3B8;margin-top:3px}
+.st-tro-n{font-weight:900;font-size:11.5px;margin-top:5px;color:var(--ink)}
+.st-tro-d{font-size:11px;color:var(--mute);margin-top:3px}
 .st-det{margin-top:4px}
-.st-det summary{list-style:none;cursor:pointer;font-size:12.5px;font-weight:800;color:var(--st-cy);padding:11px 0;text-align:center;border:1px solid var(--st-line);border-radius:13px;background:var(--st-card)}
+.st-det summary{list-style:none;cursor:pointer;font-size:12.5px;font-weight:800;color:var(--st-cy);padding:11px 0;
+  text-align:center;border:1px solid var(--line);border-radius:13px;background:#fff}
 .st-det summary::-webkit-details-marker{display:none}
-/* Légende du graphique de poids */
-.st-leg{display:flex;gap:15px;margin-top:10px;font-size:11px;color:#94A3B8;font-weight:700;flex-wrap:wrap}
+.st-leg{display:flex;gap:15px;margin-top:10px;font-size:11px;color:var(--mute);font-weight:700;flex-wrap:wrap}
 .st-leg i{display:inline-block;width:14px;height:2px;vertical-align:middle;margin-right:4px}
+/* Progression par exercice */
+.st-exo{background:#fff;border:1px solid var(--line);border-radius:15px;padding:13px 14px;margin-bottom:9px;box-shadow:0 3px 12px rgba(16,24,40,.05)}
+.st-exo-hd{display:flex;align-items:baseline;gap:8px;margin-bottom:7px}
+.st-exo-n{font-weight:900;font-size:13.5px;color:var(--ink);flex:1;min-width:0}
+.st-exo-d{font-size:12px;font-weight:900;white-space:nowrap}
+.st-exo-l{font-size:11.5px;color:var(--mute);font-weight:700;margin-top:6px}
 
-/* ═══════════ 🏋️ SÉANCES — constructeur (coach) et exécution (client) ═══════════
-   Le constructeur vit dans la fiche coach, sur fond clair ; l'exécution vit
-   dans l'onglet Sport, sur fond noir. Les mêmes classes servent aux deux :
-   les couleurs sombres ne s'appliquent que sous .sport-mode. */
+/* ═══════════ 🏋️ SÉANCES — constructeur (coach) et exécution (client) ═══════════ */
 .prg-top{display:flex;align-items:center;gap:11px;padding:14px 13px 10px;position:sticky;top:0;z-index:5;background:var(--sky)}
-.sport-mode .prg-top{background:#05060D;border-bottom:1px solid rgba(176,97,255,.28)}
 .prg-back{flex:0 0 38px;height:38px;border-radius:12px;background:var(--soft2);font-size:22px;font-weight:900;line-height:1;color:var(--ink)}
-.sport-mode .prg-back{background:#0A0918;color:#3FD8FF;border:1px solid rgba(63,216,255,.4)}
-.prg-titre{font-weight:900;font-size:18px;line-height:1.2}
-.sport-mode .prg-titre{color:#fff}
+.prg-titre{font-weight:900;font-size:18px;line-height:1.2;color:var(--ink)}
 .prg-sous{font-size:11.5px;font-weight:700;color:var(--mute);margin-top:2px}
-.sport-mode .prg-sous{color:#8E8AA8}
-.prg-exo{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--brand);border-radius:15px;padding:0;margin-bottom:10px;overflow:hidden}
-.sport-mode .prg-exo{background:linear-gradient(158deg,#0C0A1C,#06060F);border-color:rgba(176,97,255,.4)}
+.prg-exo{background:#fff;border:1px solid var(--line);border-left:4px solid var(--brand);border-radius:15px;
+  margin-bottom:10px;overflow:hidden;box-shadow:0 3px 12px rgba(16,24,40,.05)}
 .prg-exo.lie{margin-top:-4px;border-top-left-radius:4px;border-top-right-radius:4px}
-.prg-supbadge{font-size:10.5px;font-weight:900;letter-spacing:.5px;color:#B061FF;padding:6px 13px 0}
-.prg-exo-hd{display:flex;align-items:center;gap:10px;padding:13px 13px;cursor:pointer}
-.prg-exo-n{font-weight:900;font-size:14.5px}
-.sport-mode .prg-exo-n{color:#fff}
+.prg-supbadge{font-size:10.5px;font-weight:900;letter-spacing:.5px;color:#7C4DEF;padding:6px 13px 0}
+.prg-exo-hd{display:flex;align-items:center;gap:10px;padding:13px;cursor:pointer}
+.prg-vig{flex:0 0 46px;height:46px;border-radius:11px;object-fit:cover;background:var(--soft2)}
+.prg-exo-n{font-weight:900;font-size:14.5px;color:var(--ink)}
 .prg-exo-m{font-size:11.5px;font-weight:700;color:var(--mute);margin-top:2px}
-.sport-mode .prg-exo-m{color:#8E8AA8}
-.prg-exo-r{font-size:11.5px;font-weight:800;color:var(--mute);text-align:right;white-space:nowrap}
-.sport-mode .prg-exo-r{color:#3FD8FF}
+.prg-exo-r{font-size:11.5px;font-weight:800;color:#0EA5C6;text-align:right;white-space:nowrap}
 .prg-chev{font-size:15px;color:var(--mute);flex:0 0 12px}
 .prg-exo-bd{padding:0 13px 14px}
 .prg-serie,.prg-run-serie{display:flex;align-items:center;gap:6px;margin-bottom:7px;flex-wrap:nowrap}
 .prg-sn{font-size:11.5px;font-weight:900;color:var(--mute);flex:0 0 22px}
-.sport-mode .prg-sn{color:#8E8AA8}
-.prg-in{flex:1 1 52px;min-width:0;padding:9px 6px;border-radius:10px;border:1.5px solid var(--line);background:var(--card);font-size:15px;font-weight:900;text-align:center;-moz-appearance:textfield}
+.prg-in{flex:1 1 52px;min-width:0;padding:9px 6px;border-radius:10px;border:1.5px solid var(--line);background:var(--soft);
+  font-size:15px;font-weight:900;text-align:center;color:var(--ink);-moz-appearance:textfield}
 .prg-in.court{flex:1 1 46px}
 .prg-in::-webkit-outer-spin-button,.prg-in::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-.sport-mode .prg-in{background:#080714;color:#fff;border-color:rgba(176,97,255,.55)}
-.prg-sel{flex:1 1 86px;min-width:0;padding:9px 4px;border-radius:10px;border:1.5px solid var(--line);background:var(--card);font-size:11.5px;font-weight:800}
+.prg-sel{flex:1 1 86px;min-width:0;padding:9px 4px;border-radius:10px;border:1.5px solid var(--line);background:#fff;font-size:11.5px;font-weight:800}
 .prg-sel.court{flex:0 0 62px}
 .prg-at{font-size:12px;color:var(--mute);font-weight:800}
 .prg-un{font-size:11px;font-weight:800;color:var(--mute);flex:0 0 26px}
@@ -201,43 +173,46 @@
 .prg-chips{display:flex;gap:6px;flex-wrap:wrap}
 .prg-chip{padding:8px 11px;border-radius:10px;background:var(--soft2);font-weight:900;font-size:11.5px;color:var(--mute)}
 .prg-chip.on{background:var(--ink);color:#fff}
-.prg-note{width:100%;padding:10px;border-radius:11px;border:1.5px solid var(--line);background:var(--card);font-size:13px;font-family:inherit;resize:vertical}
-/* Bibliothèque */
+.prg-note{width:100%;padding:10px;border-radius:11px;border:1.5px solid var(--line);background:#fff;font-size:13px;font-family:inherit;resize:vertical}
 .prg-tabs{display:flex;gap:7px;margin-bottom:11px}
 .prg-tab{flex:1;padding:11px 4px;border-radius:12px;background:var(--soft2);font-weight:900;font-size:12px;color:var(--mute)}
 .prg-tab.on{background:var(--ink);color:#fff}
-.prg-search{width:100%;padding:12px 14px;border-radius:13px;border:1.5px solid var(--line);background:var(--card);font-size:14px;margin-bottom:12px}
-.prg-bx{display:flex;align-items:center;gap:11px;background:var(--card);border:1.5px solid var(--line);border-radius:13px;padding:12px;margin-bottom:8px;cursor:pointer}
+.prg-search{width:100%;padding:12px 14px;border-radius:13px;border:1.5px solid var(--line);background:#fff;font-size:14px;margin-bottom:12px}
+.prg-bx{display:flex;align-items:center;gap:11px;background:#fff;border:1.5px solid var(--line);border-radius:13px;padding:10px 12px;margin-bottom:8px;cursor:pointer}
 .prg-bx.on{border-color:var(--ok);background:#F1FBF5}
 .prg-bx-p{flex:0 0 10px;height:34px;border-radius:6px}
-.prg-bx-n{font-weight:900;font-size:13.5px}
+.prg-bx-n{font-weight:900;font-size:13.5px;color:var(--ink)}
 .prg-bx-m{font-size:11.5px;color:var(--mute);font-weight:700;margin-top:2px}
 .prg-star{flex:0 0 30px;font-size:17px;color:var(--line);background:none}
 .prg-star.on{color:var(--gold)}
 .prg-plus{flex:0 0 22px;text-align:center;font-size:17px;font-weight:900;color:var(--mute)}
 .prg-bx.on .prg-plus{color:var(--ok)}
 .prg-barre{position:fixed;left:0;right:0;bottom:0;padding:12px 13px calc(12px + env(safe-area-inset-bottom));background:var(--sky);border-top:1px solid var(--line);z-index:20}
-/* Cartes de séance côté client */
 .prg-cartes{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
 .prg-carte{flex:0 0 60%;min-height:92px;border-radius:16px;border:1.5px solid;padding:13px;text-align:left;display:flex;flex-direction:column;justify-content:flex-end}
-.prg-carte-n{color:#fff;font-weight:900;font-size:16px;line-height:1.2}
-.prg-carte-s{color:rgba(255,255,255,.7);font-size:11.5px;font-weight:700;margin-top:3px}
-/* Exécution */
-.prg-jauge{height:4px;background:rgba(255,255,255,.1);margin:0 13px;border-radius:3px;overflow:hidden}
-.prg-jauge div{height:100%;background:linear-gradient(90deg,#12B5EA,#2BF5A0);transition:width .3s}
-.prg-note-lue{font-size:12px;color:#C9C4E8;background:rgba(176,97,255,.12);border-radius:10px;padding:9px 11px;margin-bottom:9px;line-height:1.5}
-.prg-dern{font-size:11.5px;font-weight:700;color:#3FD8FF;margin-bottom:9px}
+.prg-carte-n{font-weight:900;font-size:16px;line-height:1.2;color:var(--ink)}
+.prg-carte-s{font-size:11.5px;font-weight:700;margin-top:3px;color:var(--mute)}
+.prg-jauge{height:5px;background:var(--soft2);margin:0 13px;border-radius:3px;overflow:hidden}
+.prg-jauge div{height:100%;background:linear-gradient(90deg,#12B5EA,#12C98A);transition:width .3s}
+.prg-note-lue{font-size:12px;color:#5B4B8A;background:rgba(124,77,239,.09);border-radius:10px;padding:9px 11px;margin-bottom:9px;line-height:1.5}
+.prg-dern{font-size:11.5px;font-weight:700;color:#0EA5C6;margin-bottom:9px}
 .prg-run-serie{padding:5px 0}
-.prg-run-serie.ok{opacity:.62}
-.prg-check{flex:0 0 30px;height:30px;border-radius:9px;border:2px solid rgba(63,216,255,.5);background:#080714;color:#05060D;font-weight:900;font-size:15px}
-.prg-check.on{background:#2BF5A0;border-color:#2BF5A0}
-.prg-cible{flex:0 0 88px;font-size:11px;font-weight:800;color:#8E8AA8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.prg-video{flex:0 0 34px;height:34px;border-radius:10px;background:#0A0918;border:1px solid rgba(63,216,255,.4);display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:15px}
-.prg-rest{position:fixed;left:10px;right:10px;bottom:78px;display:none;align-items:center;gap:10px;padding:12px 14px;border-radius:16px;background:linear-gradient(158deg,#0C0A1C,#06060F);border:1.5px solid rgba(63,216,255,.55);box-shadow:0 0 22px rgba(63,216,255,.3);z-index:30}
+.prg-run-serie.ok{opacity:.6}
+.prg-check{flex:0 0 30px;height:30px;border-radius:9px;border:2px solid var(--line);background:#fff;color:#fff;font-weight:900;font-size:15px}
+.prg-check.on{background:#12C98A;border-color:#12C98A}
+.prg-cible{flex:0 0 88px;font-size:11px;font-weight:800;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prg-video{flex:0 0 34px;height:34px;border-radius:10px;background:var(--soft);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:15px}
+.prg-rest{position:fixed;left:10px;right:10px;bottom:78px;display:none;align-items:center;gap:10px;padding:12px 14px;
+  border-radius:16px;background:#fff;border:1.5px solid #12B5EA;box-shadow:0 8px 24px rgba(16,24,40,.16);z-index:30}
 .prg-rest.on{display:flex}
-.prg-rest-l{font-size:11.5px;font-weight:900;letter-spacing:.6px;text-transform:uppercase;color:#3FD8FF}
-.prg-rest-t{flex:1;text-align:right;font-size:24px;font-weight:900;color:#fff}
-.prg-rest-b{flex:0 0 40px;height:38px;border-radius:11px;background:#0A0918;border:1px solid rgba(63,216,255,.45);color:#3FD8FF;font-weight:900;font-size:13px}
+.prg-rest-l{font-size:11.5px;font-weight:900;letter-spacing:.6px;text-transform:uppercase;color:#0EA5C6}
+.prg-rest-t{flex:1;text-align:right;font-size:24px;font-weight:900;color:var(--ink)}
+.prg-rest-b{flex:0 0 40px;height:38px;border-radius:11px;background:var(--soft);border:1px solid var(--line);color:#0EA5C6;font-weight:900;font-size:13px}
+/* Attribution d'une séance à des clients */
+.prg-cli{display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--line);border-radius:13px;padding:12px;margin-bottom:8px;cursor:pointer}
+.prg-cli.on{border-color:var(--ok);background:#F1FBF5}
+.prg-cli-n{flex:1;font-weight:800;font-size:13.5px;color:var(--ink)}
+.prg-cli-e{font-size:11.5px;color:var(--mute);font-weight:700}
 
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Inter','Helvetica Neue',sans-serif;background:#F4F4F4;-webkit-font-smoothing:antialiased}
@@ -427,7 +402,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="19/08 · Séances";
+var APP_VERSION="19/08 · Séances types";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -933,7 +908,9 @@ var IS_COACH=params.get("coach")==="1";
 var state={
   view:"calendar",
   selDay:null,
-  cdProg:null,     // constructeur de séance ouvert côté coach {slug,id,...}
+  cdProg:null,     // constructeur de séance type ouvert côté coach {id,...}
+  cdAssign:null,   // séance en cours d'attribution (son id)
+  cdAssignSel:null,
   progRun:null,    // séance en cours d'exécution côté client (son id)
   progBilan:null,  // résumé affiché juste après une séance terminée
   openMonth:0,
@@ -3475,7 +3452,7 @@ function render(){
 function renderView(){
   setTimeout(function(){try{applyTheme(getAllData());ancrerNav();}catch(e){}},0);
   var root=document.getElementById("root");
-  if(IS_COACH){root.innerHTML=state.coachAuthed?((state.blProspect||state.blLibre)?viewCoachBilan():state.coachBilans?viewCoachBilans():state.coachKPI?viewCoachKPI():state.coachStats?viewCoachStats():state.coachCalc?viewCoachCalc():(state.coachDetail?(state.cdProg?viewProgBuilder():state.cdTab==="bilan"?viewCoachBilan():viewCoachDetail()):viewCoachDash())):viewCoachLogin();bindCoach();return;}
+  if(IS_COACH){root.innerHTML=state.coachAuthed?((state.blProspect||state.blLibre)?viewCoachBilan():state.coachBilans?viewCoachBilans():state.coachKPI?viewCoachKPI():state.coachStats?viewCoachStats():state.coachCalc?viewCoachCalc():(state.cdAssign?viewProgAssign():state.cdProg?viewProgBuilder():(state.coachDetail?(state.cdTab==="bilan"?viewCoachBilan():viewCoachDetail()):viewCoachDash()))):viewCoachLogin();bindCoach();return;}
   if(!CLIENT){root.innerHTML=viewNoClient();return;}
   var name=lsGetStr("amcoach_name_"+CLIENT);
   var start=lsGetStr("amcoach_start_"+CLIENT);
@@ -5647,6 +5624,17 @@ function bindDay(name,start){
 "use strict";
 
 // ═══════════ STATS ═══════════
+// Échelle de couleur du verdict : du rouge quand le poids remonte au vert
+// fluo quand l'objectif est atteint. L'indice 0 est le gris « on ne sait pas
+// encore » — il n'affiche pas de jauge, parce qu'il n'y a rien à situer.
+var ST_ECHELLE=[
+  {c:"linear-gradient(140deg,#475569,#64748B)",t:"#fff"},
+  {c:"linear-gradient(140deg,#C81E1E,#E5484D)",t:"#fff"},
+  {c:"linear-gradient(140deg,#E2553C,#F2795E)",t:"#fff"},
+  {c:"linear-gradient(140deg,#E08A0B,#F5B742)",t:"#3A2A05"},
+  {c:"linear-gradient(140deg,#15A05C,#34D07E)",t:"#fff"},
+  {c:"linear-gradient(140deg,#00D97E,#5CFFB0)",t:"#053B27"}
+];
 function viewStats(name){
   var allData=getAllData();
   var start=lsGetStr("amcoach_start_"+CLIENT);
@@ -5674,39 +5662,43 @@ function viewStats(name){
     '<div style="padding:14px 14px 0">';
 
   // ═══ 1. LE VERDICT ═══
+  // Akli : « orangé quand c'est pas top, jusqu'au vert fluo quand tout est
+  // ok ». La couleur devient donc une ÉCHELLE, pas une décoration : elle dit
+  // où il en est avant même qu'il ait lu la phrase. Cinq crans, plus un gris
+  // quand il n'y a pas encore assez de données pour juger.
   (function(){
-    var titre,sous,bg,ico;
+    var titre,sous,niv,ico;
     if(rempli<4){
       ico="🌱";titre="Ta courbe se construit";
       sous="Remplis encore "+(4-rempli)+" jour"+((4-rempli)>1?"s":"")+" et je pourrai te dire où tu vas.";
-      bg="linear-gradient(140deg,#1E293B,#334155)";
+      niv=0;
     }else if(!PJ){
       ico="⚖️";titre="Pèse-toi pour voir ta tendance";
       sous="Une pesée régulière, même approximative, suffit à faire apparaître la direction.";
-      bg="linear-gradient(140deg,#1E293B,#334155)";
+      niv=0;
     }else if(PJ.atteint){
       ico="🎉";titre=supVerdictTitre(allData,"atteint");
       sous="Tu es à "+PJ.act+" kg. "+supVerdictSous(allData,"atteint");
-      bg="linear-gradient(140deg,#064E3B,#059669)";
+      niv=5;
     }else if(!PJ.assez){
       ico="⏳";titre="Encore un peu de patience";
       sous="Il me faut environ 8 pesées pour distinguer une vraie tendance du bruit quotidien. Tu en as "+((PJ.tendance&&PJ.tendance.n)||0)+".";
-      bg="linear-gradient(140deg,#1E293B,#334155)";
+      niv=0;
     }else if(PJ.monte){
       ico="📈";titre=supVerdictTitre(allData,"monte");
       sous=supVerdictSous(allData,"monte");
-      bg="linear-gradient(140deg,#7F1D1D,#B91C1C)";
+      niv=1;
     }else if(PJ.stagne){
       ico="➖";titre=supVerdictTitre(allData,"stagne");
       sous=supVerdictSous(allData,"stagne");
-      bg="linear-gradient(140deg,#78350F,#B45309)";
+      niv=2;
     }else if(PJ.recentMonte){
       // La pente globale descend encore, mais les dernières pesées remontent.
       // Le dire maintenant vaut mieux que de féliciter quelqu'un qui repart
       // dans l'autre sens : c'est là que ça se rattrape facilement.
       ico="⚠️";titre=supVerdictTitre(allData,"repart");
       sous=supVerdictSous(allData,"repart");
-      bg="linear-gradient(140deg,#78350F,#B45309)";
+      niv=2;
     }else if(PJ.retard!=null&&PJ.retard>0){
       // Il maigrit, mais trop lentement pour tenir la date. Annoncer une date
       // au-delà de l'échéance sans la nommer, c'était mentir par omission.
@@ -5715,25 +5707,31 @@ function viewStats(name){
       sous="Tu perds "+PJ.parSem+" kg par semaine. À ce rythme tu atteins "+PJ.cible+" kg le "+PJ.dateCible+
         ", soit "+sem+" semaine"+(sem>1?"s":"")+" APRÈS la fin de tes 90 jours ("+PJ.dateFin+")."+
         " Il faudrait "+(Math.round((PJ.reste/(PJ.joursRestants/7))*100)/100)+" kg par semaine pour y être à temps. "+supVerdictSous(allData,"finLent");
-      bg="linear-gradient(140deg,#78350F,#B45309)";
+      niv=3;
     }else if(PJ.recentMou){
       ico="🐢";titre=supVerdictTitre(allData,"ralentit");
       sous="Sur l'ensemble tu perds "+PJ.parSem+" kg par semaine, mais ces derniers jours le rythme a nettement baissé ("+PJ.parSemRecent+" kg/sem). "+supVerdictSous(allData,"finRalentit");
-      bg="linear-gradient(140deg,#064E3B,#047857)";
+      niv=3;
     }else{
       ico="🔥";titre=supVerdictTitre(allData,"progresse");
       sous="Rythme actuel : "+PJ.parSem+" kg par semaine."+(PJ.dateCible?" À ce rythme, "+PJ.cible+" kg le "+PJ.dateCible:"")+
         (PJ.retard!=null&&PJ.retard<=0?" — soit "+Math.abs(Math.floor(PJ.retard/7))+" semaine(s) avant l'échéance.":".")+" "+supVerdictSous(allData,"finProgresse");
-      bg="linear-gradient(140deg,#064E3B,#047857)";
+      niv=4;
+    }
+    var E=ST_ECHELLE[niv];
+    var jauge="";
+    if(niv>0){
+      for(var q=1;q<=5;q++)jauge+='<i class="'+(q<=niv?"on":"")+'"></i>';
+      jauge='<div class="st-echelle">'+jauge+'</div>';
     }
     // Signée comme à l'accueil : sans le nom, le verdict ressemble à un
     // bandeau système et le client ne reconnaît pas son superviseur.
     var __S=supGet(allData),__T=TONS[__S.ton];
-    h+='<div class="st-verdict" style="background:'+bg+'">'+
+    h+='<div class="st-verdict" style="background:'+E.c+';color:'+E.t+'">'+
       '<div class="st-verdict-sig"><span style="font-size:15px;line-height:1">'+__T.emoji+'</span>'+
       '<span>'+esc(__S.prenom)+'</span><span class="st-verdict-ico">'+ico+'</span></div>'+
       '<div class="st-verdict-t">'+titre+'</div>'+
-      '<div class="st-verdict-s">'+sous+'</div></div>';
+      '<div class="st-verdict-s">'+sous+'</div>'+jauge+'</div>';
   })();
 
   // ═══ 2. LA COURBE DE POIDS ═══
@@ -5741,7 +5739,7 @@ function viewStats(name){
     '<div class="chart-hdr"><div class="chart-dot" style="background:var(--st-cy)"></div>'+
     '<span class="chart-title">Mon poids</span>'+
     (PJ&&PJ.act?'<span class="chart-avg">'+PJ.act+' kg</span>':'')+'</div>'+
-    svgPoidsChart(poidsV,cible,{trait:"#22D3EE",grille:"rgba(255,255,255,.09)",txt:"#64748B"})+
+    svgPoidsChart(poidsV,cible,{trait:"#0EA5C6"})+
     '<div class="st-leg">'+
     '<span><i style="background:var(--st-cy)"></i> tes pesées</span>'+
     '<span><i style="background:var(--gold-d)"></i> ta tendance</span>'+
@@ -5839,8 +5837,62 @@ function viewStats(name){
       '<div class="chart-card"><div class="chart-hdr"><div class="chart-dot" style="background:var(--st-cy)"></div>'+
       '<span class="chart-title">Score global</span>'+
       (avgScore!=null?'<span class="chart-avg">moy. '+avgScore+'%</span>':'')+'</div>'+
-      svgLineChart(vals("score"),"#22D3EE",{min:0,max:100,grille:"rgba(255,255,255,.09)",txt:"#64748B"})+
+      svgLineChart(vals("score"),"#0EA5C6",{min:0,max:100})+
       '<div class="st-note" style="margin:7px 0 0">Ce score résume ta journée : habitudes cochées, ressenti, sommeil.</div></div>';
+  })();
+
+  // ═══ 5 bis. LA PROGRESSION EN FORCE, EXERCICE PAR EXERCICE ═══
+  // Akli : « il faudrait que nos stats de sport apparaissent dans stats,
+  // exemple développé couché × progression ». On ne compare pas des séances
+  // entre elles (elles n'ont pas la même longueur) mais la MEILLEURE SÉRIE de
+  // chaque exercice : c'est le chiffre que le client retient et le seul qui
+  // se compare honnêtement d'une fois à l'autre.
+  (function(){
+    var PG=progGet(allData);
+    if(!PG.journal||PG.journal.length<2)return;
+    // Le journal est rangé du plus récent au plus ancien : on le remet dans
+    // l'ordre du temps pour lire une progression.
+    var J=PG.journal.slice().reverse(), suivi={}, ordre=[];
+    for(var j=0;j<J.length;j++){
+      for(var e=0;e<J[j].exos.length;e++){
+        var X=J[j].exos[e], best=null;
+        for(var s2=0;s2<X.series.length;s2++){
+          var SR=X.series[s2];
+          if(!SR.ok)continue;
+          var ch=parseFloat(SR.c)||0, rp=parseFloat(SR.v)||0;
+          if(!ch&&!rp)continue;
+          // Meilleure série : la charge d'abord, les répétitions pour départager.
+          if(!best||ch>best.ch||(ch===best.ch&&rp>best.rp))best={ch:ch,rp:rp,t:SR.t||"reps"};
+        }
+        if(!best)continue;
+        if(!suivi[X.ref]){suivi[X.ref]={nom:X.n,m:X.m,pts:[]};ordre.push(X.ref);}
+        suivi[X.ref].pts.push({d:J[j].d,ch:best.ch,rp:best.rp,t:best.t});
+      }
+    }
+    var lignes="",n=0;
+    for(var o=0;o<ordre.length;o++){
+      var E=suivi[ordre[o]];
+      if(E.pts.length<2)continue;
+      var p0=E.pts[0], p1=E.pts[E.pts.length-1], M=progMuscle(E.m);
+      var unite=(p1.t==="duree")?" s":(p1.t==="distm")?" m":"";
+      var maintenant=p1.ch?(p1.ch+" kg × "+p1.rp):(p1.rp+unite);
+      var dCh=Math.round((p1.ch-p0.ch)*10)/10, dRp=p1.rp-p0.rp;
+      var txt,coul;
+      if(p1.ch&&dCh>0){txt="+"+dCh+" kg depuis la 1re fois";coul="var(--st-ok)";}
+      else if(p1.ch&&dCh<0){txt=dCh+" kg depuis la 1re fois";coul="var(--st-bad)";}
+      else if(dRp>0){txt="+"+dRp+" répétition"+(dRp>1?"s":"")+" à charge égale";coul="var(--st-ok)";}
+      else if(dRp<0){txt=dRp+" répétition"+(dRp<-1?"s":"")+" vs la 1re fois";coul="var(--st-bad)";}
+      else {txt="stable depuis la 1re fois";coul="var(--st-dim)";}
+      lignes+='<div class="st-exo">'+
+        '<div class="st-exo-hd"><span style="color:'+M[2]+'">●</span>'+
+        '<span class="st-exo-n">'+esc(E.nom)+'</span>'+
+        '<span class="st-exo-d" style="color:'+coul+'">'+maintenant+'</span></div>'+
+        '<div class="st-exo-l" style="color:'+coul+'">'+txt+' · '+E.pts.length+' séances</div></div>';
+      n++;
+    }
+    if(!n)return;
+    h+=titreSection("💪 Ma progression en force","var(--st-vi)")+
+      '<div class="st-note">La meilleure série de chaque exercice, comparée à ta toute première fois.</div>'+lignes;
   })();
 
   // ═══ 6. TROPHÉES ═══
@@ -6389,11 +6441,11 @@ var SPT_PRESETS = [
 ];
 // Couleurs néon : chaque phase se reconnaît à trois mètres, en sueur.
 var SPT_PHASES = {
-  prep: { nom: "Préparation", col: "#FFC24D" },
-  effort: { nom: "EFFORT", col: "#2BF5A0" },
-  repos: { nom: "Repos", col: "#3FD8FF" },
-  serie: { nom: "Repos de série", col: "#C79BFF" },
-  cycle: { nom: "En cours", col: "#2BF5A0" }
+  prep: { nom: "Préparation", col: "#E9A23B" },
+  effort: { nom: "EFFORT", col: "#12C98A" },
+  repos: { nom: "Repos", col: "#12B5EA" },
+  serie: { nom: "Repos de série", col: "#8A3FFF" },
+  cycle: { nom: "En cours", col: "#12C98A" }
 };
 
 function sptCfg() {
@@ -6595,19 +6647,19 @@ function sptAfficher() {
       dot.setAttribute("stroke-dashoffset", String(-pct));
       dot.style.opacity = pct > 0 ? "1" : "0";
     }
-    if (min) min.style.filter = "drop-shadow(0 0 10px " + col + "88)";
+    if (min) min.style.filter = "";
     if (zone) {
-      zone.style.borderColor = col + "99";
-      zone.style.boxShadow = "0 0 22px " + col + "40, inset 0 0 26px " + col + "12";
+      zone.style.borderColor = col;
+      zone.style.boxShadow = "0 0 0 3px " + col + "1F, 0 3px 14px rgba(16,24,40,.06)";
     }
   }
   if (!run) {
     var c0 = sptCfg(), p0 = sptPlanIntervalles(c0);
     min.textContent = sptFmt(c0.prep > 0 ? c0.prep : c0.effort);
-    ph.textContent = "Prêt"; ph.setAttribute("fill", "#FFC24D");
+    ph.textContent = "Prêt"; ph.setAttribute("fill", "#E9A23B");
     tr.textContent = c0.tours + " tours" + (c0.series > 1 ? " × " + c0.series + " séries" : "");
     tt.textContent = "Séance de " + sptFmt(sptTotal(p0));
-    peindre("#B061FF", 0);
+    peindre("#8A3FFF", 0);
     if (go) { go.textContent = "▶ DÉMARRER"; go.className = "spt-go"; }
     barre(false);
     return;
@@ -6615,9 +6667,9 @@ function sptAfficher() {
   var p = sptPosition(run);
   if (p.fini) {
     min.textContent = "0:00";
-    ph.textContent = "TERMINÉ 💪"; ph.setAttribute("fill", "#2BF5A0");
+    ph.textContent = "TERMINÉ 💪"; ph.setAttribute("fill", "#12C98A");
     tt.textContent = "Séance bouclée — " + sptFmt(run.total);
-    peindre("#2BF5A0", 100);
+    peindre("#12C98A", 100);
     if (go) { go.textContent = "↻ RECOMMENCER"; go.className = "spt-go ok"; }
     barre(false);
     if (SPT.iv) { clearInterval(SPT.iv); SPT.iv = null; }
@@ -6629,12 +6681,12 @@ function sptAfficher() {
   var inf = SPT_PHASES[p.seg.t] || SPT_PHASES.cycle, pause = run.pause != null;
   min.textContent = sptFmt(p.reste);
   ph.textContent = pause ? "EN PAUSE" : inf.nom;
-  ph.setAttribute("fill", pause ? "#FFC24D" : inf.col);
+  ph.setAttribute("fill", pause ? "#E9A23B" : inf.col);
   tr.textContent = run.type === "bips"
     ? "Bip " + p.seg.tour + " · toutes les " + p.seg.d + " s"
     : (p.seg.t === "prep" ? "Ça commence" : "Tour " + p.seg.tour + "/" + sptNbTours(run.plan) + (sptNbSeries(run.plan) > 1 ? " · série " + p.seg.serie + "/" + sptNbSeries(run.plan) : ""));
   tt.textContent = "Reste " + sptFmt(run.total - p.e) + " sur " + sptFmt(run.total);
-  peindre(pause ? "#FFC24D" : inf.col, Math.round((p.passe / p.seg.d) * 100));
+  peindre(pause ? "#E9A23B" : inf.col, Math.round((p.passe / p.seg.d) * 100));
   if (go) { go.textContent = pause ? "▶" : "❙❙"; go.className = mini ? "prg-rest-b" : (pause ? "spt-go ok" : "spt-go pause"); }
   if (!mini && go) go.textContent = pause ? "▶ REPRENDRE" : "❙❙ PAUSE";
   barre(true);
@@ -6656,8 +6708,8 @@ function viewSport(name, start) {
   if (state.progBilan) {
     var B = state.progBilan; state.progBilan = null;
     h += '<div class="spt-card" style="border-color:rgba(43,245,160,.6);box-shadow:0 0 22px rgba(43,245,160,.25)">' +
-      '<div class="spt-lab" style="color:#2BF5A0">✅ ' + esc(B.nom) + ' — terminée</div>' +
-      '<div style="color:#fff;font-weight:900;font-size:20px">' + B.faites + '/' + B.tot + ' séries' +
+      '<div class="spt-lab" style="color:#0E9C6B">✅ ' + esc(B.nom) + ' — terminée</div>' +
+      '<div style="color:var(--ink);font-weight:900;font-size:20px">' + B.faites + '/' + B.tot + ' séries' +
       (B.vol ? ' · ' + B.vol + ' kg soulevés' : '') + '</div>' +
       '<div class="spt-txt" style="margin-top:6px">C\'est enregistré. La prochaine fois, tu verras ces chiffres en face de chaque exercice.</div></div>';
   }
@@ -6670,15 +6722,15 @@ function viewSport(name, start) {
     '<svg viewBox="0 0 128 128" style="width:216px;height:216px;overflow:visible">' +
     '<defs><filter id="sptglow" x="-60%" y="-60%" width="220%" height="220%">' +
     '<feGaussianBlur stdDeviation="2.6" result="f"/><feMerge><feMergeNode in="f"/><feMergeNode in="f"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>' +
-    '<circle cx="64" cy="64" r="58" fill="none" stroke="#B061FF" stroke-width="2.4" opacity=".85" filter="url(#sptglow)"/>' +
-    '<circle cx="64" cy="64" r="48" fill="none" stroke="#3FD8FF" stroke-width="2.6" opacity=".32" filter="url(#sptglow)"/>' +
-    '<circle id="spt-ring" cx="64" cy="64" r="48" fill="none" stroke="#B061FF" stroke-width="3.4" stroke-linecap="round" pathLength="100" stroke-dasharray="0 100" transform="rotate(-90 64 64)" filter="url(#sptglow)"/>' +
-    '<circle id="spt-dot" cx="64" cy="64" r="48" fill="none" stroke="#B061FF" stroke-width="9" stroke-linecap="round" pathLength="100" stroke-dasharray="0.01 100" stroke-dashoffset="0" transform="rotate(-90 64 64)" filter="url(#sptglow)" opacity="0"/>' +
-    '<text id="spt-time" x="64" y="66" text-anchor="middle" fill="#fff" font-size="30" font-weight="900">' + sptFmt(c.prep > 0 ? c.prep : c.effort) + '</text>' +
-    '<text id="spt-phase" x="64" y="84" text-anchor="middle" fill="#FFC24D" font-size="10.5" font-weight="800" letter-spacing="1">Prêt</text>' +
+    '<circle cx="64" cy="64" r="58" fill="none" stroke="#8A3FFF" stroke-width="2.4" opacity=".8" filter="url(#sptglow)"/>' +
+    '<circle cx="64" cy="64" r="48" fill="none" stroke="#12B5EA" stroke-width="2.6" opacity=".3" filter="url(#sptglow)"/>' +
+    '<circle id="spt-ring" cx="64" cy="64" r="48" fill="none" stroke="#8A3FFF" stroke-width="3.4" stroke-linecap="round" pathLength="100" stroke-dasharray="0 100" transform="rotate(-90 64 64)" filter="url(#sptglow)"/>' +
+    '<circle id="spt-dot" cx="64" cy="64" r="48" fill="none" stroke="#8A3FFF" stroke-width="9" stroke-linecap="round" pathLength="100" stroke-dasharray="0.01 100" stroke-dashoffset="0" transform="rotate(-90 64 64)" filter="url(#sptglow)" opacity="0"/>' +
+    '<text id="spt-time" x="64" y="66" text-anchor="middle" fill="#101828" font-size="30" font-weight="900">' + sptFmt(c.prep > 0 ? c.prep : c.effort) + '</text>' +
+    '<text id="spt-phase" x="64" y="84" text-anchor="middle" fill="#E9A23B" font-size="10.5" font-weight="800" letter-spacing="1">Prêt</text>' +
     '</svg></div>' +
     '<div style="text-align:center;margin-bottom:14px">' +
-    '<div id="spt-tour" style="color:#fff;font-weight:900;font-size:16px">' + c.tours + ' tours</div>' +
+    '<div id="spt-tour" style="color:var(--ink);font-weight:900;font-size:16px">' + c.tours + ' tours</div>' +
     '<div id="spt-reste" class="spt-cy" style="font-size:12.5px;font-weight:700;margin-top:3px">Séance de ' + sptFmt(sptTotal(plan)) + '</div></div>' +
     '<div style="display:flex;gap:9px">' +
     '<button id="spt-go" class="spt-go">▶ DÉMARRER</button>' +
@@ -6822,10 +6874,10 @@ var PROG_TYPES = [
 ];
 var PROG_UNITES = ["—", "kg", "lbs", "%1RM", "%FC", "km/h", "m/s", "rpm", "bpm", "lvl", "%"];
 var PROG_MUSCLES = [
-  ["pecs", "Pectoraux", "#FF6B6B"], ["dos", "Dos", "#3FD8FF"], ["epaules", "Épaules", "#FFC24D"],
-  ["biceps", "Biceps", "#B061FF"], ["triceps", "Triceps", "#C79BFF"], ["jambes", "Jambes", "#2BF5A0"],
-  ["fessiers", "Fessiers", "#FF8FB1"], ["abdos", "Abdos", "#FFD166"], ["cardio", "Cardio", "#FF5E5E"],
-  ["mobilite", "Mobilité", "#8DA2FB"], ["complet", "Corps entier", "#9AE6B4"]
+  ["pecs", "Pectoraux", "#E5484D"], ["dos", "Dos", "#0EA5C6"], ["epaules", "Épaules", "#E9A23B"],
+  ["biceps", "Biceps", "#7C4DEF"], ["triceps", "Triceps", "#A78BFA"], ["jambes", "Jambes", "#12A66B"],
+  ["fessiers", "Fessiers", "#E85D95"], ["abdos", "Abdos", "#C98A12"], ["cardio", "Cardio", "#F2604D"],
+  ["mobilite", "Mobilité", "#5B7CFA"], ["complet", "Corps entier", "#12A66B"]
 ];
 function progMuscle(k) { for (var i = 0; i < PROG_MUSCLES.length; i++) if (PROG_MUSCLES[i][0] === k) return PROG_MUSCLES[i]; return ["complet", "Corps entier", "#9AE6B4"]; }
 function progTypeNom(t) { for (var i = 0; i < PROG_TYPES.length; i++) if (PROG_TYPES[i][0] === t) return PROG_TYPES[i][1]; return "Répétitions"; }
@@ -6833,6 +6885,16 @@ function progTypeCourt(t) {
   return { reps: "reps", duree: "s", distm: "m", distkm: "km", cal: "kcal", tours: "tours", puis: "W" }[t] || "reps";
 }
 function progId(p) { return (p || "x") + "_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+// La vignette d'un exercice : un GIF ou une photo valent mieux qu'une phrase
+// d'explication au bord d'une machine. Tant qu'aucune image n'est renseignée,
+// on retombe sur la pastille de couleur du muscle.
+function progVignette(X, taille) {
+  var M = progMuscle(X.m), t = taille || 46;
+  if (X.g) return '<img class="prg-vig" src="' + esc(X.g) + '" alt="" style="width:' + t + 'px;height:' + t + 'px" loading="lazy"/>';
+  return '<div class="prg-vig" style="width:' + t + 'px;height:' + t + 'px;background:' + M[2] + '22;color:' + M[2] +
+    ';display:flex;align-items:center;justify-content:center;font-weight:900;font-size:' + Math.round(t / 2.6) + 'px">' +
+    esc(M[1].slice(0, 1)) + '</div>';
+}
 
 // ─── La bibliothèque (chez le coach) ───
 // Elle est locale à l'appareil du coach : c'est SON catalogue, pas une donnée
@@ -6874,7 +6936,7 @@ function bibGet() {
   if (!b || !b.length) {
     b = [];
     for (var i = 0; i < BIBLIO_BASE.length; i++) {
-      b.push({ id: "b" + i, n: BIBLIO_BASE[i][0], m: BIBLIO_BASE[i][1], mat: BIBLIO_BASE[i][2], v: "", f: 0 });
+      b.push({ id: "b" + i, n: BIBLIO_BASE[i][0], m: BIBLIO_BASE[i][1], mat: BIBLIO_BASE[i][2], v: "", g: "", f: 0 });
     }
     lsSet("amcoach_biblio", b);
   }
@@ -6935,11 +6997,11 @@ function progCoachListeHTML(slug, all) {
       nEx + ' exercice' + (nEx > 1 ? 's' : '') + ' · ' + nSer + ' série' + (nSer > 1 ? 's' : '') +
       (S.maj ? ' · màj ' + frDate(S.maj) : '') + '</div></div>' +
       '<button data-prg-edit="' + S.id + '" style="padding:9px 12px;border-radius:10px;background:var(--ink);color:#fff;font-weight:900;font-size:12px">✏️</button>' +
-      '<button data-prg-dup="' + S.id + '" style="padding:9px 11px;border-radius:10px;background:var(--soft2);font-weight:900;font-size:12px">⧉</button>' +
       '<button data-prg-del="' + S.id + '" style="padding:9px 11px;border-radius:10px;background:var(--soft2);font-weight:900;font-size:12px">🗑</button>' +
       '</div>';
   }
-  h += '<button id="prg-new" class="big-btn" style="margin:6px 0 0">＋ Nouvelle séance</button>';
+  h += '<button id="prg-pick" class="big-btn" style="margin:6px 0 0">＋ Attribuer une séance type</button>' +
+    '<div style="font-size:11.5px;color:var(--mute);line-height:1.55;margin-top:8px">Les séances se construisent une seule fois, en haut du tableau de bord, puis s\'attribuent ici.</div>';
   // Ce que le client a réellement fait
   if (P.journal.length) {
     h += '<div style="font-weight:900;font-size:12px;margin:16px 0 8px;text-transform:uppercase;letter-spacing:.6px;color:var(--mute)">Ses dernières séances</div>';
@@ -6957,15 +7019,15 @@ function progCoachListeHTML(slug, all) {
 
 // ═══════════ CÔTÉ COACH — LE CONSTRUCTEUR ═══════════
 function viewProgBuilder() {
-  var slug = state.cdProg.slug, id = state.cdProg.id;
-  var all = lsGet("amcoach_" + slug, {}), P = progGet(all), S = null;
-  for (var i = 0; i < P.seances.length; i++) if (P.seances[i].id === id) S = P.seances[i];
-  if (!S) { state.cdProg = null; return viewCoachDetail(); }
+  var S = seaTrouve(state.cdProg.id);
+  if (!S) { state.cdProg = null; return viewCoachDash(); }
+  var qui = seaClients(S.id);
   if (state.cdProg.bib) return viewProgBiblio(S);
 
   var h = '<div class="prg-top"><button id="prg-back" class="prg-back">‹</button>' +
     '<div style="flex:1;min-width:0"><div id="prg-nom" class="prg-titre">' + esc(S.nom) + ' ✏️</div>' +
-    '<div class="prg-sous">' + (S.maj ? 'Màj ' + frDate(S.maj) : 'Nouvelle séance') + ' · ' + (S.exos.length) + ' exercice' + (S.exos.length > 1 ? 's' : '') + '</div></div>' +
+    '<div class="prg-sous">' + seaResume(S) + (qui.length ? ' · 👥 ' + qui.length + ' client' + (qui.length > 1 ? 's' : '') : ' · non attribuée') + '</div></div>' +
+    '<button id="prg-att" style="flex:0 0 auto;padding:10px 12px;border-radius:11px;background:var(--ok-d);color:#fff;font-weight:900;font-size:12px">👥 Attribuer</button>' +
     '</div><div style="padding:14px 13px 24px">';
 
   if (!S.exos.length) {
@@ -6978,7 +7040,7 @@ function viewProgBuilder() {
     var ouvert = (state.cdProg.open === e);
     h += '<div class="prg-exo' + (lie ? ' lie' : '') + (X.sup ? ' sup' : '') + '" style="border-left-color:' + M[2] + '">' +
       (lie ? '<div class="prg-supbadge">⛓️ enchaîné sans repos</div>' : '') +
-      '<div class="prg-exo-hd" data-prg-open="' + e + '">' +
+      '<div class="prg-exo-hd" data-prg-open="' + e + '">' + progVignette(X, 44) +
       '<div style="flex:1;min-width:0">' +
       '<div class="prg-exo-n">' + esc(X.n) + '</div>' +
       '<div class="prg-exo-m"><span style="color:' + M[2] + '">●</span> ' + M[1] + (X.mat ? ' · ' + esc(X.mat) : '') + '</div></div>' +
@@ -7024,9 +7086,14 @@ function viewProgBuilder() {
     h += '</div>';
   }
 
-  h += '<button id="prg-add" class="big-btn" style="margin-top:6px">＋ Ajouter des exercices</button>' +
-    '<div class="spt-txt" style="text-align:center;margin-top:10px">Tout est enregistré au fur et à mesure. Le client voit la séance dans son onglet 🏋️ Sport.</div>' +
-    '</div>';
+  h += '<button id="prg-add" class="big-btn" style="margin-top:6px">＋ Ajouter des exercices</button>';
+  if (qui.length) {
+    h += '<button id="prg-maj" class="big-btn gray" style="margin-top:8px;padding:13px 0;font-size:13px">🔄 Renvoyer la nouvelle version à ' + qui.length + ' client' + (qui.length > 1 ? 's' : '') + '</button>' +
+      '<div class="spt-txt" style="text-align:center;margin-top:9px">Tes modifications ne partent pas toutes seules chez ceux qui ont déjà la séance : ce bouton leur envoie la version à jour.</div>';
+  } else {
+    h += '<div class="spt-txt" style="text-align:center;margin-top:10px">Quand elle te convient, attribue-la à un ou plusieurs clients avec le bouton 👥 en haut.</div>';
+  }
+  h += '</div>';
   return h;
 }
 
@@ -7060,9 +7127,10 @@ function viewProgBiblio(S) {
   for (var i = 0; i < liste.length; i++) {
     var X = liste[i], M = progMuscle(X.m), pris = st.sel.indexOf(X.id) >= 0;
     h += '<div class="prg-bx' + (pris ? ' on' : '') + '" data-prg-pick="' + X.id + '">' +
-      '<div class="prg-bx-p" style="background:' + M[2] + '"></div>' +
+      progVignette(X, 42) +
       '<div style="flex:1;min-width:0"><div class="prg-bx-n">' + esc(X.n) + '</div>' +
-      '<div class="prg-bx-m">' + M[1] + (X.mat ? ' · ' + esc(X.mat) : '') + (X.v ? ' · 🎬' : '') + '</div></div>' +
+      '<div class="prg-bx-m">' + M[1] + (X.mat ? ' · ' + esc(X.mat) : '') + (X.g ? ' · 🖼️' : '') + (X.v ? ' · 🎬' : '') + '</div></div>' +
+      '<button class="prg-star" data-prg-mod="' + X.id + '" style="color:var(--mute);font-size:14px">✏️</button>' +
       '<button class="prg-star' + (X.f ? ' on' : '') + '" data-prg-fav="' + X.id + '">' + (X.f ? '★' : '☆') + '</button>' +
       '<span class="prg-plus">' + (pris ? '✓' : '＋') + '</span></div>';
   }
@@ -7073,16 +7141,17 @@ function viewProgBiblio(S) {
 }
 
 function bindProgBuilder() {
-  var slug = state.cdProg.slug;
-  var all = lsGet("amcoach_" + slug, {}), P = progGet(all), S = null, idx = -1;
-  for (var i = 0; i < P.seances.length; i++) if (P.seances[i].id === state.cdProg.id) { S = P.seances[i]; idx = i; }
+  var l = seaGet(), S = null, idx = -1;
+  for (var i = 0; i < l.length; i++) if (l[i].id === state.cdProg.id) { S = l[i]; idx = i; }
   if (!S) return;
   function sauver(rerender) {
     S.maj = isoLocal();
-    P.seances[idx] = S;
-    progSetCoach(slug, P);
+    l[idx] = S;
+    seaSet(l);
     if (rerender !== false) render();
   }
+  var att = document.getElementById("prg-att");
+  if (att) att.addEventListener("click", function () { state.cdAssign = S.id; state.cdAssignSel = null; render(); });
   function paire(attr, cb) {
     var els = document.querySelectorAll("[" + attr + "]");
     for (var k = 0; k < els.length; k++) els[k].addEventListener("click", function () {
@@ -7092,6 +7161,14 @@ function bindProgBuilder() {
   }
   var bk = document.getElementById("prg-back");
   if (bk) bk.addEventListener("click", function () { state.cdProg = null; render(); });
+  // Un modèle modifié après coup ne se propage pas tout seul : on le redit ici.
+  var maj = document.getElementById("prg-maj");
+  if (maj) maj.addEventListener("click", function () {
+    var qui = seaClients(S.id).map(function (c) { return c.slug; });
+    if (!qui.length) return;
+    seaAttribuer(S.id, qui);
+    feedback("Séance mise à jour chez " + qui.length + " client" + (qui.length > 1 ? "s" : ""), "ok");
+  });
 
   // ── la bibliothèque
   if (state.cdProg.bib) {
@@ -7114,7 +7191,7 @@ function bindProgBuilder() {
     });
     var picks = document.querySelectorAll("[data-prg-pick]");
     for (var p2 = 0; p2 < picks.length; p2++) picks[p2].addEventListener("click", function (ev) {
-      if (ev.target && ev.target.getAttribute && ev.target.getAttribute("data-prg-fav")) return;
+      if (ev.target && ev.target.getAttribute && (ev.target.getAttribute("data-prg-fav") || ev.target.getAttribute("data-prg-mod"))) return;
       var id = this.getAttribute("data-prg-pick"), k = st.sel.indexOf(id);
       if (k >= 0) st.sel.splice(k, 1); else st.sel.push(id);
       render();
@@ -7126,14 +7203,30 @@ function bindProgBuilder() {
       for (var z = 0; z < b.length; z++) if (b[z].id === id) b[z].f = b[z].f ? 0 : 1;
       bibSet(b); render();
     });
+    // Modifier un exercice existant — c'est par là qu'on lui colle un GIF.
+    var mods = document.querySelectorAll("[data-prg-mod]");
+    for (var m3 = 0; m3 < mods.length; m3++) mods[m3].addEventListener("click", function (ev) {
+      ev.stopPropagation();
+      var id = this.getAttribute("data-prg-mod"), b = bibGet(), X = null;
+      for (var z = 0; z < b.length; z++) if (b[z].id === id) X = b[z];
+      if (!X) return;
+      var nom = prompt("Nom de l'exercice", X.n); if (nom == null) return;
+      var mat = prompt("Matériel", X.mat || ""); if (mat == null) return;
+      var gif = prompt("Lien du GIF ou de la photo (adresse https…)\n\nColle ici l'adresse d'un GIF de démonstration : il s'affichera dans la séance du client.", X.g || "");
+      if (gif == null) return;
+      var vid = prompt("Lien vidéo (facultatif)", X.v || ""); if (vid == null) return;
+      X.n = nom.trim() || X.n; X.mat = mat; X.g = gif.trim(); X.v = vid.trim();
+      bibSet(b); render();
+    });
     var nw = document.getElementById("prg-bib-new");
     if (nw) nw.addEventListener("click", function () {
       var nom = prompt("Nom de l'exercice ?"); if (!nom) return;
       var mus = prompt("Muscle ? " + PROG_MUSCLES.map(function (m) { return m[0]; }).join(", "), "pecs");
       var mat = prompt("Matériel ? (machine, haltères, TRX...)", "Machine") || "";
+      var gif = prompt("Lien du GIF ou de la photo (facultatif)", "") || "";
       var vid = prompt("Lien vidéo (facultatif)", "") || "";
       var b = bibGet();
-      b.unshift({ id: progId("b"), n: nom, m: progMuscle(mus || "complet")[0], mat: mat, v: vid, f: 1, priv: 1 });
+      b.unshift({ id: progId("b"), n: nom, m: progMuscle(mus || "complet")[0], mat: mat, g: gif, v: vid, f: 1, priv: 1 });
       bibSet(b); st.tab = "priv"; render();
     });
     var ok = document.getElementById("prg-bib-ok");
@@ -7144,7 +7237,7 @@ function bindProgBuilder() {
         for (var y = 0; y < b.length; y++) {
           if (b[y].id !== st.sel[z]) continue;
           S.exos.push({
-            ref: b[y].id, n: b[y].n, m: b[y].m, mat: b[y].mat, v: b[y].v, sup: 0, repos: 60, note: "",
+            ref: b[y].id, n: b[y].n, m: b[y].m, mat: b[y].mat, v: b[y].v, g: b[y].g || "", sup: 0, repos: 60, note: "",
             series: [{ t: b[y].m === "cardio" ? "duree" : "reps", v: b[y].m === "cardio" ? 600 : 10, c: "", u: b[y].m === "cardio" ? "—" : "kg" }]
           });
         }
@@ -7218,7 +7311,7 @@ function progCartesHTML(all) {
     '<div class="prg-cartes">';
   for (var i = 0; i < P.seances.length; i++) {
     var S = P.seances[i], nEx = (S.exos || []).length, M = progMuscle((S.exos[0] || {}).m);
-    h += '<button class="prg-carte" data-prg-run="' + S.id + '" style="background:linear-gradient(150deg,' + M[2] + '33,' + M[2] + '11);border-color:' + M[2] + '66">' +
+    h += '<button class="prg-carte" data-prg-run="' + S.id + '" style="background:linear-gradient(150deg,' + M[2] + '1F,#fff);border-color:' + M[2] + '80">' +
       '<div class="prg-carte-n">' + esc(S.nom) + '</div>' +
       '<div class="prg-carte-s">' + nEx + ' exercice' + (nEx > 1 ? 's' : '') + '</div></button>';
   }
@@ -7248,7 +7341,7 @@ function viewProgRun() {
     var dern = P.dernier[X.ref];
     h += '<div class="prg-exo' + (lie ? ' lie' : '') + '" style="border-left-color:' + M[2] + '">' +
       (lie ? '<div class="prg-supbadge">⛓️ enchaîné sans repos</div>' : '') +
-      '<div class="prg-exo-hd" style="cursor:default">' +
+      '<div class="prg-exo-hd" style="cursor:default">' + progVignette(X, 48) +
       '<div style="flex:1;min-width:0"><div class="prg-exo-n">' + esc(X.n) + '</div>' +
       '<div class="prg-exo-m"><span style="color:' + M[2] + '">●</span> ' + M[1] + (X.mat ? ' · ' + esc(X.mat) : '') +
       ' · repos ' + progRepos(X.repos) + '</div></div>' +
@@ -7291,7 +7384,7 @@ function progRunEtat(S, P) {
   if (W && W.sid === S.id && W.d === isoLocal() && W.exos && W.exos.length === S.exos.length) return W;
   W = { sid: S.id, d: isoLocal(), nom: S.nom, exos: [] };
   for (var e = 0; e < S.exos.length; e++) {
-    var X = S.exos[e], ex = { ref: X.ref, n: X.n, m: X.m, mat: X.mat, v: X.v, note: X.note, repos: X.repos, series: [] };
+    var X = S.exos[e], ex = { ref: X.ref, n: X.n, m: X.m, mat: X.mat, v: X.v, g: X.g, note: X.note, repos: X.repos, series: [] };
     for (var s = 0; s < X.series.length; s++) {
       var C = X.series[s];
       ex.series.push({ t: C.t, v: C.v, c: C.c, u: C.u, ok: 0 });
@@ -7394,28 +7487,24 @@ function bindProgRun() {
 // Les boutons de la section « Séances muscu » de la fiche client
 function bindProgFiche(slug) {
   var all = lsGet("amcoach_" + slug, {}), P = progGet(all);
-  function ouvrir(id) { state.cdProg = { slug: slug, id: id, open: 0 }; render(); }
-  var nw = document.getElementById("prg-new");
-  if (nw) nw.addEventListener("click", function () {
-    var nom = prompt("Nom de la séance ? (ex. Push 1, Bas du corps, Full body)", "Séance " + (P.seances.length + 1));
-    if (nom == null) return;
-    var id = progId("s");
-    P.seances.push({ id: id, nom: (nom.trim() || "Séance"), maj: isoLocal(), exos: [] });
-    progSetCoach(slug, P);
-    ouvrir(id);
+  var pk = document.getElementById("prg-pick");
+  if (pk) pk.addEventListener("click", function () {
+    var l = seaGet();
+    if (!l.length) { alert("Crée d'abord une séance type en haut du tableau de bord."); return; }
+    var noms = [];
+    for (var i = 0; i < l.length; i++) noms.push((i + 1) + ". " + l[i].nom + " (" + seaResume(l[i]) + ")");
+    var r = prompt("Quelle séance attribuer ?\n\n" + noms.join("\n"), "1");
+    var k = parseInt(r, 10);
+    if (!k || k < 1 || k > l.length) return;
+    seaAttribuer(l[k - 1].id, seaClients(l[k - 1].id).map(function (c) { return c.slug; }).concat([slug]));
+    render();
+    feedback("« " + l[k - 1].nom + " » attribuée", "ok");
   });
   var eds = document.querySelectorAll("[data-prg-edit]");
-  for (var i = 0; i < eds.length; i++) eds[i].addEventListener("click", function () { ouvrir(this.getAttribute("data-prg-edit")); });
-  var dups = document.querySelectorAll("[data-prg-dup]");
-  for (var d = 0; d < dups.length; d++) dups[d].addEventListener("click", function () {
-    var id = this.getAttribute("data-prg-dup");
-    for (var k = 0; k < P.seances.length; k++) {
-      if (P.seances[k].id !== id) continue;
-      var copie = JSON.parse(JSON.stringify(P.seances[k]));
-      copie.id = progId("s"); copie.nom = copie.nom + " (copie)"; copie.maj = isoLocal();
-      P.seances.push(copie);
-    }
-    progSetCoach(slug, P); render();
+  for (var i = 0; i < eds.length; i++) eds[i].addEventListener("click", function () {
+    state.cdProg = { id: this.getAttribute("data-prg-edit"), open: 0 };
+    if (!seaTrouve(state.cdProg.id)) { state.cdProg = null; alert("Cette séance a été construite avant les modèles : ouvre-la depuis le tableau de bord ou recrée-la."); return; }
+    render();
   });
   var dels = document.querySelectorAll("[data-prg-del]");
   for (var x = 0; x < dels.length; x++) dels[x].addEventListener("click", function () {
@@ -7424,6 +7513,153 @@ function bindProgFiche(slug) {
     if (!confirm("Supprimer la séance « " + nom + " » ? Son historique est conservé.")) return;
     P.seances = P.seances.filter(function (z) { return z.id !== id; });
     progSetCoach(slug, P); render();
+  });
+}
+
+
+// ═══════════ 📚 MODÈLES DE SÉANCE (côté coach) ═══════════
+// Akli : « il faudrait que les séances soient en haut du dashboard et
+// qu'ensuite je puisse l'attribuer à tel ou tel client, comme ça séance 1 est
+// faite, je peux la mettre à X, Y, et au nouveau — pas besoin de refaire à
+// chaque fois. » Le modèle vit donc chez le coach ; l'attribuer en dépose une
+// COPIE dans le slot 520 du client. Copie et non référence : si Akli retouche
+// le modèle plus tard, la séance déjà commencée par une cliente ne change pas
+// sous ses pieds — c'est lui qui décide de la re-attribuer.
+function seaGet() { return lsGet("amcoach_seances", []); }
+function seaSet(l) { lsSet("amcoach_seances", l); }
+function seaTrouve(id) { var l = seaGet(); for (var i = 0; i < l.length; i++) if (l[i].id === id) return l[i]; return null; }
+function seaResume(S) {
+  var nEx = (S.exos || []).length, nSer = 0;
+  for (var e = 0; e < nEx; e++) nSer += (S.exos[e].series || []).length;
+  return nEx + " exercice" + (nEx > 1 ? "s" : "") + " · " + nSer + " série" + (nSer > 1 ? "s" : "");
+}
+// À qui cette séance est-elle déjà attribuée ?
+function seaClients(id) {
+  var cl = lsGet("amcoach_clients", []), out = [];
+  for (var i = 0; i < cl.length; i++) {
+    var P = progGet(lsGet("amcoach_" + cl[i].slug, {}));
+    for (var j = 0; j < P.seances.length; j++) if (P.seances[j].id === id) out.push(cl[i]);
+  }
+  return out;
+}
+function seaAttribuer(id, slugs) {
+  var S = seaTrouve(id);
+  if (!S) return;
+  var cl = lsGet("amcoach_clients", []);
+  for (var i = 0; i < cl.length; i++) {
+    var slug = cl[i].slug, P = progGet(lsGet("amcoach_" + slug, {}));
+    var veut = slugs.indexOf(slug) >= 0, dedans = -1;
+    for (var j = 0; j < P.seances.length; j++) if (P.seances[j].id === id) dedans = j;
+    if (veut) {
+      var copie = JSON.parse(JSON.stringify(S));
+      if (dedans >= 0) P.seances[dedans] = copie; else P.seances.push(copie);
+    } else if (dedans >= 0) {
+      P.seances.splice(dedans, 1);
+    } else continue;
+    progSetCoach(slug, P);
+  }
+}
+
+// Le bloc en haut du dashboard
+function seaDashHTML() {
+  var l = seaGet(), h = '<div class="card" style="padding:15px 16px;margin-bottom:14px">' +
+    '<div class="card-label">🏋️ Mes séances types</div>';
+  if (!l.length) {
+    h += '<div style="font-size:12.5px;color:var(--mute);line-height:1.6;margin-bottom:10px">' +
+      'Construis une séance une fois, attribue-la ensuite à autant de clients que tu veux.</div>';
+  }
+  for (var i = 0; i < l.length; i++) {
+    var S = l[i], qui = seaClients(S.id);
+    h += '<div style="display:flex;align-items:center;gap:9px;background:var(--soft);border-radius:13px;padding:11px 12px;margin-bottom:8px">' +
+      '<div style="flex:1;min-width:0"><div style="font-weight:900;font-size:14px">' + esc(S.nom) + '</div>' +
+      '<div style="font-size:11.5px;color:var(--mute);font-weight:700;margin-top:2px">' + seaResume(S) +
+      (qui.length ? ' · 👥 ' + qui.length + ' client' + (qui.length > 1 ? 's' : '') : ' · non attribuée') + '</div></div>' +
+      '<button data-sea-att="' + S.id + '" style="padding:9px 11px;border-radius:10px;background:var(--ok-d);color:#fff;font-weight:900;font-size:12px">👥</button>' +
+      '<button data-sea-edit="' + S.id + '" style="padding:9px 11px;border-radius:10px;background:var(--ink);color:#fff;font-weight:900;font-size:12px">✏️</button>' +
+      '<button data-sea-dup="' + S.id + '" style="padding:9px 10px;border-radius:10px;background:var(--soft2);font-weight:900;font-size:12px">⧉</button>' +
+      '<button data-sea-del="' + S.id + '" style="padding:9px 10px;border-radius:10px;background:var(--soft2);font-weight:900;font-size:12px">🗑</button></div>';
+  }
+  h += '<button id="sea-new" class="big-btn" style="margin:4px 0 0;padding:13px 0;font-size:13.5px">＋ Nouvelle séance type</button></div>';
+  return h;
+}
+
+// L'écran d'attribution : une case par client, cochée s'il l'a déjà.
+function viewProgAssign() {
+  var S = seaTrouve(state.cdAssign);
+  if (!S) { state.cdAssign = null; return viewCoachDash(); }
+  var cl = lsGet("amcoach_clients", []);
+  if (!state.cdAssignSel) {
+    state.cdAssignSel = seaClients(S.id).map(function (c) { return c.slug; });
+  }
+  var sel = state.cdAssignSel;
+  var h = '<div class="prg-top"><button id="prg-ass-back" class="prg-back">‹</button>' +
+    '<div style="flex:1;min-width:0"><div class="prg-titre">Attribuer « ' + esc(S.nom) + ' »</div>' +
+    '<div class="prg-sous">' + seaResume(S) + '</div></div></div>' +
+    '<div style="padding:12px 13px 100px">' +
+    '<div class="st-note">Coche les clients qui doivent recevoir cette séance. Décoche pour la leur retirer — leur historique reste.</div>';
+  if (!cl.length) h += '<div class="spt-txt">Aucun client pour l\'instant.</div>';
+  for (var i = 0; i < cl.length; i++) {
+    var pris = sel.indexOf(cl[i].slug) >= 0;
+    var P = progGet(lsGet("amcoach_" + cl[i].slug, {})), faites = 0;
+    for (var j = 0; j < P.journal.length; j++) if (P.journal[j].sid === S.id) faites++;
+    h += '<div class="prg-cli' + (pris ? ' on' : '') + '" data-sea-cli="' + cl[i].slug + '">' +
+      '<span class="prg-plus">' + (pris ? '✓' : '＋') + '</span>' +
+      '<span class="prg-cli-n">' + esc(cl[i].name) + '</span>' +
+      '<span class="prg-cli-e">' + (faites ? faites + ' fois' : '') + '</span></div>';
+  }
+  h += '</div><div class="prg-barre"><button id="prg-ass-ok" class="big-btn" style="margin:0">' +
+    'Enregistrer l\'attribution' + '</button></div>';
+  return h;
+}
+
+function bindProgDash() {
+  var nw = document.getElementById("sea-new");
+  if (nw) nw.addEventListener("click", function () {
+    var nom = prompt("Nom de la séance ? (ex. Push 1, Bas du corps, Full body)", "Séance " + (seaGet().length + 1));
+    if (nom == null) return;
+    var l = seaGet(), id = progId("s");
+    l.push({ id: id, nom: (nom.trim() || "Séance"), maj: isoLocal(), exos: [] });
+    seaSet(l);
+    state.cdProg = { id: id, open: 0 };
+    render();
+  });
+  function chaque(attr, cb) {
+    var els = document.querySelectorAll("[" + attr + "]");
+    for (var i = 0; i < els.length; i++) els[i].addEventListener("click", function () { cb(this.getAttribute(attr)); });
+  }
+  chaque("data-sea-edit", function (id) { state.cdProg = { id: id, open: 0 }; render(); });
+  chaque("data-sea-att", function (id) { state.cdAssign = id; state.cdAssignSel = null; render(); });
+  chaque("data-sea-dup", function (id) {
+    var l = seaGet(), S = seaTrouve(id);
+    if (!S) return;
+    var c = JSON.parse(JSON.stringify(S)); c.id = progId("s"); c.nom = c.nom + " (copie)"; c.maj = isoLocal();
+    l.push(c); seaSet(l); render();
+  });
+  chaque("data-sea-del", function (id) {
+    var S = seaTrouve(id), qui = seaClients(id);
+    if (!S) return;
+    if (!confirm("Supprimer le modèle « " + S.nom + " » ?" + (qui.length ? "\nIl restera chez les " + qui.length + " client(s) à qui tu l'as attribué." : ""))) return;
+    seaSet(seaGet().filter(function (z) { return z.id !== id; }));
+    render();
+  });
+}
+
+function bindProgAssign() {
+  var bk = document.getElementById("prg-ass-back");
+  if (bk) bk.addEventListener("click", function () { state.cdAssign = null; state.cdAssignSel = null; render(); });
+  var cls = document.querySelectorAll("[data-sea-cli]");
+  for (var i = 0; i < cls.length; i++) cls[i].addEventListener("click", function () {
+    var slug = this.getAttribute("data-sea-cli"), k = state.cdAssignSel.indexOf(slug);
+    if (k >= 0) state.cdAssignSel.splice(k, 1); else state.cdAssignSel.push(slug);
+    render();
+  });
+  var ok = document.getElementById("prg-ass-ok");
+  if (ok) ok.addEventListener("click", function () {
+    seaAttribuer(state.cdAssign, state.cdAssignSel);
+    var n = state.cdAssignSel.length;
+    state.cdAssign = null; state.cdAssignSel = null;
+    render();
+    feedback(n ? "Séance attribuée à " + n + " client" + (n > 1 ? "s" : "") : "Séance retirée de tous les clients", "ok");
   });
 }
 
@@ -9355,6 +9591,7 @@ function viewCoachDash(){
     '<span class="hdr-title">Coach Dashboard</span><div class="bar bar-b"></div></div>'+
     '<div class="hdr-sub" style="color:#666;font-weight:400;font-size:12px">AM Coach Genève · TransfoPhysique</div></div>'+
     '<div style="padding:16px 14px 0">'+
+    seaDashHTML()+
     '<button id="form-toggle" class="big-btn'+(state.showForm?" gray":"")+'" style="padding:16px 0;font-size:14px">'+
     (state.showForm?"▲ Annuler":"+ Nouveau client")+'</button>'+
     '<button id="calc-open" class="big-btn" style="padding:14px 0;font-size:14px;background:var(--brand2);margin-bottom:10px">🧮 Calculateur bilan</button>'+
@@ -10856,9 +11093,12 @@ function bilanReport(slug,idx,mode){
 function bindCoach(){
   // 🏋️ Le constructeur de séance est un écran à part entière : il a ses
   // propres gestionnaires et rien d'autre de la fiche n'est affiché.
-  if(state.coachAuthed&&state.coachDetail&&state.cdProg){try{bindProgBuilder();}catch(e){}return;}
+  if(state.coachAuthed&&state.cdAssign){try{bindProgAssign();}catch(e){}return;}
+  if(state.coachAuthed&&state.cdProg){try{bindProgBuilder();}catch(e){}return;}
   // Les boutons de la section « Séances muscu » de la fiche client
   if(state.coachAuthed&&state.coachDetail){try{bindProgFiche(state.coachDetail);}catch(e){}}
+  // Le bloc « Mes séances types » en haut du tableau de bord
+  if(state.coachAuthed&&!state.coachDetail){try{bindProgDash();}catch(e){}}
   var cp=document.getElementById("coach-pass"), cg=document.getElementById("coach-go");
   if(cp&&cg){
     function tryLogin(){

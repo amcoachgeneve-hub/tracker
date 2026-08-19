@@ -90,6 +90,73 @@
 .spt-plan div,.spt-plan span,.spt-plan strong{color:inherit}
 .spt-plan a{background:linear-gradient(90deg,#12B5EA 0%,#8A3FFF 100%) !important;box-shadow:0 0 16px rgba(96,120,255,.45)}
 
+/* ═══════════ 📊 MODE STATS — lecture de nuit ═══════════
+   Même principe que l'onglet Sport : un écran de lecture, sombre et calme,
+   cloisonné dans .stats-mode pour ne pas déteindre sur le reste de l'app.
+   Ici pas de néon — on lit des chiffres, pas un chrono à trois mètres. */
+.app.stats-mode{--st-cy:#22D3EE;--st-vi:#A78BFA;--st-ok:#34D399;--st-bad:#F87171;
+  --st-dim:#64748B;--st-card:#14141C;--st-line:rgba(255,255,255,.07);
+  background:#0A0A0F;color:#F1F5F9}
+.app.stats-mode .hdr{background:#0A0A0F;border-radius:0;border-bottom:1px solid var(--st-line)}
+.app.stats-mode .hdr-title{color:#fff}
+.app.stats-mode .hdr-sub{color:#94A3B8}
+.app.stats-mode .nav{background:rgba(10,10,15,.95);border-top:1px solid var(--st-line)}
+.app.stats-mode .nav-lbl{color:#64748B}
+.app.stats-mode .nav-btn.active .nav-lbl{color:var(--st-cy)}
+.stats-mode .chart-card{background:var(--st-card);border:1px solid var(--st-line);box-shadow:none;border-radius:18px;padding:16px;margin-bottom:14px}
+.stats-mode .chart-title{color:#F1F5F9}
+.stats-mode .chart-avg{color:#94A3B8}
+.stats-mode .chart-empty{color:var(--st-dim)}
+/* Verdict du superviseur */
+.st-verdict{border-radius:18px;padding:17px 16px;margin-bottom:16px}
+.st-verdict-sig{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:900;color:rgba(255,255,255,.92);margin-bottom:9px}
+.st-verdict-ico{margin-left:auto;font-size:20px;line-height:1}
+.st-verdict-t{color:#fff;font-weight:900;font-size:19px;line-height:1.25}
+.st-verdict-s{color:rgba(255,255,255,.88);font-size:13px;font-weight:600;line-height:1.6;margin-top:6px}
+/* Titres de section */
+.st-h3{display:flex;align-items:center;gap:9px;margin:20px 0 10px}
+.st-h3-bar{width:3px;height:17px;border-radius:2px}
+.st-h3 span{font-weight:900;font-size:13.5px;text-transform:uppercase;letter-spacing:1.1px;color:#E2E8F0}
+.st-note{font-size:12px;color:var(--st-dim);line-height:1.55;margin:-3px 0 11px}
+.st-grid2{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:6px}
+.st-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;margin-bottom:6px}
+/* Cartes de la semaine et du ressenti */
+.st-w{background:var(--st-card);border:1px solid var(--st-line);border-radius:16px;padding:15px 14px}
+.st-w.cy{border-color:rgba(34,211,238,.28)}
+.st-w.vi{border-color:rgba(167,139,250,.28)}
+.st-w.vide{opacity:.55}
+.st-w-lbl{font-size:12.5px;font-weight:700;color:#94A3B8;margin-bottom:5px}
+.st-w-val{font-size:27px;font-weight:900;letter-spacing:-.5px;color:#F1F5F9;line-height:1.05}
+.st-w-val span{font-size:14px;font-weight:600;color:#94A3B8;margin-left:2px}
+.st-w.cy .st-w-val{color:var(--st-cy)}
+.st-w.vi .st-w-val{color:var(--st-vi)}
+.st-w-sub{font-size:11.5px;font-weight:700;line-height:1.4;margin-top:5px;color:var(--st-dim)}
+/* Insights */
+.st-ins{display:flex;gap:12px;background:var(--st-card);border:1px solid var(--st-line);border-radius:15px;padding:14px 15px;margin-bottom:9px;font-size:13px;line-height:1.6;color:#94A3B8}
+.st-ins-i{font-size:18px;line-height:1.3;flex-shrink:0}
+.st-ins strong{color:#F1F5F9;font-weight:700}
+/* Régularité */
+.st-kpi{background:var(--st-card);border:1px solid var(--st-line);border-radius:16px;padding:20px 14px;text-align:center}
+.st-kpi-n{font-size:36px;font-weight:900;letter-spacing:-1px;line-height:1}
+.st-kpi-l{font-size:12.5px;color:#94A3B8;margin-top:5px}
+/* Trophées et badges */
+.st-badge{background:var(--st-card);border:2px solid var(--gold);border-radius:14px;padding:11px 8px;text-align:center}
+.st-badge-n{font-size:10px;font-weight:900;margin-top:4px;line-height:1.25;color:#F1F5F9}
+.st-badge-j{font-size:9.5px;color:#94A3B8;font-weight:700;margin-top:2px}
+.st-tro{background:var(--st-card);border:1px solid var(--st-line);border-radius:14px;padding:13px 10px;text-align:center}
+.st-tro.on{border:2px solid var(--gold)}
+.st-tro:not(.on){opacity:.45}
+.st-tro:not(.on) .st-tro-i{filter:grayscale(1)}
+.st-tro-i{font-size:24px}
+.st-tro-n{font-weight:900;font-size:11.5px;margin-top:5px;color:#F1F5F9}
+.st-tro-d{font-size:11px;color:#94A3B8;margin-top:3px}
+.st-det{margin-top:4px}
+.st-det summary{list-style:none;cursor:pointer;font-size:12.5px;font-weight:800;color:var(--st-cy);padding:11px 0;text-align:center;border:1px solid var(--st-line);border-radius:13px;background:var(--st-card)}
+.st-det summary::-webkit-details-marker{display:none}
+/* Légende du graphique de poids */
+.st-leg{display:flex;gap:15px;margin-top:10px;font-size:11px;color:#94A3B8;font-weight:700;flex-wrap:wrap}
+.st-leg i{display:inline-block;width:14px;height:2px;vertical-align:middle;margin-right:4px}
+
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Inter','Helvetica Neue',sans-serif;background:#F4F4F4;-webkit-font-smoothing:antialiased}
 button,input,textarea{font-family:inherit;font-size:inherit}
@@ -278,7 +345,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="17/08 · Sport";
+var APP_VERSION="17/08 · Stats";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -3032,6 +3099,9 @@ function statProjection(poidsVals,cible,finIdx,joursRestants){
 // 📉 Courbe de poids avec droite de tendance et ligne d'objectif
 function svgPoidsChart(values,cible,opts){
   opts=opts||{};
+  // Sur fond sombre, le tracé couleur « encre » disparaît et la grille claire
+  // crie. Les deux se surchargent donc depuis l'appelant.
+  var TRAIT=solid(opts.trait||"var(--ink)"), GRILLE=solid(opts.grille||"var(--soft2)"), TXT=opts.txt||"#BBB";
   var W=opts.width||340,H=opts.height||160,pad={t:12,r:10,b:22,l:38};
   var valid=values.filter(function(v){return v!=null;});
   if(valid.length<2)return '<div class="chart-empty">Pèse-toi quelques jours pour voir ta courbe</div>';
@@ -3045,8 +3115,8 @@ function svgPoidsChart(values,cible,opts){
   var g="";
   for(var k=0;k<=3;k++){
     var gy=pad.t+ih*(k/3),gv=mx-(rg*(k/3));
-    g+='<line x1="'+pad.l+'" y1="'+gy.toFixed(1)+'" x2="'+(W-pad.r)+'" y2="'+gy.toFixed(1)+'" stroke='+JSON.stringify(solid("var(--soft2)"))+'/>'+
-      '<text x="'+(pad.l-6)+'" y="'+(gy+3).toFixed(1)+'" font-size="9" fill="#BBB" text-anchor="end">'+(Math.round(gv*10)/10)+'</text>';
+    g+='<line x1="'+pad.l+'" y1="'+gy.toFixed(1)+'" x2="'+(W-pad.r)+'" y2="'+gy.toFixed(1)+'" stroke='+JSON.stringify(GRILLE)+'/>'+
+      '<text x="'+(pad.l-6)+'" y="'+(gy+3).toFixed(1)+'" font-size="9" fill="'+TXT+'" text-anchor="end">'+(Math.round(gv*10)/10)+'</text>';
   }
   // Ligne d'objectif
   var obj="";
@@ -3071,11 +3141,11 @@ function svgPoidsChart(values,cible,opts){
     started=true;
   }
   var last=-1;for(var z=n-1;z>=0;z--){if(values[z]!=null){last=z;break;}}
-  if(last>=0)dots='<circle cx="'+px(last).toFixed(1)+'" cy="'+py(values[last]).toFixed(1)+'" r="4" fill='+JSON.stringify(solid("var(--ink)"))+'/>';
+  if(last>=0)dots='<circle cx="'+px(last).toFixed(1)+'" cy="'+py(values[last]).toFixed(1)+'" r="4" fill='+JSON.stringify(TRAIT)+'/>';
   var step=Math.max(1,Math.ceil(n/5)),xl="";
-  for(var x=0;x<n;x+=step)xl+='<text x="'+px(x).toFixed(1)+'" y="'+(H-6)+'" font-size="9" fill="#BBB" text-anchor="middle">J'+(x+1)+'</text>';
+  for(var x=0;x<n;x+=step)xl+='<text x="'+px(x).toFixed(1)+'" y="'+(H-6)+'" font-size="9" fill="'+TXT+'" text-anchor="middle">J'+(x+1)+'</text>';
   return '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;display:block">'+g+obj+trend+xl+
-    '<path d="'+d+'" fill="none" stroke='+JSON.stringify(solid("var(--ink)"))+' stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>'+dots+'</svg>';
+    '<path d="'+d+'" fill="none" stroke='+JSON.stringify(TRAIT)+' stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>'+dots+'</svg>';
 }
 function svgMultiChart(sets,opts){
   opts=opts||{};
@@ -3132,6 +3202,7 @@ function svgLineChart(values,color,opts){
   color=solid(color);
   opts=opts||{};
   var W=opts.width||340, H=opts.height||140, pad={t:8,r:8,b:22,l:34};
+  var GRILLE=solid(opts.grille||"var(--soft2)"), TXT=opts.txt||"#BBB";
   var valid=values.filter(function(v){return v!=null;});
   if(valid.length<2)return '<div class="chart-empty">Aucune donnée encore</div>';
   var min=opts.min!=null?opts.min:Math.min.apply(null,valid);
@@ -3148,13 +3219,13 @@ function svgLineChart(values,color,opts){
   for(var g=0;g<=3;g++){
     var gy=pad.t+ih*(g/3);
     var gv=max-(range*(g/3));
-    grid+='<line x1="'+pad.l+'" y1="'+gy.toFixed(1)+'" x2="'+(W-pad.r)+'" y2="'+gy.toFixed(1)+'" stroke='+JSON.stringify(solid("var(--soft2)"))+' stroke-width="1"/>';
-    grid+='<text x="'+(pad.l-6)+'" y="'+(gy+3).toFixed(1)+'" font-size="9" fill="#BBB" text-anchor="end">'+(Math.round(gv*10)/10)+'</text>';
+    grid+='<line x1="'+pad.l+'" y1="'+gy.toFixed(1)+'" x2="'+(W-pad.r)+'" y2="'+gy.toFixed(1)+'" stroke='+JSON.stringify(GRILLE)+' stroke-width="1"/>';
+    grid+='<text x="'+(pad.l-6)+'" y="'+(gy+3).toFixed(1)+'" font-size="9" fill="'+TXT+'" text-anchor="end">'+(Math.round(gv*10)/10)+'</text>';
   }
   var step=Math.max(1,Math.ceil(n/6));
   var xlabels="";
   for(var x=0;x<n;x+=step){
-    xlabels+='<text x="'+px(x).toFixed(1)+'" y="'+(H-6)+'" font-size="9" fill="#BBB" text-anchor="middle">J'+(x+1)+'</text>';
+    xlabels+='<text x="'+px(x).toFixed(1)+'" y="'+(H-6)+'" font-size="9" fill="'+TXT+'" text-anchor="middle">J'+(x+1)+'</text>';
   }
   var path="", started=false;
   for(var i2=0;i2<n;i2++){
@@ -3376,7 +3447,8 @@ function renderView(){
   if(state.selDay!==null){root.innerHTML=viewDay(name,start);bindDay(name,start);return;}
   // #13 Contrat : proposé une fois au premier lancement (tant que non signé, non passé)
   if(!getAllData()[508]&&!state.ctSkip&&state.view!=="contract")state.view="contract";
-  var html='<div class="app'+(state.view==="sport"||state.view==="training"?" sport-mode":"")+'">';
+  var html='<div class="app'+(state.view==="sport"||state.view==="training"?" sport-mode":"")+
+    (state.view==="stats"&&state.selDay==null?" stats-mode":"")+'">';
   if(state.view==="contract"){root.innerHTML='<div class="app">'+viewContract(name,start)+'</div>';bindContract(name,start);return;}
   if(state.view==="calendar")html+=viewCalendar(name,start);
   else if(state.view==="nutrition")html+=viewNutrition(name,start);
@@ -5506,10 +5578,15 @@ function viewStats(name){
   var PJ=statProjection(poidsV,cible,lastIdx,Math.max(0,90-(today90+1)));
   var rempli=0;for(var f=0;f<=Math.min(89,lastIdx);f++){if(allData[f]&&Object.keys(allData[f]).length>0)rempli++;}
 
+  // Titre de section : barre colorée + libellé, réutilisé partout dans la vue.
+  function titreSection(txt,coul){
+    return '<div class="st-h3"><div class="st-h3-bar" style="background:'+coul+'"></div><span>'+txt+'</span></div>';
+  }
+
   var h='<div class="hdr"><div class="hdr-brand"><div class="bar bar-r"></div>'+
     '<span class="hdr-title">Ma progression</span><div class="bar bar-b"></div></div>'+
     '<div class="hdr-sub">'+esc(name)+' · jour '+(Math.min(90,today90+1))+' sur 90</div></div>'+
-    '<div style="padding:16px 14px 0">';
+    '<div style="padding:14px 14px 0">';
 
   // ═══ 1. LE VERDICT ═══
   (function(){
@@ -5517,34 +5594,34 @@ function viewStats(name){
     if(rempli<4){
       ico="🌱";titre="Ta courbe se construit";
       sous="Remplis encore "+(4-rempli)+" jour"+((4-rempli)>1?"s":"")+" et je pourrai te dire où tu vas.";
-      bg="linear-gradient(135deg,#455A64,#607D8B)";
+      bg="linear-gradient(140deg,#1E293B,#334155)";
     }else if(!PJ){
       ico="⚖️";titre="Pèse-toi pour voir ta tendance";
       sous="Une pesée régulière, même approximative, suffit à faire apparaître la direction.";
-      bg="linear-gradient(135deg,#455A64,#607D8B)";
+      bg="linear-gradient(140deg,#1E293B,#334155)";
     }else if(PJ.atteint){
       ico="🎉";titre=supVerdictTitre(allData,"atteint");
       sous="Tu es à "+PJ.act+" kg. "+supVerdictSous(allData,"atteint");
-      bg="linear-gradient(135deg,#1B5E20,var(--ok))";
+      bg="linear-gradient(140deg,#064E3B,#059669)";
     }else if(!PJ.assez){
       ico="⏳";titre="Encore un peu de patience";
       sous="Il me faut environ 8 pesées pour distinguer une vraie tendance du bruit quotidien. Tu en as "+((PJ.tendance&&PJ.tendance.n)||0)+".";
-      bg="linear-gradient(135deg,#455A64,#607D8B)";
+      bg="linear-gradient(140deg,#1E293B,#334155)";
     }else if(PJ.monte){
       ico="📈";titre=supVerdictTitre(allData,"monte");
       sous=supVerdictSous(allData,"monte");
-      bg="linear-gradient(135deg,var(--bad),var(--brand))";
+      bg="linear-gradient(140deg,#7F1D1D,#B91C1C)";
     }else if(PJ.stagne){
       ico="➖";titre=supVerdictTitre(allData,"stagne");
       sous=supVerdictSous(allData,"stagne");
-      bg="linear-gradient(135deg,var(--warn-d),var(--warn))";
+      bg="linear-gradient(140deg,#78350F,#B45309)";
     }else if(PJ.recentMonte){
       // La pente globale descend encore, mais les dernières pesées remontent.
       // Le dire maintenant vaut mieux que de féliciter quelqu'un qui repart
       // dans l'autre sens : c'est là que ça se rattrape facilement.
       ico="⚠️";titre=supVerdictTitre(allData,"repart");
       sous=supVerdictSous(allData,"repart");
-      bg="linear-gradient(135deg,var(--warn-d),var(--warn))";
+      bg="linear-gradient(140deg,#78350F,#B45309)";
     }else if(PJ.retard!=null&&PJ.retard>0){
       // Il maigrit, mais trop lentement pour tenir la date. Annoncer une date
       // au-delà de l'échéance sans la nommer, c'était mentir par omission.
@@ -5553,83 +5630,78 @@ function viewStats(name){
       sous="Tu perds "+PJ.parSem+" kg par semaine. À ce rythme tu atteins "+PJ.cible+" kg le "+PJ.dateCible+
         ", soit "+sem+" semaine"+(sem>1?"s":"")+" APRÈS la fin de tes 90 jours ("+PJ.dateFin+")."+
         " Il faudrait "+(Math.round((PJ.reste/(PJ.joursRestants/7))*100)/100)+" kg par semaine pour y être à temps. "+supVerdictSous(allData,"finLent");
-      bg="linear-gradient(135deg,#B26A00,var(--warn-d))";
+      bg="linear-gradient(140deg,#78350F,#B45309)";
     }else if(PJ.recentMou){
       ico="🐢";titre=supVerdictTitre(allData,"ralentit");
       sous="Sur l'ensemble tu perds "+PJ.parSem+" kg par semaine, mais ces derniers jours le rythme a nettement baissé ("+PJ.parSemRecent+" kg/sem). "+supVerdictSous(allData,"finRalentit");
-      bg="linear-gradient(135deg,#2E7D32,var(--ok-d))";
+      bg="linear-gradient(140deg,#064E3B,#047857)";
     }else{
       ico="🔥";titre=supVerdictTitre(allData,"progresse");
       sous="Rythme actuel : "+PJ.parSem+" kg par semaine."+(PJ.dateCible?" À ce rythme, "+PJ.cible+" kg le "+PJ.dateCible:"")+
         (PJ.retard!=null&&PJ.retard<=0?" — soit "+Math.abs(Math.floor(PJ.retard/7))+" semaine(s) avant l'échéance.":".")+" "+supVerdictSous(allData,"finProgresse");
-      bg="linear-gradient(135deg,#1B5E20,var(--ok-d))";
+      bg="linear-gradient(140deg,#064E3B,#047857)";
     }
     // Signée comme à l'accueil : sans le nom, le verdict ressemble à un
     // bandeau système et le client ne reconnaît pas son superviseur.
     var __S=supGet(allData),__T=TONS[__S.ton];
-    h+='<div class="card" style="background:'+bg+';border:none;padding:17px 16px;margin-bottom:13px">'+
-      '<div style="display:flex;align-items:center;gap:7px;margin-bottom:7px">'+
-      '<span style="font-size:15px;line-height:1">'+__T.emoji+'</span>'+
-      '<span style="font-size:12px;font-weight:900;color:rgba(255,255,255,.92)">'+esc(__S.prenom)+'</span></div>'+
-      '<div style="font-size:26px;line-height:1">'+ico+'</div>'+
-      '<div style="color:#fff;font-weight:900;font-size:18px;margin-top:5px">'+titre+'</div>'+
-      '<div style="color:rgba(255,255,255,.85);font-size:12.5px;font-weight:600;line-height:1.55;margin-top:5px">'+sous+'</div></div>';
+    h+='<div class="st-verdict" style="background:'+bg+'">'+
+      '<div class="st-verdict-sig"><span style="font-size:15px;line-height:1">'+__T.emoji+'</span>'+
+      '<span>'+esc(__S.prenom)+'</span><span class="st-verdict-ico">'+ico+'</span></div>'+
+      '<div class="st-verdict-t">'+titre+'</div>'+
+      '<div class="st-verdict-s">'+sous+'</div></div>';
   })();
 
   // ═══ 2. LA COURBE DE POIDS ═══
   h+='<div class="chart-card">'+
-    '<div class="chart-hdr"><div class="chart-dot" style="background:var(--ink)"></div>'+
+    '<div class="chart-hdr"><div class="chart-dot" style="background:var(--st-cy)"></div>'+
     '<span class="chart-title">Mon poids</span>'+
     (PJ&&PJ.act?'<span class="chart-avg">'+PJ.act+' kg</span>':'')+'</div>'+
-    svgPoidsChart(poidsV,cible)+
-    '<div style="display:flex;gap:14px;margin-top:9px;font-size:10.5px;color:#999;font-weight:700">'+
-    '<span><span style="display:inline-block;width:14px;height:2px;background:var(--ink);vertical-align:middle"></span> tes pesées</span>'+
-    '<span><span style="display:inline-block;width:14px;height:2px;background:var(--gold-d);vertical-align:middle"></span> ta tendance</span>'+
-    (cible?'<span><span style="display:inline-block;width:14px;height:2px;background:var(--ok);vertical-align:middle"></span> objectif</span>':'')+
+    svgPoidsChart(poidsV,cible,{trait:"#22D3EE",grille:"rgba(255,255,255,.09)",txt:"#64748B"})+
+    '<div class="st-leg">'+
+    '<span><i style="background:var(--st-cy)"></i> tes pesées</span>'+
+    '<span><i style="background:var(--gold-d)"></i> ta tendance</span>'+
+    (cible?'<span><i style="background:var(--st-ok)"></i> objectif</span>':'')+
     '</div>';
   h+='</div>';
 
   // ═══ 3. CETTE SEMAINE VS LA PRÉCÉDENTE ═══
+  // Deux blocs au lieu d'un seul de quatre cases : les MESURES (ce que dit la
+  // balance et le lit) d'un côté, le RESSENTI (ce que dit le corps et la tête)
+  // de l'autre. Ce sont deux natures d'information, on ne les lit pas pareil.
   (function(){
-    var defs=[
-      {k:"poids",lbl:"Poids",u:" kg",ico:"⚖️",mieux:"bas"},
-      {k:"sommeilH",lbl:"Sommeil",u:" h",ico:"😴",mieux:"haut"},
-      {k:"energie",lbl:"Physique",u:" %",ico:"⚡",mieux:"haut"},
-      {k:"mental",lbl:"Mental",u:" %",ico:"🧠",mieux:"haut"}
-    ];
-    var cards="",aucun=true;
-    for(var i=0;i<defs.length;i++){
-      var D=defs[i],S=statSemaine(vals(D.k),lastIdx);
-      if(!S){
-        cards+='<div style="background:#FAFAFA;border-radius:11px;padding:12px">'+
-          '<div style="font-size:11px;font-weight:800;color:#BBB">'+D.ico+' '+D.lbl+'</div>'+
-          '<div style="font-size:15px;font-weight:900;color:#DDD;margin-top:3px">—</div>'+
-          '<div style="font-size:10.5px;color:#CCC;font-weight:700">pas de donnée</div></div>';
-        continue;
-      }
-      aucun=false;
-      var col="#999",fl="",txt="stable";
+    function carte(D,grand){
+      var S=statSemaine(vals(D.k),lastIdx);
+      if(!S)return '<div class="st-w vide"><div class="st-w-lbl">'+D.ico+' '+D.lbl+'</div>'+
+        '<div class="st-w-val">—</div><div class="st-w-sub">pas de donnée</div></div>';
+      var col="var(--st-dim)",fl="",txt="stable vs semaine dernière";
       if(S.delta!=null&&Math.abs(S.delta)>=(D.k==="poids"?0.2:2)){
         var bon=D.mieux==="bas"?S.delta<0:S.delta>0;
-        col=bon?"var(--ok-d)":"var(--brand)";
-        fl=bon?"▲":"▼";
-        if(D.k==="poids")fl=S.delta<0?"▼":"▲";
+        col=bon?"var(--st-ok)":"var(--st-bad)";
+        fl=(S.delta<0?"▼":"▲");
         txt=(S.delta>0?"+":"")+S.delta+D.u+" vs semaine dernière";
-      }else if(S.precedent!=null){
-        txt="stable vs semaine dernière";
-      }else{
-        txt="1re semaine";
-      }
-      cards+='<div style="background:#fff;border-radius:11px;padding:12px;box-shadow:0 1px 4px #0000000d">'+
-        '<div style="font-size:11px;font-weight:800;color:#888">'+D.ico+' '+D.lbl+'</div>'+
-        '<div style="font-size:19px;font-weight:900;color:var(--ink);margin-top:2px">'+S.actuel+'<span style="font-size:11px;color:#AAA">'+D.u+'</span></div>'+
-        '<div style="font-size:10.5px;color:'+col+';font-weight:800;line-height:1.35;margin-top:2px">'+(fl?fl+" ":"")+txt+'</div></div>';
+      }else if(S.precedent==null){txt="1re semaine";}
+      return '<div class="st-w'+(grand?" "+grand:"")+'">'+
+        '<div class="st-w-lbl">'+D.ico+' '+D.lbl+'</div>'+
+        '<div class="st-w-val">'+S.actuel+'<span>'+D.u+'</span></div>'+
+        '<div class="st-w-sub" style="color:'+col+'">'+(fl?fl+" ":"")+txt+'</div></div>';
     }
-    if(aucun)return;
-    h+='<div style="display:flex;align-items:center;gap:8px;margin:18px 0 10px"><div style="width:3px;height:18px;background:var(--brand2);border-radius:2px"></div>'+
-      '<span style="font-weight:900;font-size:14px;text-transform:uppercase;letter-spacing:1px">Ma semaine</span></div>'+
-      '<div style="font-size:11.5px;color:#999;margin-bottom:10px;line-height:1.5">Moyenne des 7 derniers jours remplis, comparée aux 7 précédents.</div>'+
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:6px">'+cards+'</div>';
+    var mesures=[{k:"poids",lbl:"Poids",u:" kg",ico:"⚖️",mieux:"bas"},
+                 {k:"sommeilH",lbl:"Sommeil",u:" h",ico:"😴",mieux:"haut"}];
+    var ressenti=[{k:"energie",lbl:"Physique",u:" %",ico:"⚡",mieux:"haut"},
+                  {k:"mental",lbl:"Mental",u:" %",ico:"🧠",mieux:"haut"}];
+    var okM=false,okR=false,i;
+    for(i=0;i<2;i++){if(statSemaine(vals(mesures[i].k),lastIdx))okM=true;
+                     if(statSemaine(vals(ressenti[i].k),lastIdx))okR=true;}
+    if(!okM&&!okR)return;
+    if(okM){
+      h+=titreSection("Ma semaine","var(--st-cy)")+
+        '<div class="st-note">Moyenne des 7 derniers jours remplis, comparée aux 7 précédents.</div>'+
+        '<div class="st-grid2">'+carte(mesures[0])+carte(mesures[1])+'</div>';
+    }
+    if(okR){
+      h+=titreSection("Mon ressenti","var(--st-vi)")+
+        '<div class="st-grid2">'+carte(ressenti[0],"cy")+carte(ressenti[1],"vi")+'</div>';
+    }
   })();
 
   // ═══ 4. CE QUE DISENT TES DONNÉES ═══
@@ -5664,12 +5736,10 @@ function viewStats(name){
       msgs.push({ico:"📉",txt:"Tu perds en moyenne <strong>"+(Math.round(-TP.pente*7*100)/100)+" kg par semaine</strong> depuis le début du suivi."});
     }
     if(!msgs.length)return;
-    h+='<div style="display:flex;align-items:center;gap:8px;margin:18px 0 10px"><div style="width:3px;height:18px;background:var(--violet);border-radius:2px"></div>'+
-      '<span style="font-weight:900;font-size:14px;text-transform:uppercase;letter-spacing:1px">Ce que disent tes données</span></div>';
+    h+=titreSection("Ce que disent tes données","var(--st-vi)");
     for(var m2=0;m2<msgs.length&&m2<3;m2++){
-      h+='<div style="display:flex;gap:10px;background:#fff;border-radius:11px;padding:12px 13px;margin-bottom:8px;box-shadow:0 1px 4px #0000000d">'+
-        '<span style="font-size:18px;line-height:1.3">'+msgs[m2].ico+'</span>'+
-        '<div style="flex:1;font-size:12px;color:#444;line-height:1.6">'+msgs[m2].txt+'</div></div>';
+      h+='<div class="st-ins"><span class="st-ins-i">'+msgs[m2].ico+'</span>'+
+        '<div>'+msgs[m2].txt+'</div></div>';
     }
   })();
 
@@ -5677,19 +5747,21 @@ function viewStats(name){
   (function(){
     var avgScore=avgOf(series,"score");
     var bs=bestStreak(allData,Math.min(89,lastIdx));
-    h+='<div style="display:flex;align-items:center;gap:8px;margin:18px 0 10px"><div style="width:3px;height:18px;background:'+R+';border-radius:2px"></div>'+
-      '<span style="font-weight:900;font-size:14px;text-transform:uppercase;letter-spacing:1px">Ma régularité</span></div>'+
-      '<div class="kpi-row" style="margin-bottom:12px">'+
-      '<div class="kpi-card"><div class="kpi-val" style="color:'+R+'">'+rempli+'</div><div class="kpi-lbl">Jours remplis</div></div>'+
-      '<div class="kpi-card"><div class="kpi-val" style="color:var(--warn-d)">'+bs+'</div><div class="kpi-lbl">Meilleure série</div></div></div>'+
-      '<div class="chart-card"><div class="chart-hdr"><div class="chart-dot" style="background:'+R+'"></div>'+
+    h+=titreSection("Ma régularité","var(--st-cy)")+
+      '<div class="st-grid2">'+
+      '<div class="st-kpi"><div class="st-kpi-n" style="color:var(--st-cy)">'+rempli+'</div><div class="st-kpi-l">Jours remplis</div></div>'+
+      '<div class="st-kpi"><div class="st-kpi-n" style="color:var(--st-vi)">'+bs+'</div><div class="st-kpi-l">Meilleure série</div></div></div>'+
+      '<div class="chart-card"><div class="chart-hdr"><div class="chart-dot" style="background:var(--st-cy)"></div>'+
       '<span class="chart-title">Score global</span>'+
       (avgScore!=null?'<span class="chart-avg">moy. '+avgScore+'%</span>':'')+'</div>'+
-      svgLineChart(vals("score"),R,{min:0,max:100})+
-      '<div style="font-size:10.5px;color:#AAA;margin-top:7px;line-height:1.5">Ce score résume ta journée : habitudes cochées, ressenti, sommeil.</div></div>';
+      svgLineChart(vals("score"),"#22D3EE",{min:0,max:100,grille:"rgba(255,255,255,.09)",txt:"#64748B"})+
+      '<div class="st-note" style="margin:7px 0 0">Ce score résume ta journée : habitudes cochées, ressenti, sommeil.</div></div>';
   })();
 
   // ═══ 6. TROPHÉES ═══
+  // Les dix trophées d'un bloc poussaient tout le reste vers le bas alors que
+  // huit sont verrouillés au début. On montre ce qui est gagné, le reste se
+  // déplie à la demande.
   (function(){
     var bs=bestStreak(allData,89);
     var res=qgRes(allData,89);
@@ -5712,26 +5784,30 @@ function viewStats(name){
       if(!bd.length)return;
       var chips='';
       for(var q=0;q<bd.length&&q<9;q++){
-        chips+='<div style="background:var(--card);border:2px solid var(--gold);border-radius:14px;padding:11px 8px;text-align:center;box-shadow:var(--shadow)">'+
-          '<div style="font-size:22px">'+bd[q].e+'</div>'+
-          '<div style="font-size:10px;font-weight:900;margin-top:4px;line-height:1.25">'+esc(bd[q].n)+'</div>'+
-          '<div style="font-size:9.5px;color:var(--mute);font-weight:700;margin-top:2px">'+bd[q].jours+' j ✓</div></div>';
+        chips+='<div class="st-badge"><div style="font-size:22px">'+bd[q].e+'</div>'+
+          '<div class="st-badge-n">'+esc(bd[q].n)+'</div>'+
+          '<div class="st-badge-j">'+bd[q].jours+' j ✓</div></div>';
       }
-      h+='<div style="display:flex;align-items:center;gap:8px;margin:18px 0 10px"><div style="width:3px;height:18px;background:var(--gold);border-radius:2px"></div>'+
-        '<span style="font-weight:900;font-size:14px;text-transform:uppercase;letter-spacing:1px">🏅 Challenges réussis</span></div>'+
-        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">'+chips+'</div>';
+      h+=titreSection("🏅 Challenges réussis","var(--gold)")+
+        '<div class="st-grid3">'+chips+'</div>';
     })();
-    h+='<div style="display:flex;align-items:center;gap:8px;margin:18px 0 10px"><div style="width:3px;height:18px;background:var(--gold);border-radius:2px"></div>'+
-      '<span style="font-weight:900;font-size:14px;text-transform:uppercase;letter-spacing:1px">🏆 Trophées</span></div>'+
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px">';
-    for(var tr=0;tr<TROPHIES.length;tr++){
-      var T=TROPHIES[tr];
-      h+='<div style="background:'+(T.cond?"#fff":"var(--soft2)")+';border-radius:12px;padding:12px;text-align:center;box-shadow:0 1px 4px #0001;'+(T.cond?"border:2px solid var(--gold)":"opacity:.5")+'">'+
-        '<div style="font-size:24px;'+(T.cond?"":"filter:grayscale(1)")+'">'+T.icon+'</div>'+
-        '<div style="font-weight:900;font-size:11px;margin-top:4px;color:'+(T.cond?"var(--ink)":"#AAA")+'">'+T.name+'</div>'+
-        '<div style="font-size:11px;color:#777;margin-top:2px">'+(T.cond?"✓ DÉBLOQUÉ":T.desc)+'</div></div>';
+    function tro(T){
+      return '<div class="st-tro'+(T.cond?" on":"")+'">'+
+        '<div class="st-tro-i">'+T.icon+'</div>'+
+        '<div class="st-tro-n">'+T.name+'</div>'+
+        '<div class="st-tro-d">'+(T.cond?"✓ DÉBLOQUÉ":T.desc)+'</div></div>';
     }
-    h+='</div>';
+    var gagnes="",restants="",nG=0,nR=0;
+    for(var tr=0;tr<TROPHIES.length;tr++){
+      if(TROPHIES[tr].cond){gagnes+=tro(TROPHIES[tr]);nG++;}
+      else{restants+=tro(TROPHIES[tr]);nR++;}
+    }
+    h+=titreSection("🏆 Trophées"+(nG?" · "+nG+"/"+TROPHIES.length:""),"var(--gold)");
+    if(nG)h+='<div class="st-grid2">'+gagnes+'</div>';
+    else h+='<div class="st-note" style="margin-bottom:10px">Aucun trophée débloqué pour l\'instant — le premier tombe à 7 jours d\'affilée.</div>';
+    if(nR)h+='<details class="st-det"><summary>Voir les '+nR+' trophées à débloquer</summary>'+
+      '<div class="st-grid2" style="margin-top:10px">'+restants+'</div></details>';
+    h+='<div style="height:14px"></div>';
   })();
 
   return h+'</div>';

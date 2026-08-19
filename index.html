@@ -402,7 +402,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="19/08 · Séances types";
+var APP_VERSION="19/08 · Vidéos exos";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -6885,12 +6885,25 @@ function progTypeCourt(t) {
   return { reps: "reps", duree: "s", distm: "m", distkm: "km", cal: "kcal", tours: "tours", puis: "W" }[t] || "reps";
 }
 function progId(p) { return (p || "x") + "_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
-// La vignette d'un exercice : un GIF ou une photo valent mieux qu'une phrase
-// d'explication au bord d'une machine. Tant qu'aucune image n'est renseignée,
-// on retombe sur la pastille de couleur du muscle.
+// L'identifiant d'une vidéo YouTube, quelle que soit la forme du lien collé :
+// youtu.be/ID, /watch?v=ID, /shorts/ID, /embed/ID.
+function ytId(url) {
+  if (!url) return "";
+  var m = String(url).match(/(?:youtu\.be\/|v=|\/shorts\/|\/embed\/)([A-Za-z0-9_-]{6,})/);
+  return m ? m[1] : "";
+}
+// L'image d'un exercice. Par ordre de préférence : le GIF collé à la main,
+// sinon la MINIATURE DE LA VIDÉO YOUTUBE — coller un lien YouTube suffit donc
+// à avoir une image, sans rien héberger. Sans lien, on retombe sur la pastille
+// de couleur du muscle.
+function progImg(X) {
+  if (X && X.g) return X.g;
+  var id = ytId(X && X.v);
+  return id ? "https://img.youtube.com/vi/" + id + "/mqdefault.jpg" : "";
+}
 function progVignette(X, taille) {
-  var M = progMuscle(X.m), t = taille || 46;
-  if (X.g) return '<img class="prg-vig" src="' + esc(X.g) + '" alt="" style="width:' + t + 'px;height:' + t + 'px" loading="lazy"/>';
+  var M = progMuscle(X.m), t = taille || 46, src = progImg(X);
+  if (src) return '<img class="prg-vig" src="' + esc(src) + '" alt="" style="width:' + t + 'px;height:' + t + 'px" loading="lazy"/>';
   return '<div class="prg-vig" style="width:' + t + 'px;height:' + t + 'px;background:' + M[2] + '22;color:' + M[2] +
     ';display:flex;align-items:center;justify-content:center;font-weight:900;font-size:' + Math.round(t / 2.6) + 'px">' +
     esc(M[1].slice(0, 1)) + '</div>';
@@ -7021,6 +7034,7 @@ function progCoachListeHTML(slug, all) {
 function viewProgBuilder() {
   var S = seaTrouve(state.cdProg.id);
   if (!S) { state.cdProg = null; return viewCoachDash(); }
+  if (state.cdProg.edit) return viewProgExoForm();
   var qui = seaClients(S.id);
   if (state.cdProg.bib) return viewProgBiblio(S);
 
@@ -7098,6 +7112,90 @@ function viewProgBuilder() {
 }
 
 // ═══════════ CÔTÉ COACH — LA BIBLIOTHÈQUE ═══════════
+
+// Fiche d'un exercice : nom, muscle, matériel, vidéo, image. Un écran avec
+// des champs visibles, parce qu'une file de fenêtres surgissantes ne montre
+// jamais ce qu'on est en train de remplir.
+function viewProgExoForm() {
+  var id = state.cdProg.edit, b = bibGet(), X = null;
+  if (id !== "new") { for (var i = 0; i < b.length; i++) if (b[i].id === id) X = b[i]; }
+  if (!X) X = { id: "new", n: "", m: "pecs", mat: "", v: "", g: "", f: 1, priv: 1 };
+  var opts = "";
+  for (var k = 0; k < PROG_MUSCLES.length; k++)
+    opts += '<option value="' + PROG_MUSCLES[k][0] + '"' + (X.m === PROG_MUSCLES[k][0] ? " selected" : "") + '>' + PROG_MUSCLES[k][1] + '</option>';
+  var src = progImg(X);
+  var h = '<div class="prg-top"><button id="pxf-back" class="prg-back">‹</button>' +
+    '<div style="flex:1;min-width:0"><div class="prg-titre">' + (id === "new" ? "Nouvel exercice" : "Modifier l\'exercice") + '</div>' +
+    '<div class="prg-sous">Il servira pour tous tes clients</div></div></div>' +
+    '<div style="padding:12px 13px 100px">' +
+    '<div id="pxf-prev" class="spt-card" style="display:flex;gap:14px;align-items:center">' + pxfApercuHTML(src) + '</div>' +
+    '<div class="prg-flab">Nom de l\'exercice</div>' +
+    '<input id="pxf-n" class="prg-search" style="margin-bottom:12px" value="' + esc(X.n) + '" placeholder="Développé couché barre"/>' +
+    '<div style="display:flex;gap:9px;margin-bottom:12px">' +
+    '<div style="flex:1"><div class="prg-flab">Muscle</div>' +
+    '<select id="pxf-m" class="prg-sel" style="width:100%;padding:12px 8px;font-size:13px">' + opts + '</select></div>' +
+    '<div style="flex:1"><div class="prg-flab">Matériel</div>' +
+    '<input id="pxf-mat" class="prg-search" style="margin:0" value="' + esc(X.mat || "") + '" placeholder="Machine, haltères, TRX..."/></div></div>' +
+    '<div class="prg-flab">🎬 Lien vidéo (YouTube)</div>' +
+    '<input id="pxf-v" class="prg-search" style="margin-bottom:6px" value="' + esc(X.v || "") + '" placeholder="https://youtu.be/..." inputmode="url"/>' +
+    '<div class="spt-txt" style="margin-bottom:12px">Colle simplement le lien de la vidéo. L\'image de la vidéo servira automatiquement de vignette, et ton client pourra l\'ouvrir d\'un tap pendant sa séance.</div>' +
+    '<div class="prg-flab">🖼️ Lien d\'un GIF ou d\'une photo (facultatif)</div>' +
+    '<input id="pxf-g" class="prg-search" style="margin-bottom:6px" value="' + esc(X.g || "") + '" placeholder="https://..." inputmode="url"/>' +
+    '<div class="spt-txt" style="margin-bottom:14px">À remplir seulement si tu veux une image à toi plutôt que celle de la vidéo — un GIF que tu héberges, une photo de la machine.</div>' +
+    '<button id="pxf-ok" class="big-btn" style="margin:0">' + (id === "new" ? "Créer l\'exercice" : "Enregistrer") + '</button>' +
+    (id !== "new" && X.priv ? '<button id="pxf-del" class="prg-mini bad" style="width:100%;margin-top:10px;padding:12px 0">🗑 Supprimer cet exercice</button>' : '') +
+    '</div>';
+  return h;
+}
+// L'aperçu de la vignette. Sorti dans sa fonction parce qu'il est redessiné
+// à chaque frappe : sans ça, le carré vide restait un carré vide même une
+// fois le lien collé, et on ne voyait pas que ça avait marché.
+function pxfApercuHTML(src) {
+  return (src ? '<img class="prg-vig" src="' + esc(src) + '" style="width:78px;height:78px" alt=""/>'
+    : '<div class="prg-vig" style="width:78px;height:78px;background:var(--soft2);display:flex;align-items:center;justify-content:center;font-size:24px">🏋️</div>') +
+    '<div class="spt-txt" style="flex:1">' + (src ? "Voilà ce que verra ton client en haut de l'exercice."
+      : "Colle un lien YouTube ou un GIF plus bas : l'image apparaîtra ici.") + '</div>';
+}
+function bindProgExoForm() {
+  var id = state.cdProg.edit;
+  function retour() { state.cdProg.edit = null; render(); }
+  var bk = document.getElementById("pxf-back");
+  if (bk) bk.addEventListener("click", retour);
+  // L'aperçu se met à jour dès qu'on colle un lien, sans quitter le champ.
+  var v = document.getElementById("pxf-v"), g = document.getElementById("pxf-g");
+  function apercu() {
+    var boite = document.getElementById("pxf-prev");
+    if (!boite) return;
+    boite.innerHTML = pxfApercuHTML(progImg({ g: g ? g.value.trim() : "", v: v ? v.value.trim() : "" }));
+  }
+  if (v) v.addEventListener("input", apercu);
+  if (g) g.addEventListener("input", apercu);
+  var ok = document.getElementById("pxf-ok");
+  if (ok) ok.addEventListener("click", function () {
+    var nom = (document.getElementById("pxf-n").value || "").trim();
+    if (!nom) { alert("Donne au moins un nom à l'exercice."); return; }
+    var b = bibGet(), X = null;
+    if (id !== "new") { for (var i = 0; i < b.length; i++) if (b[i].id === id) X = b[i]; }
+    if (!X) { X = { id: progId("b"), f: 1, priv: 1 }; b.unshift(X); }
+    X.n = nom;
+    X.m = document.getElementById("pxf-m").value;
+    X.mat = (document.getElementById("pxf-mat").value || "").trim();
+    X.v = (document.getElementById("pxf-v").value || "").trim();
+    X.g = (document.getElementById("pxf-g").value || "").trim();
+    bibSet(b);
+    state.cdProg.edit = null;
+    render();
+    feedback(id === "new" ? "Exercice créé" : "Exercice mis à jour", "ok");
+  });
+  var del = document.getElementById("pxf-del");
+  if (del) del.addEventListener("click", function () {
+    if (!confirm("Supprimer cet exercice de ta bibliothèque ? Les séances déjà construites le gardent.")) return;
+    bibSet(bibGet().filter(function (z) { return z.id !== id; }));
+    state.cdProg.edit = null;
+    render();
+  });
+}
+
 function viewProgBiblio(S) {
   var b = bibGet(), st = state.cdProg;
   st.q = st.q || ""; st.tab = st.tab || "fav"; st.sel = st.sel || [];
@@ -7134,7 +7232,8 @@ function viewProgBiblio(S) {
       '<button class="prg-star' + (X.f ? ' on' : '') + '" data-prg-fav="' + X.id + '">' + (X.f ? '★' : '☆') + '</button>' +
       '<span class="prg-plus">' + (pris ? '✓' : '＋') + '</span></div>';
   }
-  h += '<button id="prg-bib-new" class="prg-mini" style="width:100%;margin-top:14px;padding:13px 0">＋ Créer mon propre exercice</button></div>';
+  h += '<button id="prg-bib-new" class="prg-mini" style="width:100%;margin-top:14px;padding:13px 0">＋ Créer mon propre exercice</button>' +
+    '<div class="spt-txt" style="margin-top:10px">Le ✏️ de chaque ligne ouvre sa fiche : c\'est là qu\'on colle le lien YouTube ou le GIF. L\'image de la vidéo devient automatiquement la vignette.</div></div>';
   h += '<div class="prg-barre"><button id="prg-bib-ok" class="big-btn" style="margin:0' + (st.sel.length ? '' : ';opacity:.45') + '"' + (st.sel.length ? '' : ' disabled') + '>' +
     (st.sel.length ? 'Ajouter ' + st.sel.length + ' exercice' + (st.sel.length > 1 ? 's' : '') : 'Sélectionne des exercices') + '</button></div>';
   return h;
@@ -7171,6 +7270,7 @@ function bindProgBuilder() {
   });
 
   // ── la bibliothèque
+  if (state.cdProg.edit) { bindProgExoForm(); return; }
   if (state.cdProg.bib) {
     var st = state.cdProg;
     var cl = document.getElementById("prg-bib-close");
@@ -7207,28 +7307,11 @@ function bindProgBuilder() {
     var mods = document.querySelectorAll("[data-prg-mod]");
     for (var m3 = 0; m3 < mods.length; m3++) mods[m3].addEventListener("click", function (ev) {
       ev.stopPropagation();
-      var id = this.getAttribute("data-prg-mod"), b = bibGet(), X = null;
-      for (var z = 0; z < b.length; z++) if (b[z].id === id) X = b[z];
-      if (!X) return;
-      var nom = prompt("Nom de l'exercice", X.n); if (nom == null) return;
-      var mat = prompt("Matériel", X.mat || ""); if (mat == null) return;
-      var gif = prompt("Lien du GIF ou de la photo (adresse https…)\n\nColle ici l'adresse d'un GIF de démonstration : il s'affichera dans la séance du client.", X.g || "");
-      if (gif == null) return;
-      var vid = prompt("Lien vidéo (facultatif)", X.v || ""); if (vid == null) return;
-      X.n = nom.trim() || X.n; X.mat = mat; X.g = gif.trim(); X.v = vid.trim();
-      bibSet(b); render();
+      state.cdProg.edit = this.getAttribute("data-prg-mod");
+      render();
     });
     var nw = document.getElementById("prg-bib-new");
-    if (nw) nw.addEventListener("click", function () {
-      var nom = prompt("Nom de l'exercice ?"); if (!nom) return;
-      var mus = prompt("Muscle ? " + PROG_MUSCLES.map(function (m) { return m[0]; }).join(", "), "pecs");
-      var mat = prompt("Matériel ? (machine, haltères, TRX...)", "Machine") || "";
-      var gif = prompt("Lien du GIF ou de la photo (facultatif)", "") || "";
-      var vid = prompt("Lien vidéo (facultatif)", "") || "";
-      var b = bibGet();
-      b.unshift({ id: progId("b"), n: nom, m: progMuscle(mus || "complet")[0], mat: mat, g: gif, v: vid, f: 1, priv: 1 });
-      bibSet(b); st.tab = "priv"; render();
-    });
+    if (nw) nw.addEventListener("click", function () { state.cdProg.edit = "new"; render(); });
     var ok = document.getElementById("prg-bib-ok");
     if (ok) ok.addEventListener("click", function () {
       if (!st.sel.length) return;
@@ -7341,7 +7424,10 @@ function viewProgRun() {
     var dern = P.dernier[X.ref];
     h += '<div class="prg-exo' + (lie ? ' lie' : '') + '" style="border-left-color:' + M[2] + '">' +
       (lie ? '<div class="prg-supbadge">⛓️ enchaîné sans repos</div>' : '') +
-      '<div class="prg-exo-hd" style="cursor:default">' + progVignette(X, 48) +
+      '<div class="prg-exo-hd" style="cursor:default">' +
+      (X.v ? '<a href="' + esc(X.v) + '" target="_blank" rel="noopener" style="flex:0 0 auto;position:relative;line-height:0">' +
+        progVignette(X, 48) + '<span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:19px">▶️</span></a>'
+        : progVignette(X, 48)) +
       '<div style="flex:1;min-width:0"><div class="prg-exo-n">' + esc(X.n) + '</div>' +
       '<div class="prg-exo-m"><span style="color:' + M[2] + '">●</span> ' + M[1] + (X.mat ? ' · ' + esc(X.mat) : '') +
       ' · repos ' + progRepos(X.repos) + '</div></div>' +

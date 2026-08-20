@@ -231,6 +231,41 @@
 .pes-jour{flex:0 0 62px;text-align:right;font-size:11.5px;color:var(--mute);font-weight:700}
 .part-prev{border-radius:16px;overflow:hidden;line-height:0}
 
+/* Dream Board : la vision du client s'écrit en blanc sur le dégradé de marque
+   — c'est SON texte qui porte la couleur, pas la carte autour. */
+.txt-area.db-vision{background:linear-gradient(135deg,#12B5EA 0%,#8A3FFF 100%);border:none;color:#fff;
+  font-weight:700;font-size:14.5px;line-height:1.65;margin-bottom:0;
+  box-shadow:0 8px 20px rgba(96,120,255,.28);caret-color:#fff}
+.txt-area.db-vision::placeholder{color:rgba(255,255,255,.75)}
+
+/* Le tiroir des séances types du tableau de bord : replié par défaut dès
+   qu'il y en a, pour ne pas noyer le reste quand la bibliothèque grossit. */
+.sea-tiroir{background:var(--card);border:1px solid var(--line);border-radius:22px;margin-bottom:14px;box-shadow:0 3px 14px rgba(16,24,40,.06);overflow:hidden}
+.sea-tiroir summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:16px 17px}
+.sea-tiroir summary::-webkit-details-marker{display:none}
+.sea-sum-t{font-weight:900;font-size:13.5px;color:var(--ink);flex:1}
+.sea-sum-n{font-size:11.5px;font-weight:800;color:var(--mute)}
+.sea-sum-c{font-size:15px;color:var(--mute);transition:transform .2s}
+.sea-tiroir[open] .sea-sum-c{transform:rotate(180deg)}
+.sea-corps{padding:0 17px 16px}
+
+/* 🎓 Le didacticiel d'arrivée : moitié haute colorée avec l'icône, moitié
+   basse blanche avec le texte et le bouton — le format que les gens
+   reconnaissent au premier coup d'œil. */
+.tuto{position:fixed;inset:0;background:#fff;display:flex;flex-direction:column;z-index:900}
+.tuto-haut{flex:1 1 46%;position:relative;display:flex;align-items:center;justify-content:center;border-radius:0 0 36px 36px}
+.tuto-skip{position:absolute;top:calc(14px + env(safe-area-inset-top));right:16px;padding:9px 18px;border-radius:100px;
+  background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.5);color:#fff;font-weight:800;font-size:13px}
+.tuto-ico{font-size:86px;filter:drop-shadow(0 8px 18px rgba(0,0,0,.22))}
+.tuto-bas{flex:1 1 54%;padding:26px 24px calc(24px + env(safe-area-inset-bottom));display:flex;flex-direction:column}
+.tuto-tag{align-self:flex-start;padding:6px 14px;border-radius:100px;font-size:11.5px;font-weight:900;letter-spacing:1.2px}
+.tuto-t{font-size:27px;font-weight:900;line-height:1.15;color:var(--ink);margin-top:14px;letter-spacing:-.5px}
+.tuto-d{font-size:14.5px;line-height:1.7;color:var(--mute);font-weight:500;margin-top:12px}
+.tuto-pts{display:flex;gap:7px;justify-content:center;margin:auto 0 18px}
+.tuto-pts i{width:8px;height:8px;border-radius:100px;background:var(--line);transition:all .25s}
+.tuto-pts i.on{width:26px;background:var(--ink)}
+.tuto-prev{margin-top:10px;padding:11px 0;font-size:13px;font-weight:800;color:var(--mute);background:none}
+
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Inter','Helvetica Neue',sans-serif;background:#F4F4F4;-webkit-font-smoothing:antialiased}
 button,input,textarea{font-family:inherit;font-size:inherit}
@@ -419,7 +454,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="20/08 · Lisibilité";
+var APP_VERSION="20/08 · Mode d'emploi";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -925,6 +960,7 @@ var IS_COACH=params.get("coach")==="1";
 var state={
   view:"calendar",
   selDay:null,
+  tuto:null,       // page du didacticiel d'arrivée (0..4), null = fermé
   pesees:false,    // écran historique des pesées
   partage:false,   // écran de la carte à partager
   partMasque:true, // le poids est masqué par défaut sur la carte
@@ -3531,6 +3567,13 @@ function renderView(){
   if(state.selDay!==null){root.innerHTML=viewDay(name,start);bindDay(name,start);return;}
   // #13 Contrat : proposé une fois au premier lancement (tant que non signé, non passé)
   if(!getAllData()[508]&&!state.ctSkip&&state.view!=="contract")state.view="contract";
+  // Le didacticiel occupe tout l'écran : ni bandeau, ni navigation.
+  if(state.tuto!=null){
+    var htuto='<div class="app">'+viewTuto()+'</div>';
+    document.getElementById("root").innerHTML=htuto;
+    try{bindTuto();}catch(e){}
+    return;
+  }
   var html='<div class="app'+(state.view==="sport"||state.view==="training"?" sport-mode":"")+
     (state.view==="stats"&&state.selDay==null?" stats-mode":"")+'">';
   if(state.view==="contract"){root.innerHTML='<div class="app">'+viewContract(name,start)+'</div>';bindContract(name,start);return;}
@@ -3651,11 +3694,11 @@ function viewDream(name){
     '<div class="card" style="padding:18px 16px;margin-bottom:14px;border-left:4px solid #12B5EA">'+
     '<div class="card-label" style="letter-spacing:1.4px">🌟 Ma semaine idéale</div>'+
     '<div style="color:var(--mute);font-size:12px;font-weight:600;margin-bottom:10px">À quoi ressemble une semaine parfaite pour toi ?</div>'+
-    '<textarea id="db-semaine" class="txt-area" rows="6" style="background:var(--soft);border:1.5px solid var(--line);color:var(--ink);font-weight:600;margin-bottom:0">'+esc(db.semaine||"")+'</textarea></div>'+
+    '<textarea id="db-semaine" class="txt-area db-vision" rows="6">'+esc(db.semaine||"")+'</textarea></div>'+
     '<div class="card" style="padding:18px 16px;margin-bottom:14px;border-left:4px solid #8A3FFF">'+
     '<div class="card-label" style="letter-spacing:1.4px">🚀 Ma vie idéale</div>'+
     '<div style="color:var(--mute);font-size:12px;font-weight:600;margin-bottom:10px">Ce que tu veux réaliser. Ta destination. Relis-le chaque semaine.</div>'+
-    '<textarea id="db-vie" class="txt-area" rows="8" style="background:var(--soft);border:1.5px solid var(--line);color:var(--ink);font-weight:600;margin-bottom:0">'+esc(db.vie||"")+'</textarea></div>'+
+    '<textarea id="db-vie" class="txt-area db-vision" rows="8">'+esc(db.vie||"")+'</textarea></div>'+
     '<div style="font-size:11px;color:var(--mute);text-align:center;line-height:1.7">📖 Relis ta vision chaque dimanche après ton bilan.<br>💾 Sauvegarde automatique <span id="db-saved" style="color:var(--ok);font-weight:700"></span></div>'+
     '<button id="open-contract" class="big-btn gray" style="margin-top:14px">📜 Mon contrat d\'engagement</button>'+
     '</div>';
@@ -4611,7 +4654,12 @@ function viewCalendar(name,start){
     })()+
     '<div style="display:flex;gap:7px;justify-content:center;flex-wrap:wrap;margin-top:14px">'+
       '<span style="background:var(--soft2);border-radius:100px;padding:9px 15px;font-size:12.5px;font-weight:700;color:var(--ink2)">'+
-        '<span style="font-size:30px;line-height:1;vertical-align:-8px;filter:drop-shadow(0 2px 5px rgba(0,0,0,.18))">'+streakBadge(streak).e+'</span> <b style="font-size:16px;color:'+(streak>=1?streakBadge(streak).c:"var(--mute)")+'">'+streak+'</b> jour'+(streak>1?'s':'')+' de série</span>'+
+        (function(){
+          var rec=0; try{rec=bestStreak(allData,Math.min(89,today90));}catch(e){}
+          if(streak>=1) return '<span style="font-size:30px;line-height:1;vertical-align:-8px;filter:drop-shadow(0 2px 5px rgba(0,0,0,.18))">'+streakBadge(streak).e+'</span> <b style="font-size:16px;color:'+streakBadge(streak).c+'">'+streak+'</b> jour'+(streak>1?'s':'')+' de série';
+          if(rec>=2) return '<span style="font-size:26px;line-height:1;vertical-align:-6px">🏅</span> record <b style="font-size:16px;color:var(--gold-d)">'+rec+'</b> jours · on relance';
+          return '<span style="font-size:26px;line-height:1;vertical-align:-6px">🔥</span> série à lancer';
+        })()+'</span>'+
       '<span style="background:var(--soft2);border-radius:100px;padding:9px 15px;font-size:12.5px;font-weight:700;color:var(--ink2)"><b>'+filled+'</b> remplis</span>'+
       '<span style="background:var(--soft2);border-radius:100px;padding:9px 15px;font-size:12.5px;font-weight:700;color:var(--ink2)"><b>'+daysLeft+'</b> restants</span>'+
     '</div>'+
@@ -4780,9 +4828,6 @@ function viewCalendar(name,start){
     try{saveDay(515,ch0);}catch(e){}
     allData[515]=ch0;
   })();
-
-  // Pied de page : version de l'application
-  h+='<div style="text-align:center;font-size:10px;color:var(--mute);opacity:.55;padding:14px 0 2px">v'+APP_VERSION+'</div>';
 
   // 🎯 CHALLENGE EN COURS
   (function(){
@@ -4987,10 +5032,11 @@ function viewCalendar(name,start){
           var cellBg="#EEF4FF", cls="";
           if(idx<=today90){
             var dObj=allData[idx];
-            if(!dObj||!dObj.habits)cellBg="var(--bad)";
+            var vide=!dObj||!dObj.habits;
+            if(vide)cellBg=(idx===today90?"#EEF4FF":"var(--bad)");
             else{
               var sc=dayScore(dObj);
-              cellBg=sc===100?"var(--ok)":sc>=50?"var(--ok-l)":sc>0?"#FFD0B0":"var(--bad)";
+              cellBg=sc===100?"var(--ok)":sc>=50?"var(--ok-l)":sc>0?"#FFD0B0":(idx===today90?"#EEF4FF":"var(--bad)");
             }
           }else cls=" future";
           if(idx===today90)cls+=" today";
@@ -5008,6 +5054,9 @@ function viewCalendar(name,start){
     }
     h+='</div>';
   }
+  // Pied de page de l'accueil : le mode d'emploi rappelable, puis la version.
+  h+='<button id="tuto-revoir" style="display:block;margin:8px auto 0;padding:10px 18px;border-radius:12px;background:var(--soft2);font-size:12px;font-weight:800;color:var(--mute)">🎓 Revoir le mode d\'emploi</button>'+
+    '<div style="text-align:center;font-size:10px;color:var(--mute);opacity:.55;padding:14px 0 4px">v'+APP_VERSION+'</div>';
   return h+'</div>';
 }
 </script>
@@ -7674,8 +7723,13 @@ function seaAttribuer(id, slugs) {
 
 // Le bloc en haut du dashboard
 function seaDashHTML() {
-  var l = seaGet(), h = '<div class="card" style="padding:15px 16px;margin-bottom:14px">' +
-    '<div class="card-label">🏋️ Mes séances types</div>';
+  var l = seaGet(), attribuees = 0;
+  for (var q = 0; q < l.length; q++) if (seaClients(l[q].id).length) attribuees++;
+  var h = '<details class="sea-tiroir"' + (l.length ? '' : ' open') + '>' +
+    '<summary><span class="sea-sum-t">🏋️ Mes séances types</span>' +
+    '<span class="sea-sum-n">' + (l.length ? l.length + ' séance' + (l.length > 1 ? 's' : '') +
+      ' · ' + attribuees + ' attribuée' + (attribuees > 1 ? 's' : '') : 'aucune') + '</span>' +
+    '<span class="sea-sum-c">⌄</span></summary><div class="sea-corps">';
   if (!l.length) {
     h += '<div style="font-size:12.5px;color:var(--mute);line-height:1.6;margin-bottom:10px">' +
       'Construis une séance une fois, attribue-la ensuite à autant de clients que tu veux.</div>';
@@ -7691,7 +7745,7 @@ function seaDashHTML() {
       '<button data-sea-dup="' + S.id + '" style="padding:9px 10px;border-radius:10px;background:var(--soft2);font-weight:900;font-size:12px">⧉</button>' +
       '<button data-sea-del="' + S.id + '" style="padding:9px 10px;border-radius:10px;background:var(--soft2);font-weight:900;font-size:12px">🗑</button></div>';
   }
-  h += '<button id="sea-new" class="big-btn" style="margin:4px 0 0;padding:13px 0;font-size:13.5px">＋ Nouvelle séance type</button></div>';
+  h += '<button id="sea-new" class="big-btn" style="margin:4px 0 0;padding:13px 0;font-size:13.5px">＋ Nouvelle séance type</button></div></details>';
   return h;
 }
 
@@ -8045,6 +8099,76 @@ function bindPesees() {
     saveDay(j, d);
     render();
   });
+}
+
+// ═══════════ 🎓 LE DIDACTICIEL D'ARRIVÉE ═══════════
+// Akli : « créé pour les nouveaux clients un didacticiel pour expliquer le
+// fonctionnement de l'appli, avec page et suivant ». Cinq écrans, pas plus :
+// au-delà, personne ne va au bout. Chacun répond à UNE question que se pose
+// quelqu'un qui ouvre l'appli pour la première fois — et jamais à celles
+// qu'il ne se pose pas encore.
+// Il s'affiche une seule fois, au premier lancement, et reste rappelable
+// depuis le bas de l'accueil : un client qui abandonne au 3e écran doit
+// pouvoir y revenir sans réinstaller quoi que ce soit.
+var TUTO_PAGES = [
+  {
+    tag: "BIENVENUE", ico: "🎯", c1: "#12B5EA", c2: "#8A3FFF",
+    t: "90 jours, un jour à la fois",
+    d: "Cette appli n'est pas un carnet de notes. C'est ton fil rouge quotidien : tu coches ta journée, elle te dit où tu en es, et ton coach voit la même chose que toi."
+  },
+  {
+    tag: "TA JOURNÉE", ico: "📅", c1: "#12C98A", c2: "#0EA5C6",
+    t: "Deux minutes chaque soir",
+    d: "Touche le jour en cours dans l'agenda : ton poids, tes heures de sommeil, ton ressenti, tes habitudes du jour. Trois questions de mindset closent la journée. C'est ce petit rituel qui fait toute la différence sur 90 jours."
+  },
+  {
+    tag: "NUTRITION", ico: "🍗", c1: "#12C98A", c2: "#8A3FFF",
+    t: "Tes protéines et tes menus",
+    d: "L'onglet Prot suit ton quota du jour : tape un aliment, scanne un code-barres, ou reprends un aliment récent d'un tap. L'onglet Menus déroule ton plan alimentaire, phase après phase."
+  },
+  {
+    tag: "SPORT", ico: "🏋️", c1: "#0EA5C6", c2: "#8A3FFF",
+    t: "Tes séances et tes minuteurs",
+    d: "Retrouve les séances préparées par ton coach : tu coches chaque série, tu notes ce que tu as vraiment fait, et le temps de repos part tout seul. Les minuteurs continuent de sonner même écran éteint."
+  },
+  {
+    tag: "PROGRESSION", ico: "📈", c1: "#8A3FFF", c2: "#12B5EA",
+    t: "Ce que disent tes chiffres",
+    d: "L'onglet Stats montre ta courbe de poids, ta régularité et ta progression en force. Ton superviseur y commente franchement : quand ça avance, et quand ça n'avance pas."
+  }
+];
+function tutoVu() { try { return !!localStorage.getItem("amcoach_tuto_" + CLIENT); } catch (e) { return true; } }
+function tutoMarquer() { try { localStorage.setItem("amcoach_tuto_" + CLIENT, isoLocal()); } catch (e) { } }
+
+function viewTuto() {
+  var i = Math.max(0, Math.min(TUTO_PAGES.length - 1, state.tuto | 0));
+  var P = TUTO_PAGES[i], dernier = (i === TUTO_PAGES.length - 1);
+  var points = "";
+  for (var k = 0; k < TUTO_PAGES.length; k++) points += '<i class="' + (k === i ? "on" : "") + '"></i>';
+  return '<div class="tuto">' +
+    '<div class="tuto-haut" style="background:linear-gradient(150deg,' + P.c1 + ',' + P.c2 + ')">' +
+    '<button id="tuto-skip" class="tuto-skip">Ignorer</button>' +
+    '<div class="tuto-ico">' + P.ico + '</div></div>' +
+    '<div class="tuto-bas">' +
+    '<div class="tuto-tag" style="color:' + P.c2 + ';background:' + P.c2 + '18">' + P.tag + '</div>' +
+    '<div class="tuto-t">' + P.t + '</div>' +
+    '<div class="tuto-d">' + P.d + '</div>' +
+    '<div class="tuto-pts">' + points + '</div>' +
+    '<button id="tuto-next" class="big-btn" style="margin:0">' + (dernier ? "Commencer" : "Suivant") + '</button>' +
+    (i > 0 ? '<button id="tuto-prev" class="tuto-prev">Retour</button>' : '') +
+    '</div></div>';
+}
+function bindTuto() {
+  var sk = document.getElementById("tuto-skip");
+  function fermer() { tutoMarquer(); state.tuto = null; render(); }
+  if (sk) sk.addEventListener("click", fermer);
+  var nx = document.getElementById("tuto-next");
+  if (nx) nx.addEventListener("click", function () {
+    if ((state.tuto | 0) >= TUTO_PAGES.length - 1) { fermer(); return; }
+    state.tuto = (state.tuto | 0) + 1; render();
+  });
+  var pv = document.getElementById("tuto-prev");
+  if (pv) pv.addEventListener("click", function () { state.tuto = Math.max(0, (state.tuto | 0) - 1); render(); });
 }
 
 // ═══════════ CONTRAT AVEC SOI-MÊME (#13) ═══════════
@@ -13480,6 +13604,17 @@ function bindFinance(){
 function bindMain(name,start){
   // 🎭 Une seule fois : on présente le choix du superviseur aux clients
   // déjà lancés, qui n'ont jamais vu l'écran d'inscription.
+  // 🎓 Le didacticiel s'ouvre tout seul UNE SEULE FOIS, et seulement pour
+  // quelqu'un qui arrive : au-delà de la première semaine, on ne lui explique
+  // pas une appli qu'il utilise déjà — le bouton en bas de l'accueil reste là
+  // pour ceux qui veulent le revoir.
+  if(state.tuto==null&&!tutoVu()&&!document.querySelector("#sa-ok")){
+    var jTuto=0; try{jTuto=getToday90(lsGetStr("amcoach_start_"+CLIENT));}catch(e){}
+    if(jTuto<=6){state.tuto=0;render();return;}
+    tutoMarquer();
+  }
+  var revoir=document.getElementById("tuto-revoir");
+  if(revoir)revoir.addEventListener("click",function(){state.tuto=0;render();});
   if(state.view==="calendar"&&!document.querySelector("#sa-ok")){
     try{
       if(supDoitAnnoncer(getAllData()))setTimeout(supAnnonce,450);

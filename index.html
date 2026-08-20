@@ -277,6 +277,17 @@
 .jr-s{color:rgba(255,255,255,.92);font-size:12px;font-weight:700;margin-top:3px}
 .jr-fl{color:rgba(255,255,255,.9);font-size:26px;font-weight:900;line-height:1}
 
+/* 📅 Le tiroir du calendrier et celui des réglages, en bas de l'accueil. */
+.cal-tiroir{background:var(--card);border:1px solid var(--line);border-radius:22px;margin-bottom:12px;
+  box-shadow:0 3px 14px rgba(16,24,40,.06);overflow:hidden}
+.cal-tiroir summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:16px 17px}
+.cal-tiroir summary::-webkit-details-marker{display:none}
+.cal-sum-t{font-weight:900;font-size:13.5px;color:var(--ink);flex:1}
+.cal-sum-n{font-size:11.5px;font-weight:800;color:var(--mute)}
+.cal-sum-c{font-size:15px;color:var(--mute);transition:transform .2s}
+.cal-tiroir[open] .cal-sum-c{transform:rotate(180deg)}
+.cal-corps{padding:0 13px 14px}
+
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Inter','Helvetica Neue',sans-serif;background:#F4F4F4;-webkit-font-smoothing:antialiased}
 button,input,textarea{font-family:inherit;font-size:inherit}
@@ -465,7 +476,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="20/08 · Raccourci jour";
+var APP_VERSION="20/08 · Accueil épuré";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -971,7 +982,8 @@ var IS_COACH=params.get("coach")==="1";
 var state={
   view:"calendar",
   selDay:null,
-  tuto:null,       // page du didacticiel d'arrivée (0..4), null = fermé
+  tuto:null,       // page du didacticiel d'arrivée (0..6), null = fermé
+  calOpen:false,   // tiroir du calendrier ouvert sur l'accueil
   pesees:false,    // écran historique des pesées
   partage:false,   // écran de la carte à partager
   partMasque:true, // le poids est masqué par défaut sur la carte
@@ -4697,15 +4709,18 @@ function viewCalendar(name,start){
       '<span style="background:var(--soft2);border-radius:100px;padding:9px 15px;font-size:12.5px;font-weight:700;color:var(--ink2)"><b>'+daysLeft+'</b> restants</span>'+
     '</div>'+
     '<div style="font-size:11.5px;color:var(--mute);font-weight:700;margin-top:13px">Jour '+Math.min(today90+1,progDays)+' sur '+progDays+'</div>'+
-    '<div class="legend" style="justify-content:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)">'+
-    '<span><i style="background:var(--ok)"></i>Complet</span>'+
-    '<span><i style="background:#FFD0B0"></i>Partiel</span>'+
-    '<span><i style="background:var(--bad)"></i>Manqué</span>'+
-    '<span><i style="background:var(--soft2)"></i>À venir</span></div></div>';
+    '</div>';
 
-  // 🔔 Bannière rappel du soir — affichée UNE fois, disparaît après activation (slot 509)
+
+
+
+
+  // 🔔 Les invitations à configurer vont dans un tiroir en bas de page : ce
+  // sont des réglages qu'on fait une fois, pas le contenu du jour.
+  var hRegl='', nRegl=0;
+  // Rappel du soir (slot 509)
   if(!(allData[509]&&allData[509].rappel)){
-    h+='<div class="card" style="padding:14px 15px;margin-bottom:14px;border:2px solid var(--violet);background:#FBF7FE">'+
+    nRegl++;hRegl+='<div class="card" style="padding:14px 15px;margin-bottom:14px;border:2px solid var(--violet);background:#FBF7FE">'+
       '<div style="font-weight:900;font-size:13.5px;margin-bottom:5px">🔔 Active ton rappel du soir</div>'+
       '<div style="font-size:12px;color:#555;line-height:1.65;margin-bottom:10px">Un tap, et ton téléphone te notifie <strong>chaque soir à 20h30</strong> pour remplir ton tracker. C\'est ce qui fait la différence entre ceux qui tiennent 90 jours et les autres.</div>'+
       '<button id="add-reminder" class="big-btn" style="background:var(--violet);box-shadow:0 4px 14px var(--violet)44;margin-bottom:0;padding:13px 0;font-size:14px">Ajouter à mon calendrier →</button></div>';
@@ -4713,7 +4728,7 @@ function viewCalendar(name,start){
 
   // 🍗 Bannière rappel protéines — seulement si le suivi est activé et pas encore configuré (slot 511)
   if(nutCfg(allData).on&&!(allData[511]&&allData[511].rappel)){
-    h+='<div class="card" style="padding:14px 15px;margin-bottom:14px;border:2px solid var(--ok-d);background:#F1F8E9">'+
+    nRegl++;hRegl+='<div class="card" style="padding:14px 15px;margin-bottom:14px;border:2px solid var(--ok-d);background:#F1F8E9">'+
       '<div style="font-weight:900;font-size:13.5px;margin-bottom:5px">🍗 Ta quête protéines t\'attend</div>'+
       '<div style="font-size:12px;color:#555;line-height:1.65;margin-bottom:10px">Active un rappel <strong>chaque soir à 20h30</strong> pour ne jamais oublier de peser tes protéines. C\'est ta quête secondaire — atteins ton quota, valide ta journée.</div>'+
       '<button id="add-prot-reminder" class="big-btn" style="background:var(--ok-d);box-shadow:0 4px 14px var(--ok-d)44;margin-bottom:0;padding:13px 0;font-size:14px">Activer mon rappel protéines →</button></div>';
@@ -5020,6 +5035,18 @@ function viewCalendar(name,start){
   // 3 months (mois 2 et 3 verrouillés tant que le précédent n'est pas terminé)
   // Ancre : le second appui sur Agenda amène ici
   h+='<div id="cal-anchor" style="scroll-margin-top:8px"></div>';
+  // 📅 Le calendrier dans un tiroir : trois mois de grille déroulés d'office,
+  // c'était le plus gros pavé de la page. Il s'ouvre d'un tap, et il s'ouvre
+  // tout seul quand on arrive par le second appui sur l'onglet Agenda.
+  h+='<details class="cal-tiroir"'+(state.calOpen?' open':'')+'>'+
+    '<summary><span class="cal-sum-t">📅 Mon calendrier</span>'+
+    '<span class="cal-sum-n">jour '+Math.min(today90+1,progDays)+' sur '+progDays+'</span>'+
+    '<span class="cal-sum-c">⌄</span></summary><div class="cal-corps">'+
+    '<div class="legend" style="justify-content:center;margin:2px 0 12px">'+
+    '<span><i style="background:var(--ok)"></i>Complet</span>'+
+    '<span><i style="background:#FFD0B0"></i>Partiel</span>'+
+    '<span><i style="background:var(--bad)"></i>Manqué</span>'+
+    '<span><i style="background:var(--soft2)"></i>À venir</span></div>';
   // Programme court (Reset 14 j...) : les 14 jours visibles, le reste cadenassé
   var nbMonths=3;
   for(var mi=0;mi<nbMonths;mi++){
@@ -5087,6 +5114,16 @@ function viewCalendar(name,start){
     }
     h+='</div>';
   }
+  h+='</div></details>';
+
+  // ⚙️ Les réglages laissés de côté plus haut, regroupés ici.
+  if(nRegl){
+    h+='<details class="cal-tiroir" style="margin-top:12px">'+
+      '<summary><span class="cal-sum-t">⚙️ À activer</span>'+
+      '<span class="cal-sum-n">'+nRegl+' rappel'+(nRegl>1?'s':'')+'</span>'+
+      '<span class="cal-sum-c">⌄</span></summary><div class="cal-corps">'+hRegl+'</div></details>';
+  }
+
   // Pied de page de l'accueil : le mode d'emploi rappelable, puis la version.
   h+='<button id="tuto-revoir" style="display:block;margin:8px auto 0;padding:10px 18px;border-radius:12px;background:var(--soft2);font-size:12px;font-weight:800;color:var(--mute)">🎓 Revoir le mode d\'emploi</button>'+
     '<div style="text-align:center;font-size:10px;color:var(--mute);opacity:.55;padding:14px 0 4px">v'+APP_VERSION+'</div>';
@@ -13108,7 +13145,14 @@ function bindNav(){
         if(estZoome()){dezoomer();return;}
         var a=document.getElementById("cal-anchor");
         var haut=(window.scrollY||document.documentElement.scrollTop)<40;
-        if(haut&&a){a.scrollIntoView({behavior:"smooth",block:"start"});}
+        if(haut&&a){
+          // Le calendrier est désormais dans un tiroir : le second appui
+          // l'OUVRE en même temps qu'il y descend, sinon on atterrit sur un
+          // titre replié et le geste ne sert à rien.
+          var tir=document.querySelector(".cal-tiroir");
+          if(tir&&!tir.open){tir.open=true;state.calOpen=true;}
+          a.scrollIntoView({behavior:"smooth",block:"start"});
+        }
         else{window.scrollTo({top:0,behavior:"smooth"});}
         return;
       }
@@ -13662,6 +13706,11 @@ function bindMain(name,start){
     if(jTuto<=6){state.tuto=0;render();return;}
     tutoMarquer();
   }
+  // 📅 Le tiroir du calendrier retient s'il est ouvert : cocher une habitude
+  // redessine la page, et le refermer à chaque fois serait insupportable.
+  var tirCal=document.querySelector(".cal-tiroir");
+  if(tirCal)tirCal.addEventListener("toggle",function(){state.calOpen=this.open;});
+
   // ⚡ Le raccourci vers la journée du jour, en haut de l'accueil
   var gjt=document.getElementById("go-jour-top");
   if(gjt)gjt.addEventListener("click",function(){

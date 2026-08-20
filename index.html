@@ -20,40 +20,36 @@
    Toutes les couleurs de l'app passent par ces variables. */
 :root,.app,.dark-screen{
   --card:#FFFFFF;
-  --ink:#33241F; --ink2:#4A3A34;
-  --brand:#E8735A; --brand-d:#C9503A; --brand2:#F4B678;
-  --ok:#5FBF9C; --ok-d:#3E8F74; --ok-l:#86D3B4;
-  --warn:#F0A44E; --warn-d:#D4772E; --amber:#F4C56A;
-  --bad:#C0574A; --violet:#B9A6DE;
-  --gold:#E2B15C; --gold-d:#C0904A;
-  --mute:#96786F; --line:#F0E2DA;
-  --soft:#FBF4EF; --soft2:#F7EDE7; --bg:#FBF5F1;
-  --sky:linear-gradient(180deg,#FBE3D8 0%,#FCEFE8 34%,#FBF5F1 70%);
-  --shadow:0 4px 14px rgba(196,132,110,.10);
-  --shadow-l:0 10px 26px rgba(196,132,110,.14);
+  --ink:#101828; --ink2:#26304A;
+  --brand:#0EA5C6; --brand-d:#0A7FA0; --brand2:#8A3FFF;
+  --ok:#12C98A; --ok-d:#0E9C6B; --ok-l:#5FE0B4;
+  --warn:#E9A23B; --warn-d:#C07E17; --amber:#F5C46A;
+  --bad:#E5484D; --violet:#8A3FFF;
+  --gold:#E9A23B; --gold-d:#C07E17;
+  --mute:#6B7280; --line:#E6E9F2;
+  --soft:#F5F7FC; --soft2:#EDF1F9; --bg:#F5F7FC;
+  --sky:linear-gradient(180deg,#E9F1FB 0%,#F1F5FC 34%,#F6F8FD 70%);
+  --shadow:0 4px 14px rgba(16,24,40,.07);
+  --shadow-l:0 10px 26px rgba(16,24,40,.11);
 }
 .th-h,.app.th-h,.dark-screen.th-h{
-  --ink:#263038; --ink2:#37424C;
-  --brand:#2E6FB7; --brand-d:#1B4C86; --brand2:#6FA8DC;
-  --ok:#3E9E8F; --ok-d:#2C7A6E; --ok-l:#5CB8AA;
-  --warn:#E08A3C; --warn-d:#B96A20; --amber:#E0AE4B;
-  --bad:#96574E; --violet:#5B6BA8;
-  --gold:#B99A4E; --gold-d:#9A7D38;
-  --mute:#6F7E8A; --line:#E1E7EC;
-  --soft:#F0F3F6; --soft2:#E7EDF3; --bg:#F0F3F6;
-  --sky:linear-gradient(180deg,#D8E3EE 0%,#E9EEF3 34%,#F0F3F6 70%);
-  --shadow:0 4px 14px rgba(88,118,148,.11);
-  --shadow-l:0 10px 26px rgba(88,118,148,.15);
+  --ink:#101828; --ink2:#26304A;
+  --brand:#0EA5C6; --brand-d:#0A7FA0; --brand2:#8A3FFF;
+  --ok:#12C98A; --ok-d:#0E9C6B; --ok-l:#5FE0B4;
+  --warn:#E9A23B; --warn-d:#C07E17; --amber:#F5C46A;
+  --bad:#E5484D; --violet:#8A3FFF;
+  --gold:#E9A23B; --gold-d:#C07E17;
+  --mute:#6B7280; --line:#E6E9F2;
+  --soft:#F5F7FC; --soft2:#EDF1F9; --bg:#F5F7FC;
+  --sky:linear-gradient(180deg,#E4EEFA 0%,#EFF4FC 34%,#F5F8FD 70%);
+  --shadow:0 4px 14px rgba(16,24,40,.07);
+  --shadow-l:0 10px 26px rgba(16,24,40,.11);
 }
 
 /* ═══════════ 🏋️ ONGLET SPORT — clair, contours colorés ═══════════
    Akli : « fond blanc c'est plus joli ». On garde ce qui faisait l'identité
    de l'écran — l'anneau lumineux, les dégradés cyan→violet des gros boutons,
    les couleurs par phase — mais posés sur le blanc du reste de l'appli. */
-.app.sport-mode .hdr-title{color:#12B5EA}
-.app.sport-mode .hdr-sub{color:#8A6BC8}
-.sport-mode .bar-r{background:#12B5EA}
-.sport-mode .bar-b{background:#8A3FFF}
 .spt-card{background:#fff;border:1px solid var(--line);border-radius:22px;padding:16px 15px;margin-bottom:13px;
   box-shadow:0 3px 14px rgba(16,24,40,.06);transition:border-color .4s,box-shadow .4s}
 .spt-lab{font-weight:900;font-size:11.5px;letter-spacing:1.3px;text-transform:uppercase;margin-bottom:12px;color:var(--ink)}
@@ -257,9 +253,9 @@ input,textarea{outline:none}
 .hdr{background:var(--sky);padding:20px 18px 14px;position:sticky;top:0;z-index:50;border-radius:0;border-bottom:1px solid var(--line)}
 .hdr-brand{display:flex;align-items:center;gap:8px;margin-bottom:2px}
 .bar{width:3px;height:18px;border-radius:2px}
-.bar-r{background:var(--brand)}.bar-b{background:var(--brand2)}
-.hdr-title{color:var(--ink);font-weight:900;font-size:16px;letter-spacing:2px;text-transform:uppercase}
-.hdr-sub{color:var(--mute);font-size:13px;padding-left:11px;font-weight:700}
+.bar-r{background:#12B5EA}.bar-b{background:#8A3FFF}
+.hdr-title{color:#12B5EA;font-weight:900;font-size:16px;letter-spacing:2px;text-transform:uppercase}
+.hdr-sub{color:#8A6BC8;font-size:13px;padding-left:11px;font-weight:700}
 
 /* ONBOARDING / LOGIN */
 .dark-screen{min-height:100vh;background:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center}
@@ -278,7 +274,7 @@ input,textarea{outline:none}
 .btn-primary:disabled{background:var(--ink2);color:#555;cursor:not-allowed}
 
 /* CARDS */
-.card{background:var(--card);border-radius:20px;padding:16px 17px;margin-bottom:11px;box-shadow:var(--shadow)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:16px 17px;margin-bottom:11px;box-shadow:0 3px 14px rgba(16,24,40,.06)}
 .card-label{font-weight:800;font-size:11px;color:var(--mute);letter-spacing:.8px;margin-bottom:9px;text-transform:uppercase}
 .num-input{width:100%;padding:12px 13px;border-radius:14px;border:1.5px solid var(--line);font-size:19px;font-weight:900;background:var(--card);color:var(--ink)}
 
@@ -362,12 +358,12 @@ input,textarea{outline:none}
 .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
 .nav-ico{font-size:22px}
 .nav-lbl{font-size:11px;font-weight:700;color:var(--mute)}
-.nav-btn.active .nav-lbl{font-weight:900;color:var(--brand)}
+.nav-btn.active .nav-lbl{font-weight:900;color:#12B5EA}
 
 /* MISC */
-.big-btn{width:100%;padding:18px 0;border-radius:14px;background:var(--brand);color:#fff;font-weight:900;font-size:15px;letter-spacing:1.5px;text-transform:uppercase;box-shadow:0 4px 18px rgba(213,43,30,.27);margin-bottom:12px}
-.big-btn.gray{background:#444;box-shadow:none}
-.big-btn.disabled{background:#EEE;color:#777;box-shadow:none;cursor:not-allowed}
+.big-btn{width:100%;padding:18px 0;border-radius:16px;background:linear-gradient(90deg,#12B5EA 0%,#8A3FFF 100%);color:#fff;font-weight:900;font-size:15px;letter-spacing:1.5px;text-transform:uppercase;box-shadow:0 8px 20px rgba(96,120,255,.28);margin-bottom:12px}
+.big-btn.gray{background:linear-gradient(90deg,#8C93A8 0%,#6B7280 100%);box-shadow:none}
+.big-btn.disabled{background:#EDF0F7;color:#9AA1B2;box-shadow:none;cursor:not-allowed}
 .hint-box{background:#FFF8F0;border:2px solid #FFE0B2;border-radius:14px;padding:16px 18px;margin-bottom:12px}
 .hint-title{font-weight:800;font-size:13px;color:var(--warn-d);margin-bottom:8px}
 .hint-text{font-size:13px;color:#777;line-height:1.8}
@@ -423,7 +419,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="19/08 · Pesées & partage";
+var APP_VERSION="20/08 · Thème unifié";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];

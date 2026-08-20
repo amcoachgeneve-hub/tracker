@@ -266,6 +266,17 @@
 .tuto-pts i.on{width:26px;background:var(--ink)}
 .tuto-prev{margin-top:10px;padding:11px 0;font-size:13px;font-weight:800;color:var(--mute);background:none}
 
+/* ⚡ Le raccourci vers la journée du jour, tout en haut de l'accueil :
+   la première chose que le client doit pouvoir faire en ouvrant l'appli. */
+.jour-raccourci{width:100%;display:flex;align-items:center;gap:13px;padding:15px 16px;border-radius:18px;margin-bottom:13px;
+  background:linear-gradient(90deg,#12B5EA 0%,#8A3FFF 100%);box-shadow:0 8px 20px rgba(96,120,255,.28);text-align:left}
+.jour-raccourci.fini{background:linear-gradient(90deg,#12C98A 0%,#0EA5C6 100%);box-shadow:0 8px 20px rgba(18,201,138,.26)}
+.jr-ico{flex:0 0 42px;height:42px;border-radius:13px;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;font-size:21px}
+.jr-txt{flex:1;min-width:0}
+.jr-t{color:#fff;font-weight:900;font-size:16px;line-height:1.2}
+.jr-s{color:rgba(255,255,255,.92);font-size:12px;font-weight:700;margin-top:3px}
+.jr-fl{color:rgba(255,255,255,.9);font-size:26px;font-weight:900;line-height:1}
+
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Inter','Helvetica Neue',sans-serif;background:#F4F4F4;-webkit-font-smoothing:antialiased}
 button,input,textarea{font-family:inherit;font-size:inherit}
@@ -454,7 +465,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="20/08 · Mode d'emploi";
+var APP_VERSION="20/08 · Raccourci jour";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -4590,6 +4601,28 @@ function viewCalendar(name,start){
     '<div class="hdr-sub">'+esc(name)+' · '+progDays+' jours'+(BLOC>1?' · Bloc '+BLOC+'/4':'')+' <span id="sync-badge" style="font-size:11px"></span></div></div>'+
     '<div style="padding:16px 14px 0">';
 
+  // ⚡ RACCOURCI — la journée du jour, avant tout le reste.
+  (function(){
+    if(today90<0||today90>=progDays)return;
+    var dj=allData[today90]||{}, hab=dj.habits||{}, faits=0;
+    for(var q=0;q<HABITS.length;q++)if(hab[HABITS[q].id])faits++;
+    var reste=HABITS.length-faits;
+    var poidsOk=(dj.poids!=null&&dj.poids!=="");
+    var mindOk=false; try{mindOk=mindsetFull(allData,today90);}catch(e){}
+    var fini=(reste===0&&poidsOk&&mindOk);
+    var manque=[];
+    if(reste>0)manque.push(reste+' habitude'+(reste>1?'s':''));
+    if(!poidsOk)manque.push('ta pesée');
+    if(!mindOk)manque.push('ton mindset');
+    h+='<button id="go-jour-top" class="jour-raccourci'+(fini?' fini':'')+'">'+
+      '<div class="jr-ico">'+(fini?'✅':'⚡')+'</div>'+
+      '<div class="jr-txt"><div class="jr-t">'+(fini?'Journée bouclée':'Remplir ma journée')+'</div>'+
+      '<div class="jr-s">'+(fini
+        ? 'Jour '+(today90+1)+' · tout est noté, bravo'
+        : 'Jour '+(today90+1)+' · il te reste '+manque.join(', '))+'</div></div>'+
+      '<div class="jr-fl">›</div></button>';
+  })();
+
   // ⭕ CARTE HÉROS — la jauge en premier, en grand.
   // Sa couleur suit le remplissage : rouge → orange → jaune → vert.
   // Six formules par palier, qui tournent chaque jour : le même message
@@ -7969,17 +8002,23 @@ function partageCarte(masquerPoids) {
   x.font = "700 30px system-ui,-apple-system,sans-serif";
   x.fillText(D.prenom + (D.prenom ? " · " : "") + "jour " + D.jour + " sur " + D.duree, 80, 178);
 
-  // Le chiffre qui se partage : la série
+  // Le chiffre qui se partage. Jamais un zéro : si la série est cassée, c'est
+  // le nombre de jours remplis qui passe en grand — on publie une fierté, pas
+  // un constat d'échec.
+  var heros, unite, sous;
+  if (D.serie >= 2) { heros = D.serie; unite = "jours"; sous = "sans rien lâcher"; }
+  else if (D.rempli >= 2) { heros = D.rempli; unite = "jours"; sous = "de travail au compteur"; }
+  else { heros = D.jour; unite = "sur " + D.duree; sous = "c'est parti"; }
   x.fillStyle = "#101828";
   x.font = "900 250px system-ui,-apple-system,sans-serif";
-  x.fillText(String(D.serie), 80, 470);
-  var lg = x.measureText(String(D.serie)).width;
+  x.fillText(String(heros), 80, 470);
+  var lg = x.measureText(String(heros)).width;
   x.fillStyle = "#12B5EA";
   x.font = "900 62px system-ui,-apple-system,sans-serif";
-  x.fillText("jours", 96 + lg, 470);
+  x.fillText(unite, 96 + lg, 470);
   x.fillStyle = "#5A6072";
   x.font = "700 44px system-ui,-apple-system,sans-serif";
-  x.fillText("sans rien lâcher", 80, 545);
+  x.fillText(sous, 80, 545);
 
   // Les sept derniers jours, en carrés
   var cx = 80, cy = 640, taille = 92, gap = 20;
@@ -8127,6 +8166,11 @@ var TUTO_PAGES = [
     d: "L'onglet Prot suit ton quota du jour : tape un aliment, scanne un code-barres, ou reprends un aliment récent d'un tap. L'onglet Menus déroule ton plan alimentaire, phase après phase."
   },
   {
+    tag: "MENUS", ico: "🍽️", c1: "#12C98A", c2: "#12B5EA",
+    t: "Ton plan alimentaire, phase par phase",
+    d: "L'onglet Menus déroule tes repas du jour, préparés par ton coach. Le programme avance en trois phases — Équilibre, Accélération, Cyclage — et la suivante se débloque quand tu arrives à sa date. Tu n'as rien à calculer : tu ouvres, tu suis."
+  },
+  {
     tag: "SPORT", ico: "🏋️", c1: "#0EA5C6", c2: "#8A3FFF",
     t: "Tes séances et tes minuteurs",
     d: "Retrouve les séances préparées par ton coach : tu coches chaque série, tu notes ce que tu as vraiment fait, et le temps de repos part tout seul. Les minuteurs continuent de sonner même écran éteint."
@@ -8135,6 +8179,11 @@ var TUTO_PAGES = [
     tag: "PROGRESSION", ico: "📈", c1: "#8A3FFF", c2: "#12B5EA",
     t: "Ce que disent tes chiffres",
     d: "L'onglet Stats montre ta courbe de poids, ta régularité et ta progression en force. Ton superviseur y commente franchement : quand ça avance, et quand ça n'avance pas."
+  },
+  {
+    tag: "DREAM BOARD", ico: "🌟", c1: "#12B5EA", c2: "#8A3FFF",
+    t: "Écris où tu veux aller",
+    d: "Le Dream Board, c'est ta semaine idéale et ta vie idéale, écrites au présent comme si tu y étais déjà. Relis-le chaque dimanche : c'est ce qui te tient quand la motivation retombe. L'onglet Argent, lui, met la même clarté sur tes finances."
   }
 ];
 function tutoVu() { try { return !!localStorage.getItem("amcoach_tuto_" + CLIENT); } catch (e) { return true; } }
@@ -13613,6 +13662,13 @@ function bindMain(name,start){
     if(jTuto<=6){state.tuto=0;render();return;}
     tutoMarquer();
   }
+  // ⚡ Le raccourci vers la journée du jour, en haut de l'accueil
+  var gjt=document.getElementById("go-jour-top");
+  if(gjt)gjt.addEventListener("click",function(){
+    var st=lsGetStr("amcoach_start_"+CLIENT);
+    state.selDay=Math.max(0,Math.min(getToday90(st),(progLen(st)||90)-1));
+    render();
+  });
   var revoir=document.getElementById("tuto-revoir");
   if(revoir)revoir.addEventListener("click",function(){state.tuto=0;render();});
   if(state.view==="calendar"&&!document.querySelector("#sa-ok")){

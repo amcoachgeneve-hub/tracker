@@ -26,7 +26,7 @@
   --warn:#E9A23B; --warn-d:#C07E17; --amber:#F5C46A;
   --bad:#E5484D; --violet:#8A3FFF;
   --gold:#E9A23B; --gold-d:#C07E17;
-  --mute:#6B7280; --line:#E6E9F2;
+  --mute:#4A5568; --line:#E1E6F0;
   --soft:#F5F7FC; --soft2:#EDF1F9; --bg:#F5F7FC;
   --sky:linear-gradient(180deg,#E9F1FB 0%,#F1F5FC 34%,#F6F8FD 70%);
   --shadow:0 4px 14px rgba(16,24,40,.07);
@@ -39,7 +39,7 @@
   --warn:#E9A23B; --warn-d:#C07E17; --amber:#F5C46A;
   --bad:#E5484D; --violet:#8A3FFF;
   --gold:#E9A23B; --gold-d:#C07E17;
-  --mute:#6B7280; --line:#E6E9F2;
+  --mute:#4A5568; --line:#E1E6F0;
   --soft:#F5F7FC; --soft2:#EDF1F9; --bg:#F5F7FC;
   --sky:linear-gradient(180deg,#E4EEFA 0%,#EFF4FC 34%,#F5F8FD 70%);
   --shadow:0 4px 14px rgba(16,24,40,.07);
@@ -275,7 +275,7 @@ input,textarea{outline:none}
 
 /* CARDS */
 .card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:16px 17px;margin-bottom:11px;box-shadow:0 3px 14px rgba(16,24,40,.06)}
-.card-label{font-weight:800;font-size:11px;color:var(--mute);letter-spacing:.8px;margin-bottom:9px;text-transform:uppercase}
+.card-label{font-weight:900;font-size:11.5px;color:var(--ink);letter-spacing:.9px;margin-bottom:9px;text-transform:uppercase}
 .num-input{width:100%;padding:12px 13px;border-radius:14px;border:1.5px solid var(--line);font-size:19px;font-weight:900;background:var(--card);color:var(--ink)}
 
 /* MOOD BUTTONS */
@@ -297,7 +297,7 @@ input,textarea{outline:none}
 .scale-row{display:flex;gap:4px;margin-bottom:4px}
 .scale-btn{flex:1;aspect-ratio:1;border-radius:7px;background:var(--soft2);color:var(--mute);font-weight:900;font-size:12px;transition:all .12s}
 .scale-btn.active{color:#fff;transform:scale(1.1)}
-.scale-hints{display:flex;justify-content:space-between;font-size:11px;color:#666;margin-bottom:16px}
+.scale-hints{display:flex;justify-content:space-between;font-size:11px;color:var(--mute);margin-bottom:16px}
 
 /* TEXTAREA */
 .txt-label{font-weight:800;font-size:11px;color:var(--ink);margin-bottom:6px;text-transform:uppercase}
@@ -313,10 +313,10 @@ input,textarea{outline:none}
 .mh-right{display:flex;align-items:center;gap:8px}
 .mh-track{width:60px;height:6px;background:#EEE;border-radius:3px;overflow:hidden}
 .mh-fill{height:6px;border-radius:3px}
-.mh-pct{font-size:12px;font-weight:700;color:#777}
+.mh-pct{font-size:12px;font-weight:700;color:var(--mute)}
 .cal-grid{background:#fff;border-radius:12px;padding:14px 12px;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:10px}
 .cal-days{display:grid;grid-template-columns:repeat(7,1fr);gap:13px;margin-bottom:8px}
-.cal-dayname{text-align:center;font-size:11px;font-weight:700;color:#666}
+.cal-dayname{text-align:center;font-size:11px;font-weight:700;color:var(--mute)}
 .cal-week{display:grid;grid-template-columns:repeat(7,1fr);gap:13px;margin-bottom:13px}
 .cd-sec{background:var(--card);border-radius:14px;margin-bottom:9px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.05)}
 .cd-sec>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:11px;padding:14px 15px;font-weight:800;font-size:13.5px;color:var(--ink)}
@@ -340,17 +340,17 @@ input,textarea{outline:none}
 
 /* STATS */
 .filter-row{display:flex;gap:6px;margin-bottom:18px}
-.filter-btn{flex:1;padding:10px 0;border-radius:10px;background:#EBEBEB;color:#666;font-weight:800;font-size:12px}
+.filter-btn{flex:1;padding:10px 0;border-radius:10px;background:#EBEBEB;color:var(--mute);font-weight:800;font-size:12px}
 .filter-btn.active{background:var(--ink);color:#fff}
 .kpi-row{display:flex;gap:8px;margin-bottom:10px}
 .kpi-card{flex:1;background:#fff;border-radius:14px;padding:14px 16px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.06)}
 .kpi-val{font-size:22px;font-weight:900}
-.kpi-lbl{font-size:11px;color:#666;margin-top:3px;font-weight:700}
+.kpi-lbl{font-size:11px;color:var(--mute);margin-top:3px;font-weight:700}
 .chart-card{background:#fff;border-radius:16px;padding:16px 14px;margin-bottom:14px;box-shadow:0 1px 6px rgba(0,0,0,.06)}
 .chart-hdr{display:flex;align-items:center;gap:8px;margin-bottom:12px}
 .chart-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
 .chart-title{font-weight:900;font-size:14px;color:var(--ink);flex:1}
-.chart-avg{font-size:11px;color:#666}
+.chart-avg{font-size:11px;color:var(--mute)}
 .chart-empty{height:80px;display:flex;align-items:center;justify-content:center;color:#CCC;font-size:13px}
 
 /* NAV */
@@ -366,13 +366,13 @@ input,textarea{outline:none}
 .big-btn.disabled{background:#EDF0F7;color:#9AA1B2;box-shadow:none;cursor:not-allowed}
 .hint-box{background:#FFF8F0;border:2px solid #FFE0B2;border-radius:14px;padding:16px 18px;margin-bottom:12px}
 .hint-title{font-weight:800;font-size:13px;color:var(--warn-d);margin-bottom:8px}
-.hint-text{font-size:13px;color:#777;line-height:1.8}
+.hint-text{font-size:13px;color:var(--mute);line-height:1.8}
 .info-banner{background:#EEF4FF;border:2px solid #C5D8F0;border-radius:12px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;font-size:13px;color:#5580AA;font-weight:700}
 .saved-badge{font-size:11px;color:var(--ok);font-weight:700}
 .legend{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
-.legend span{display:flex;align-items:center;gap:4px;font-size:11px;color:#666}
+.legend span{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--mute)}
 .legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
-.day-back{background:none;color:#666;font-size:22px;padding:0;line-height:1}
+.day-back{background:none;color:var(--mute);font-size:22px;padding:0;line-height:1}
 @keyframes qg-shake{0%,100%{transform:translateX(-50%) rotate(0)}20%{transform:translateX(-50%) rotate(-6deg) scale(1.15)}40%{transform:translateX(-50%) rotate(5deg) scale(1.1)}60%{transform:translateX(-50%) rotate(-3deg)}80%{transform:translateX(-50%) rotate(2deg)}}
 .qg-shake{animation:qg-shake .55s ease}
 @keyframes xp-glow{0%,100%{box-shadow:0 0 2px rgba(201,162,39,.3)}50%{box-shadow:0 0 14px rgba(201,162,39,.95)}}
@@ -419,7 +419,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="20/08 · Thème unifié";
+var APP_VERSION="20/08 · Lisibilité";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -2485,10 +2485,12 @@ function pickEtat(liste,cle,jour){
 // Le jaune tombe à mi-parcours, le vert franc n'arrive qu'au bout.
 function gaugeCol(pct){
   var p=Math.max(0,Math.min(100,parseFloat(pct)||0));
-  var h=p<=50?(p/50)*54:54+((p-50)/50)*76;   // 0=rouge · 54=jaune · 130=vert
-  var s=p<=50?72:72-((p-50)/50)*10;
-  var l=p<=50?47:47-((p-50)/50)*7;
-  return "hsl("+Math.round(h)+","+Math.round(s)+"%,"+Math.round(l)+"%)";
+  // 0 = rouge · 50 = ambre · 100 = le vert vif du reste de l'appli (#12C98A).
+  // La saturation MONTE avec le score : plus c'est bon, plus ça claque.
+  var h=p<=50?(p/50)*40:40+((p-50)/50)*120;
+  var sat=p<=50?78:78+((p-50)/50)*12;
+  var l=p<=50?52:52-((p-50)/50)*10;
+  return "hsl("+Math.round(h)+","+Math.round(sat)+"%,"+Math.round(l)+"%)";
 }
 // Palettes en JS : les fenêtres partagées sont des documents à part,
 // elles n'héritent d'aucune variable de la page. On leur injecte la sienne.
@@ -2975,7 +2977,7 @@ function loopsHTML(lp,compact){
       h+='<div style="font-size:'+fs+';color:#333;line-height:1.75;margin-bottom:8px"><strong style="color:var(--ok-d)">\ud83c\udf1f Ce qui revient dans tes bonnes soir\u00e9es :</strong><br>';
       for(var pp=0;pp<lp.phrasesPos.length;pp++){
         var gp=lp.phrasesPos[pp];
-        h+='\u00ab <em>'+esc(gp.t)+'</em> \u00bb <span style="color:#666;font-size:11px">\u2014 revenu '+gp.n+'\u00d7 (J'+gp.days.join(", J")+')</span><br>';
+        h+='\u00ab <em>'+esc(gp.t)+'</em> \u00bb <span style="color:var(--mute);font-size:11px">\u2014 revenu '+gp.n+'\u00d7 (J'+gp.days.join(", J")+')</span><br>';
       }
       h+='</div>';
     }
@@ -2998,7 +3000,7 @@ function loopsHTML(lp,compact){
       h+='<div style="font-size:'+fs+';color:#333;line-height:1.75;margin-bottom:6px"><strong style="color:var(--brand)">\ud83c\udf27\ufe0f Ce qui revient dans tes soir\u00e9es :</strong><br>';
       for(var pn=0;pn<lp.phrasesNeg.length;pn++){
         var gn=lp.phrasesNeg[pn];
-        h+='\u00ab <em>'+esc(gn.t)+'</em> \u00bb <span style="color:#666;font-size:11px">\u2014 revenu '+gn.n+'\u00d7 (J'+gn.days.join(", J")+')</span><br>';
+        h+='\u00ab <em>'+esc(gn.t)+'</em> \u00bb <span style="color:var(--mute);font-size:11px">\u2014 revenu '+gn.n+'\u00d7 (J'+gn.days.join(", J")+')</span><br>';
       }
       h+='</div>';
     }
@@ -3041,7 +3043,7 @@ function generateDiplome(name,startDate,allData){
   '.b{width:4px;height:20px;border-radius:2px;display:inline-block}'+
   '.sub{font-family:-apple-system,sans-serif;font-size:11px;color:var(--mute);letter-spacing:2px;text-transform:uppercase;margin-top:6px}'+
   '.title{font-size:34px;color:var(--gold);margin:36px 0 6px;font-weight:700}'+
-  '.subtitle{font-size:15px;color:#666;font-style:italic;margin-bottom:34px}'+
+  '.subtitle{font-size:15px;color:var(--mute);font-style:italic;margin-bottom:34px}'+
   '.decerne{font-family:-apple-system,sans-serif;font-size:11px;color:var(--mute);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px}'+
   '.name{font-size:32px;color:var(--ink);font-weight:700;border-bottom:1.5px solid var(--gold);display:inline-block;padding:0 24px 8px;margin-bottom:30px}'+
   '.txt{font-size:14px;color:#444;line-height:2;max-width:440px;margin:0 auto 28px}'+
@@ -3051,7 +3053,7 @@ function generateDiplome(name,startDate,allData){
   '.sig{font-family:-apple-system,sans-serif}'+
   '.sig-name{font-size:16px;font-weight:900;color:var(--ink)}'+
   '.sig-role{font-size:11px;color:var(--mute);letter-spacing:1.5px;text-transform:uppercase;margin-top:3px}'+
-  '.dates{font-family:-apple-system,sans-serif;font-size:11px;color:#777;margin-top:24px;letter-spacing:1px}'+
+  '.dates{font-family:-apple-system,sans-serif;font-size:11px;color:var(--mute);margin-top:24px;letter-spacing:1px}'+
   '.medal{font-size:44px;margin-bottom:8px}'+
   '@media print{body{background:#fff;padding:0}}'+
   '</style></head><body><button onclick=\'window.close();setTimeout(function(){if(history.length>1)history.back();},250)\' style=\'position:fixed;top:12px;right:12px;z-index:999;background:var(--ink);color:#fff;border:0;border-radius:20px;padding:9px 16px;font-weight:800;font-size:13px\'>✕ Fermer</button><div class="dip"><div class="inner">'+
@@ -3273,8 +3275,8 @@ function svgMultiChart(sets,opts){
     paths+='<path d="'+d+'" fill="none" stroke="'+S.color+'" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" opacity="'+(S.dim?0.55:0.95)+'"/>';
     legend+='<span style="display:inline-flex;align-items:center;gap:4px;margin-right:11px;margin-bottom:3px">'+
       '<span style="width:9px;height:9px;border-radius:3px;background:'+S.color+';display:inline-block"></span>'+
-      '<span style="font-size:10.5px;font-weight:800;color:#666">'+S.label+
-      '<span style="color:#BBB;font-weight:700"> '+(Math.round(mn*10)/10)+'→'+(Math.round(mx*10)/10)+(S.unit||"")+
+      '<span style="font-size:10.5px;font-weight:800;color:var(--mute)">'+S.label+
+      '<span style="color:var(--mute);font-weight:700"> '+(Math.round(mn*10)/10)+'→'+(Math.round(mx*10)/10)+(S.unit||"")+
       (inv?' ↓':'')+'</span></span></span>';
   }
   return '<div style="margin-bottom:6px;line-height:1.7">'+legend+'</div>'+
@@ -3522,7 +3524,7 @@ function renderView(){
       '<div class="dark-brand"><div class="bar bar-r"></div><span>AM Coach</span><div class="bar bar-b"></div></div>'+
       '<div style="font-size:44px;margin:20px 0 8px">⏸️</div>'+
       '<div style="color:#fff;font-weight:900;font-size:19px;margin-bottom:10px">Ton accès est terminé</div>'+
-      '<div style="color:#666;font-size:13px;line-height:1.8;max-width:300px;text-align:center;margin-bottom:20px">Regarde ce que tu as construit'+(aDp!=null?' : <strong style=\'color:var(--ok)\'>'+aDp+' kg</strong>':'')+' en '+(aT+1)+' jours.<br>Imagine 90 jours.</div>'+
+      '<div style="color:var(--mute);font-size:13px;line-height:1.8;max-width:300px;text-align:center;margin-bottom:20px">Regarde ce que tu as construit'+(aDp!=null?' : <strong style=\'color:var(--ok)\'>'+aDp+' kg</strong>':'')+' en '+(aT+1)+' jours.<br>Imagine 90 jours.</div>'+
       '<div style="color:#fff;font-size:14px;font-weight:800;text-align:center">Contacte ton coach pour continuer<br>ta transformation 💪</div></div>';
     return;
   }
@@ -3645,16 +3647,16 @@ function viewDream(name){
     '<div class="hdr-sub">'+esc(name)+' · Vision & cap</div></div>'+
     '<div style="padding:16px 14px">'+
     '<div class="card" style="padding:16px 18px;margin-bottom:14px;border-left:4px solid var(--gold)">'+
-    '<div style="font-size:12px;color:#666;line-height:1.8">Ton cerveau ne peut pas atteindre une cible qu\'il ne voit pas. Ce que tu écris ici n\'est pas un rêve — c\'est <strong>une commande passée à ton subconscient</strong>. Les études le montrent : écrire ses objectifs augmente de 42% les chances de les atteindre. Décris ta semaine idéale et ta vie idéale avec précision, <strong>comme si tu y étais déjà</strong>. Puis relis cette page chaque dimanche : ton cerveau travaillera toute la semaine à combler l\'écart entre ta vie actuelle et cette vision. Ce que tu vois clairement, tu finis par le vivre.</div></div>'+
-    '<div class="card" style="padding:18px 16px;background:linear-gradient(160deg,#1a1a2e,#16213e);border:none;margin-bottom:14px">'+
-    '<div style="color:var(--gold);font-weight:800;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">🌟 Ma semaine idéale</div>'+
-    '<div style="color:#889;font-size:11px;margin-bottom:10px">À quoi ressemble une semaine parfaite pour toi ?</div>'+
-    '<textarea id="db-semaine" class="txt-area" rows="6" style="background:#0f0f1e;border-color:#333;color:var(--line);margin-bottom:0">'+esc(db.semaine||"")+'</textarea></div>'+
-    '<div class="card" style="padding:18px 16px;background:linear-gradient(160deg,#1a1a2e,#16213e);border:none;margin-bottom:14px">'+
-    '<div style="color:var(--gold);font-weight:800;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">🚀 Ma vie idéale</div>'+
-    '<div style="color:#889;font-size:11px;margin-bottom:10px">Ce que tu veux réaliser. Ta destination. Relis-le chaque semaine.</div>'+
-    '<textarea id="db-vie" class="txt-area" rows="8" style="background:#0f0f1e;border-color:#333;color:var(--line);margin-bottom:0">'+esc(db.vie||"")+'</textarea></div>'+
-    '<div style="font-size:11px;color:#666;text-align:center;line-height:1.7">📖 Relis ta vision chaque dimanche après ton bilan.<br>💾 Sauvegarde automatique <span id="db-saved" style="color:var(--ok);font-weight:700"></span></div>'+
+    '<div style="font-size:12.5px;color:var(--ink);font-weight:500;line-height:1.8">Ton cerveau ne peut pas atteindre une cible qu\'il ne voit pas. Ce que tu écris ici n\'est pas un rêve — c\'est <strong>une commande passée à ton subconscient</strong>. Les études le montrent : écrire ses objectifs augmente de 42% les chances de les atteindre. Décris ta semaine idéale et ta vie idéale avec précision, <strong>comme si tu y étais déjà</strong>. Puis relis cette page chaque dimanche : ton cerveau travaillera toute la semaine à combler l\'écart entre ta vie actuelle et cette vision. Ce que tu vois clairement, tu finis par le vivre.</div></div>'+
+    '<div class="card" style="padding:18px 16px;margin-bottom:14px;border-left:4px solid #12B5EA">'+
+    '<div class="card-label" style="letter-spacing:1.4px">🌟 Ma semaine idéale</div>'+
+    '<div style="color:var(--mute);font-size:12px;font-weight:600;margin-bottom:10px">À quoi ressemble une semaine parfaite pour toi ?</div>'+
+    '<textarea id="db-semaine" class="txt-area" rows="6" style="background:var(--soft);border:1.5px solid var(--line);color:var(--ink);font-weight:600;margin-bottom:0">'+esc(db.semaine||"")+'</textarea></div>'+
+    '<div class="card" style="padding:18px 16px;margin-bottom:14px;border-left:4px solid #8A3FFF">'+
+    '<div class="card-label" style="letter-spacing:1.4px">🚀 Ma vie idéale</div>'+
+    '<div style="color:var(--mute);font-size:12px;font-weight:600;margin-bottom:10px">Ce que tu veux réaliser. Ta destination. Relis-le chaque semaine.</div>'+
+    '<textarea id="db-vie" class="txt-area" rows="8" style="background:var(--soft);border:1.5px solid var(--line);color:var(--ink);font-weight:600;margin-bottom:0">'+esc(db.vie||"")+'</textarea></div>'+
+    '<div style="font-size:11px;color:var(--mute);text-align:center;line-height:1.7">📖 Relis ta vision chaque dimanche après ton bilan.<br>💾 Sauvegarde automatique <span id="db-saved" style="color:var(--ok);font-weight:700"></span></div>'+
     '<button id="open-contract" class="big-btn gray" style="margin-top:14px">📜 Mon contrat d\'engagement</button>'+
     '</div>';
 }
@@ -3719,9 +3721,9 @@ function viewNutrition(name,start){
     var bd=streakBadge(ST.cur);
     h+='<div class="card" style="padding:13px 15px;margin-bottom:12px;display:flex;align-items:center;gap:12px">'+
       '<span style="font-size:26px">'+(ST.cur>0?bd.e:"🥚")+'</span><div style="flex:1">'+
-      '<div style="font-size:15px;font-weight:900;color:'+(ST.cur>0?bd.c:"#BBB")+'">'+
+      '<div style="font-size:15.5px;font-weight:900;color:'+(ST.cur>0?bd.c:"var(--ink)")+'">'+
       (ST.cur>0?ST.cur+' jour'+(ST.cur>1?"s":"")+' d\'affilée':'Série à démarrer')+'</div>'+
-      '<div style="font-size:11.5px;color:#888;font-weight:700">'+
+      '<div style="font-size:11.5px;color:var(--mute);font-weight:700">'+
       (ST.best>ST.cur?'Ton record : '+ST.best+' jours':ST.cur>0&&ST.cur===ST.best?'🏅 Record personnel en cours !':'Atteins ton quota aujourd\'hui pour lancer la série')+
       '</div></div>'+
       (!ST.todayOk&&ST.cur>0?'<span style="font-size:10.5px;font-weight:900;color:var(--warn-d);text-align:right;line-height:1.3">À<br>TENIR</span>':'')+
@@ -3729,11 +3731,11 @@ function viewNutrition(name,start){
   }
 
   // ⚔️ QUÊTE DU JOUR (bandeau)
-  h+='<div class="card" style="background:linear-gradient(135deg,#1B5E20,var(--ok-d));border:none;padding:15px 16px;margin-bottom:14px">'+
-    '<div style="color:#A5D6A7;font-weight:800;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:5px">⚔️ Ta quête du jour</div>'+
-    '<div style="color:#fff;font-weight:900;font-size:16px">Atteindre '+target+' g de protéines</div>'+
-    (atteint?'<div style="color:#A5D6A7;font-weight:900;font-size:13px;margin-top:6px">✅ QUÊTE ACCOMPLIE — '+tot+' g !</div>'
-      :'<div style="color:rgba(255,255,255,.75);font-size:12px;font-weight:700;margin-top:6px">Encore '+reste+' g pour valider 💪</div>')+'</div>';
+  h+='<div class="card" style="background:linear-gradient(135deg,#12C98A,#0EA5C6);border:none;padding:15px 16px;margin-bottom:14px;box-shadow:0 8px 20px rgba(18,201,138,.28)">'+
+    '<div style="color:rgba(255,255,255,.92);font-weight:900;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:5px">⚔️ Ta quête du jour</div>'+
+    '<div style="color:#fff;font-weight:900;font-size:17px">Atteindre '+target+' g de protéines</div>'+
+    (atteint?'<div style="color:#fff;font-weight:900;font-size:13px;margin-top:6px">✅ QUÊTE ACCOMPLIE — '+tot+' g !</div>'
+      :'<div style="color:rgba(255,255,255,.92);font-size:12.5px;font-weight:800;margin-top:6px">Encore '+reste+' g pour valider 💪</div>')+'</div>';
 
   // 🎯 QUOTA — barre de progression
   h+='<div class="card" style="padding:16px">'+
@@ -3743,9 +3745,9 @@ function viewNutrition(name,start){
     '<span style="color:#fff;font-weight:900;font-size:12px">'+pct+'%</span></div></div>'+
     '<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800">'+
     '<span style="color:'+barCol+'">'+tot+' g</span>'+
-    '<span style="color:#999">/ '+target+' g</span>'+
-    '<span style="color:#666">'+(atteint?'objectif atteint ✅':reste+' g restants')+'</span></div>'+
-    (cfg.kcal?'<div style="font-size:11px;color:#999;text-align:center;margin-top:8px">Barre calorique du plan : '+cfg.kcal+' kcal/jour</div>':'')+'</div>';
+    '<span style="color:var(--mute)">/ '+target+' g</span>'+
+    '<span style="color:var(--mute)">'+(atteint?'objectif atteint ✅':reste+' g restants')+'</span></div>'+
+    (cfg.kcal?'<div style="font-size:11px;color:var(--mute);text-align:center;margin-top:8px">Barre calorique du plan : '+cfg.kcal+' kcal/jour</div>':'')+'</div>';
 
   // 📝 SAISIE
   h+='<div class="card" style="padding:14px">'+
@@ -3755,7 +3757,7 @@ function viewNutrition(name,start){
     '<div style="display:flex;gap:8px;margin-bottom:8px">'+
     '<input id="nut-name" type="text" placeholder="ex : poulet, œufs, riz..." style="flex:1;padding:11px 12px;border-radius:9px;border:1.5px solid var(--line);font-size:15px;font-weight:600"/>'+
     '<input id="nut-qty" type="number" inputmode="numeric" placeholder="g" style="width:78px;padding:11px 10px;border-radius:9px;border:1.5px solid var(--line);font-size:15px;font-weight:700;text-align:center"/></div>'+
-    '<button id="nut-add" style="width:100%;padding:13px 0;border-radius:11px;background:var(--ok-d);color:#fff;font-weight:800;font-size:14px">➕ Ajouter</button>'+
+    '<button id="nut-add" style="width:100%;padding:14px 0;border-radius:13px;background:linear-gradient(90deg,#12C98A,#0EA5C6);color:#fff;font-weight:900;font-size:14px;box-shadow:0 6px 16px rgba(18,201,138,.26)">➕ Ajouter</button>'+
     '<div style="display:flex;gap:8px;margin-top:8px">'+
     '<button id="nut-scan" style="flex:1;padding:12px 0;border-radius:11px;background:var(--brand2);border:0;color:#fff;font-weight:800;font-size:13px">▮▯ Scanner</button>'+
     '<button id="nut-search" style="flex:1;padding:12px 0;border-radius:11px;background:#fff;border:1.5px solid var(--brand2);color:var(--brand2);font-weight:800;font-size:13px">🔍 Chercher</button></div>'+
@@ -3772,10 +3774,10 @@ function viewNutrition(name,start){
       h+='<button class="nut-res" data-i="'+ri+'" style="width:100%;text-align:left;display:flex;align-items:center;gap:10px;padding:10px 11px;border-radius:9px;border:1.5px solid var(--line);background:#fff;margin-bottom:6px">'+
         '<div style="flex:1;min-width:0">'+
         '<div style="font-weight:800;font-size:13px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(rr.name)+'</div>'+
-        '<div style="font-size:11px;color:#999;font-weight:700">'+(rr.marque?esc(rr.marque)+' · ':'')+rr.p100+' g prot / 100 g</div></div>'+
+        '<div style="font-size:11px;color:var(--mute);font-weight:700">'+(rr.marque?esc(rr.marque)+' · ':'')+rr.p100+' g prot / 100 g</div></div>'+
         '<span style="font-size:12px;font-weight:900;color:var(--ok-d);white-space:nowrap">+ '+qDef+' g</span></button>';
     }
-    h+='<button id="nut-res-clear" style="width:100%;padding:8px;border:none;background:none;color:#999;font-size:11.5px;font-weight:800">Fermer les résultats</button></div>';
+    h+='<button id="nut-res-clear" style="width:100%;padding:8px;border:none;background:none;color:var(--mute);font-size:11.5px;font-weight:800">Fermer les résultats</button></div>';
   }
   h+='</div>';
 
@@ -3788,7 +3790,7 @@ function viewNutrition(name,start){
       items+='<button class="nut-rec" data-i="'+i+'" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 11px;border-radius:9px;border:1.5px solid #EDEDED;background:#fff;margin-bottom:5px">'+
         '<span style="font-size:15px;color:var(--ok-d);font-weight:900">+</span>'+
         '<div style="flex:1;min-width:0"><div style="font-weight:800;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(rec[i].name)+'</div>'+
-        '<div style="font-size:10.5px;color:#999;font-weight:700">'+rec[i].qty+(rec[i].qty<10?' ':' g')+' · '+rec[i].prot+' g prot</div></div></button>';
+        '<div style="font-size:10.5px;color:var(--mute);font-weight:700">'+rec[i].qty+(rec[i].qty<10?' ':' g')+' · '+rec[i].prot+' g prot</div></div></button>';
     }
     h+='<div class="card" style="padding:14px">'+
       '<div class="card-label">🕘 Mes aliments récents</div>'+
@@ -3800,13 +3802,13 @@ function viewNutrition(name,start){
   h+='<div class="card" style="padding:14px">'+
     '<div class="card-label">📊 Mes protéines du jour</div>';
   if(!day.foods||!day.foods.length){
-    h+='<div style="text-align:center;color:#BBB;font-size:13px;padding:18px 0">Rien enregistré aujourd\'hui.<br>Ajoute ton premier aliment 👆</div>';
+    h+='<div style="text-align:center;color:var(--mute);font-size:13px;padding:18px 0">Rien enregistré aujourd\'hui.<br>Ajoute ton premier aliment 👆</div>';
   }else{
     for(var i=0;i<day.foods.length;i++){
       var f=day.foods[i];
       h+='<div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--soft2)">'+
         '<div style="flex:1"><div style="font-weight:800;font-size:14px">'+esc(f.name)+'</div>'+
-        '<div style="font-size:12px;color:#999;font-weight:600">'+f.qty+' g</div></div>'+
+        '<div style="font-size:12px;color:var(--mute);font-weight:600">'+f.qty+' g</div></div>'+
         '<div style="font-weight:900;font-size:15px;color:var(--ok-d);margin-right:10px">'+f.prot+' g</div>'+
         '<button class="nut-del" data-i="'+i+'" style="color:#CCC;font-size:17px;padding:4px">🗑️</button></div>';
     }
@@ -3829,13 +3831,13 @@ function viewNutrition(name,start){
       var col=!e?"#CCC":ok?"var(--ok)":"var(--warn-d)";
       if(e)any=true;
       cells+='<div style="flex:1;text-align:center;padding:8px 2px;border-radius:8px;background:'+bg+(dd===0?';box-shadow:0 0 0 2px var(--ink)':'')+'">'+
-        '<div style="font-size:11px;font-weight:800;color:#999">'+lbl+'</div>'+
+        '<div style="font-size:11px;font-weight:800;color:var(--mute)">'+lbl+'</div>'+
         '<div style="font-size:15px;margin-top:3px">'+(!e?'·':ok?'✅':'○')+'</div>'+
         '<div style="font-size:10px;font-weight:800;color:'+col+';margin-top:2px">'+(e?e.tot+'g':'—')+'</div></div>';
     }
     h+='<div class="card" style="padding:14px"><div class="card-label">📅 Mes 7 derniers jours</div>'+
       '<div style="display:flex;gap:4px">'+cells+'</div>'+
-      (any?'':'<div style="font-size:11px;color:#BBB;text-align:center;margin-top:8px">Ton historique se construit jour après jour.</div>')+'</div>';
+      (any?'':'<div style="font-size:11px;color:var(--mute);text-align:center;margin-top:8px">Ton historique se construit jour après jour.</div>')+'</div>';
   })();
 
   return h+'</div>';
@@ -3938,7 +3940,7 @@ function viewFinance(name,start){
   if(!cfg.statut){
     h+='<div class="card" style="padding:20px;text-align:center;background:linear-gradient(135deg,var(--soft),#EBEBEB)">'+
       '<div style="font-size:14px;font-weight:800;color:#333;margin-bottom:6px">Commençons par ton statut</div>'+
-      '<div style="font-size:11.5px;color:#888;margin-bottom:16px;line-height:1.5">Tu pourras le changer plus tard</div>'+
+      '<div style="font-size:11.5px;color:var(--mute);margin-bottom:16px;line-height:1.5">Tu pourras le changer plus tard</div>'+
       '<div style="display:flex;gap:8px">'+
       '<button class="fin-statut" data-st="salarie" style="flex:1;padding:14px 4px;border-radius:10px;border:2px solid var(--brand2);background:#fff;color:var(--brand2);font-weight:900;font-size:12px;cursor:pointer">💼<br>Salarié</button>'+
       '<button class="fin-statut" data-st="indep" style="flex:1;padding:14px 4px;border-radius:10px;border:2px solid var(--ok-d);background:#fff;color:var(--ok-d);font-weight:900;font-size:12px;cursor:pointer">🚀<br>Indépendant</button>'+
@@ -3969,14 +3971,14 @@ function viewFinance(name,start){
         '<span style="flex:1;font-size:13px;font-weight:800">💼 Salaire net</span>'+
         '<input id="fin-rev-sal" type="number" inputmode="decimal" value="'+(R.sal||"")+'" '+
         'placeholder="0" style="width:110px;padding:10px;border-radius:9px;border:1.5px solid var(--line);font-size:14px;font-weight:800;text-align:right"/>'+
-        '<span style="color:#BBB;font-size:11px;font-weight:700">'+dev+'</span></div>';
+        '<span style="color:var(--mute);font-size:11px;font-weight:700">'+dev+'</span></div>';
     }
     if(showInd){
       h+='<div style="display:flex;align-items:center;gap:10px;padding:8px 0">'+
         '<span style="flex:1;font-size:13px;font-weight:800">🚀 Revenus indépendant</span>'+
         '<input id="fin-rev-ind" type="number" inputmode="decimal" value="'+(R.ind||"")+'" '+
         'placeholder="0" style="width:110px;padding:10px;border-radius:9px;border:1.5px solid var(--line);font-size:14px;font-weight:800;text-align:right"/>'+
-        '<span style="color:#BBB;font-size:11px;font-weight:700">'+dev+'</span></div>';
+        '<span style="color:var(--mute);font-size:11px;font-weight:700">'+dev+'</span></div>';
     }
     if(showSal&&showInd){
       h+='<div style="display:flex;justify-content:space-between;padding-top:9px;margin-top:4px;border-top:2px solid var(--soft2)">'+
@@ -3994,10 +3996,10 @@ function viewFinance(name,start){
         var k=ks[i],v=(parseFloat(rm[k].sal)||0)+(parseFloat(rm[k].ind)||0);
         var cur=k===finMonthKey();
         cells+='<div style="flex:1;text-align:center;padding:6px 2px;border-radius:7px;background:'+(cur?"#E3F2FD":"#F7F7F7")+(cur?';box-shadow:0 0 0 1.5px var(--brand2)':'')+'">'+
-          '<div style="font-size:9.5px;color:#999;font-weight:800">'+finMonthLabel(k).split(" ")[0]+'</div>'+
+          '<div style="font-size:9.5px;color:var(--mute);font-weight:800">'+finMonthLabel(k).split(" ")[0]+'</div>'+
           '<div style="font-size:11px;font-weight:900;color:#333;margin-top:1px">'+Math.round(v)+'</div></div>';
       }
-      h+='<div style="margin-top:11px"><div style="font-size:10px;font-weight:800;color:#BBB;letter-spacing:.5px;text-transform:uppercase;margin-bottom:5px">Historique</div>'+
+      h+='<div style="margin-top:11px"><div style="font-size:10px;font-weight:800;color:var(--mute);letter-spacing:.5px;text-transform:uppercase;margin-bottom:5px">Historique</div>'+
         '<div style="display:flex;gap:3px">'+cells+'</div></div>';
     })();
     h+='</div>';
@@ -4007,29 +4009,29 @@ function viewFinance(name,start){
     if(AU.urssaf>0||AU.impot>0||SA.soc>0||SA.imp>0||showInd){
       h+='<div class="card" style="padding:16px;margin-bottom:12px;border-left:4px solid var(--brand2)">'+
         '<div style="font-size:11px;font-weight:900;color:var(--brand2);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">🤖 Calculé pour toi</div>'+
-        '<div style="font-size:11px;color:#999;margin-bottom:10px">Tu ne saisis rien ici — tout vient de tes revenus</div>';
+        '<div style="font-size:11px;color:var(--mute);margin-bottom:10px">Tu ne saisis rien ici — tout vient de tes revenus</div>';
       if(showInd){
         h+='<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--soft2)">'+
           '<span style="flex:1;font-size:12.5px;font-weight:800">🧾 Cotisations URSSAF<br>'+
-          '<span style="font-size:10.5px;color:#999;font-weight:700">'+AU.act.lbl+' · '+AU.tx.toFixed(1).replace(".",",")+' %</span></span>'+
+          '<span style="font-size:10.5px;color:var(--mute);font-weight:700">'+AU.act.lbl+' · '+AU.tx.toFixed(1).replace(".",",")+' %</span></span>'+
           '<strong style="font-size:14px;color:var(--brand)">'+finFmt(AU.urssaf,dev)+'</strong></div>'+
           '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--soft2)">'+
           '<span style="flex:1;font-size:12.5px;font-weight:800">🏛️ Impôt sur le revenu<br>'+
-          '<span style="font-size:10.5px;color:#999;font-weight:700">'+(AU.provision?"provision":"versement libératoire")+' · '+AU.txImp.toFixed(1).replace(".",",")+' %</span></span>'+
+          '<span style="font-size:10.5px;color:var(--mute);font-weight:700">'+(AU.provision?"provision":"versement libératoire")+' · '+AU.txImp.toFixed(1).replace(".",",")+' %</span></span>'+
           '<strong style="font-size:14px;color:var(--brand)">'+finFmt(AU.impot,dev)+'</strong></div>'+
           '<button id="fin-act-chg" style="width:100%;margin-top:8px;padding:9px;border-radius:8px;border:1.5px solid var(--line);background:#fff;color:var(--brand2);font-size:11.5px;font-weight:800;cursor:pointer">⚙️ Changer mon type d\'activité ou mes taux</button>';
       }
       if(SA.estBrut&&(SA.soc>0||SA.imp>0)){
         h+='<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--soft2);margin-top:8px">'+
           '<span style="flex:1;font-size:12.5px;font-weight:800">💼 Retenues sur salaire<br>'+
-          '<span style="font-size:10.5px;color:#999;font-weight:700">'+SA.P.lbl+' · '+SA.txSoc+' %'+(SA.imp>0?" + "+SA.txImp+" % impôt":"")+'</span></span>'+
+          '<span style="font-size:10.5px;color:var(--mute);font-weight:700">'+SA.P.lbl+' · '+SA.txSoc+' %'+(SA.imp>0?" + "+SA.txImp+" % impôt":"")+'</span></span>'+
           '<strong style="font-size:14px;color:var(--brand)">'+finFmt(SA.soc+SA.imp,dev)+'</strong></div>';
       }
       if(showSal){
         h+='<button id="fin-pays-chg" style="width:100%;margin-top:8px;padding:9px;border-radius:8px;border:1.5px solid var(--line);background:#fff;color:var(--brand2);font-size:11.5px;font-weight:800;cursor:pointer">🌍 '+
           (FIN_PAYS[cfg.pays||"FRONT"].lbl)+' · salaire '+(cfg.salType==="brut"?"brut":"net")+' — modifier</button>';
       }
-      h+='<div style="font-size:10.5px;color:#BBB;margin-top:9px;line-height:1.5">⚠️ Estimations basées sur les taux officiels 2026. Ta situation transfrontalière est particulière — fais valider par ton comptable.</div>'+
+      h+='<div style="font-size:10.5px;color:var(--mute);margin-top:9px;line-height:1.5">⚠️ Estimations basées sur les taux officiels 2026. Ta situation transfrontalière est particulière — fais valider par ton comptable.</div>'+
         '</div>';
     }
 
@@ -4063,16 +4065,16 @@ function viewFinance(name,start){
         '<div style="font-size:12px;font-weight:900;color:var(--ok-d);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px">✅ Ton plan calculé</div>'+
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">'+
         '<div style="padding:10px;background:rgba(255,255,255,.7);border-radius:8px">'+
-        '<div style="font-size:10px;color:#666;font-weight:700">Charges totales</div>'+
+        '<div style="font-size:10px;color:var(--mute);font-weight:700">Charges totales</div>'+
         '<div style="font-size:16px;font-weight:900;color:var(--brand)">'+finFmt(T.tot,dev)+'</div></div>'+
         '<div style="padding:10px;background:rgba(255,255,255,.7);border-radius:8px">'+
-        '<div style="font-size:10px;color:#666;font-weight:700">Capacité (après marge '+T.pctMarge+'%)</div>'+
+        '<div style="font-size:10px;color:var(--mute);font-weight:700">Capacité (après marge '+T.pctMarge+'%)</div>'+
         '<div style="font-size:16px;font-weight:900;color:var(--ok-d)">'+finFmt(T.capa,dev)+'</div></div>'+
         '<div style="padding:10px;background:rgba(255,255,255,.7);border-radius:8px">'+
-        '<div style="font-size:10px;color:#666;font-weight:700">Trésorerie '+T.nbMois+' mois</div>'+
+        '<div style="font-size:10px;color:var(--mute);font-weight:700">Trésorerie '+T.nbMois+' mois</div>'+
         '<div style="font-size:16px;font-weight:900;color:var(--brand2)">'+finFmt(T.matelos,dev)+'</div></div>'+
         '<div style="padding:10px;background:rgba(255,255,255,.7);border-radius:8px">'+
-        '<div style="font-size:10px;color:#666;font-weight:700">Temps pour remplir</div>'+
+        '<div style="font-size:10px;color:var(--mute);font-weight:700">Temps pour remplir</div>'+
         '<div style="font-size:16px;font-weight:900;color:var(--gold-d)">'+T.moisMatelas+' mois</div></div></div>'+
         '<div style="font-size:11px;color:#1B5E20;line-height:1.6">'+
         '💡 Chaque mois, tu mets '+finFmt(T.capa,dev)+' de côté ('+pct+'% de tes revenus). '+
@@ -4104,19 +4106,19 @@ function viewFinance(name,start){
         // 🔓 PALIER 2 — l'écran qui manquait
         h+='<div style="background:#F7F9FB;border-radius:11px;padding:14px;margin-bottom:13px">'+
           '<div style="font-size:11px;font-weight:900;color:var(--gold-d);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">🔓 Palier 2 — ton argent travaille</div>'+
-          '<div style="font-size:11.5px;color:#777;line-height:1.5;margin-bottom:11px">Ta sécurité est faite. Chaque mois, tes '+finFmt(TL.objMois,dev)+' se répartissent :</div>'+
+          '<div style="font-size:11.5px;color:var(--mute);line-height:1.5;margin-bottom:11px">Ta sécurité est faite. Chaque mois, tes '+finFmt(TL.objMois,dev)+' se répartissent :</div>'+
           '<div style="display:flex;align-items:center;gap:10px;padding:11px;border-radius:10px;background:#E8F5E9;margin-bottom:7px">'+
           '<span style="font-size:20px">🏦</span><div style="flex:1">'+
           '<div style="font-weight:900;font-size:13px">Épargne disponible</div>'+
-          '<div style="font-size:11px;color:#666;font-weight:700">projets, opportunités, plaisirs · '+(100-repInv)+' %</div></div>'+
+          '<div style="font-size:11px;color:var(--mute);font-weight:700">projets, opportunités, plaisirs · '+(100-repInv)+' %</div></div>'+
           '<strong style="font-size:15px;color:var(--ok-d)">'+finFmt(partEp,dev)+'</strong></div>'+
           '<div style="display:flex;align-items:center;gap:10px;padding:11px;border-radius:10px;background:#FFF8E1;margin-bottom:9px">'+
           '<span style="font-size:20px">📈</span><div style="flex:1">'+
           '<div style="font-weight:900;font-size:13px">Investissement long terme</div>'+
-          '<div style="font-size:11px;color:#666;font-weight:700">'+repInv+' % de ta capacité</div></div>'+
+          '<div style="font-size:11px;color:var(--mute);font-weight:700">'+repInv+' % de ta capacité</div></div>'+
           '<strong style="font-size:15px;color:var(--gold-d)">'+finFmt(partInv,dev)+'</strong></div>'+
           '<button id="fin-rep-chg" style="width:100%;padding:9px;border-radius:8px;border:1.5px solid var(--line);background:#fff;color:var(--brand2);font-size:11.5px;font-weight:800;cursor:pointer">⚙️ Changer la répartition</button>'+
-          '<div style="font-size:10.5px;color:#BBB;margin-top:9px;line-height:1.5">⚠️ Le choix des placements se fait avec un professionnel agréé — cette app ne donne aucun conseil en investissement.</div>'+
+          '<div style="font-size:10.5px;color:var(--mute);margin-top:9px;line-height:1.5">⚠️ Le choix des placements se fait avec un professionnel agréé — cette app ne donne aucun conseil en investissement.</div>'+
           '</div>';
       }else{
         h+='<div style="text-align:center;padding:14px;background:linear-gradient(135deg,#0D2137,#1A3A5C);border-radius:12px;margin-bottom:13px">'+
@@ -4133,11 +4135,11 @@ function viewFinance(name,start){
         '<span style="color:#fff;font-weight:900;font-size:11.5px">'+TL.pct+'%</span></div></div>'+
         '<div style="display:flex;justify-content:space-between;font-size:12.5px;font-weight:800;margin-bottom:14px">'+
         '<span style="color:'+barCol+'">'+finFmt(TL.solde,dev)+'</span>'+
-        '<span style="color:#999">/ '+finFmt(TL.matelas,dev)+'</span></div>';
+        '<span style="color:var(--mute)">/ '+finFmt(TL.matelas,dev)+'</span></div>';
 
       // Validation du mois
       h+='<div style="background:#F7F9FB;border-radius:10px;padding:12px">'+
-        '<div style="font-size:11px;font-weight:900;color:#666;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Versement de '+moisLbl+'</div>';
+        '<div style="font-size:11px;font-weight:900;color:var(--mute);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Versement de '+moisLbl+'</div>';
       if(vMois){
         var ec=(parseFloat(vMois.m)||0)-(parseFloat(vMois.obj)||0);
         var ecCol=ec>0?"var(--ok-d)":ec<0?"var(--brand)":"#666";
@@ -4147,7 +4149,7 @@ function viewFinance(name,start){
           '<div style="font-size:11.5px;font-weight:800;color:'+ecCol+'">'+
           (ec>0?"+"+finFmt(ec,dev)+" au-dessus de l'objectif 🔥":ec<0?finFmt(ec,dev)+" sous l'objectif":"pile sur l'objectif")+
           '</div></div>'+
-          '<button id="fin-tl-undo" style="border:none;background:none;color:#999;font-size:11px;font-weight:800;cursor:pointer">annuler</button></div>';
+          '<button id="fin-tl-undo" style="border:none;background:none;color:var(--mute);font-size:11px;font-weight:800;cursor:pointer">annuler</button></div>';
       }else{
         h+='<div style="font-size:12.5px;color:#555;margin-bottom:9px">Objectif du mois : <strong>'+finFmt(TL.objMois,dev)+'</strong></div>'+
           '<button id="fin-tl-ok" style="width:100%;padding:14px 0;border-radius:11px;border:none;background:var(--gold-d);color:#fff;font-weight:900;font-size:13.5px;cursor:pointer;margin-bottom:8px">'+
@@ -4160,7 +4162,7 @@ function viewFinance(name,start){
       if(TL.nb>0){
         var cCol=TL.ecartCum>0?"var(--ok-d)":TL.ecartCum<0?"var(--brand)":"#666";
         h+='<div style="display:flex;justify-content:space-between;font-size:11.5px;font-weight:800;margin-top:11px;padding-top:9px;border-top:1px solid var(--line)">'+
-          '<span style="color:#999">'+TL.nb+' versement'+(TL.nb>1?"s":"")+'</span>'+
+          '<span style="color:var(--mute)">'+TL.nb+' versement'+(TL.nb>1?"s":"")+'</span>'+
           '<span style="color:'+cCol+'">'+(TL.ecartCum>0?"+":"")+finFmt(TL.ecartCum,dev)+' cumulé</span></div>';
       }
       h+='</div>';
@@ -4174,11 +4176,11 @@ function viewFinance(name,start){
           var k=ks[i],m=parseFloat(v[k].m)||0,o=parseFloat(v[k].obj)||0,e=m-o;
           var bg=e>=0?"#E8F5E9":"#FFEBEE",cl=e>=0?"var(--ok-d)":"var(--brand)";
           cells+='<div style="flex:1;text-align:center;padding:7px 2px;border-radius:7px;background:'+bg+'">'+
-            '<div style="font-size:9.5px;color:#999;font-weight:800">'+finMonthLabel(k).split(" ")[0]+'</div>'+
+            '<div style="font-size:9.5px;color:var(--mute);font-weight:800">'+finMonthLabel(k).split(" ")[0]+'</div>'+
             '<div style="font-size:11.5px;font-weight:900;color:'+cl+';margin-top:1px">'+Math.round(m)+'</div>'+
             '<div style="font-size:9px;font-weight:800;color:'+cl+'">'+(e>0?"+":"")+Math.round(e)+'</div></div>';
         }
-        h+='<div style="margin-top:12px"><div style="font-size:10px;font-weight:800;color:#BBB;letter-spacing:.5px;text-transform:uppercase;margin-bottom:5px">Mes versements</div>'+
+        h+='<div style="margin-top:12px"><div style="font-size:10px;font-weight:800;color:var(--mute);letter-spacing:.5px;text-transform:uppercase;margin-bottom:5px">Mes versements</div>'+
           '<div style="display:flex;gap:3px">'+cells+'</div></div>';
       })();
       h+='</div>';
@@ -4309,20 +4311,20 @@ function blocMission(allData,today90,start){
   if(nxt){
     var prev=grade.min, span=nxt.min-prev, prog=Math.round((xp-prev)/span*100);
     h+='<div style="height:5px;background:#333;border-radius:3px;margin-bottom:12px"><div class="'+(mission&&(mission.status==="done"||mission.status==="half")?"xp-glow":"")+'" style="height:5px;border-radius:3px;background:var(--gold);width:'+prog+'%"></div></div>'+
-      '<div style="font-size:11px;color:#666;margin-bottom:12px">'+nxt.icon+' '+nxt.name+' à '+nxt.min+' XP</div>';
+      '<div style="font-size:11px;color:var(--mute);margin-bottom:12px">'+nxt.icon+' '+nxt.name+' à '+nxt.min+' XP</div>';
   }
   if(!mission){
     h+='<button id="ot-new" style="width:100%;padding:14px 0;border-radius:12px;background:'+R+';color:#fff;font-weight:900;font-size:13px;letter-spacing:1px;text-transform:uppercase">⚡ Définir ma mission du jour</button>';
   }else if(mission.status==="pending"){
-    h+='<div style="color:#666;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">⚡ Ta mission du jour — '+esc(mission.hour||"")+'</div>'+
+    h+='<div style="color:var(--mute);font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">⚡ Ta mission du jour — '+esc(mission.hour||"")+'</div>'+
       '<div style="color:#fff;font-weight:900;font-size:16px;margin-bottom:12px">'+esc(mission.task)+'</div>'+
       '<button id="ot-go" style="width:100%;padding:15px 0;border-radius:12px;background:'+R+';color:#fff;font-weight:900;font-size:15px;letter-spacing:2px">🚀 5-4-3-2-1 GO</button>'+
       '<button id="ot-quick" style="width:100%;margin-top:8px;padding:11px 0;border-radius:10px;background:var(--ink2);color:var(--ok);font-weight:800;font-size:12px">✓ Déjà accomplie — valider</button>'+
-      '<a href="'+gcalLink(mission.task,isoLocal(),mission.hour)+'" target="_blank" style="display:block;text-align:center;color:#666;font-size:11px;font-weight:700;margin-top:10px;text-decoration:none">📅 Ajouter à Google Agenda</a>';
+      '<a href="'+gcalLink(mission.task,isoLocal(),mission.hour)+'" target="_blank" style="display:block;text-align:center;color:var(--mute);font-size:11px;font-weight:700;margin-top:10px;text-decoration:none">📅 Ajouter à Google Agenda</a>';
   }else{
     var stMap={done:["🟢 ZONE SÉCURISÉE","+"+(mission.xp||0)+" XP","var(--ok)"],half:["🟡 ZONE CONTESTÉE","+"+(mission.xp||0)+" XP","var(--amber)"],lost:["⚪ ZONE PERDUE","0 XP","#888"]};
     var st=stMap[mission.status]||stMap.lost;
-    h+='<div style="color:#666;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">⚡ Mission du jour</div>'+
+    h+='<div style="color:var(--mute);font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">⚡ Mission du jour</div>'+
       '<div style="color:#fff;font-weight:800;font-size:14px;margin-bottom:8px">'+esc(mission.task)+'</div>'+
       '<div style="font-weight:900;font-size:13px;color:'+st[2]+'">'+st[0]+' · '+st[1]+(mission.iso?" · 🧘 +25":"")+'</div>';
     if(mission.status!=="lost"){
@@ -4333,7 +4335,7 @@ function blocMission(allData,today90,start){
   if(today90<89){
     var tomorrow=getMission(allData,today90+1);
     if(tomorrow&&tomorrow.status==="pending"){
-      h+='<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--ink2);font-size:11px;color:#666">🌙 Demain : <span style="color:#CCC;font-weight:700">'+esc(tomorrow.task)+'</span> à '+esc(tomorrow.hour||"")+'</div>';
+      h+='<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--ink2);font-size:11px;color:var(--mute)">🌙 Demain : <span style="color:#CCC;font-weight:700">'+esc(tomorrow.task)+'</span> à '+esc(tomorrow.hour||"")+'</div>';
     }else if(mission&&mission.status!=="pending"){
       h+='<button id="ot-tomorrow" style="width:100%;margin-top:12px;padding:12px 0;border-radius:10px;background:var(--ink2);color:var(--gold);font-weight:800;font-size:12px">🌙 Préparer ma conquête de demain</button>';
     }
@@ -4345,11 +4347,11 @@ function blocMission(allData,today90,start){
     var isT=state.otForm==="tomorrow";
     h+='<div class="card" style="margin-bottom:18px;padding:18px 16px">'+
       '<div style="font-weight:900;font-size:14px;margin-bottom:6px">⚡ '+(isT?"Ma conquête de demain":"Ma mission du jour")+'</div>'+
-      '<div style="font-size:12px;color:#666;line-height:1.75;margin-bottom:8px">Pourquoi la préparer <strong>la veille au soir</strong> ? Parce qu\'une décision prise le matin se négocie — ton cerveau trouve toujours une excuse au réveil. Une décision prise la veille est déjà tranchée : tu dors avec, ton cerveau la programme pendant la nuit, et au réveil il ne reste que l\'exécution.</div>'+
-      '<div style="font-size:12px;color:#666;line-height:1.75;margin-bottom:14px">Choisis <strong>la tâche que tu redoutes le plus</strong> — celle que tu repousses. 5 à 10 minutes suffisent : le but n\'est pas de tout finir, c\'est de briser la résistance. Une heure fixe. <strong>Zéro négociation.</strong> L\'action précède l\'émotion.</div>'+
-      '<div style="font-weight:800;font-size:11px;color:#666;margin-bottom:6px">LA FRICTION À CONQUÉRIR</div>'+
+      '<div style="font-size:12px;color:var(--mute);line-height:1.75;margin-bottom:8px">Pourquoi la préparer <strong>la veille au soir</strong> ? Parce qu\'une décision prise le matin se négocie — ton cerveau trouve toujours une excuse au réveil. Une décision prise la veille est déjà tranchée : tu dors avec, ton cerveau la programme pendant la nuit, et au réveil il ne reste que l\'exécution.</div>'+
+      '<div style="font-size:12px;color:var(--mute);line-height:1.75;margin-bottom:14px">Choisis <strong>la tâche que tu redoutes le plus</strong> — celle que tu repousses. 5 à 10 minutes suffisent : le but n\'est pas de tout finir, c\'est de briser la résistance. Une heure fixe. <strong>Zéro négociation.</strong> L\'action précède l\'émotion.</div>'+
+      '<div style="font-weight:800;font-size:11px;color:var(--mute);margin-bottom:6px">LA FRICTION À CONQUÉRIR</div>'+
       '<input id="ot-task" class="num-input" style="font-weight:400;font-size:15px;margin-bottom:12px" placeholder="ex: passer la porte de la salle et donner 1 conseil"/>'+
-      '<div style="font-weight:800;font-size:11px;color:#666;margin-bottom:6px">HEURE D\'ENGAGEMENT</div>'+
+      '<div style="font-weight:800;font-size:11px;color:var(--mute);margin-bottom:6px">HEURE D\'ENGAGEMENT</div>'+
       '<input id="ot-hour" type="time" class="num-input" style="margin-bottom:14px" value="09:00"/>'+
       '<button id="ot-save" style="width:100%;padding:14px 0;border-radius:12px;background:'+R+';color:#fff;font-weight:900;font-size:14px">Verrouiller la mission 🔒</button></div>';
   }
@@ -4481,12 +4483,12 @@ function blocForteresse(allData,today90,start){
     var q0=qgc||{};
     h+='<div class="card" style="margin-bottom:18px;padding:18px 16px">'+
       '<div style="font-weight:900;font-size:14px;margin-bottom:6px">🎯 Qui veux-tu devenir ?</div>'+
-      '<div style="font-size:12px;color:#666;line-height:1.75;margin-bottom:8px">Tu ne changes pas en te fixant des objectifs. Tu changes en <strong>devenant quelqu\'un d\'autre</strong>.</div>'+
-      '<div style="font-size:12px;color:#666;line-height:1.75;margin-bottom:8px">La preuve : à qui on propose une cigarette, deux réponses possibles. <em>« Non merci, j\'essaie d\'arrêter »</em> — cette personne se voit encore comme un fumeur qui lutte. <em>« Non merci, je ne fume pas »</em> — celle-là a changé d\'identité. Elle ne résiste plus : elle EST autre chose. Pareil pour le sport : « j\'essaie de m\'y mettre » contre « je suis sportif ». Le premier lutte, le second vit.</div>'+
-      '<div style="font-size:12px;color:#666;line-height:1.75;margin-bottom:14px">Comment on bascule ? <strong>Par les briques.</strong> Chaque action quotidienne pose une brique de ta nouvelle identité : chaque séance faite est une brique « je suis sportif », chaque repas préparé une brique « je prends soin de moi ». Une brique seule ne fait rien — mais l\'accumulation construit la forteresse. <strong>Deviens la personne, et les résultats suivront.</strong> <span style="color:#666">(James Clear, Atomic Habits)</span></div>'+
-      '<div style="font-weight:800;font-size:11px;color:#666;margin-bottom:6px">MON IDENTITÉ CIBLE</div>'+
+      '<div style="font-size:12px;color:var(--mute);line-height:1.75;margin-bottom:8px">Tu ne changes pas en te fixant des objectifs. Tu changes en <strong>devenant quelqu\'un d\'autre</strong>.</div>'+
+      '<div style="font-size:12px;color:var(--mute);line-height:1.75;margin-bottom:8px">La preuve : à qui on propose une cigarette, deux réponses possibles. <em>« Non merci, j\'essaie d\'arrêter »</em> — cette personne se voit encore comme un fumeur qui lutte. <em>« Non merci, je ne fume pas »</em> — celle-là a changé d\'identité. Elle ne résiste plus : elle EST autre chose. Pareil pour le sport : « j\'essaie de m\'y mettre » contre « je suis sportif ». Le premier lutte, le second vit.</div>'+
+      '<div style="font-size:12px;color:var(--mute);line-height:1.75;margin-bottom:14px">Comment on bascule ? <strong>Par les briques.</strong> Chaque action quotidienne pose une brique de ta nouvelle identité : chaque séance faite est une brique « je suis sportif », chaque repas préparé une brique « je prends soin de moi ». Une brique seule ne fait rien — mais l\'accumulation construit la forteresse. <strong>Deviens la personne, et les résultats suivront.</strong> <span style="color:var(--mute)">(James Clear, Atomic Habits)</span></div>'+
+      '<div style="font-weight:800;font-size:11px;color:var(--mute);margin-bottom:6px">MON IDENTITÉ CIBLE</div>'+
       '<input id="qg-identity" class="num-input" style="font-weight:400;font-size:15px;margin-bottom:12px" placeholder="ex: Père en pleine santé, Athlète discipliné..." value="'+esc(q0.identity||"")+'"/>'+
-      '<div style="font-weight:800;font-size:11px;color:#666;margin-bottom:6px">🌍 MON UNIVERS DE PROGRESSION</div>'+
+      '<div style="font-weight:800;font-size:11px;color:var(--mute);margin-bottom:6px">🌍 MON UNIVERS DE PROGRESSION</div>'+
       (function(){
         var cur=q0.univers||"construction",uh='<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:14px">';
         for(var uk in QG_UNIVERS){
@@ -4500,11 +4502,11 @@ function blocForteresse(allData,today90,start){
         }
         return uh+'</div><input type="hidden" id="qg-univers" value="'+cur+'"/>';
       })()+
-      '<div style="font-weight:800;font-size:11px;color:#666;margin-bottom:6px">ACTION QUOTIDIENNE N°1 (terrain)</div>'+
+      '<div style="font-weight:800;font-size:11px;color:var(--mute);margin-bottom:6px">ACTION QUOTIDIENNE N°1 (terrain)</div>'+
       '<input id="qg-v1" class="num-input" style="font-weight:400;font-size:14px;margin-bottom:12px" placeholder="ex: Faire ma séance de sport" value="'+esc(q0.v1||"")+'"/>'+
-      '<div style="font-weight:800;font-size:11px;color:#666;margin-bottom:6px">ACTION QUOTIDIENNE N°2 (action clé)</div>'+
+      '<div style="font-weight:800;font-size:11px;color:var(--mute);margin-bottom:6px">ACTION QUOTIDIENNE N°2 (action clé)</div>'+
       '<input id="qg-v2" class="num-input" style="font-weight:400;font-size:14px;margin-bottom:14px" placeholder="ex: Préparer mes repas de demain" value="'+esc(q0.v2||"")+'"/>'+
-      '<div style="font-weight:800;font-size:11px;color:#666;margin-bottom:8px">⚔️ MA QUÊTE SECONDAIRE DU BLOC (1 seule — cible ta plus grande faiblesse)</div>'+
+      '<div style="font-weight:800;font-size:11px;color:var(--mute);margin-bottom:8px">⚔️ MA QUÊTE SECONDAIRE DU BLOC (1 seule — cible ta plus grande faiblesse)</div>'+
       (function(){
         var qh="";
         for(var qk in QUESTS){
@@ -4561,7 +4563,7 @@ function viewCalendar(name,start){
     '<div class="ring-txt" style="flex-direction:column;gap:2px">'+
     '<span style="font-size:54px;font-weight:900;letter-spacing:-2px;line-height:1;color:var(--ink)">'+pct+
     '<span style="font-size:22px;letter-spacing:0">%</span></span>'+
-    '<span style="font-size:11.5px;font-weight:700;color:var(--mute)">de tes jours remplis</span></div></div>'+
+    '<span style="font-size:12px;font-weight:800;color:var(--mute)">de tes jours remplis</span></div></div>'+
     // Une alerte se voit : encadré ambre, pas une ligne de couleur parmi
     // d'autres. Elle est SIGNÉE : sans le nom et l'emoji du superviseur, le
     // message ressemble à une notification système et non à quelqu'un qui
@@ -4719,9 +4721,9 @@ function viewCalendar(name,start){
     var g0=goal||{};
     h+='<div class="card" style="margin-bottom:18px;padding:18px 16px">'+
       '<div style="font-weight:900;font-size:14px;margin-bottom:14px">🎯 Mon objectif — '+(shortProg?'fin des '+progDays+' jours':'fin du mois '+month)+'</div>'+
-      '<div style="font-weight:800;font-size:11px;color:#666;margin-bottom:6px">POIDS CIBLE (KG)</div>'+
+      '<div style="font-weight:800;font-size:11px;color:var(--mute);margin-bottom:6px">POIDS CIBLE (KG)</div>'+
       '<input id="goal-target" type="number" step="0.1" class="num-input" value="'+(g0.target||"")+'" placeholder="ex: 78" style="margin-bottom:12px"/>'+
-      '<div style="font-weight:800;font-size:11px;color:#666;margin-bottom:6px">🎁 MA RÉCOMPENSE SI JE RÉUSSIS</div>'+
+      '<div style="font-weight:800;font-size:11px;color:var(--mute);margin-bottom:6px">🎁 MA RÉCOMPENSE SI JE RÉUSSIS</div>'+
       '<input id="goal-reward" class="num-input" value="'+esc(g0.reward||"")+'" placeholder="ex: restaurant japonais, week-end spa..." style="font-weight:400;font-size:15px;margin-bottom:14px"/>'+
       '<button id="goal-save" style="width:100%;padding:14px 0;border-radius:12px;background:'+R+';color:#fff;font-weight:900;font-size:14px">Enregistrer mon engagement ✓</button></div>';
   }
@@ -4735,7 +4737,7 @@ function viewCalendar(name,start){
     if(BLOC<4){
       h+='<button id="next-bloc" class="card" style="width:calc(100% - 28px);margin-bottom:18px;background:'+K+';border:none;text-align:center;padding:16px;cursor:pointer">'+
         '<div style="font-weight:900;font-size:14px;color:#fff">🔄 Démarrer le Bloc '+(BLOC+1)+'/4 — 90 jours de plus</div>'+
-        '<div style="font-size:11px;color:#666;margin-top:3px">Nouveau départ, historique conservé</div></button>';
+        '<div style="font-size:11px;color:var(--mute);margin-top:3px">Nouveau départ, historique conservé</div></button>';
     }
   }
 
@@ -4887,10 +4889,10 @@ function viewCalendar(name,start){
     h+='<div class="card" style="margin-bottom:18px;border:2px solid '+K+';padding:16px 18px">'+
       '<div style="font-weight:900;font-size:14px;margin-bottom:12px;display:flex;align-items:center;gap:8px"><div class="bar bar-r"></div>⚔️ BILAN DE BATAILLE — Semaine '+Math.floor(today90/7+1)+'</div>'+
       '<div style="display:flex;gap:8px;margin-bottom:12px;text-align:center">'+
-      '<div style="flex:1"><div style="font-weight:900;font-size:20px;color:var(--gold)">'+wXP+'</div><div style="font-size:11px;color:#666;font-weight:700;text-transform:uppercase">XP</div></div>'+
-      '<div style="flex:1"><div style="font-weight:900;font-size:20px;color:var(--ok)">'+wDone+'</div><div style="font-size:11px;color:#666;font-weight:700;text-transform:uppercase">🟢 Sécurisées</div></div>'+
-      '<div style="flex:1"><div style="font-weight:900;font-size:20px;color:var(--amber)">'+wHalf+'</div><div style="font-size:11px;color:#666;font-weight:700;text-transform:uppercase">🟡 Contestées</div></div>'+
-      '<div style="flex:1"><div style="font-weight:900;font-size:20px;color:'+(wDp!=null&&wDp<=0?"var(--ok)":K)+'">'+(wDp!=null?(wDp>0?"+"+wDp:wDp):"—")+'</div><div style="font-size:11px;color:#666;font-weight:700;text-transform:uppercase">kg</div></div></div>';
+      '<div style="flex:1"><div style="font-weight:900;font-size:20px;color:var(--gold)">'+wXP+'</div><div style="font-size:11px;color:var(--mute);font-weight:700;text-transform:uppercase">XP</div></div>'+
+      '<div style="flex:1"><div style="font-weight:900;font-size:20px;color:var(--ok)">'+wDone+'</div><div style="font-size:11px;color:var(--mute);font-weight:700;text-transform:uppercase">🟢 Sécurisées</div></div>'+
+      '<div style="flex:1"><div style="font-weight:900;font-size:20px;color:var(--amber)">'+wHalf+'</div><div style="font-size:11px;color:var(--mute);font-weight:700;text-transform:uppercase">🟡 Contestées</div></div>'+
+      '<div style="flex:1"><div style="font-weight:900;font-size:20px;color:'+(wDp!=null&&wDp<=0?"var(--ok)":K)+'">'+(wDp!=null?(wDp>0?"+"+wDp:wDp):"—")+'</div><div style="font-size:11px;color:var(--mute);font-weight:700;text-transform:uppercase">kg</div></div></div>';
     // ⚠️ améliorations semaine prochaine
     // Trié du plus laxiste au moins laxiste : la ligne la plus lâchée en tête,
     // c'est celle sur laquelle il faut agir en premier.
@@ -4949,7 +4951,7 @@ function viewCalendar(name,start){
       h+='<div style="margin-bottom:10px"><div class="month-hdr" style="opacity:.55;cursor:default">'+
         '<div class="mh-left"><div class="bar" style="background:#DDD"></div>'+
         '<span class="mh-name" style="color:var(--mute)">🔒 Mois '+(mi+1)+'</span></div>'+
-        '<span style="font-size:11px;color:#777;font-weight:700">'+(beyondProg?'Programme 90 jours':'Se débloque au jour '+(mi*28+1))+'</span></div></div>';
+        '<span style="font-size:11px;color:var(--mute);font-weight:700">'+(beyondProg?'Programme 90 jours':'Se débloque au jour '+(mi*28+1))+'</span></div></div>';
       continue;
     }
     var pastDays=[],fd=0;
@@ -5095,7 +5097,7 @@ function viewDay(name,start){
   var ms=d.mindset||{};
   h+='<div style="margin-top:16px"><div class="card-label">🧠 MINDSET DU JOUR — 3 questions, 3 minutes</div>'+
     '<details style="margin-bottom:10px"><summary style="cursor:pointer;list-style:none;font-size:12px;font-weight:800;color:var(--violet);padding:9px 13px;background:var(--soft2);border-radius:12px">💡 Pourquoi ces 3 questions ?</summary>'+
-    '<div class="card" style="padding:13px 15px;margin-top:7px;border-left:4px solid var(--violet)"><div style="font-size:12px;color:#666;line-height:1.75">Ton cerveau est programmé pour retenir le négatif — c\'est un réflexe de survie. Ces 3 questions le rééquilibrent chaque soir : la <strong>fierté</strong> ancre tes victoires, la <strong>gratitude</strong> entraîne ton cerveau à voir ce qui va bien, et nommer le <strong>négatif</strong> le sort de ta tête — un problème écrit pèse deux fois moins lourd qu\'un problème ruminé. En 90 jours, ce rituel de 3 minutes reprogramme ta façon de voir tes journées. Sois honnête, sois précis : c\'est ce qui revient chaque semaine qui révèle ce qu\'il faut corriger.</div></div></details>'+
+    '<div class="card" style="padding:13px 15px;margin-top:7px;border-left:4px solid var(--violet)"><div style="font-size:12px;color:var(--mute);line-height:1.75">Ton cerveau est programmé pour retenir le négatif — c\'est un réflexe de survie. Ces 3 questions le rééquilibrent chaque soir : la <strong>fierté</strong> ancre tes victoires, la <strong>gratitude</strong> entraîne ton cerveau à voir ce qui va bien, et nommer le <strong>négatif</strong> le sort de ta tête — un problème écrit pèse deux fois moins lourd qu\'un problème ruminé. En 90 jours, ce rituel de 3 minutes reprogramme ta façon de voir tes journées. Sois honnête, sois précis : c\'est ce qui revient chaque semaine qui révèle ce qu\'il faut corriger.</div></div></details>'+
     (function(){var ms2=comboStreak(allData,idx,mindsetFull);return ms2>0?'<div style="font-size:12px;font-weight:900;margin:-6px 0 8px;padding:0 2px;color:'+streakBadge(ms2).c+'">COMBO '+streakBadge(ms2).e+' '+ms2+' jour'+(ms2>1?'s':'')+' de mindset complet</div>':'';})()+''+
     (idx===today90?
       '<div class="card" style="padding:16px">'+
@@ -5111,12 +5113,12 @@ function viewDay(name,start){
       (ms.fier?'<div style="font-size:13px;line-height:1.7;margin-bottom:8px">🥇 '+esc(ms.fier)+'</div>':'')+
       (ms.positif?'<div style="font-size:13px;line-height:1.7;margin-bottom:8px">🌟 '+esc(ms.positif)+'</div>':'')+
       (ms.negatif?'<div style="font-size:13px;line-height:1.7;color:var(--brand)">🌧️ '+esc(ms.negatif)+'</div>':'')+
-      '<div style="font-size:11px;color:#777;margin-top:10px">🔒 Mindset du jour '+(idx+1)+' — verrouillé</div></div>'
+      '<div style="font-size:11px;color:var(--mute);margin-top:10px">🔒 Mindset du jour '+(idx+1)+' — verrouillé</div></div>'
     :
       '<div class="card" style="padding:16px;text-align:center">'+
       '<div style="font-size:26px;margin-bottom:8px">🔒</div>'+
       '<div style="font-size:13px;font-weight:800;margin-bottom:6px">Ce mindset est resté vide</div>'+
-      '<div style="font-size:12px;color:#666;line-height:1.7">Les 3 questions se remplissent <strong>le jour même</strong> — c\'est un rituel du soir, pas un devoir à rattraper. Ce qui compte, c\'est ce soir : rendez-vous sur la page du jour 🌙</div></div>'
+      '<div style="font-size:12px;color:var(--mute);line-height:1.7">Les 3 questions se remplissent <strong>le jour même</strong> — c\'est un rituel du soir, pas un devoir à rattraper. Ce qui compte, c\'est ce soir : rendez-vous sur la page du jour 🌙</div></div>'
     )+
     '</div>';
 
@@ -5243,11 +5245,11 @@ function bindBlocsJour(name,start){
     ov.style.cssText="position:fixed;inset:0;background:var(--ink);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px";
     document.body.appendChild(ov);
     ov.innerHTML='<div style="color:#fff;font-size:20px;font-weight:900;margin-bottom:6px">Bilan de conquête</div>'+
-      '<div style="color:#666;font-size:13px;margin-bottom:30px">Mission accomplie hors app</div>'+
+      '<div style="color:var(--mute);font-size:13px;margin-bottom:30px">Mission accomplie hors app</div>'+
       '<button class="ot-result" data-r="done" style="width:100%;max-width:320px;padding:16px;border-radius:14px;background:var(--ok);color:#fff;font-weight:900;font-size:14px;margin-bottom:10px;text-align:left;border:none;cursor:pointer">🟢 ZONE SÉCURISÉE — j\'ai tout donné<span style="float:right">+100 XP</span></button>'+
       '<button class="ot-result" data-r="half" style="width:100%;max-width:320px;padding:16px;border-radius:14px;background:var(--amber);color:#fff;font-weight:900;font-size:14px;margin-bottom:10px;text-align:left;border:none;cursor:pointer">🟡 ZONE CONTESTÉE — fait à moitié<span style="float:right">+50 XP</span></button>'+
       '<button class="ot-result" data-r="lost" style="width:100%;max-width:320px;padding:16px;border-radius:14px;background:#444;color:#ccc;font-weight:900;font-size:14px;margin-bottom:24px;text-align:left;border:none;cursor:pointer">⚪ ZONE PERDUE — pas réussi<span style="float:right">0 XP</span></button>'+
-      '<label style="display:flex;align-items:center;gap:10px;color:#666;font-size:12px;max-width:320px;margin:0 auto"><input type="checkbox" id="ot-iso" style="width:20px;height:20px;accent-color:var(--gold)"/> Je m\'engage : 30 min sans écran ni sucre après cet effort (+25 XP)</label>';
+      '<label style="display:flex;align-items:center;gap:10px;color:var(--mute);font-size:12px;max-width:320px;margin:0 auto"><input type="checkbox" id="ot-iso" style="width:20px;height:20px;accent-color:var(--gold)"/> Je m\'engage : 30 min sans écran ni sucre après cet effort (+25 XP)</label>';
     var btns=ov.querySelectorAll(".ot-result");
     for(var b2=0;b2<btns.length;b2++){
       btns[b2].addEventListener("click",function(){
@@ -5263,7 +5265,7 @@ function bindBlocsJour(name,start){
           ov.innerHTML='<div style="font-size:72px;margin-bottom:14px">🔨</div>'+
             '<div style="color:var(--ok);font-size:24px;font-weight:900;margin-bottom:10px">VICTOIRE DU JOUR VALIDÉE !</div>'+
             '<div style="color:#fff;font-size:16px;font-weight:800">+'+xpVal+' XP ajoutés à ta conquête</div>'+
-            '<div style="color:#888;font-size:12px;margin-top:14px">Une brique de plus vers ton identité 🧱</div>';
+            '<div style="color:var(--mute);font-size:12px;margin-top:14px">Une brique de plus vers ton identité 🧱</div>';
           setTimeout(function(){document.body.removeChild(ov);render();},1800);
         }else{document.body.removeChild(ov);render();}
       });
@@ -5279,7 +5281,7 @@ function bindBlocsJour(name,start){
     var count=5;
     function showCount(){
       if(count>0){
-        ov.innerHTML='<div style="color:#888;font-size:13px;font-weight:800;letter-spacing:2px;text-transform:uppercase;margin-bottom:20px">Zéro négociation</div>'+
+        ov.innerHTML='<div style="color:var(--mute);font-size:13px;font-weight:800;letter-spacing:2px;text-transform:uppercase;margin-bottom:20px">Zéro négociation</div>'+
           '<div style="color:var(--brand);font-size:120px;font-weight:900;line-height:1">'+count+'</div>';
         count--;
         setTimeout(showCount,1000);
@@ -5293,7 +5295,7 @@ function bindBlocsJour(name,start){
       ov.innerHTML='<div style="color:var(--ok);font-size:56px;font-weight:900;margin-bottom:10px">GO 🚀</div>'+
         '<div style="color:#fff;font-size:16px;font-weight:800;margin-bottom:30px;max-width:300px">'+esc(mission.task)+'</div>'+
         '<div id="ot-timer" style="color:#fff;font-size:64px;font-weight:900;font-variant-numeric:tabular-nums">00:00</div>'+
-        '<div style="color:#666;font-size:12px;margin:10px 0 40px">Objectif : 5 à 10 minutes</div>'+
+        '<div style="color:var(--mute);font-size:12px;margin:10px 0 40px">Objectif : 5 à 10 minutes</div>'+
         '<button id="ot-finish" style="width:100%;max-width:300px;padding:18px 0;border-radius:14px;background:var(--brand);color:#fff;font-weight:900;font-size:15px;letter-spacing:1px">MISSION TERMINÉE ✓</button>';
       var tm=setInterval(function(){
         sec++;
@@ -5307,11 +5309,11 @@ function bindBlocsJour(name,start){
     }
     function showBilan(sec){
       ov.innerHTML='<div style="color:#fff;font-size:20px;font-weight:900;margin-bottom:6px">Bilan de conquête</div>'+
-        '<div style="color:#666;font-size:13px;margin-bottom:30px">'+Math.floor(sec/60)+' min '+(sec%60)+' s de combat</div>'+
+        '<div style="color:var(--mute);font-size:13px;margin-bottom:30px">'+Math.floor(sec/60)+' min '+(sec%60)+' s de combat</div>'+
         '<button class="ot-result" data-r="done" style="width:100%;max-width:320px;padding:16px;border-radius:14px;background:var(--ok);color:#fff;font-weight:900;font-size:14px;margin-bottom:10px;text-align:left">🟢 ZONE SÉCURISÉE — j\'ai tout donné<span style="float:right">+100 XP</span></button>'+
         '<button class="ot-result" data-r="half" style="width:100%;max-width:320px;padding:16px;border-radius:14px;background:var(--amber);color:#fff;font-weight:900;font-size:14px;margin-bottom:10px;text-align:left">🟡 ZONE CONTESTÉE — fait à moitié<span style="float:right">+50 XP</span></button>'+
         '<button class="ot-result" data-r="lost" style="width:100%;max-width:320px;padding:16px;border-radius:14px;background:#444;color:#ccc;font-weight:900;font-size:14px;margin-bottom:24px;text-align:left">⚪ ZONE PERDUE — pas réussi<span style="float:right">0 XP</span></button>'+
-        '<label style="display:flex;align-items:center;gap:10px;color:#666;font-size:12px;max-width:320px;margin:0 auto"><input type="checkbox" id="ot-iso" style="width:20px;height:20px;accent-color:var(--gold)"/> Je m\'engage : 30 min sans écran ni sucre après cet effort (+25 XP)</label>';
+        '<label style="display:flex;align-items:center;gap:10px;color:var(--mute);font-size:12px;max-width:320px;margin:0 auto"><input type="checkbox" id="ot-iso" style="width:20px;height:20px;accent-color:var(--gold)"/> Je m\'engage : 30 min sans écran ni sucre après cet effort (+25 XP)</label>';
       var btns=ov.querySelectorAll(".ot-result");
       for(var b=0;b<btns.length;b++){
         btns[b].addEventListener("click",function(){
@@ -5327,7 +5329,7 @@ function bindBlocsJour(name,start){
           ov.innerHTML='<div style="font-size:72px;margin-bottom:14px">🔨</div>'+
             '<div style="color:var(--ok);font-size:24px;font-weight:900;margin-bottom:10px">VICTOIRE DU JOUR VALIDÉE !</div>'+
             '<div style="color:#fff;font-size:16px;font-weight:800">+'+xpVal+' XP ajoutés à ta conquête</div>'+
-            '<div style="color:#888;font-size:12px;margin-top:14px">Une brique de plus vers ton identité 🧱</div>';
+            '<div style="color:var(--mute);font-size:12px;margin-top:14px">Une brique de plus vers ton identité 🧱</div>';
           setTimeout(function(){document.body.removeChild(ov);render();},1800);
         }else{document.body.removeChild(ov);render();}
         });
@@ -5348,8 +5350,8 @@ function bindBlocsJour(name,start){
       '.lbl{color:var(--gold);font-weight:800;font-size:11px;letter-spacing:3px;text-transform:uppercase;margin-bottom:18px}'+
       '.q{color:var(--line);font-size:17px;line-height:1.9;font-style:italic}'+
       '.bot{text-align:center}.tag{color:#fff;font-weight:900;font-size:13px;letter-spacing:1px}'+
-      '.sub2{color:#666;font-size:11px;margin-top:4px;letter-spacing:1px;text-transform:uppercase}'+
-      '.hint{color:#666;font-size:12px;text-align:center;margin-top:18px;line-height:1.6}'+
+      '.sub2{color:var(--mute);font-size:11px;margin-top:4px;letter-spacing:1px;text-transform:uppercase}'+
+      '.hint{color:var(--mute);font-size:12px;text-align:center;margin-top:18px;line-height:1.6}'+
       '</style></head><body><button onclick=\'window.close();setTimeout(function(){if(history.length>1)history.back();},250)\' style=\'position:fixed;top:12px;right:12px;z-index:999;background:var(--ink);color:#fff;border:0;border-radius:20px;padding:9px 16px;font-weight:800;font-size:13px\'>✕ Fermer</button>'+
       '<div class="card">'+
       '<div class="brand"><div class="b" style="background:var(--brand)"></div><span class="bn">AM COACH GENÈVE</span><div class="b" style="background:var(--brand2)"></div></div>'+
@@ -5381,11 +5383,11 @@ function bindBlocsJour(name,start){
       '.gn{color:var(--gold);font-weight:900;font-size:26px;letter-spacing:1px;text-transform:uppercase}'+
       '.xp{color:#fff;font-weight:900;font-size:17px;margin-top:6px}'+
       '.st{color:var(--ok);font-weight:900;font-size:13px;margin-top:14px;letter-spacing:1px}'+
-      '.day{color:#666;font-size:12px;margin-top:4px;font-weight:700}'+
+      '.day{color:var(--mute);font-size:12px;margin-top:4px;font-weight:700}'+
       '.bot{text-align:center}'+
       '.tag{color:#fff;font-weight:900;font-size:13px;letter-spacing:1px}'+
-      '.sub2{color:#666;font-size:11px;margin-top:4px;letter-spacing:1px;text-transform:uppercase}'+
-      '.hint{color:#666;font-size:12px;text-align:center;margin-top:18px;line-height:1.6}'+
+      '.sub2{color:var(--mute);font-size:11px;margin-top:4px;letter-spacing:1px;text-transform:uppercase}'+
+      '.hint{color:var(--mute);font-size:12px;text-align:center;margin-top:18px;line-height:1.6}'+
       '</style></head><body><button onclick=\'window.close();setTimeout(function(){if(history.length>1)history.back();},250)\' style=\'position:fixed;top:12px;right:12px;z-index:999;background:var(--ink);color:#fff;border:0;border-radius:20px;padding:9px 16px;font-weight:800;font-size:13px\'>✕ Fermer</button>'+
       '<div class="card">'+
       '<div class="brand"><div class="b" style="background:var(--brand)"></div><span class="bn">AM COACH GENÈVE</span><div class="b" style="background:var(--brand2)"></div></div>'+
@@ -5983,14 +5985,14 @@ function viewRapport(name,start){
     '<div style="padding:20px 16px">'+
     '<div class="card" style="padding:20px 18px;margin-bottom:16px">'+
     '<div style="font-weight:900;font-size:16px;margin-bottom:8px">Génère ton bilan</div>'+
-    '<div style="font-size:13px;color:#666;line-height:1.6;margin-bottom:20px">Un rapport complet s\'ouvre dans un nouvel onglet.<br/>Appuie sur <strong>Partager ↑</strong> → <strong>Imprimer</strong> → <strong>Enregistrer en PDF</strong>.</div>';
+    '<div style="font-size:13px;color:var(--mute);line-height:1.6;margin-bottom:20px">Un rapport complet s\'ouvre dans un nouvel onglet.<br/>Appuie sur <strong>Partager ↑</strong> → <strong>Imprimer</strong> → <strong>Enregistrer en PDF</strong>.</div>';
   var periods=[7,30,60,90];
   for(var i=0;i<periods.length;i++){
     var pDays=periods[i], n=0;
     for(var x=0;x<pDays;x++){if(allData[x])n++;}
     var pct=Math.round(n/pDays*100);
     h+='<div style="margin-bottom:14px"><button class="big-btn'+(n===0?" disabled":"")+'" data-rapport="'+pDays+'" style="margin-bottom:0">📄 Rapport J'+pDays+'</button>'+
-      '<div style="font-size:11px;color:#666;text-align:center;margin-top:5px">'+n+'/'+pDays+' jours remplis ('+pct+'%)</div></div>';
+      '<div style="font-size:11px;color:var(--mute);text-align:center;margin-top:5px">'+n+'/'+pDays+' jours remplis ('+pct+'%)</div></div>';
   }
   h+='</div><div class="hint-box"><div class="hint-title">💡 Comment enregistrer en PDF ?</div>'+
     '<div class="hint-text">1. Clique "Rapport J30" ci-dessus<br/>2. Le rapport s\'ouvre<br/>3. Appuie sur <strong>↑ Partager</strong> (Safari)<br/>4. Choisis <strong>Imprimer</strong><br/>5. <strong>Enregistrer en PDF</strong></div></div></div>';
@@ -6286,7 +6288,7 @@ function openRapport(name,start,period,dataOverride){
   }
   var bilans=series.filter(function(s){return s.bilan&&(s.bilan.victoire||s.bilan.ressenti||s.bilan.blocage);}).slice(0,4);
 
-  var css="*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,'Helvetica Neue',sans-serif;background:var(--soft);color:var(--ink)}.pg{max-width:600px;margin:0 auto;background:#fff}.hdr{background:var(--ink);padding:24px 20px 18px}.brand{color:#fff;font-weight:900;font-size:17px;letter-spacing:2px;text-transform:uppercase;display:flex;align-items:center;gap:8px}.b{width:4px;height:22px;border-radius:2px}.sub{color:#666;font-size:11px;margin-top:5px;padding-left:14px}.hero{background:linear-gradient(135deg,var(--brand),#8B0000);padding:24px 20px;color:#fff}.hn{font-size:26px;font-weight:900;margin-bottom:3px}.hs{font-size:13px;opacity:.8;margin-bottom:6px}.hd{font-size:11px;opacity:.6}.kg{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:16px}.kpi{background:#fff;border-radius:12px;padding:14px;box-shadow:0 2px 6px rgba(0,0,0,.07);text-align:center}.kv{font-size:28px;font-weight:900;margin-bottom:3px}.kl{font-size:11px;color:#666;font-weight:700;text-transform:uppercase}.ks{font-size:11px;font-weight:700;margin-top:4px}.sec{padding:0 14px 14px}.st{display:flex;align-items:center;gap:8px;margin:14px 0 10px}.sb{width:3px;height:16px;border-radius:2px}.sl{font-weight:900;font-size:12px;text-transform:uppercase;letter-spacing:.8px}.ch{background:#fff;border-radius:12px;padding:12px;margin-bottom:8px;box-shadow:0 2px 6px rgba(0,0,0,.07)}.ct{font-size:11px;font-weight:800;color:#666;text-transform:uppercase;margin-bottom:6px}.hg{display:grid;grid-template-columns:1fr 1fr;gap:7px}.hc{background:#fff;border-radius:10px;padding:11px;box-shadow:0 2px 6px rgba(0,0,0,.07);display:flex;align-items:center;gap:8px}.hi{font-size:18px}.hnm{font-size:11px;color:#666;font-weight:700}.hv{font-size:15px;font-weight:900}.bc{background:#fff;border-radius:12px;padding:13px;margin-bottom:8px;box-shadow:0 2px 6px rgba(0,0,0,.07);border-left:4px solid var(--brand)}.bw{font-size:11px;color:var(--brand);font-weight:800;margin-bottom:7px;text-transform:uppercase}.bi{margin-bottom:5px}.bk{font-size:11px;color:#666;font-weight:700;text-transform:uppercase;margin-bottom:2px}.bt{font-size:12px;color:#333;line-height:1.5}.ftr{background:var(--ink);padding:20px;text-align:center;margin-top:14px}.fm{color:#666;font-size:11px;line-height:1.8}.fs{color:#fff;font-weight:900;font-size:13px;margin-top:8px}@media print{body{background:#fff}}";
+  var css="*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,'Helvetica Neue',sans-serif;background:var(--soft);color:var(--ink)}.pg{max-width:600px;margin:0 auto;background:#fff}.hdr{background:var(--ink);padding:24px 20px 18px}.brand{color:#fff;font-weight:900;font-size:17px;letter-spacing:2px;text-transform:uppercase;display:flex;align-items:center;gap:8px}.b{width:4px;height:22px;border-radius:2px}.sub{color:var(--mute);font-size:11px;margin-top:5px;padding-left:14px}.hero{background:linear-gradient(135deg,var(--brand),#8B0000);padding:24px 20px;color:#fff}.hn{font-size:26px;font-weight:900;margin-bottom:3px}.hs{font-size:13px;opacity:.8;margin-bottom:6px}.hd{font-size:11px;opacity:.6}.kg{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:16px}.kpi{background:#fff;border-radius:12px;padding:14px;box-shadow:0 2px 6px rgba(0,0,0,.07);text-align:center}.kv{font-size:28px;font-weight:900;margin-bottom:3px}.kl{font-size:11px;color:var(--mute);font-weight:700;text-transform:uppercase}.ks{font-size:11px;font-weight:700;margin-top:4px}.sec{padding:0 14px 14px}.st{display:flex;align-items:center;gap:8px;margin:14px 0 10px}.sb{width:3px;height:16px;border-radius:2px}.sl{font-weight:900;font-size:12px;text-transform:uppercase;letter-spacing:.8px}.ch{background:#fff;border-radius:12px;padding:12px;margin-bottom:8px;box-shadow:0 2px 6px rgba(0,0,0,.07)}.ct{font-size:11px;font-weight:800;color:var(--mute);text-transform:uppercase;margin-bottom:6px}.hg{display:grid;grid-template-columns:1fr 1fr;gap:7px}.hc{background:#fff;border-radius:10px;padding:11px;box-shadow:0 2px 6px rgba(0,0,0,.07);display:flex;align-items:center;gap:8px}.hi{font-size:18px}.hnm{font-size:11px;color:var(--mute);font-weight:700}.hv{font-size:15px;font-weight:900}.bc{background:#fff;border-radius:12px;padding:13px;margin-bottom:8px;box-shadow:0 2px 6px rgba(0,0,0,.07);border-left:4px solid var(--brand)}.bw{font-size:11px;color:var(--brand);font-weight:800;margin-bottom:7px;text-transform:uppercase}.bi{margin-bottom:5px}.bk{font-size:11px;color:var(--mute);font-weight:700;text-transform:uppercase;margin-bottom:2px}.bt{font-size:12px;color:#333;line-height:1.5}.ftr{background:var(--ink);padding:20px;text-align:center;margin-top:14px}.fm{color:var(--mute);font-size:11px;line-height:1.8}.fs{color:#fff;font-weight:900;font-size:13px;margin-top:8px}@media print{body{background:#fff}}";
 
   var html="<!DOCTYPE html><html lang='fr'><head><meta charset='UTF-8'/><meta name='viewport' content='width=device-width,initial-scale=1'/><title>Rapport J"+period+" — "+esc(name)+"</title><style>"+themeCSS()+css+"</style></head><body><div id='rapbar' style='position:sticky;top:0;z-index:999;background:var(--ink);padding:9px 10px;display:flex;gap:7px'><button onclick='rapShare()' style='flex:1;background:var(--brand2);color:#fff;border:0;border-radius:9px;padding:11px 6px;font-weight:800;font-size:13px'>📤 Partager</button><button onclick='rapPdf()' style='flex:1;background:var(--gold);color:#fff;border:0;border-radius:9px;padding:11px 6px;font-weight:800;font-size:13px'>🖨️ PDF</button><button onclick='window.close();setTimeout(function(){if(history.length>1)history.back();},250)' style='background:#333;color:#fff;border:0;border-radius:9px;padding:11px 13px;font-weight:800;font-size:13px'>✕</button></div><div class='pg'>";
   html+="<div class='hdr'><div class='brand'><div class='b' style='background:var(--brand)'></div>AM Coach Genève<div class='b' style='background:var(--brand2)'></div></div><div class='sub'>TransfoPhysique · Rapport J"+period+"</div></div>";
@@ -6327,7 +6329,7 @@ function openRapport(name,start,period,dataOverride){
     function msBlock(title,color,items){
       if(!items.length)return "";
       var o="<div class='ch'><div class='ct' style='color:"+color+"'>"+title+" ("+items.length+")</div><div style='font-size:12px;color:#333;line-height:1.9'>";
-      for(var x=0;x<items.length;x++){o+="<strong style='color:#777'>J"+items[x].d+"</strong> · "+esc(items[x].t)+"<br>";}
+      for(var x=0;x<items.length;x++){o+="<strong style='color:var(--mute)'>J"+items[x].d+"</strong> · "+esc(items[x].t)+"<br>";}
       return o+"</div></div>";
     }
     html+=msBlock("🥇 Fiertés","#B45309",fiers);
@@ -6394,11 +6396,11 @@ function training14HTML(name,start){
     '<div class="card" style="flex:1;padding:13px 12px;margin:0;text-align:center'+(!week2?';border:2px solid var(--violet)':';opacity:.6')+'">'+
     '<div style="font-weight:900;font-size:11px;color:var(--violet);letter-spacing:1px;text-transform:uppercase">Semaine 1'+(!week2?' · EN COURS':'')+'</div>'+
     '<div style="font-weight:900;font-size:22px;margin:4px 0">5 rép</div>'+
-    '<div style="font-size:11px;color:#666;line-height:1.5">toutes les 30 s<br>pendant 5 à 10 min</div></div>'+
+    '<div style="font-size:11px;color:var(--mute);line-height:1.5">toutes les 30 s<br>pendant 5 à 10 min</div></div>'+
     '<div class="card" style="flex:1;padding:13px 12px;margin:0;text-align:center'+(week2?';border:2px solid var(--violet)':';opacity:.6')+'">'+
     '<div style="font-weight:900;font-size:11px;color:var(--violet);letter-spacing:1px;text-transform:uppercase">Semaine 2'+(week2?' · EN COURS':'')+'</div>'+
     '<div style="font-weight:900;font-size:22px;margin:4px 0">10 rép</div>'+
-    '<div style="font-size:11px;color:#666;line-height:1.5">toutes les 30 s<br>pendant 5 à 10 min</div></div></div>';
+    '<div style="font-size:11px;color:var(--mute);line-height:1.5">toutes les 30 s<br>pendant 5 à 10 min</div></div></div>';
 
   // Exos
   h+='<div class="card" style="padding:14px 16px;margin-bottom:14px">'+
@@ -6417,12 +6419,12 @@ function training14HTML(name,start){
     h+='<div class="card" style="padding:13px 15px;margin-bottom:9px'+(isToday?';border:2px solid var(--violet)':'')+'">'+
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:'+((e7.v||e7.m)?'9px':'0')+'">'+
       '<span style="font-weight:900;font-size:13.5px">'+dayNames[d7]+(isToday?' <span style="color:var(--violet);font-size:11px;letter-spacing:1px">· AUJOURD\'HUI</span>':'')+'</span>'+
-      ((!e7.v&&!e7.m)?'<span style="font-size:11px;color:#777;font-weight:700">Vidéo bientôt dispo</span>':'')+'</div>';
+      ((!e7.v&&!e7.m)?'<span style="font-size:11px;color:var(--mute);font-weight:700">Vidéo bientôt dispo</span>':'')+'</div>';
     if(e7.v){h+='<a href="'+esc(e7.v)+'" target="_blank" rel="noopener" style="display:block;text-align:center;padding:12px 0;border-radius:11px;background:var(--violet);color:#fff;font-weight:900;font-size:13px;text-decoration:none;margin-bottom:8px">▶️ Vidéo muscu '+(week2?'10':'5')+' rép / 30 s · 5-10 min</a>';}
     h+='<div style="font-size:12px;font-weight:700;color:#555;line-height:1.7">💪 Muscu 5 à 10 min <span style="color:var(--violet);font-weight:900">+</span> 🚶 '+esc(e7.m||"20 min à 1h de marche non-stop")+'</div>'+
-      '<div style="font-size:11px;color:#666;margin-top:3px">Les deux, chaque jour — c\'est ça le deal.</div></div>';
+      '<div style="font-size:11px;color:var(--mute);margin-top:3px">Les deux, chaque jour — c\'est ça le deal.</div></div>';
   }
-  h+='<div style="font-size:11px;color:#666;text-align:center;line-height:1.7;margin-top:6px">La marche se fait <strong>non-stop</strong> : c\'est la régularité qui compte, pas la vitesse.</div>';
+  h+='<div style="font-size:11px;color:var(--mute);text-align:center;line-height:1.7;margin-top:6px">La marche se fait <strong>non-stop</strong> : c\'est la régularité qui compte, pas la vitesse.</div>';
   return h;
 }
 
@@ -8063,10 +8065,10 @@ function viewContract(name,start){
       '<div class="card-label">MES 3 ENGAGEMENTS</div>'+
       '<div style="font-size:13px;line-height:2">1. '+esc(ct.e1)+'<br>2. '+esc(ct.e2)+'<br>3. '+esc(ct.e3)+'</div>'+
       '<div style="border-top:1px solid #EEE;margin-top:16px;padding-top:12px;display:flex;justify-content:space-between;align-items:center">'+
-      '<div style="font-size:12px;color:#666">Signé le '+esc(ct.date)+'</div>'+
+      '<div style="font-size:12px;color:var(--mute)">Signé le '+esc(ct.date)+'</div>'+
       '<div style="font-family:cursive;font-size:17px;font-weight:700">'+esc(name)+'</div></div></div>'+
       '<button id="ct-wa" class="big-btn" style="background:#25D366;box-shadow:0 4px 14px #25D36644">📱 Envoyer mon engagement à Akli</button>'+
-      '<div style="font-size:11px;color:#666;text-align:center;line-height:1.7;margin-bottom:10px">Un engagement partagé est un engagement 3× plus solide.</div>'+
+      '<div style="font-size:11px;color:var(--mute);text-align:center;line-height:1.7;margin-bottom:10px">Un engagement partagé est un engagement 3× plus solide.</div>'+
       '<button id="ct-back" class="big-btn gray">← Retour</button>';
   }else{
     // ─── Signature ───
@@ -8221,7 +8223,7 @@ function viewCoachDetail(){
     '<div class="hdr"><div style="display:flex;align-items:center;gap:12px">'+
     '<button id="cd-back" class="day-back">←</button>'+
     '<div style="flex:1"><div style="color:#fff;font-weight:900;font-size:16px">'+esc(c.name)+'</div>'+
-    '<div style="color:#666;font-size:12px">Jour '+Math.min(t90+1,90)+'/90 · départ '+new Date(c.start_date).toLocaleDateString("fr-FR")+' · 🔥 '+streak+'j</div>'+
+    '<div style="color:var(--mute);font-size:12px">Jour '+Math.min(t90+1,90)+'/90 · départ '+new Date(c.start_date).toLocaleDateString("fr-FR")+' · 🔥 '+streak+'j</div>'+
     (function(){var la=lastActLabel(allData);return '<div style="font-size:12px;font-weight:800;margin-top:3px;color:'+la.c+'">📱 Dernière activité : '+la.t+'</div>';})()+'</div></div></div>'+
     '<div style="padding:16px 14px 0">';
 
@@ -8235,7 +8237,7 @@ function viewCoachDetail(){
 
   // Objectif du mois
   if(goal){
-    h+='<div class="card" style="border-left:4px solid '+R+'"><div style="font-weight:800;font-size:11px;color:#666;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">🎯 Objectif mois '+month+'</div>'+
+    h+='<div class="card" style="border-left:4px solid '+R+'"><div style="font-weight:800;font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">🎯 Objectif mois '+month+'</div>'+
       '<div style="font-weight:900;font-size:15px">'+goal.target+' kg — 🎁 '+esc(goal.reward||"—")+'</div></div>';
   }
 
@@ -8264,9 +8266,9 @@ function viewCoachDetail(){
       h+='<div class="card" style="border-left:4px solid '+R+'">'+
         '<div style="font-weight:800;font-size:11px;color:'+R+';text-transform:uppercase;margin-bottom:8px">Semaine '+(Math.floor((bl.day-1)/7)+1)+' — Jour '+bl.day+'</div>';
       if(bl.bilan.question)h+='<div style="margin-bottom:6px"><div style="font-size:11px;color:'+R+';font-weight:800;text-transform:uppercase">❓ Question</div><div style="font-size:13px;color:'+R+';font-weight:700;line-height:1.5">'+esc(bl.bilan.question)+'</div></div>';
-      if(bl.bilan.victoire)h+='<div style="margin-bottom:6px"><div style="font-size:11px;color:#666;font-weight:800;text-transform:uppercase">🏆 Victoire</div><div style="font-size:12px;color:#333;line-height:1.5">'+esc(bl.bilan.victoire)+'</div></div>';
-      if(bl.bilan.blocage)h+='<div style="margin-bottom:6px"><div style="font-size:11px;color:#666;font-weight:800;text-transform:uppercase">🤛 Difficulté</div><div style="font-size:12px;color:#333;line-height:1.5">'+esc(bl.bilan.blocage)+'</div></div>';
-      if(bl.bilan.ressenti)h+='<div><div style="font-size:11px;color:#666;font-weight:800;text-transform:uppercase">💬 Ressenti</div><div style="font-size:12px;color:#333;line-height:1.5">'+esc(bl.bilan.ressenti)+'</div></div>';
+      if(bl.bilan.victoire)h+='<div style="margin-bottom:6px"><div style="font-size:11px;color:var(--mute);font-weight:800;text-transform:uppercase">🏆 Victoire</div><div style="font-size:12px;color:#333;line-height:1.5">'+esc(bl.bilan.victoire)+'</div></div>';
+      if(bl.bilan.blocage)h+='<div style="margin-bottom:6px"><div style="font-size:11px;color:var(--mute);font-weight:800;text-transform:uppercase">🤛 Difficulté</div><div style="font-size:12px;color:#333;line-height:1.5">'+esc(bl.bilan.blocage)+'</div></div>';
+      if(bl.bilan.ressenti)h+='<div><div style="font-size:11px;color:var(--mute);font-weight:800;text-transform:uppercase">💬 Ressenti</div><div style="font-size:12px;color:#333;line-height:1.5">'+esc(bl.bilan.ressenti)+'</div></div>';
       h+='</div>';
     }
   }
@@ -8303,7 +8305,7 @@ function viewCoachDetail(){
   // La légende disait « ⚡ mission » sans préciser que la pastille ne
   // s'affiche QUE si une mission du jour a été définie — pas quand le client
   // remplit simplement ses habitudes. D'où l'impression que l'éclair manque.
-  h+='<div style="font-size:11px;color:#777;margin-top:6px;line-height:1.6">🟢 complet · 🟠 partiel · 🔴 manqué'+
+  h+='<div style="font-size:11px;color:var(--mute);margin-top:6px;line-height:1.6">🟢 complet · 🟠 partiel · 🔴 manqué'+
     '<br><span style="opacity:.85">⚡ les 3 questions du mindset ont été remplies</span></div></div>';
 
   h+=cdSecOpen("reglages","⚙️","Réglages du client","Date de départ, accès à l&rsquo;appli");
@@ -8360,7 +8362,7 @@ function viewCoachDetail(){
         var ok=e&&target>0&&e.tot>=target*0.8;
         var bg=!e?"var(--soft2)":ok?"var(--ok)":"#FFB74D";
         cells+='<div style="flex:1;text-align:center"><div style="height:26px;border-radius:6px;background:'+bg+';display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:'+(!e?"#BBB":"#fff")+'">'+(e?e.tot:"·")+'</div>'+
-          '<div style="font-size:9px;color:#999;margin-top:2px">'+["D","L","M","M","J","V","S"][dt.getDay()]+'</div></div>';
+          '<div style="font-size:9px;color:var(--mute);margin-top:2px">'+["D","L","M","M","J","V","S"][dt.getDay()]+'</div></div>';
       }
       h+='<div style="display:flex;gap:3px;margin-bottom:10px">'+cells+'</div>';
     })();
@@ -8529,7 +8531,7 @@ function viewCoachDetail(){
     }
     h+='</div>'+
       '<button id="cd-wa" style="width:100%;padding:12px 0;border-radius:10px;border:none;background:#25D366;color:#fff;font-weight:900;font-size:13px">💬 Envoyer le résumé sur WhatsApp</button>'+
-      '<div style="font-size:10.5px;color:#BBB;margin-top:7px;line-height:1.5">Le bouton J30 ouvre le rapport complet : Partager ↑ → Imprimer → Enregistrer en PDF.</div>'+
+      '<div style="font-size:10.5px;color:var(--mute);margin-top:7px;line-height:1.5">Le bouton J30 ouvre le rapport complet : Partager ↑ → Imprimer → Enregistrer en PDF.</div>'+
       '</div>';
   })();
 
@@ -8562,7 +8564,7 @@ function viewCoachDetail(){
         '<div style="background:'+tCol+';height:100%;width:'+TLc.pct+'%;border-radius:5px"></div></div>'+
         '<div style="display:flex;justify-content:space-between;font-size:11px;font-weight:800">'+
         '<span style="color:'+tCol+'">'+finFmt(TLc.solde,fin.devise)+' ('+TLc.pct+' %)</span>'+
-        '<span style="color:#999">'+TLc.nb+' versement'+(TLc.nb>1?"s":"")+'</span>'+
+        '<span style="color:var(--mute)">'+TLc.nb+' versement'+(TLc.nb>1?"s":"")+'</span>'+
         '<span style="color:'+(TLc.ecartCum>=0?"var(--ok-d)":"var(--brand)")+'">'+(TLc.ecartCum>0?"+":"")+finFmt(TLc.ecartCum,fin.devise)+'</span></div>'+
         (TLc.ecartCum<0&&TLc.nb>=2?'<div style="font-size:10.5px;color:var(--brand);font-weight:800;margin-top:6px">⚠️ Retard cumulé — à évoquer en séance</div>':'')+
         (TLc.nb===0?'<div style="font-size:10.5px;color:var(--warn-d);font-weight:800;margin-top:6px">Aucun versement validé pour l\'instant</div>':'')+
@@ -8584,7 +8586,7 @@ function viewCoachDetail(){
         var ec=v!==null?v-o:0;
         cells+='<div style="flex:1;text-align:center"><div style="height:26px;border-radius:6px;background:'+bg+';display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:'+(v===null?"#BBB":"#fff")+'">'+(v!==null?Math.round(v):"·")+'</div>'+
           '<div style="font-size:8.5px;font-weight:800;color:'+(ec>=0?"var(--ok-d)":"var(--brand)")+';margin-top:1px">'+(v!==null?(ec>0?"+":"")+Math.round(ec):"")+'</div>'+
-          '<div style="font-size:9px;color:#999">'+finMonthLabel(key).split(" ")[0]+'</div></div>';
+          '<div style="font-size:9px;color:var(--mute)">'+finMonthLabel(key).split(" ")[0]+'</div></div>';
       }
       h+='<div style="display:flex;gap:3px;margin-bottom:10px">'+cells+'</div>';
     })();
@@ -8621,7 +8623,7 @@ function viewCoachDetail(){
   }
   h+='<div class="card" style="border-left:4px solid var(--amber);padding:13px 15px">'+
     '<div style="display:flex;align-items:center;justify-content:space-between">'+
-    '<span style="font-weight:800;font-size:13px">🎂 Anniversaire : '+(bday?bdTxt:'<span style="color:#777">non renseigné</span>')+'</span>'+
+    '<span style="font-weight:800;font-size:13px">🎂 Anniversaire : '+(bday?bdTxt:'<span style="color:var(--mute)">non renseigné</span>')+'</span>'+
     '<button id="cd-bday" style="font-size:12px;font-weight:800;color:var(--brand);padding:6px 12px;border:1.5px solid var(--brand);border-radius:18px;background:#fff">'+(bday?'✏️':'+ Ajouter')+'</button></div>'+
     (bday?(function(){
       // 📅 Prochaine occurrence de l'anniversaire.
@@ -8675,7 +8677,7 @@ function viewCoachDetail(){
   // Zone danger : suppression
   h+='<div style="margin-top:24px;padding-top:16px;border-top:1.5px solid #EEE">'+
     '<button id="cd-delete" style="width:100%;padding:13px 0;border-radius:12px;background:#fff;border:2px solid var(--bad);color:'+R+';font-weight:800;font-size:13px">🗑️ Supprimer ce client</button>'+
-    '<div style="font-size:11px;color:#777;text-align:center;margin-top:6px">Supprime définitivement toutes ses données</div></div>';
+    '<div style="font-size:11px;color:var(--mute);text-align:center;margin-top:6px">Supprime définitivement toutes ses données</div></div>';
 
   h+=cdSecClose();
   return h+'</div></div>';
@@ -9157,7 +9159,7 @@ function viewCoachBilans(){
     '<div class="hdr"><div style="display:flex;align-items:center;gap:12px">'+
     '<button id="blv-back" class="day-back">←</button>'+
     '<div style="flex:1"><div style="color:#fff;font-weight:900;font-size:16px">📋 Mes bilans</div>'+
-    '<div style="color:#888;font-weight:400;font-size:12px">'+L.length+' personne'+(L.length>1?'s':'')+' reçue'+(L.length>1?'s':'')+
+    '<div style="color:var(--mute);font-weight:400;font-size:12px">'+L.length+' personne'+(L.length>1?'s':'')+' reçue'+(L.length>1?'s':'')+
     (L.length?' · '+signes+' signé'+(signes>1?'s':''):'')+'</div></div></div></div>'+
     '<div style="padding:14px 14px 90px">'+
     '<button id="blv-new" class="big-btn" style="padding:15px 0;font-size:14.5px;margin-bottom:14px">+ Nouveau bilan</button>';
@@ -9525,7 +9527,7 @@ function viewCoachKPI(){
     '<div class="hdr"><div style="display:flex;align-items:center;gap:12px">'+
     '<button id="kpi-back" class="day-back">←</button>'+
     '<div><div class="hdr-title" style="font-size:17px">Mon commercial</div>'+
-    '<div class="hdr-sub" style="color:#888;font-weight:400;font-size:12px">Pipeline · relances · KPI</div></div></div></div>'+
+    '<div class="hdr-sub" style="color:var(--mute);font-weight:400;font-size:12px">Pipeline · relances · KPI</div></div></div></div>'+
     '<div style="padding:14px 14px 90px">';
 
   // ── LE CONSEIL DU JOUR ──────────────────────────────────────
@@ -9971,7 +9973,7 @@ function viewCoachDash(){
   var h='<div class="app" style="max-width:480px">'+
     '<div class="hdr"><div class="hdr-brand"><div class="bar bar-r"></div>'+
     '<span class="hdr-title">Coach Dashboard</span><div class="bar bar-b"></div></div>'+
-    '<div class="hdr-sub" style="color:#666;font-weight:400;font-size:12px">AM Coach Genève · TransfoPhysique</div></div>'+
+    '<div class="hdr-sub" style="color:var(--mute);font-weight:400;font-size:12px">AM Coach Genève · TransfoPhysique</div></div>'+
     '<div style="padding:16px 14px 0">'+
     seaDashHTML()+
     '<button id="form-toggle" class="big-btn'+(state.showForm?" gray":"")+'" style="padding:16px 0;font-size:14px">'+
@@ -10111,7 +10113,7 @@ function viewCoachDash(){
       (state.prefillNom?' value="'+esc(state.prefillNom)+'"':'')+'/>'+
       '<div class="card-label">LIEN (identifiant)</div>'+
       '<input id="nc-slug" class="num-input" style="font-size:15px;font-weight:400;margin-bottom:4px" placeholder="ex: sarah"/>'+
-      '<div id="nc-preview" style="font-size:11px;color:#666;margin-bottom:12px"></div>'+
+      '<div id="nc-preview" style="font-size:11px;color:var(--mute);margin-bottom:12px"></div>'+
       '<div class="card-label">DATE DE DÉPART</div>'+
       '<input id="nc-date" type="date" class="num-input" style="font-size:15px;font-weight:400;margin-bottom:12px" value="'+isoLocal()+'"/>'+
       '<div class="card-label">DATE DE FIN D\'ACCÈS (OPTIONNEL — vide = illimité)</div>'+
@@ -10130,9 +10132,9 @@ function viewCoachDash(){
     return sc(b,db)-sc(a,da);
   });
   if(!clients.length){
-    h+='<div style="text-align:center;color:#666;padding:40px">Aucun client encore.</div>';
+    h+='<div style="text-align:center;color:var(--mute);padding:40px">Aucun client encore.</div>';
   }else if(!shown.length){
-    h+='<div style="text-align:center;color:#666;padding:40px">Aucun r\u00e9sultat pour \u00ab '+esc(state.searchQ)+' \u00bb</div>';
+    h+='<div style="text-align:center;color:var(--mute);padding:40px">Aucun r\u00e9sultat pour \u00ab '+esc(state.searchQ)+' \u00bb</div>';
   }else{
     for(var i=0;i<shown.length;i++){
       var c=shown[i];
@@ -10147,7 +10149,7 @@ function viewCoachDash(){
         '<div class="ring-wrap">'+svgRing(score/100,scol,56)+
         '<div class="ring-txt" style="font-size:13px">'+score+'%</div></div>'+
         '<div style="flex:1"><div style="font-weight:900;font-size:18px">'+esc(c.name)+'</div>'+
-        '<div style="font-size:12px;color:#666;margin-top:2px">Jour '+Math.min(t90+1,90)+'/90 · départ '+new Date(c.start_date).toLocaleDateString("fr-FR")+'</div>'+
+        '<div style="font-size:12px;color:var(--mute);margin-top:2px">Jour '+Math.min(t90+1,90)+'/90 · départ '+new Date(c.start_date).toLocaleDateString("fr-FR")+'</div>'+
         (function(){var la=lastActLabel(lsGet("amcoach_"+c.slug,{}));return '<div style="font-size:11px;font-weight:800;margin-top:3px;color:'+la.c+'">📱 Dernière activité : '+la.t+'</div>';})()+'</div></div>'+
         // 📊 Indicateurs 7 derniers jours : briques identité · missions du jour · journal
         (function(){
@@ -10209,7 +10211,7 @@ function viewCoachDash(){
             __dates=__d1.toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"});
           }catch(e){}
           var __J=["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
-          return '<div style="font-size:10.5px;font-weight:800;color:#999;letter-spacing:.4px;text-transform:uppercase;margin-bottom:5px">'+
+          return '<div style="font-size:10.5px;font-weight:800;color:var(--mute);letter-spacing:.4px;text-transform:uppercase;margin-bottom:5px">'+
             'Cette semaine · '+nd+' jour'+(nd>1?'s':'')+' écoulé'+(nd>1?'s':'')+
             (nd<7?' (lundi → '+__J[jourSem]+')':' (semaine complète)')+'</div>'+
             '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px">'+
@@ -10512,7 +10514,7 @@ function viewCoachCalc(){
   var h='<div class="app" style="max-width:480px">'+
     '<div class="hdr"><div class="hdr-brand"><div class="bar bar-r"></div>'+
     '<span class="hdr-title">Calculateur bilan</span><div class="bar bar-b"></div></div>'+
-    '<div class="hdr-sub" style="color:#666;font-weight:400;font-size:12px">AM Coach Genève · Méthode AM Transfo Physique</div></div>'+
+    '<div class="hdr-sub" style="color:var(--mute);font-weight:400;font-size:12px">AM Coach Genève · Méthode AM Transfo Physique</div></div>'+
     '<div style="padding:16px 14px 40px">'+
     '<button id="calc-back" class="big-btn gray" style="padding:12px 0;font-size:13px;margin-bottom:16px">← Retour au dashboard</button>'+
     '<div class="card" style="padding:18px 16px;margin-bottom:16px">'+
@@ -10626,7 +10628,7 @@ function openCalcReport(){
     '.kv{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--soft2);font-size:14px}.kv:last-child{border:0}.kv strong{font-weight:900}'+
     'p,li{font-size:13.5px;color:#444}ul{padding-left:20px;margin:6px 0}li{margin:5px 0}'+
     '.warn{background:#FFF3E0;border-left:4px solid var(--warn-d);border-radius:10px;padding:12px 14px;font-size:13px;margin-top:10px}'+
-    '.foot{text-align:center;margin-top:34px;font-size:11px;color:#666;letter-spacing:2px;text-transform:uppercase;line-height:2}'+
+    '.foot{text-align:center;margin-top:34px;font-size:11px;color:var(--mute);letter-spacing:2px;text-transform:uppercase;line-height:2}'+
     '.pdfbar{position:fixed;left:0;right:0;bottom:0;padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:rgba(255,255,255,.94);border-top:1px solid #E5E5E5;display:flex;gap:10px}'+
     '.pdfbar button{flex:1;padding:14px;border:0;border-radius:12px;font-weight:900;font-size:14px}'+
     '@media print{.pdfbar,body>button{display:none!important}body{background:#fff;padding:0}}';
@@ -10891,7 +10893,7 @@ function viewCoachBilan(){
     '<div class="hdr"><div style="display:flex;align-items:center;gap:12px">'+
     '<button id="bl-back" class="day-back">←</button>'+
     '<div style="flex:1"><div style="color:#fff;font-weight:900;font-size:16px">📋 Bilans — '+esc(cName)+'</div>'+
-    '<div style="color:#666;font-size:12px">Analyse '+(bl.length+1)+' · Méthode AM Transfo Physique</div></div></div></div>'+
+    '<div style="color:var(--mute);font-size:12px">Analyse '+(bl.length+1)+' · Méthode AM Transfo Physique</div></div></div></div>'+
     '<div style="padding:16px 14px 40px">';
   // 🚀 CONVERSION : le prospect signe → on crée son lien tracker et ses
   // bilans le suivent. C'est le geste qui manquait — jusqu'ici il fallait
@@ -11351,8 +11353,8 @@ function successCard(slug,iA,iB){
     '.cl{color:#8A8A8A;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-top:5px}'+
     '.bot{text-align:center}'+
     '.tag{color:#fff;font-weight:900;font-size:13px;letter-spacing:1px}'+
-    '.sub2{color:#666;font-size:11px;margin-top:4px;letter-spacing:1px;text-transform:uppercase}'+
-    '.hint{color:#666;font-size:12px;text-align:center;margin-top:16px;line-height:1.6}'+
+    '.sub2{color:var(--mute);font-size:11px;margin-top:4px;letter-spacing:1px;text-transform:uppercase}'+
+    '.hint{color:var(--mute);font-size:12px;text-align:center;margin-top:16px;line-height:1.6}'+
     '.ig{display:block;width:100%;max-width:380px;margin-top:12px;padding:14px 0;border-radius:12px;background:linear-gradient(45deg,#F58529,#DD2A7B,#8134AF);color:#fff;font-weight:900;font-size:14px;text-align:center;text-decoration:none}'+
     '</style></head><body><button onclick=\'window.close();setTimeout(function(){if(history.length>1)history.back();},250)\' style=\'position:fixed;top:12px;right:12px;z-index:999;background:var(--ink);color:#fff;border:0;border-radius:20px;padding:9px 16px;font-weight:800;font-size:13px\'>✕ Fermer</button>'+
     '<div class="card">'+

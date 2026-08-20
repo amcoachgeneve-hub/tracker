@@ -214,6 +214,27 @@
 .prg-cli-n{flex:1;font-weight:800;font-size:13.5px;color:var(--ink)}
 .prg-cli-e{font-size:11.5px;color:var(--mute);font-weight:700}
 
+/* ═══════════ ⚖️ HISTORIQUE DES PESÉES ═══════════ */
+.pes-share{flex:0 0 42px;height:42px;border-radius:12px;background:var(--soft2);font-size:18px}
+.pes-tete{display:flex;justify-content:space-between;align-items:flex-end;background:#fff;border:1px solid var(--line);
+  border-radius:16px;padding:14px 16px;margin-bottom:12px;box-shadow:0 3px 12px rgba(16,24,40,.05)}
+.pes-tete-l{font-size:11.5px;font-weight:700;color:var(--mute)}
+.pes-tete-v{font-size:26px;font-weight:900;letter-spacing:-.5px;color:var(--ink);line-height:1.1}
+.pes-l{display:flex;align-items:center;gap:10px;padding:13px 4px;border-bottom:1px solid var(--line);cursor:pointer}
+.pes-kg{font-size:23px;font-weight:900;letter-spacing:-.5px;color:var(--ink);line-height:1}
+.pes-kg span{font-size:12px;font-weight:700;color:var(--mute);margin-left:3px}
+.pes-d{font-size:12px;font-weight:800;margin-top:3px}
+.pes-carres{flex:1;display:flex;gap:3px;justify-content:center}
+.pes-carres i{width:11px;height:11px;border-radius:3px;background:var(--soft2)}
+.pes-carres i.on{background:#8BE229}
+.pes-carres i.mid{background:#F5B742}
+.pes-date{flex:0 0 54px;text-align:center;line-height:1.15}
+.pes-mois{font-size:11.5px;color:var(--mute);font-weight:700}
+.pes-num{font-size:19px;font-weight:900;color:var(--ink)}
+.pes-an{font-size:10px;color:var(--mute);font-weight:700}
+.pes-jour{flex:0 0 62px;text-align:right;font-size:11.5px;color:var(--mute);font-weight:700}
+.part-prev{border-radius:16px;overflow:hidden;line-height:0}
+
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Inter','Helvetica Neue',sans-serif;background:#F4F4F4;-webkit-font-smoothing:antialiased}
 button,input,textarea{font-family:inherit;font-size:inherit}
@@ -233,12 +254,12 @@ input,textarea{outline:none}
 }
 
 /* HEADER */
-.hdr{background:var(--ink);padding:20px 18px 16px;position:sticky;top:0;z-index:50;border-radius:0 0 22px 22px}
+.hdr{background:var(--sky);padding:20px 18px 14px;position:sticky;top:0;z-index:50;border-radius:0;border-bottom:1px solid var(--line)}
 .hdr-brand{display:flex;align-items:center;gap:8px;margin-bottom:2px}
 .bar{width:3px;height:18px;border-radius:2px}
 .bar-r{background:var(--brand)}.bar-b{background:var(--brand2)}
-.hdr-title{color:#fff;font-weight:900;font-size:16px;letter-spacing:2px;text-transform:uppercase}
-.hdr-sub{color:#666;font-size:13px;padding-left:11px;font-weight:700}
+.hdr-title{color:var(--ink);font-weight:900;font-size:16px;letter-spacing:2px;text-transform:uppercase}
+.hdr-sub{color:var(--mute);font-size:13px;padding-left:11px;font-weight:700}
 
 /* ONBOARDING / LOGIN */
 .dark-screen{min-height:100vh;background:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center}
@@ -402,7 +423,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="19/08 · Vidéos exos";
+var APP_VERSION="19/08 · Pesées & partage";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -908,6 +929,9 @@ var IS_COACH=params.get("coach")==="1";
 var state={
   view:"calendar",
   selDay:null,
+  pesees:false,    // écran historique des pesées
+  partage:false,   // écran de la carte à partager
+  partMasque:true, // le poids est masqué par défaut sur la carte
   cdProg:null,     // constructeur de séance type ouvert côté coach {id,...}
   cdAssign:null,   // séance en cours d'attribution (son id)
   cdAssignSel:null,
@@ -3516,7 +3540,7 @@ function renderView(){
   else if(state.view==="nutrition")html+=viewNutrition(name,start);
   else if(state.view==="menus")html+=viewMenus(name,start);
   else if(state.view==="finance")html+=viewFinance(name,start);
-  else if(state.view==="stats")html+=viewStats(name);
+  else if(state.view==="stats")html+=(state.partage?viewPartage():state.pesees?viewPesees(name):viewStats(name));
   else if(state.view==="dream")html+=viewDream(name);
   else if(state.view==="sport"||state.view==="training"){
     try{html+=(state.progRun?viewProgRun():viewSport(name,start));}
@@ -5007,21 +5031,21 @@ function viewDay(name,start){
 
   var h='<div class="app"><div class="hdr"><div style="display:flex;align-items:center;gap:12px">'+
     '<button id="day-back" class="day-back">←</button>'+
-    '<div style="flex:1"><div style="color:#fff;font-weight:900;font-size:15px">Jour '+(idx+1)+' · '+DAY_FULL[dow]+'</div>'+
-    '<div style="color:#666;font-size:12px">Semaine '+weekNum+' · '+esc(name)+'</div></div>'+
+    '<div style="flex:1"><div style="color:var(--ink);font-weight:900;font-size:15px">Jour '+(idx+1)+' · '+DAY_FULL[dow]+'</div>'+
+    '<div style="color:var(--mute);font-size:12px">Semaine '+weekNum+' · '+esc(name)+'</div></div>'+
     '<span id="sync-badge" style="font-size:11px"></span><span id="saved-badge" class="saved-badge" style="display:none">✓ Sauvé</span>'+
     '<div class="ring-wrap" id="day-ring">'+svgRing(done/HABITS.length,done===HABITS.length?"var(--ok)":R,48)+
-    '<div class="ring-txt" style="font-size:11px;color:#fff" id="day-ring-txt">'+done+'/'+HABITS.length+'</div></div>'+
+    '<div class="ring-txt" style="font-size:11px;color:var(--ink)" id="day-ring-txt">'+done+'/'+HABITS.length+'</div></div>'+
     '</div></div><div style="padding:16px 14px 0">';
 
   if(idx>today90)h+='<div class="info-banner"><span style="font-size:16px">📅</span><span>Jour futur — tu peux anticiper</span></div>';
 
   // 🌙 Pensée du jour + message du coach (déplacés ici pour épurer l'accueil)
   var penseeJ=pickPensee(allData,idx);
-  h+='<div class="card" style="background:linear-gradient(135deg,#1a1a2e,#16213e);padding:16px;border:none">'+
-    '<div style="color:var(--gold);font-weight:800;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">🌙 La pensée du jour '+(idx+1)+'</div>'+
-    '<div style="color:var(--line);font-size:13.5px;line-height:1.75;font-style:italic">'+esc(penseeJ)+'</div>'+
-    '<button id="pensee-share" style="margin-top:10px;font-size:11px;font-weight:800;color:var(--gold);padding:6px 12px;border:1.5px solid var(--gold);border-radius:16px;background:transparent">📤 Partager</button></div>';
+  h+='<div class="card" style="padding:16px;border-left:4px solid var(--gold)">'+
+    '<div style="color:var(--gold-d);font-weight:800;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">🌙 La pensée du jour '+(idx+1)+'</div>'+
+    '<div style="color:var(--ink);font-size:13.5px;line-height:1.75;font-style:italic">'+esc(penseeJ)+'</div>'+
+    '<button id="pensee-share" style="margin-top:10px;font-size:11px;font-weight:800;color:var(--gold-d);padding:6px 12px;border:1.5px solid var(--gold);border-radius:16px;background:transparent">📤 Partager</button></div>';
   if(idx===today90){
     var alertD=computeAlert(allData,today90,true);
     if(alertD){
@@ -5745,6 +5769,10 @@ function viewStats(name){
     '<span><i style="background:var(--gold-d)"></i> ta tendance</span>'+
     (cible?'<span><i style="background:var(--st-ok)"></i> objectif</span>':'')+
     '</div>';
+  // L'historique détaillé et la carte à partager, à portée de la courbe.
+  h+='<div style="display:flex;gap:9px;margin-top:12px">'+
+    '<button id="st-pes" class="prg-mini" style="flex:1;padding:12px 0">⚖️ Mes pesées</button>'+
+    '<button id="st-part" class="prg-mini" style="flex:1;padding:12px 0">📤 Partager</button></div>';
   h+='</div>';
 
   // ═══ 3. CETTE SEMAINE VS LA PRÉCÉDENTE ═══
@@ -7698,6 +7726,13 @@ function viewProgAssign() {
   return h;
 }
 
+// Les deux boutons posés sous la courbe de poids de l'onglet Stats.
+function bindStatsExtra() {
+  var a = document.getElementById("st-pes");
+  if (a) a.addEventListener("click", function () { state.pesees = true; render(); });
+  var b = document.getElementById("st-part");
+  if (b) b.addEventListener("click", function () { state.partage = true; render(); });
+}
 function bindProgDash() {
   var nw = document.getElementById("sea-new");
   if (nw) nw.addEventListener("click", function () {
@@ -7746,6 +7781,271 @@ function bindProgAssign() {
     state.cdAssign = null; state.cdAssignSel = null;
     render();
     feedback(n ? "Séance attribuée à " + n + " client" + (n > 1 ? "s" : "") : "Séance retirée de tous les clients", "ok");
+  });
+}
+
+// ═══════════ ⚖️ HISTORIQUE DES PESÉES ET CARTE À PARTAGER ═══════════
+// Akli, après avoir vu tourner ce format sur les réseaux : « ça crée un
+// historique, les gens partagent ça, c'est viral, on pourrait l'intégrer ? »
+// Ce qui se partage, ce n'est pas le poids — c'est la PREUVE D'AVOIR TENU.
+// La carte met donc la série en gros, et le poids reste masquable : la
+// plupart des clientes ne publieront jamais leurs kilos, mais montreront
+// volontiers 45 jours sans lâcher. Et la carte porte la marque : un partage
+// qui ne ramène personne ne sert à rien.
+
+// Toutes les pesées, de la plus récente à la plus ancienne, avec l'écart par
+// rapport à la pesée PRÉCÉDENTE (pas la veille : on saute les jours sans
+// pesée, sinon l'écart ne veut rien dire).
+function peseesListe(allData, today90) {
+  var out = [], prec = null;
+  for (var i = 0; i <= today90 && i < 90; i++) {
+    var d = allData[i];
+    if (!d || d.poids == null || d.poids === "") continue;
+    var v = parseFloat(d.poids);
+    if (isNaN(v)) continue;
+    out.push({ jour: i, v: Math.round(v * 10) / 10, delta: prec == null ? null : Math.round((v - prec) * 10) / 10 });
+    prec = v;
+  }
+  return out.reverse();
+}
+// La semaine d'une pesée : combien de jours remplis sur les 7 qui la précèdent.
+function peseeSemaine(allData, jour) {
+  var n = 0;
+  for (var i = jour; i > jour - 7 && i >= 0; i--) {
+    var d = allData[i];
+    if (d && Object.keys(d).length > 0) n++;
+  }
+  return n;
+}
+function peseeDate(start, jour) {
+  if (!start) return "jour " + (jour + 1);
+  var d = new Date(start + "T12:00:00");
+  d.setDate(d.getDate() + jour);
+  return d;
+}
+
+function viewPesees(name) {
+  var allData = getAllData();
+  var start = lsGetStr("amcoach_start_" + CLIENT);
+  var today90 = start ? getToday90(start) : 89;
+  var L = peseesListe(allData, today90);
+  var JOURS = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
+  var MOIS = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
+
+  var h = '<div class="prg-top"><button id="pes-back" class="prg-back">‹</button>' +
+    '<div style="flex:1;min-width:0"><div class="prg-titre">Mes pesées</div>' +
+    '<div class="prg-sous">' + L.length + ' pesée' + (L.length > 1 ? 's' : '') + ' enregistrée' + (L.length > 1 ? 's' : '') + '</div></div>' +
+    '<button id="pes-share" class="pes-share">📤</button></div>' +
+    '<div style="padding:10px 13px 24px">';
+
+  if (!L.length) {
+    h += '<div class="st-ins"><span class="st-ins-i">⚖️</span><div>Aucune pesée pour l\'instant. Note ton poids dans ta journée : c\'est ce qui fait apparaître ta courbe et ton historique.</div></div></div>';
+    return h;
+  }
+
+  // Le résumé qui donne envie de continuer
+  var premier = L[L.length - 1], dernier = L[0];
+  var ecart = Math.round((dernier.v - premier.v) * 10) / 10;
+  h += '<div class="pes-tete">' +
+    '<div><div class="pes-tete-l">Depuis le début</div>' +
+    '<div class="pes-tete-v" style="color:' + (ecart < 0 ? "var(--ok-d)" : ecart > 0 ? "var(--bad)" : "var(--mute)") + '">' +
+    (ecart > 0 ? "+" : "") + ecart + ' kg</div></div>' +
+    '<div style="text-align:right"><div class="pes-tete-l">Aujourd\'hui</div>' +
+    '<div class="pes-tete-v">' + dernier.v + ' kg</div></div></div>';
+
+  for (var i = 0; i < L.length; i++) {
+    var P = L[i], dt = peseeDate(start, P.jour);
+    var jourTxt, moisTxt, numTxt, anTxt;
+    if (typeof dt === "string") { jourTxt = ""; moisTxt = ""; numTxt = dt; anTxt = ""; }
+    else { jourTxt = JOURS[dt.getDay()]; moisTxt = MOIS[dt.getMonth()]; numTxt = dt.getDate(); anTxt = dt.getFullYear(); }
+    var n7 = peseeSemaine(allData, P.jour), carres = "";
+    for (var c = 0; c < 7; c++) carres += '<i class="' + (c < n7 ? (n7 >= 5 ? "on" : "mid") : "") + '"></i>';
+    var dcol = P.delta == null ? "var(--mute)" : P.delta < 0 ? "var(--ok-d)" : P.delta > 0 ? "var(--bad)" : "var(--mute)";
+    h += '<div class="pes-l" data-pes="' + P.jour + '">' +
+      '<div style="flex:0 0 96px"><div class="pes-kg">' + P.v + '<span>kg</span></div>' +
+      '<div class="pes-d" style="color:' + dcol + '">' + (P.delta == null ? "1re pesée" : (P.delta > 0 ? "+" : "") + P.delta + " kg") + '</div></div>' +
+      '<div class="pes-carres">' + carres + '</div>' +
+      '<div class="pes-date"><div class="pes-mois">' + moisTxt + '</div><div class="pes-num">' + numTxt + '</div>' +
+      '<div class="pes-an">' + anTxt + '</div></div>' +
+      '<div class="pes-jour">' + jourTxt + '</div></div>';
+  }
+  h += '<div class="st-note" style="margin-top:12px">Les carrés montrent les jours remplis de la semaine qui précède chaque pesée. Touche une ligne pour corriger un poids.</div></div>';
+  return h;
+}
+
+// ─── La carte à partager ───
+function partageDonnees() {
+  var allData = getAllData();
+  var start = lsGetStr("amcoach_start_" + CLIENT);
+  var today90 = start ? getToday90(start) : 0;
+  var L = peseesListe(allData, today90);
+  var rempli = 0;
+  for (var i = 0; i <= Math.min(89, today90); i++) if (allData[i] && Object.keys(allData[i]).length > 0) rempli++;
+  var serie = 0;
+  try { serie = computeStreak(allData, today90); } catch (e) { }
+  var ecart = null, pct = null;
+  if (L.length > 1) {
+    ecart = Math.round((L[0].v - L[L.length - 1].v) * 10) / 10;
+    pct = Math.round((L[0].v - L[L.length - 1].v) / L[L.length - 1].v * 1000) / 10;
+  }
+  var S = supGet(allData);
+  return {
+    prenom: S.prenom || lsGetStr("amcoach_name_" + CLIENT) || "",
+    jour: Math.min(90, today90 + 1), duree: progLen(start) || 90,
+    serie: serie, rempli: rempli,
+    poids: L.length ? L[0].v : null, ecart: ecart, pct: pct,
+    sept: (function () { var t = []; for (var k = Math.max(0, today90 - 6); k <= today90; k++) t.push(!!(allData[k] && Object.keys(allData[k]).length > 0)); return t; })()
+  };
+}
+// Dessinée sur une toile plutôt qu'en HTML : c'est une IMAGE qu'on partage,
+// pas une page. Format 4:5, celui d'Instagram.
+function partageCarte(masquerPoids) {
+  var D = partageDonnees();
+  var W = 1080, H = 1350, cv = document.createElement("canvas");
+  cv.width = W; cv.height = H;
+  var x = cv.getContext("2d");
+  x.fillStyle = "#FFFFFF"; x.fillRect(0, 0, W, H);
+  // Liseré de marque en haut
+  var g = x.createLinearGradient(0, 0, W, 0);
+  g.addColorStop(0, "#12B5EA"); g.addColorStop(1, "#8A3FFF");
+  x.fillStyle = g; x.fillRect(0, 0, W, 16);
+  x.textAlign = "left";
+  x.fillStyle = "#101828";
+  x.font = "900 40px system-ui,-apple-system,Segoe UI,Roboto,sans-serif";
+  x.fillText("DISCIPLINE 90", 80, 130);
+  x.fillStyle = "#8A8FA3";
+  x.font = "700 30px system-ui,-apple-system,sans-serif";
+  x.fillText(D.prenom + (D.prenom ? " · " : "") + "jour " + D.jour + " sur " + D.duree, 80, 178);
+
+  // Le chiffre qui se partage : la série
+  x.fillStyle = "#101828";
+  x.font = "900 250px system-ui,-apple-system,sans-serif";
+  x.fillText(String(D.serie), 80, 470);
+  var lg = x.measureText(String(D.serie)).width;
+  x.fillStyle = "#12B5EA";
+  x.font = "900 62px system-ui,-apple-system,sans-serif";
+  x.fillText("jours", 96 + lg, 470);
+  x.fillStyle = "#5A6072";
+  x.font = "700 44px system-ui,-apple-system,sans-serif";
+  x.fillText("sans rien lâcher", 80, 545);
+
+  // Les sept derniers jours, en carrés
+  var cx = 80, cy = 640, taille = 92, gap = 20;
+  for (var i = 0; i < D.sept.length; i++) {
+    x.fillStyle = D.sept[i] ? "#8BE229" : "#E7E9EE";
+    var px = cx + i * (taille + gap);
+    x.beginPath();
+    if (x.roundRect) { x.roundRect(px, cy, taille, taille, 16); x.fill(); }
+    else x.fillRect(px, cy, taille, taille);
+  }
+  x.fillStyle = "#8A8FA3";
+  x.font = "700 28px system-ui,-apple-system,sans-serif";
+  x.fillText("les 7 derniers jours", 80, cy + taille + 52);
+
+  // Le résultat : en kilos, ou en pourcentage si le poids reste privé
+  x.fillStyle = "#F2F4F8";
+  if (x.roundRect) { x.beginPath(); x.roundRect(80, 880, W - 160, 200, 28); x.fill(); }
+  else x.fillRect(80, 880, W - 160, 200);
+  x.fillStyle = "#5A6072";
+  x.font = "700 30px system-ui,-apple-system,sans-serif";
+  x.fillText("Depuis le début", 124, 950);
+  x.fillStyle = "#101828";
+  x.font = "900 82px system-ui,-apple-system,sans-serif";
+  var res;
+  if (D.ecart == null) res = D.rempli + " jours remplis";
+  else if (masquerPoids) res = (D.pct > 0 ? "+" : "") + D.pct + " % de poids";
+  else res = (D.ecart > 0 ? "+" : "") + D.ecart + " kg";
+  x.fillText(res, 124, 1035);
+
+  // La signature — sans elle, un partage ne ramène personne
+  x.fillStyle = g; x.fillRect(0, H - 130, W, 130);
+  x.fillStyle = "#FFFFFF";
+  x.font = "900 40px system-ui,-apple-system,sans-serif";
+  x.fillText("AM COACH GENÈVE", 80, H - 68);
+  x.textAlign = "right";
+  x.font = "700 34px system-ui,-apple-system,sans-serif";
+  x.fillText("@amcoachsportif", W - 80, H - 68);
+  return cv;
+}
+function partagerImage(masquerPoids) {
+  var cv = partageCarte(masquerPoids);
+  if (!cv.toBlob) { feedback("Ton navigateur ne sait pas créer l'image", "warn"); return; }
+  cv.toBlob(function (blob) {
+    if (!blob) { feedback("Image impossible à créer", "warn"); return; }
+    var nom = "discipline90.png";
+    try {
+      var f = new File([blob], nom, { type: "image/png" });
+      if (navigator.canShare && navigator.canShare({ files: [f] }) && navigator.share) {
+        navigator.share({ files: [f] }).catch(function () { });
+        return;
+      }
+    } catch (e) { }
+    // Sans partage natif : on télécharge, le client publiera depuis sa galerie.
+    var url = URL.createObjectURL(blob), a = document.createElement("a");
+    a.href = url; a.download = nom;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+    feedback("Image enregistrée", "ok");
+  }, "image/png");
+}
+// L'écran d'aperçu : on voit la carte avant de l'envoyer, et on décide si le
+// poids s'affiche. Par défaut il est MASQUÉ — c'est ce qui fait la différence
+// entre une carte qu'on publie et une carte qu'on garde pour soi.
+function viewPartage() {
+  var masque = state.partMasque !== false;
+  return '<div class="prg-top"><button id="part-back" class="prg-back">‹</button>' +
+    '<div style="flex:1"><div class="prg-titre">Partager ma progression</div>' +
+    '<div class="prg-sous">Aperçu de ce que verront tes amis</div></div></div>' +
+    '<div style="padding:12px 13px 30px">' +
+    '<div id="part-prev" class="part-prev"></div>' +
+    '<div class="prg-chips" style="margin:14px 0 4px">' +
+    '<button class="prg-chip' + (masque ? ' on' : '') + '" data-part-m="1">🙈 Poids masqué</button>' +
+    '<button class="prg-chip' + (!masque ? ' on' : '') + '" data-part-m="0">⚖️ Poids affiché</button></div>' +
+    '<div class="st-note">Masqué, on ne voit qu\'un pourcentage — ta série et ta régularité restent en grand. C\'est ce que la plupart des gens acceptent de publier.</div>' +
+    '<button id="part-go" class="spt-go" style="margin-top:8px">📤 PARTAGER</button>' +
+    '</div>';
+}
+function bindPartage() {
+  function dessine() {
+    var boite = document.getElementById("part-prev");
+    if (!boite) return;
+    var cv = partageCarte(state.partMasque !== false);
+    boite.innerHTML = "";
+    cv.style.width = "100%"; cv.style.height = "auto"; cv.style.borderRadius = "16px";
+    cv.style.boxShadow = "0 6px 20px rgba(16,24,40,.14)";
+    boite.appendChild(cv);
+  }
+  dessine();
+  var bk = document.getElementById("part-back");
+  if (bk) bk.addEventListener("click", function () { state.partage = false; render(); });
+  var ms = document.querySelectorAll("[data-part-m]");
+  for (var i = 0; i < ms.length; i++) ms[i].addEventListener("click", function () {
+    state.partMasque = this.getAttribute("data-part-m") === "1";
+    render();
+  });
+  var go = document.getElementById("part-go");
+  if (go) go.addEventListener("click", function () { partagerImage(state.partMasque !== false); });
+}
+function bindPesees() {
+  var bk = document.getElementById("pes-back");
+  if (bk) bk.addEventListener("click", function () { state.pesees = false; render(); });
+  var sh = document.getElementById("pes-share");
+  if (sh) sh.addEventListener("click", function () { state.partage = true; render(); });
+  var ls = document.querySelectorAll("[data-pes]");
+  for (var i = 0; i < ls.length; i++) ls[i].addEventListener("click", function () {
+    var j = parseInt(this.getAttribute("data-pes"), 10);
+    var all = getAllData(), d = all[j] || {};
+    var v = prompt("Corriger le poids de ce jour (en kg)", d.poids || "");
+    if (v == null) return;
+    v = String(v).replace(",", ".").trim();
+    if (v === "") { delete d.poids; }
+    else {
+      var n = parseFloat(v);
+      if (isNaN(n) || n < 25 || n > 300) { alert("Poids attendu entre 25 et 300 kg."); return; }
+      d.poids = String(Math.round(n * 10) / 10);
+    }
+    saveDay(j, d);
+    render();
   });
 }
 
@@ -13189,6 +13489,9 @@ function bindMain(name,start){
   }
   if(state.view==="nutrition"){bindNutrition();bindNav();return;}
   if(state.view==="menus"){bindNav();return;}
+  if(state.view==="stats"&&!state.partage&&!state.pesees){try{bindStatsExtra();}catch(e){}}
+  if(state.view==="stats"&&state.partage){try{bindPartage();}catch(e){}bindNav();return;}
+  if(state.view==="stats"&&state.pesees){try{bindPesees();}catch(e){}bindNav();return;}
   if(state.view==="finance"){bindFinance();bindNav();return;}
   if(state.view==="sport"||state.view==="training"){try{if(state.progRun)bindProgRun();else bindSport();}catch(e){}bindNav();return;}
   var oc=document.getElementById("open-contract");

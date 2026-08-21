@@ -288,6 +288,13 @@
 .cal-tiroir[open] .cal-sum-c{transform:rotate(180deg)}
 .cal-corps{padding:0 13px 14px}
 
+/* La semaine en cours, sous la jauge : sept lettres, une par jour. */
+.sem-jours{display:flex;gap:6px;justify-content:center;margin-top:14px}
+.sem-j{width:30px;height:30px;border-radius:10px;background:var(--soft2);color:var(--mute);
+  font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center}
+.sem-j.on{background:var(--ok);color:#fff}
+.sem-j.ko{background:#FFE2E2;color:#B23B3B}
+
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Inter','Helvetica Neue',sans-serif;background:#F4F4F4;-webkit-font-smoothing:antialiased}
 button,input,textarea{font-family:inherit;font-size:inherit}
@@ -476,7 +483,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="20/08 · Accueil épuré";
+var APP_VERSION="21/08 · Jauge semaine";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -1670,6 +1677,35 @@ function comboStreak(allData,today90,check){
 }
 function hasBrique(allData,i){var q=allData[400+i];return !!(q&&(q.p||q.e||q.s1||q.s2));}
 function missionWon(allData,i){var m=allData[200+i];return !!(m&&(m.status==="done"||m.status==="half"));}
+// Une journée COMPTE quand les quatre piliers sont là : nutrition, sport,
+// sommeil et les trois questions du soir. C'est plus exigeant que « la
+// journée est ouverte » — et c'est le but : la jauge ne récompense plus le
+// fait d'avoir tapé son poids, mais celui d'avoir tenu sa journée.
+var SEM_PILIERS=[["nutrition","🥗","Nutrition"],["sport","🏋️","Sport"],["sommeil","😴","Sommeil"]];
+function jourValide(allData,i){
+  var d=allData[i];
+  if(!d||!d.habits)return false;
+  for(var k=0;k<SEM_PILIERS.length;k++)if(!d.habits[SEM_PILIERS[k][0]])return false;
+  return mindsetFull(allData,i);
+}
+// La semaine EN COURS du programme : elle commence au jour 1, puis tous les
+// 7 jours. On ne compte que les jours DÉJÀ ÉCOULÉS — une semaine qui commence
+// n'est pas une semaine ratée.
+function semaineAssiduite(allData,today90){
+  var deb=Math.max(0,today90-(today90%7));
+  var ecoules=today90-deb+1, valides=0, jours=[];
+  for(var i=deb;i<=today90;i++){
+    var ok=jourValide(allData,i);
+    if(ok)valides++;
+    jours.push(ok);
+  }
+  return {
+    deb:deb, ecoules:ecoules, valides:valides, jours:jours,
+    semaine:Math.floor(deb/7)+1,
+    pctSemaine:Math.round(valides/7*100),          // avancement sur les 7 jours
+    pctTenue:Math.round(valides/Math.max(1,ecoules)*100)  // qualité de ce qui est passé
+  };
+}
 function mindsetFull(allData,i){var m=allData[i]&&allData[i].mindset;return !!(m&&m.fier&&m.positif&&m.negatif);}
 function computeStreak(allData,today90){
   // Jours consécutifs remplis, en remontant depuis aujourd'hui
@@ -3119,6 +3155,17 @@ function generateDiplome(name,startDate,allData){
   '<div class="brand"><span class="b" style="background:var(--brand)"></span>AM COACH GENÈVE<span class="b" style="background:var(--brand2)"></span></div>'+
   '<div class="sub">TransfoPhysique · Méthode AM Transfo Physique</div>'+
   '<div class="medal">🎓</div>'+
+  // 🏔️ Le chemin parcouru sur les 90 jours, en grand : c'est ce qu'on
+  // regarde en premier sur un diplôme, avant même de lire son nom.
+  (function(){
+    var M=montagne90(allData,89);
+    return '<div style="background:linear-gradient(150deg,#12B5EA,#8A3FFF);border-radius:20px;padding:16px 14px 12px;margin:6px auto 26px;max-width:460px">'+
+      svgMontagne(M.pct,"#5DF2A0",420,190)+
+      '<div style="display:flex;justify-content:space-between;align-items:center;font-family:-apple-system,sans-serif;color:#fff;font-weight:900;font-size:14px;margin-top:4px">'+
+      '<span>'+(M.avecPoids?M.depart+' kg':'Jour 1')+'</span>'+
+      '<span style="font-size:17px">'+M.pct+' % du chemin</span>'+
+      '<span>'+(M.avecPoids?M.cible+' kg':'Jour 90')+'</span></div></div>';
+  })()+
   '<div class="title">DIPLÔME AM TRANSFO</div>'+
   '<div class="subtitle">« Nouvelle version de toi-même »</div>'+
   '<div class="decerne">Décerné à</div>'+
@@ -4645,13 +4692,27 @@ function viewCalendar(name,start){
   // dit AVANT de féliciter. Cocher ses cases n'est pas obtenir un résultat.
   var __msg=supMessage(allData,today90,pct);
   var etat=__msg.texte;
+  // La jauge parle désormais de LA SEMAINE EN COURS : longueur = avancement
+  // sur les 7 jours, couleur = qualité de ce qui est déjà passé. Une semaine
+  // qui démarre n'apparaît donc pas en rouge.
+  var SEM=semaineAssiduite(allData,today90);
+  var semCol=gaugeCol(SEM.pctTenue);
+  var jjours="";
+  var LJ=["L","M","M","J","V","S","D"];
+  for(var sj=0;sj<7;sj++){
+    var faitJ=(sj<SEM.jours.length&&SEM.jours[sj]);
+    var passeJ=(sj<SEM.ecoules);
+    jjours+='<span class="sem-j'+(faitJ?" on":(passeJ?" ko":""))+'">'+LJ[(wkOff+SEM.deb+sj)%7]+'</span>';
+  }
   h+='<div class="card" style="padding:24px 18px 20px;margin-bottom:16px;text-align:center">'+
-    '<div style="font-size:20px;font-weight:900;color:var(--ink);letter-spacing:-.3px;margin-bottom:16px">Ma progression</div>'+
-    '<div class="ring-wrap" style="margin:0 auto">'+svgRing(pct/100,pctColor,196,16)+
+    '<div style="font-size:20px;font-weight:900;color:var(--ink);letter-spacing:-.3px;margin-bottom:4px">Ma semaine '+SEM.semaine+'</div>'+
+    '<div style="font-size:12px;font-weight:700;color:var(--mute);margin-bottom:14px">Journée validée = 🥗 nutrition · 🏋️ sport · 😴 sommeil · 🧠 les 3 questions</div>'+
+    '<div class="ring-wrap" style="margin:0 auto">'+svgRing(SEM.pctSemaine/100,semCol,196,16)+
     '<div class="ring-txt" style="flex-direction:column;gap:2px">'+
-    '<span style="font-size:54px;font-weight:900;letter-spacing:-2px;line-height:1;color:var(--ink)">'+pct+
-    '<span style="font-size:22px;letter-spacing:0">%</span></span>'+
-    '<span style="font-size:12px;font-weight:800;color:var(--mute)">de tes jours remplis</span></div></div>'+
+    '<span style="font-size:52px;font-weight:900;letter-spacing:-2px;line-height:1;color:var(--ink)">'+SEM.valides+
+    '<span style="font-size:26px;letter-spacing:0;color:var(--mute)">/7</span></span>'+
+    '<span style="font-size:12px;font-weight:800;color:var(--mute)">jours validés</span></div></div>'+
+    '<div class="sem-jours">'+jjours+'</div>'+
     // Une alerte se voit : encadré ambre, pas une ligne de couleur parmi
     // d'autres. Elle est SIGNÉE : sans le nom et l'emoji du superviseur, le
     // message ressemble à une notification système et non à quelqu'un qui
@@ -4697,7 +4758,13 @@ function viewCalendar(name,start){
         '<button id="sup-close" style="width:100%;margin-top:9px;padding:8px 0;border-radius:10px;border:1px solid var(--line);background:#fff;font-size:11.5px;font-weight:800;color:var(--mute)">Fermer</button></div>';
       return b+f;
     })()+
-    '<div style="display:flex;gap:7px;justify-content:center;flex-wrap:wrap;margin-top:14px">'+
+    '</div>';
+
+  // Les pastilles de fond de programme (série, jours remplis, jours restants)
+  // ne restent pas collées à la jauge de la semaine : elles racontent les
+  // 90 jours, elles passent donc SOUS la montagne de l'objectif.
+  var hPast='<div class="card" style="padding:14px 15px;margin-bottom:16px;text-align:center">'+
+    '<div style="display:flex;gap:7px;justify-content:center;flex-wrap:wrap">'+
       '<span style="background:var(--soft2);border-radius:100px;padding:9px 15px;font-size:12.5px;font-weight:700;color:var(--ink2)">'+
         (function(){
           var rec=0; try{rec=bestStreak(allData,Math.min(89,today90));}catch(e){}
@@ -4708,7 +4775,7 @@ function viewCalendar(name,start){
       '<span style="background:var(--soft2);border-radius:100px;padding:9px 15px;font-size:12.5px;font-weight:700;color:var(--ink2)"><b>'+filled+'</b> remplis</span>'+
       '<span style="background:var(--soft2);border-radius:100px;padding:9px 15px;font-size:12.5px;font-weight:700;color:var(--ink2)"><b>'+daysLeft+'</b> restants</span>'+
     '</div>'+
-    '<div style="font-size:11.5px;color:var(--mute);font-weight:700;margin-top:13px">Jour '+Math.min(today90+1,progDays)+' sur '+progDays+'</div>'+
+    '<div style="font-size:11.5px;color:var(--mute);font-weight:700;margin-top:11px">Jour '+Math.min(today90+1,progDays)+' sur '+progDays+'</div>'+
     '</div>';
 
 
@@ -4836,6 +4903,11 @@ function viewCalendar(name,start){
         '<div style="font-size:11px;color:var(--mute);margin-top:3px">Nouveau départ, historique conservé</div></button>';
     }
   }
+
+  // Les pastilles du programme, juste sous la montagne : l'ordre voulu par
+  // Akli — la jauge de la semaine, le mot du superviseur, la montagne, puis
+  // les petits scores, et enfin le calendrier.
+  h+=hPast;
 
   // 🎂 ANNIVERSAIRE
   // 🎂 L'anniversaire vit dans le slot 518. Il écrivait AVANT dans le 503,
@@ -7996,6 +8068,91 @@ function viewPesees(name) {
 }
 
 // ─── La carte à partager ───
+// Où en est le chemin, sur l'ensemble du programme ? Sert au diplôme et à la
+// carte à partager — un seul calcul, deux affichages.
+function montagne90(allData, today90) {
+  var start = null, cible = null, act = null;
+  try {
+    var nc = nutCfg(allData);
+    if (nc && nc.pDepart) start = parseFloat(nc.pDepart);
+    if (nc && nc.pCible) cible = parseFloat(nc.pCible);
+  } catch (e) { }
+  for (var i = 0; i <= Math.min(89, today90); i++) {
+    var d = allData[i];
+    if (d && d.poids != null && d.poids !== "") {
+      var v = parseFloat(d.poids);
+      if (!isNaN(v)) { act = v; if (start == null) start = v; }
+    }
+  }
+  var rempli = 0;
+  for (var j = 0; j <= Math.min(89, today90); j++) if (allData[j] && Object.keys(allData[j]).length > 0) rempli++;
+  if (start != null && cible != null && act != null && Math.abs(start - cible) > 0.05) {
+    var pct = Math.round((start - act) / (start - cible) * 100);
+    return { pct: Math.max(0, Math.min(100, pct)), depart: start, actuel: act, cible: cible,
+             rempli: rempli, kg: Math.round((act - start) * 10) / 10, avecPoids: true };
+  }
+  return { pct: Math.round(rempli / Math.max(1, today90 + 1) * 100), depart: start, actuel: act,
+           cible: cible, rempli: rempli, kg: null, avecPoids: false };
+}
+
+// La même montagne, dessinée sur une toile pour la carte à partager. On ne
+// peut pas y coller le SVG : il faudrait le charger de façon asynchrone, et
+// la carte se construit d'un bloc.
+function cvMontagne(x, X, Y, W, H, pct) {
+  var p = Math.max(0, Math.min(100, pct || 0));
+  var solX = X + W, solY = Y + H;
+  function pic(cx, largeur, hauteur, couleur) {
+    x.fillStyle = couleur; x.beginPath();
+    x.moveTo(cx - largeur / 2, solY); x.lineTo(cx, solY - hauteur); x.lineTo(cx + largeur / 2, solY);
+    x.closePath(); x.fill();
+  }
+  pic(X + W * 0.30, W * 0.46, H * 0.62, "rgba(255,255,255,.16)");
+  pic(X + W * 0.74, W * 0.44, H * 0.58, "rgba(255,255,255,.16)");
+  var cx = X + W * 0.5, hh = H * 0.92;
+  pic(cx, W * 0.62, hh, "rgba(255,255,255,.28)");
+  // La neige du sommet
+  x.fillStyle = "#FFFFFF"; x.beginPath();
+  x.moveTo(cx, solY - hh);
+  x.lineTo(cx + W * 0.10, solY - hh * 0.66);
+  x.lineTo(cx + W * 0.04, solY - hh * 0.70);
+  x.lineTo(cx - W * 0.02, solY - hh * 0.62);
+  x.lineTo(cx - W * 0.08, solY - hh * 0.68);
+  x.closePath(); x.fill();
+  // Le sentier : on le trace deux fois, en clair pour le reste du chemin et
+  // en vert pour la portion parcourue.
+  var pts = [[cx - W * 0.16, solY - H * 0.04], [cx + W * 0.10, solY - H * 0.22],
+             [cx - W * 0.12, solY - H * 0.40], [cx + W * 0.08, solY - H * 0.58],
+             [cx - W * 0.04, solY - H * 0.74], [cx, solY - hh + H * 0.04]];
+  function tracer(frac, couleur, epais) {
+    x.strokeStyle = couleur; x.lineWidth = epais; x.lineCap = "round"; x.lineJoin = "round";
+    var n = pts.length - 1, total = n * frac;
+    x.beginPath(); x.moveTo(pts[0][0], pts[0][1]);
+    for (var i = 1; i <= n; i++) {
+      var part = Math.max(0, Math.min(1, total - (i - 1)));
+      if (part <= 0) break;
+      x.lineTo(pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * part,
+               pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * part);
+      if (part < 1) break;
+    }
+    x.stroke();
+  }
+  tracer(1, "rgba(255,255,255,.35)", 12);
+  if (p > 0) tracer(p / 100, "#5DF2A0", 12);
+  // Le marcheur, posé au bout de la portion parcourue
+  var n2 = pts.length - 1, t = n2 * (p / 100), seg = Math.min(n2 - 1, Math.floor(t)), part2 = t - seg;
+  var mx = pts[seg][0] + (pts[seg + 1][0] - pts[seg][0]) * part2;
+  var my = pts[seg][1] + (pts[seg + 1][1] - pts[seg][1]) * part2;
+  x.fillStyle = "#FFFFFF"; x.beginPath(); x.arc(mx, my, 15, 0, Math.PI * 2); x.fill();
+  // Le drapeau du sommet : rouge tant que ce n'est pas fini, vert au bout
+  x.strokeStyle = "#FFFFFF"; x.lineWidth = 5; x.beginPath();
+  x.moveTo(cx, solY - hh); x.lineTo(cx, solY - hh - 58); x.stroke();
+  x.fillStyle = (p >= 100 ? "#5DF2A0" : "#FF6B5A"); x.beginPath();
+  x.moveTo(cx, solY - hh - 58); x.lineTo(cx + 62, solY - hh - 40); x.lineTo(cx, solY - hh - 22);
+  x.closePath(); x.fill();
+  // Le sol
+  x.fillStyle = "rgba(255,255,255,.35)"; x.fillRect(X, solY, W, 6);
+}
+
 function partageDonnees() {
   var allData = getAllData();
   var start = lsGetStr("amcoach_start_" + CLIENT);
@@ -8023,7 +8180,7 @@ function partageDonnees() {
 // pas une page. Format 4:5, celui d'Instagram.
 function partageCarte(masquerPoids) {
   var D = partageDonnees();
-  var W = 1080, H = 1350, cv = document.createElement("canvas");
+  var W = 1080, H = 1620, cv = document.createElement("canvas");
   cv.width = W; cv.height = H;
   var x = cv.getContext("2d");
   x.fillStyle = "#FFFFFF"; x.fillRect(0, 0, W, H);
@@ -8057,8 +8214,30 @@ function partageCarte(masquerPoids) {
   x.font = "700 44px system-ui,-apple-system,sans-serif";
   x.fillText(sous, 80, 545);
 
+  // 🏔️ La montagne du programme, au cœur de la carte : c'est elle qui
+  // raconte le chemin parcouru, mieux qu'un chiffre.
+  (function () {
+    var M = montagne90(getAllData(), (D.jour - 1));
+    var bx = 80, by = 585, bw = W - 160, bh = 330;
+    var g2 = x.createLinearGradient(bx, by, bx + bw, by + bh);
+    g2.addColorStop(0, "#12B5EA"); g2.addColorStop(1, "#8A3FFF");
+    x.fillStyle = g2;
+    if (x.roundRect) { x.beginPath(); x.roundRect(bx, by, bw, bh, 28); x.fill(); }
+    else x.fillRect(bx, by, bw, bh);
+    cvMontagne(x, bx + 40, by + 30, bw - 80, bh - 110, M.pct);
+    x.fillStyle = "rgba(255,255,255,.92)";
+    x.font = "900 34px system-ui,-apple-system,sans-serif";
+    x.textAlign = "left";
+    x.fillText(M.avecPoids ? M.depart + " kg" : "Jour 1", bx + 34, by + bh - 34);
+    x.textAlign = "center";
+    x.fillText(M.pct + " % du chemin", bx + bw / 2, by + bh - 34);
+    x.textAlign = "right";
+    x.fillText(M.avecPoids ? M.cible + " kg" : "Jour " + D.duree, bx + bw - 34, by + bh - 34);
+    x.textAlign = "left";
+  })();
+
   // Les sept derniers jours, en carrés
-  var cx = 80, cy = 640, taille = 92, gap = 20;
+  var cx = 80, cy = 960, taille = 92, gap = 20;
   for (var i = 0; i < D.sept.length; i++) {
     x.fillStyle = D.sept[i] ? "#8BE229" : "#E7E9EE";
     var px = cx + i * (taille + gap);
@@ -8068,22 +8247,22 @@ function partageCarte(masquerPoids) {
   }
   x.fillStyle = "#8A8FA3";
   x.font = "700 28px system-ui,-apple-system,sans-serif";
-  x.fillText("les 7 derniers jours", 80, cy + taille + 52);
+  x.fillText("les 7 derniers jours", 80, cy + taille + 46);
 
   // Le résultat : en kilos, ou en pourcentage si le poids reste privé
   x.fillStyle = "#F2F4F8";
-  if (x.roundRect) { x.beginPath(); x.roundRect(80, 880, W - 160, 200, 28); x.fill(); }
-  else x.fillRect(80, 880, W - 160, 200);
+  if (x.roundRect) { x.beginPath(); x.roundRect(80, 1200, W - 160, 200, 28); x.fill(); }
+  else x.fillRect(80, 1200, W - 160, 200);
   x.fillStyle = "#5A6072";
   x.font = "700 30px system-ui,-apple-system,sans-serif";
-  x.fillText("Depuis le début", 124, 950);
+  x.fillText("Depuis le début", 124, 1270);
   x.fillStyle = "#101828";
   x.font = "900 82px system-ui,-apple-system,sans-serif";
   var res;
   if (D.ecart == null) res = D.rempli + " jours remplis";
   else if (masquerPoids) res = (D.pct > 0 ? "+" : "") + D.pct + " % de poids";
   else res = (D.ecart > 0 ? "+" : "") + D.ecart + " kg";
-  x.fillText(res, 124, 1035);
+  x.fillText(res, 124, 1355);
 
   // La signature — sans elle, un partage ne ramène personne
   x.fillStyle = g; x.fillRect(0, H - 130, W, 130);

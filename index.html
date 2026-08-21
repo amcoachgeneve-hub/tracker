@@ -319,6 +319,13 @@
 .p3-mar-b{flex:0 0 38px;height:38px;border-radius:11px;background:var(--soft2);font-size:18px;font-weight:900;color:var(--ink)}
 .p3-mar-b.plus{background:linear-gradient(90deg,#12B5EA,#8A3FFF);color:#fff}
 
+/* Les six boutons du socle sur l'écran d'attribution. */
+.p3-att{display:flex;align-items:center;gap:7px;background:#fff;border:1.5px solid var(--line);
+  border-radius:13px;padding:11px 12px;margin-bottom:8px}
+.p3-att-n{flex:1;font-weight:800;font-size:13.5px;color:var(--ink)}
+.p3-att-m{flex:0 0 52px;padding:9px 0;border-radius:10px;background:var(--soft2);color:var(--mute);font-weight:900;font-size:12.5px}
+.p3-att-m.on{background:linear-gradient(135deg,#12B5EA,#8A3FFF);color:#fff}
+
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Inter','Helvetica Neue',sans-serif;background:#F4F4F4;-webkit-font-smoothing:antialiased}
 button,input,textarea{font-family:inherit;font-size:inherit}
@@ -507,7 +514,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="21/08 · Programme 3 mois";
+var APP_VERSION="21/08 · Socle & geste retour";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -3601,6 +3608,9 @@ function scrollTopIfRouteChanged(){
 function render(){
   renderView();
   scrollTopIfRouteChanged();
+  // Le geste de retour s'installe une seule fois, ici : bindNav ne tourne que
+  // sur les vues client, et le coach a autant besoin du geste que le client.
+  try{bindSwipeRetour();}catch(e){}
 }
 function renderView(){
   setTimeout(function(){try{applyTheme(getAllData());ancrerNav();}catch(e){}},0);
@@ -7005,7 +7015,7 @@ function viewSport(name, start) {
 
   // ─── Le minuteur du mode 14 jours ───
   h += '<div class="spt-card">' +
-    '<div class="spt-lab">🔔 Minuteur au bip — méthode 14 jours</div>' +
+    '<div class="spt-lab">🔔 Méthode séance express — minuteur au bip</div>' +
     '<div class="spt-txt" style="margin:-4px 0 12px">Au bip, tu fais tes répétitions. Puis tu récupères jusqu\'au bip suivant.</div>' +
     '<div style="display:flex;gap:8px;margin-bottom:9px">' +
     [300, 600, 900].map(function (d) {
@@ -8148,7 +8158,22 @@ function viewProgAssign() {
     '<div style="flex:1;min-width:0"><div class="prg-titre">Attribuer « ' + esc(S.nom) + ' »</div>' +
     '<div class="prg-sous">' + seaResume(S) + '</div></div></div>' +
     '<div style="padding:12px 13px 100px">' +
-    '<div class="st-note">Coche les clients qui doivent recevoir cette séance. Décoche pour la leur retirer — leur historique reste.</div>';
+    '<div class="card-label" style="margin:2px 0 8px">📋 Dans le programme fixe</div>' +
+    '<div class="st-note" style="margin-top:0">Coche les mois où cette séance fait partie du socle. Recoche pour l\'en retirer.</div>' +
+    (function(){
+      var C=prog3Get(), out='';
+      [["h","👨 Hommes"],["f","👩 Femmes"]].forEach(function(sx){
+        out+='<div class="p3-att"><span class="p3-att-n">'+sx[1]+'</span>';
+        for(var m=1;m<=3;m++){
+          var pris=C[sx[0]]["m"+m].sea.indexOf(S.id)>=0;
+          out+='<button class="p3-att-m'+(pris?' on':'')+'" data-p3-add="'+sx[0]+'.'+m+'">M'+m+'</button>';
+        }
+        out+='</div>';
+      });
+      return out;
+    })() +
+    '<div class="card-label" style="margin:18px 0 8px">🎁 En bonus, client par client</div>' +
+    '<div class="st-note" style="margin-top:0">Coche les clients qui doivent recevoir cette séance. Décoche pour la leur retirer — leur historique reste.</div>';
   if (!cl.length) h += '<div class="spt-txt">Aucun client pour l\'instant.</div>';
   for (var i = 0; i < cl.length; i++) {
     var pris = sel.indexOf(cl[i].slug) >= 0;
@@ -8208,6 +8233,17 @@ function bindProgDash() {
 function bindProgAssign() {
   var bk = document.getElementById("prg-ass-back");
   if (bk) bk.addEventListener("click", function () { state.cdAssign = null; state.cdAssignSel = null; render(); });
+  // Les six boutons du socle : un tap range ou retire la séance du mois.
+  var adds = document.querySelectorAll("[data-p3-add]");
+  for (var a = 0; a < adds.length; a++) adds[a].addEventListener("click", function () {
+    var p = String(this.getAttribute("data-p3-add")).split("."), sx = p[0], m = "m" + p[1];
+    var C = prog3Get(), L = C[sx][m].sea, k = L.indexOf(state.cdAssign);
+    if (k >= 0) L.splice(k, 1); else L.push(state.cdAssign);
+    prog3Set(C);
+    render();
+    feedback(k >= 0 ? "Retirée du socle " + (sx === "f" ? "femmes" : "hommes") + " · mois " + p[1]
+                    : "Ajoutée au socle " + (sx === "f" ? "femmes" : "hommes") + " · mois " + p[1], "ok");
+  });
   var cls = document.querySelectorAll("[data-sea-cli]");
   for (var i = 0; i < cls.length; i++) cls[i].addEventListener("click", function () {
     var slug = this.getAttribute("data-sea-cli"), k = state.cdAssignSel.indexOf(slug);
@@ -10797,6 +10833,21 @@ function viewCoachDash(){
           var from=Math.max(0,t90-jourSem), nd=Math.min(t90,89)-from+1;
           if(nd<1)return "";
           var briq=0,miss=0,nut=0,som=0,spo=0;
+          // 🦾 Les séances du programme réellement faites cette semaine, et
+          // 🏃 les marches validées : ce que le client a coché dans l'onglet
+          // Sport, pas l'habitude « sport » du calendrier.
+          var pgSea=0, pgMar=0, pgMarObj=0;
+          try{
+            var __P=progGet(cd), __sx=prog3Sexe(cd), __C=prog3Get();
+            for(var jz=0;jz<(__P.journal||[]).length;jz++){
+              var dj=__P.journal[jz].d;
+              if(!dj)continue;
+              var idx=Math.round((new Date(dj+"T12:00:00")-new Date(c.start_date+"T12:00:00"))/86400000);
+              if(idx>=from&&idx<=Math.min(t90,89))pgSea++;
+            }
+            pgMar=(__P.marches||{})[prog3SemaineCle(t90)]||0;
+            if(__sx)pgMarObj=__C[__sx]["m"+Math.min(3,Math.floor(t90/28)+1)].marches;
+          }catch(e){}
           for(var z=from;z<=Math.min(t90,89);z++){
             var qz=cd[400+z]||{};
             if(qz.p)briq++;if(qz.e)briq++;
@@ -10852,7 +10903,9 @@ function viewCoachDash(){
             '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px">'+
             chip("🧱",briq,nd*2,"Briques identité posées (2/jour) — cette semaine (depuis lundi)")+
             chip("⚡",miss,nd,"Missions du jour gagnées — cette semaine (depuis lundi)")+
-            chip("🏋️",spo,nd,"Sport coché — cette semaine (depuis lundi)")+
+            chip("🏋️",spo,nd,"Sport coché dans le calendrier — cette semaine")+
+            chip("🦾",pgSea,2,"Séances du programme transfo terminées — cette semaine")+
+            (pgMarObj?chip((prog3Sexe(cd)==="f"?"🏃‍♀️":"🏃‍♂️"),pgMar,pgMarObj,"Marches validées — cette semaine"):"")+
             chip("🥗",nut,nd,"Nutrition cochée — cette semaine (depuis lundi)")+
             chip("😴",som,nd,"Sommeil coché — cette semaine (depuis lundi)")+
             protChip+finChip+
@@ -13558,7 +13611,41 @@ function estZoome(){
   var vv=window.visualViewport;
   return !!(vv&&vv.scale>1.05);
 }
+// 👈 Glisser depuis le bord gauche = revenir en arrière, comme sur iOS.
+// On ne réinvente pas la destination : on clique le bouton retour de l'écran,
+// celui qui existe déjà. Si l'écran n'en a pas, le geste ne fait rien.
+var SWIPE_RETOURS=["prg-run-back","part-back","pes-back","pxf-back","prg-bib-close","prg-ass-back","p3-back","prg-back","cd-back"];
+function retourEcran(){
+  for(var i=0;i<SWIPE_RETOURS.length;i++){
+    var b=document.getElementById(SWIPE_RETOURS[i]);
+    if(b){b.click();return true;}
+  }
+  if(state.selDay!=null){state.selDay=null;render();return true;}
+  return false;
+}
+function bindSwipeRetour(){
+  if(window.__swipeOn)return;
+  window.__swipeOn=true;
+  var x0=0,y0=0,t0=0,actif=false;
+  document.addEventListener("touchstart",function(e){
+    if(!e.touches||e.touches.length!==1)return;
+    var t=e.touches[0];
+    // Uniquement depuis le bord gauche : ailleurs, le geste appartient aux
+    // listes qui défilent horizontalement (cartes de séance, bibliothèque).
+    actif=(t.clientX<=28);
+    x0=t.clientX;y0=t.clientY;t0=Date.now();
+  },{passive:true});
+  document.addEventListener("touchend",function(e){
+    if(!actif)return;
+    actif=false;
+    var t=(e.changedTouches&&e.changedTouches[0]);
+    if(!t)return;
+    var dx=t.clientX-x0, dy=Math.abs(t.clientY-y0), dt=Date.now()-t0;
+    if(dx>70&&dy<60&&dt<700){ if(retourEcran())buzz("tap"); }
+  },{passive:true});
+}
 function bindNav(){
+  try{bindSwipeRetour();}catch(e){}
   var navs=document.querySelectorAll("[data-nav]");
   for(var i=0;i<navs.length;i++){
     navs[i].addEventListener("click",function(){

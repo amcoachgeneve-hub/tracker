@@ -295,6 +295,30 @@
 .sem-j.on{background:var(--ok);color:#fff}
 .sem-j.ko{background:#FFE2E2;color:#B23B3B}
 
+/* 🗓️ Le programme en trois mois, dans l'onglet Sport. */
+.p3-mois{border:1.5px solid var(--line);border-radius:16px;padding:12px 13px;margin-bottom:10px;background:var(--soft)}
+.p3-mois.on{border-color:#12B5EA;background:#fff;box-shadow:0 0 0 3px rgba(18,181,234,.12)}
+.p3-mois.fait{opacity:.9}
+.p3-mois.lock{opacity:.6}
+.p3-tete{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:9px}
+.p3-n{font-weight:900;font-size:14.5px;color:var(--ink)}
+.p3-tag{font-size:10px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:#fff;background:#12B5EA;border-radius:100px;padding:3px 9px}
+.p3-sub{flex:1;text-align:right;font-size:11.5px;font-weight:700;color:var(--mute)}
+.p3-sea{width:100%;display:flex;align-items:center;gap:9px;background:#fff;border:1.5px solid var(--line);
+  border-radius:13px;padding:11px 12px;margin-bottom:7px;text-align:left}
+.p3-pt{width:9px;height:26px;border-radius:5px;flex:0 0 9px}
+.p3-sea-n{flex:1;font-weight:900;font-size:13.5px;color:var(--ink)}
+.p3-sea-s{font-size:11.5px;font-weight:700;color:var(--mute)}
+.p3-fl{font-size:20px;color:var(--mute);font-weight:900;line-height:1}
+.p3-marches{display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid var(--line);border-radius:13px;padding:11px 12px;margin-top:4px;flex-wrap:wrap}
+.p3-mar-t{font-weight:900;font-size:13.5px;color:var(--ink)}
+.p3-mar-s{font-size:11.5px;font-weight:700;color:var(--mute);margin-top:2px}
+.p3-mar-p{display:flex;gap:3px}
+.p3-mar{font-size:15px;opacity:.28;filter:grayscale(1)}
+.p3-mar.on{opacity:1;filter:none}
+.p3-mar-b{flex:0 0 38px;height:38px;border-radius:11px;background:var(--soft2);font-size:18px;font-weight:900;color:var(--ink)}
+.p3-mar-b.plus{background:linear-gradient(90deg,#12B5EA,#8A3FFF);color:#fff}
+
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Inter','Helvetica Neue',sans-serif;background:#F4F4F4;-webkit-font-smoothing:antialiased}
 button,input,textarea{font-family:inherit;font-size:inherit}
@@ -483,7 +507,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="21/08 · Jauge semaine";
+var APP_VERSION="21/08 · Programme 3 mois";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -990,6 +1014,7 @@ var state={
   view:"calendar",
   selDay:null,
   tuto:null,       // page du didacticiel d'arrivée (0..6), null = fermé
+  prog3:null,      // écran du programme fixe côté coach ('h' ou 'f')
   calOpen:false,   // tiroir du calendrier ouvert sur l'accueil
   pesees:false,    // écran historique des pesées
   partage:false,   // écran de la carte à partager
@@ -3580,7 +3605,7 @@ function render(){
 function renderView(){
   setTimeout(function(){try{applyTheme(getAllData());ancrerNav();}catch(e){}},0);
   var root=document.getElementById("root");
-  if(IS_COACH){root.innerHTML=state.coachAuthed?((state.blProspect||state.blLibre)?viewCoachBilan():state.coachBilans?viewCoachBilans():state.coachKPI?viewCoachKPI():state.coachStats?viewCoachStats():state.coachCalc?viewCoachCalc():(state.cdAssign?viewProgAssign():state.cdProg?viewProgBuilder():(state.coachDetail?(state.cdTab==="bilan"?viewCoachBilan():viewCoachDetail()):viewCoachDash()))):viewCoachLogin();bindCoach();return;}
+  if(IS_COACH){root.innerHTML=state.coachAuthed?((state.blProspect||state.blLibre)?viewCoachBilan():state.coachBilans?viewCoachBilans():state.coachKPI?viewCoachKPI():state.coachStats?viewCoachStats():state.coachCalc?viewCoachCalc():(state.prog3?viewProg3():state.cdAssign?viewProgAssign():state.cdProg?viewProgBuilder():(state.coachDetail?(state.cdTab==="bilan"?viewCoachBilan():viewCoachDetail()):viewCoachDash()))):viewCoachLogin();bindCoach();return;}
   if(!CLIENT){root.innerHTML=viewNoClient();return;}
   var name=lsGetStr("amcoach_name_"+CLIENT);
   var start=lsGetStr("amcoach_start_"+CLIENT);
@@ -7035,6 +7060,16 @@ function bindSport() {
     maj("cycle", parseInt(this.getAttribute("data-spt-cycle"), 10)); render();
   });
 
+  var mMoins = document.getElementById("p3-marche-moins"), mPlus = document.getElementById("p3-marche-plus");
+  function majMarche(d) {
+    var st = lsGetStr("amcoach_start_" + CLIENT);
+    prog3MarcheAjout(d, st ? getToday90(st) : 0);
+    buzz(d > 0 ? "ok" : "tap");
+    render();
+  }
+  if (mMoins) mMoins.addEventListener("click", function () { majMarche(-1); });
+  if (mPlus) mPlus.addEventListener("click", function () { majMarche(1); });
+
   var runs = document.querySelectorAll("[data-prg-run]");
   for (var rr = 0; rr < runs.length; rr++) runs[rr].addEventListener("click", function () {
     state.progRun = this.getAttribute("data-prg-run");
@@ -7177,7 +7212,11 @@ function bibSet(b) { lsSet("amcoach_biblio", b); }
 // ─── Le programme d'un client (slot 520) ───
 function progGet(all) {
   var p = (all || {})[PROG_SLOT] || {};
-  return { seances: p.seances || [], journal: p.journal || [], dernier: p.dernier || {} };
+  return {
+    seances: p.seances || [], journal: p.journal || [], dernier: p.dernier || {},
+    sexe: p.sexe || null,        // 'h' / 'f' — sert au programme fixe des 3 mois
+    marches: p.marches || {}     // marches validées, par semaine de programme
+  };
 }
 function progSetClient(p) { saveDay(PROG_SLOT, p); }
 function progSetCoach(slug, p) { coachSaveSlot(slug, PROG_SLOT, p); }
@@ -7230,7 +7269,14 @@ function progCoachListeHTML(slug, all) {
       '<button data-prg-del="' + S.id + '" style="padding:9px 11px;border-radius:10px;background:var(--soft2);font-weight:900;font-size:12px">🗑</button>' +
       '</div>';
   }
-  h += '<button id="prg-pick" class="big-btn" style="margin:6px 0 0">＋ Attribuer une séance type</button>' +
+  h += '<div class="card-label" style="margin:14px 0 7px">Programme fixe des 3 mois</div>' +
+    '<div style="display:flex;gap:8px;margin-bottom:8px">' +
+    '<button data-prg-sexe="h" class="prg-mini' + (P.sexe === "h" ? " on" : "") + '" style="flex:1;padding:12px 0">👨 Homme</button>' +
+    '<button data-prg-sexe="f" class="prg-mini' + (P.sexe === "f" ? " on" : "") + '" style="flex:1;padding:12px 0">👩 Femme</button></div>' +
+    '<div style="font-size:11.5px;color:var(--mute);line-height:1.55;margin-bottom:12px">' +
+    (P.sexe ? 'Il reçoit le socle ' + (P.sexe === "f" ? "femme" : "homme") + ' réglé sur le tableau de bord. Pense à lui attribuer aussi les séances de ce socle, sinon elles ne s\'ouvriront pas chez lui.'
+            : '⚠️ Sans ce choix, le socle des 3 mois ne s\'affiche pas chez lui — il ne voit que ses séances attribuées.') + '</div>' +
+    '<button id="prg-pick" class="big-btn" style="margin:6px 0 0">＋ Attribuer une séance type</button>' +
     '<div style="font-size:11.5px;color:var(--mute);line-height:1.55;margin-top:8px">Les séances se construisent une seule fois, en haut du tableau de bord, puis s\'attribuent ici.</div>';
   // Ce que le client a réellement fait
   if (P.journal.length) {
@@ -7604,19 +7650,209 @@ function bindProgBuilder() {
 }
 
 // ═══════════ CÔTÉ CLIENT — MES SÉANCES ═══════════
-function progCartesHTML(all) {
+// ═══════════ 🗓️ LE PROGRAMME FIXE EN TROIS MOIS ═══════════
+// Akli : « il faudrait mois 1, mois 2 et mois 3, et les deux et trois se
+// débloquent après. Je vais mettre le programme fixe homme et femme. Homme
+// mois 1 : deux séances et deux marches d'une heure minimum. Filles idem sauf
+// que les séances muscu seront différentes. Mois 2 : trois marches, mois 3 :
+// quatre. Et il y aura des séances bonus que je pourrai ajouter. »
+//
+// Deux natures de contenu, donc deux mécaniques :
+//   • LE SOCLE — le même pour tout le monde, à sexe égal. Il vit chez le
+//     coach (`amcoach_prog3`), pas chez le client : Akli le règle une fois et
+//     tous ses clients l'ont. Il désigne des SÉANCES TYPES déjà construites,
+//     pour ne pas ressaisir les exercices deux fois.
+//   • LES BONUS — attribués client par client, comme aujourd'hui. Ils
+//     s'affichent à part, sous le socle du mois.
+// Le déverrouillage suit les blocs de 28 jours de l'app (jour 29, jour 57),
+// exactement comme le calendrier de l'accueil : deux règles différentes pour
+// la même notion de « mois » finiraient par se contredire.
+var PROG3_DEF = {
+  m1: { sea: [], marches: 2, min: 60 },
+  m2: { sea: [], marches: 3, min: 60 },
+  m3: { sea: [], marches: 4, min: 60 }
+};
+function prog3Get() {
+  var p = lsGet("amcoach_prog3", null) || {};
+  var out = { h: {}, f: {} };
+  ["h", "f"].forEach(function (sx) {
+    ["m1", "m2", "m3"].forEach(function (m) {
+      var src = (p[sx] && p[sx][m]) || {};
+      out[sx][m] = {
+        sea: src.sea || [],
+        marches: src.marches != null ? src.marches : PROG3_DEF[m].marches,
+        min: src.min != null ? src.min : PROG3_DEF[m].min
+      };
+    });
+  });
+  return out;
+}
+function prog3Set(p) { lsSet("amcoach_prog3", p); }
+// Le sexe du client : celui du suivi protéines s'il est réglé, sinon le
+// réglage posé dans la fiche (slot 520). Sans rien, on prend « homme » et on
+// le dit au coach plutôt que d'afficher un programme au hasard.
+function prog3Sexe(all) {
   var P = progGet(all);
-  if (!P.seances.length) return "";
-  var h = '<div class="spt-card"><div class="spt-lab cy">🗂️ Mes séances</div>' +
-    '<div class="prg-cartes">';
-  for (var i = 0; i < P.seances.length; i++) {
-    var S = P.seances[i], nEx = (S.exos || []).length, M = progMuscle((S.exos[0] || {}).m);
-    h += '<button class="prg-carte" data-prg-run="' + S.id + '" style="background:linear-gradient(150deg,' + M[2] + '1F,#fff);border-color:' + M[2] + '80">' +
-      '<div class="prg-carte-n">' + esc(S.nom) + '</div>' +
-      '<div class="prg-carte-s">' + nEx + ' exercice' + (nEx > 1 ? 's' : '') + '</div></button>';
+  if (P.sexe === "h" || P.sexe === "f") return P.sexe;
+  try { var n = nutCfg(all); if (n && n.sexe) return String(n.sexe).toLowerCase() === "f" ? "f" : "h"; } catch (e) { }
+  return null;
+}
+// Les marches se comptent PAR SEMAINE de programme : c'est l'unité qu'Akli
+// donne à ses clients (« deux marches par semaine »), pas un total mensuel
+// qui laisserait tout rattraper le dernier jour.
+function prog3SemaineCle(today90) { return "S" + (Math.floor(today90 / 7) + 1); }
+function prog3Marches(all, today90) {
+  var P = progGet(all), k = prog3SemaineCle(today90);
+  return (P.marches && P.marches[k]) || 0;
+}
+function prog3MarcheAjout(delta, today90) {
+  var all = getAllData(), P = progGet(all), k = prog3SemaineCle(today90);
+  P.marches = P.marches || {};
+  P.marches[k] = Math.max(0, (P.marches[k] || 0) + delta);
+  progSetClient(P);
+}
+
+// ─── Côté client : les trois mois dans l'onglet Sport ───
+function progCartesHTML(all) {
+  var start = lsGetStr("amcoach_start_" + CLIENT);
+  var today90 = start ? getToday90(start) : 0;
+  var P = progGet(all), sexe = prog3Sexe(all), C = prog3Get();
+  var moisEnCours = Math.min(3, Math.floor(today90 / 28) + 1);
+  var h = "";
+
+  // Le socle, mois par mois
+  if (sexe) {
+    var socle = C[sexe];
+    h += '<div class="spt-card"><div class="spt-lab cy">🗓️ Mon programme — ' + (sexe === "f" ? "femme" : "homme") + '</div>';
+    for (var m = 1; m <= 3; m++) {
+      var cfg = socle["m" + m], ouvert = (m <= moisEnCours);
+      var jourDeb = (m - 1) * 28 + 1;
+      h += '<div class="p3-mois' + (ouvert ? (m === moisEnCours ? " on" : " fait") : " lock") + '">' +
+        '<div class="p3-tete"><span class="p3-n">' + (ouvert ? "Mois " + m : "🔒 Mois " + m) + '</span>' +
+        (m === moisEnCours ? '<span class="p3-tag">en cours</span>' : '') +
+        '<span class="p3-sub">' + (ouvert
+          ? cfg.sea.length + ' séance' + (cfg.sea.length > 1 ? 's' : '') + ' · ' + cfg.marches + ' marche' + (cfg.marches > 1 ? 's' : '') + '/sem'
+          : 'se débloque au jour ' + jourDeb) + '</span></div>';
+      if (ouvert) {
+        var vues = 0;
+        for (var s2 = 0; s2 < cfg.sea.length; s2++) {
+          var S = seaTrouve ? seaTrouve(cfg.sea[s2]) : null;
+          // Le client n'a pas la bibliothèque du coach : la séance doit avoir
+          // été déposée chez lui. On ne montre que ce qu'il peut vraiment ouvrir.
+          var chezLui = null;
+          for (var z = 0; z < P.seances.length; z++) if (P.seances[z].id === cfg.sea[s2]) chezLui = P.seances[z];
+          if (!chezLui) continue;
+          vues++;
+          var nEx = (chezLui.exos || []).length, MU = progMuscle((chezLui.exos[0] || {}).m);
+          h += '<button class="p3-sea" data-prg-run="' + chezLui.id + '" style="border-color:' + MU[2] + '66">' +
+            '<span class="p3-pt" style="background:' + MU[2] + '"></span>' +
+            '<span class="p3-sea-n">' + esc(chezLui.nom) + '</span>' +
+            '<span class="p3-sea-s">' + nEx + ' exo' + (nEx > 1 ? 's' : '') + '</span>' +
+            '<span class="p3-fl">›</span></button>';
+        }
+        if (!vues) h += '<div class="spt-txt" style="padding:2px 2px 8px">Les séances de ce mois arrivent — ton coach les met en place.</div>';
+        // Les marches de la semaine
+        if (m === moisEnCours && cfg.marches > 0) {
+          var faites = prog3Marches(all, today90), pastilles = "";
+          for (var w = 0; w < cfg.marches; w++)
+            pastilles += '<span class="p3-mar' + (w < faites ? " on" : "") + '">🚶</span>';
+          h += '<div class="p3-marches">' +
+            '<div style="flex:1"><div class="p3-mar-t">' + faites + '/' + cfg.marches + ' marches cette semaine</div>' +
+            '<div class="p3-mar-s">' + cfg.min + ' min minimum, sans t\'arrêter</div></div>' +
+            '<div class="p3-mar-p">' + pastilles + '</div>' +
+            '<button class="p3-mar-b" id="p3-marche-moins">−</button>' +
+            '<button class="p3-mar-b plus" id="p3-marche-plus">+</button></div>';
+        }
+      }
+      h += '</div>';
+    }
+    h += '</div>';
   }
-  h += '</div></div>';
+
+  // Les séances bonus : tout ce que le coach a attribué en plus du socle
+  var socleIds = [];
+  if (sexe) ["m1", "m2", "m3"].forEach(function (m) { socleIds = socleIds.concat(C[sexe][m].sea); });
+  var bonus = P.seances.filter(function (S) { return socleIds.indexOf(S.id) < 0; });
+  if (bonus.length) {
+    h += '<div class="spt-card"><div class="spt-lab">🎁 Mes séances bonus</div><div class="prg-cartes">';
+    for (var b = 0; b < bonus.length; b++) {
+      var SB = bonus[b], nB = (SB.exos || []).length, MB = progMuscle((SB.exos[0] || {}).m);
+      h += '<button class="prg-carte" data-prg-run="' + SB.id + '" style="background:linear-gradient(150deg,' + MB[2] + '1F,#fff);border-color:' + MB[2] + '80">' +
+        '<div class="prg-carte-n">' + esc(SB.nom) + '</div>' +
+        '<div class="prg-carte-s">' + nB + ' exercice' + (nB > 1 ? 's' : '') + '</div></button>';
+    }
+    h += '</div></div>';
+  }
+  if (!sexe && !bonus.length && P.seances.length) {
+    // Sécurité : un client sans sexe renseigné garde accès à ses séances.
+    h += '<div class="spt-card"><div class="spt-lab cy">🗂️ Mes séances</div><div class="prg-cartes">';
+    for (var q = 0; q < P.seances.length; q++) {
+      var SQ = P.seances[q], nQ = (SQ.exos || []).length, MQ = progMuscle((SQ.exos[0] || {}).m);
+      h += '<button class="prg-carte" data-prg-run="' + SQ.id + '" style="background:linear-gradient(150deg,' + MQ[2] + '1F,#fff);border-color:' + MQ[2] + '80">' +
+        '<div class="prg-carte-n">' + esc(SQ.nom) + '</div>' +
+        '<div class="prg-carte-s">' + nQ + ' exercice' + (nQ > 1 ? 's' : '') + '</div></button>';
+    }
+    h += '</div></div>';
+  }
   return h;
+}
+
+// ─── Côté coach : régler le socle des trois mois ───
+function viewProg3() {
+  var C = prog3Get(), sx = state.prog3 === "f" ? "f" : "h", biblio = seaGet();
+  var h = '<div class="prg-top"><button id="p3-back" class="prg-back">‹</button>' +
+    '<div style="flex:1"><div class="prg-titre">Programme fixe</div>' +
+    '<div class="prg-sous">Le socle commun à tous tes clients</div></div></div>' +
+    '<div style="padding:12px 13px 40px">' +
+    '<div class="prg-tabs">' +
+    '<button class="prg-tab' + (sx === "h" ? " on" : "") + '" data-p3-sx="h">👨 Hommes</button>' +
+    '<button class="prg-tab' + (sx === "f" ? " on" : "") + '" data-p3-sx="f">👩 Femmes</button></div>' +
+    '<div class="st-note">Choisis les séances types de chaque mois et le nombre de marches par semaine. Le mois 2 se débloque au jour 29, le mois 3 au jour 57. Tout ce que tu attribues en plus à un client apparaît chez lui en « séances bonus ».</div>';
+  for (var m = 1; m <= 3; m++) {
+    var cfg = C[sx]["m" + m];
+    h += '<div class="card" style="padding:15px 16px;margin-bottom:12px">' +
+      '<div class="card-label">Mois ' + m + (m > 1 ? ' · jour ' + ((m - 1) * 28 + 1) : '') + '</div>';
+    if (!biblio.length) h += '<div class="st-note">Crée d\'abord des séances types sur le tableau de bord.</div>';
+    for (var i = 0; i < biblio.length; i++) {
+      var pris = cfg.sea.indexOf(biblio[i].id) >= 0;
+      h += '<div class="prg-cli' + (pris ? ' on' : '') + '" data-p3-sea="' + m + '.' + biblio[i].id + '">' +
+        '<span class="prg-plus">' + (pris ? '✓' : '＋') + '</span>' +
+        '<span class="prg-cli-n">' + esc(biblio[i].nom) + '</span>' +
+        '<span class="prg-cli-e">' + seaResume(biblio[i]) + '</span></div>';
+    }
+    h += '<div style="display:flex;gap:9px;margin-top:10px">' +
+      '<div style="flex:1"><div class="prg-flab">🚶 Marches / semaine</div>' +
+      '<input class="prg-in" type="number" min="0" max="7" value="' + cfg.marches + '" data-p3-mar="' + m + '"/></div>' +
+      '<div style="flex:1"><div class="prg-flab">Durée mini (min)</div>' +
+      '<input class="prg-in" type="number" min="10" max="180" step="5" value="' + cfg.min + '" data-p3-min="' + m + '"/></div></div>' +
+      '</div>';
+  }
+  return h + '</div>';
+}
+function bindProg3() {
+  var C = prog3Get(), sx = state.prog3 === "f" ? "f" : "h";
+  var bk = document.getElementById("p3-back");
+  if (bk) bk.addEventListener("click", function () { state.prog3 = null; render(); });
+  var tabs = document.querySelectorAll("[data-p3-sx]");
+  for (var t = 0; t < tabs.length; t++) tabs[t].addEventListener("click", function () { state.prog3 = this.getAttribute("data-p3-sx"); render(); });
+  var seas = document.querySelectorAll("[data-p3-sea]");
+  for (var i = 0; i < seas.length; i++) seas[i].addEventListener("click", function () {
+    var p = String(this.getAttribute("data-p3-sea")).split("."), m = "m" + p[0], id = p.slice(1).join(".");
+    var k = C[sx][m].sea.indexOf(id);
+    if (k >= 0) C[sx][m].sea.splice(k, 1); else C[sx][m].sea.push(id);
+    prog3Set(C); render();
+  });
+  function champ(attr, cle) {
+    var els = document.querySelectorAll("[" + attr + "]");
+    for (var j = 0; j < els.length; j++) els[j].addEventListener("change", function () {
+      var m = "m" + this.getAttribute(attr), v = parseInt(this.value, 10);
+      if (isNaN(v)) return;
+      C[sx][m][cle] = Math.max(0, v);
+      prog3Set(C);
+    });
+  }
+  champ("data-p3-mar", "marches");
+  champ("data-p3-min", "min");
 }
 
 // L'écran d'exécution : le client coche ce qu'il fait vraiment.
@@ -7790,6 +8026,13 @@ function bindProgRun() {
 // Les boutons de la section « Séances muscu » de la fiche client
 function bindProgFiche(slug) {
   var all = lsGet("amcoach_" + slug, {}), P = progGet(all);
+  var sxs = document.querySelectorAll("[data-prg-sexe]");
+  for (var q = 0; q < sxs.length; q++) sxs[q].addEventListener("click", function () {
+    var v = this.getAttribute("data-prg-sexe");
+    P.sexe = (P.sexe === v ? null : v);
+    progSetCoach(slug, P);
+    render();
+  });
   var pk = document.getElementById("prg-pick");
   if (pk) pk.addEventListener("click", function () {
     var l = seaGet();
@@ -7887,7 +8130,8 @@ function seaDashHTML() {
       '<button data-sea-dup="' + S.id + '" style="padding:9px 10px;border-radius:10px;background:var(--soft2);font-weight:900;font-size:12px">⧉</button>' +
       '<button data-sea-del="' + S.id + '" style="padding:9px 10px;border-radius:10px;background:var(--soft2);font-weight:900;font-size:12px">🗑</button></div>';
   }
-  h += '<button id="sea-new" class="big-btn" style="margin:4px 0 0;padding:13px 0;font-size:13.5px">＋ Nouvelle séance type</button></div></details>';
+  h += '<button id="sea-new" class="big-btn" style="margin:4px 0 0;padding:13px 0;font-size:13.5px">＋ Nouvelle séance type</button>' +
+    '<button id="sea-prog3" class="prg-mini" style="width:100%;margin-top:9px;padding:13px 0">🗓️ Programme fixe des 3 mois (H / F)</button></div></details>';
   return h;
 }
 
@@ -7942,6 +8186,8 @@ function bindProgDash() {
     var els = document.querySelectorAll("[" + attr + "]");
     for (var i = 0; i < els.length; i++) els[i].addEventListener("click", function () { cb(this.getAttribute(attr)); });
   }
+  var p3 = document.getElementById("sea-prog3");
+  if (p3) p3.addEventListener("click", function () { state.prog3 = "h"; render(); });
   chaque("data-sea-edit", function (id) { state.cdProg = { id: id, open: 0 }; render(); });
   chaque("data-sea-att", function (id) { state.cdAssign = id; state.cdAssignSel = null; render(); });
   chaque("data-sea-dup", function (id) {
@@ -11866,6 +12112,7 @@ function bilanReport(slug,idx,mode){
 function bindCoach(){
   // 🏋️ Le constructeur de séance est un écran à part entière : il a ses
   // propres gestionnaires et rien d'autre de la fiche n'est affiché.
+  if(state.coachAuthed&&state.prog3){try{bindProg3();}catch(e){}return;}
   if(state.coachAuthed&&state.cdAssign){try{bindProgAssign();}catch(e){}return;}
   if(state.coachAuthed&&state.cdProg){try{bindProgBuilder();}catch(e){}return;}
   // Les boutons de la section « Séances muscu » de la fiche client

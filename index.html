@@ -514,7 +514,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="21/08 · Socle synchronisé";
+var APP_VERSION="21/08 · Socle sur le téléphone";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -7228,7 +7228,8 @@ function progGet(all) {
     sexe: p.sexe || null,        // 'h' / 'f' — sert au programme fixe des 3 mois
     marches: p.marches || {},    // marches validées, par semaine de programme
     socle: p.socle || [],        // identifiants venus du programme fixe
-    bonus: p.bonus || []         // identifiants donnés en plus, client par client
+    bonus: p.bonus || [],        // identifiants donnés en plus, client par client
+    plan: p.plan || null         // le socle recopié chez le client (voyage avec lui)
   };
 }
 function progSetClient(p) { saveDay(PROG_SLOT, p); }
@@ -7717,6 +7718,13 @@ function prog3Sync(sx) {
     var slug = cl[i].slug, all = lsGet("amcoach_" + slug, {});
     if (prog3Sexe(all) !== sx) continue;
     var P = progGet(all), anciens = P.socle || [];
+    // Le plan part avec le client : mois par mois, les identifiants, le nombre
+    // de marches et la durée minimale. Sans ça, son téléphone ne sait rien du
+    // programme — il n'a pas le réglage du coach.
+    P.plan = { m1: null, m2: null, m3: null };
+    ["m1", "m2", "m3"].forEach(function (m) {
+      P.plan[m] = { sea: C[m].sea.slice(), marches: C[m].marches, min: C[m].min };
+    });
     // Les séances du socle sont déposées (ou rafraîchies) chez le client.
     for (var k = 0; k < ids.length; k++) {
       var S = seaTrouve(ids[k]);
@@ -7764,7 +7772,10 @@ function prog3MarcheAjout(delta, today90) {
 function progCartesHTML(all) {
   var start = lsGetStr("amcoach_start_" + CLIENT);
   var today90 = start ? getToday90(start) : 0;
-  var P = progGet(all), sexe = prog3Sexe(all), C = prog3Get();
+  var P = progGet(all), sexe = prog3Sexe(all);
+  // On lit le plan DÉPOSÉ CHEZ LE CLIENT en priorité ; le réglage du coach ne
+  // sert que sur son propre téléphone, quand il regarde sa propre fiche.
+  var C = P.plan || (prog3Get()[sexe] || null);
   var moisEnCours = Math.min(3, Math.floor(today90 / 28) + 1);
   var h = "";
   // Sur un programme court (Reset 14 jours), le socle des trois mois est hors
@@ -7775,8 +7786,8 @@ function progCartesHTML(all) {
   if (court) sexe = null;
 
   // Le socle, mois par mois
-  if (sexe) {
-    var socle = C[sexe];
+  if (sexe && C) {
+    var socle = C;
     h += '<div class="spt-card"><div class="spt-lab cy">🗓️ Mon programme — ' + (sexe === "f" ? "femme" : "homme") + '</div>';
     for (var m = 1; m <= 3; m++) {
       var cfg = socle["m" + m], ouvert = (m <= moisEnCours);
@@ -7825,7 +7836,9 @@ function progCartesHTML(all) {
 
   // Les séances bonus : tout ce que le coach a attribué en plus du socle
   var socleIds = [];
-  if (sexe) ["m1", "m2", "m3"].forEach(function (m) { socleIds = socleIds.concat(C[sexe][m].sea); });
+  // `C` est déjà le socle de CE client (son plan déposé), pas l'annuaire des
+  // deux sexes : l'indexer par sexe faisait planter tout l'onglet Sport.
+  if (C) ["m1", "m2", "m3"].forEach(function (m) { if (C[m]) socleIds = socleIds.concat(C[m].sea || []); });
   var bonus = P.seances.filter(function (S) { return socleIds.indexOf(S.id) < 0; });
   if (bonus.length) {
     h += '<div class="spt-card"><div class="spt-lab">🎁 Mes séances bonus</div><div class="prg-cartes">';
@@ -7906,6 +7919,9 @@ function bindProg3() {
       if (isNaN(v)) return;
       C[sx][m][cle] = Math.max(0, v);
       prog3Set(C);
+      // Le nombre de marches et la durée voyagent eux aussi : sans cette
+      // synchro, le client garderait l'ancien objectif.
+      prog3Sync(sx);
     });
   }
   champ("data-p3-mar", "marches");

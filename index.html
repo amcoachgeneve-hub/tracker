@@ -514,7 +514,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="21/08 · Socle & geste retour";
+var APP_VERSION="21/08 · Socle synchronisé";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -4691,7 +4691,7 @@ function viewCalendar(name,start){
   var curW=latestWeight(allData,today90);
 
   var h='<div class="hdr"><div class="hdr-brand"><div class="bar bar-r"></div>'+
-    '<span class="hdr-title">DISCIPLINE 90</span><div class="bar bar-b"></div></div>'+
+    '<span class="hdr-title">'+(progDays<90?'RESET '+progDays+' JOURS':'DISCIPLINE 90')+'</span><div class="bar bar-b"></div></div>'+
     '<div class="hdr-sub">'+esc(name)+' · '+progDays+' jours'+(BLOC>1?' · Bloc '+BLOC+'/4':'')+' <span id="sync-badge" style="font-size:11px"></span></div></div>'+
     '<div style="padding:16px 14px 0">';
 
@@ -5619,8 +5619,8 @@ function bindBlocsJour(name,start){
       '<div class="brand"><div class="b" style="background:var(--brand)"></div><span class="bn">AM COACH GENÈVE</span><div class="b" style="background:var(--brand2)"></div></div>'+
       '<div class="mid"><div class="gi">'+grade2.icon+'</div><div class="gn">'+grade2.name+'</div><div class="xp">'+xp2+' XP</div>'+
       '<div class="st">'+stTxt+'</div>'+
-      '<div class="day">Jour '+(today90+1)+'/90 · 🔥 '+streak2+' jours d\'affilée</div></div>'+
-      '<div class="bot"><div class="tag">TRANSFO\'PHYSIQUE</div><div class="sub2">@amcoachsportif · 90 jours</div></div>'+
+      '<div class="day">Jour '+(today90+1)+'/'+(progLen(start)||90)+' · 🔥 '+streak2+' jours d\'affilée</div></div>'+
+      '<div class="bot"><div class="tag">TRANSFO\'PHYSIQUE</div><div class="sub2">@amcoachsportif · '+(progLen(start)||90)+' jours</div></div>'+
       '</div>'+
       '<div class="hint">📸 Fais une capture d\'écran de cette carte<br>et poste-la en story 💪</div>'+
       docRetourHTML(false)+'</body></html>';
@@ -5906,7 +5906,8 @@ function viewStats(name){
 
   var h='<div class="hdr"><div class="hdr-brand"><div class="bar bar-r"></div>'+
     '<span class="hdr-title">Ma progression</span><div class="bar bar-b"></div></div>'+
-    '<div class="hdr-sub">'+esc(name)+' · jour '+(Math.min(90,today90+1))+' sur 90</div></div>'+
+    (function(){var __d=progLen(lsGetStr("amcoach_start_"+CLIENT))||90;
+      return '<div class="hdr-sub">'+esc(name)+' · jour '+(Math.min(__d,today90+1))+' sur '+__d+'</div></div>';})()+
     '<div style="padding:14px 14px 0">';
 
   // ═══ 1. LE VERDICT ═══
@@ -7225,7 +7226,9 @@ function progGet(all) {
   return {
     seances: p.seances || [], journal: p.journal || [], dernier: p.dernier || {},
     sexe: p.sexe || null,        // 'h' / 'f' — sert au programme fixe des 3 mois
-    marches: p.marches || {}     // marches validées, par semaine de programme
+    marches: p.marches || {},    // marches validées, par semaine de programme
+    socle: p.socle || [],        // identifiants venus du programme fixe
+    bonus: p.bonus || []         // identifiants donnés en plus, client par client
   };
 }
 function progSetClient(p) { saveDay(PROG_SLOT, p); }
@@ -7701,6 +7704,41 @@ function prog3Set(p) { lsSet("amcoach_prog3", p); }
 // Le sexe du client : celui du suivi protéines s'il est réglé, sinon le
 // réglage posé dans la fiche (slot 520). Sans rien, on prend « homme » et on
 // le dit au coach plutôt que d'afficher un programme au hasard.
+// Recopie le socle d'un sexe chez tous les clients concernés. Appelé à chaque
+// changement du socle et quand le coach fixe le sexe d'un client.
+function prog3Sync(sx) {
+  if (sx !== "h" && sx !== "f") return 0;
+  var C = prog3Get()[sx], ids = [];
+  ["m1", "m2", "m3"].forEach(function (m) {
+    C[m].sea.forEach(function (id) { if (ids.indexOf(id) < 0) ids.push(id); });
+  });
+  var cl = lsGet("amcoach_clients", []), touches = 0;
+  for (var i = 0; i < cl.length; i++) {
+    var slug = cl[i].slug, all = lsGet("amcoach_" + slug, {});
+    if (prog3Sexe(all) !== sx) continue;
+    var P = progGet(all), anciens = P.socle || [];
+    // Les séances du socle sont déposées (ou rafraîchies) chez le client.
+    for (var k = 0; k < ids.length; k++) {
+      var S = seaTrouve(ids[k]);
+      if (!S) continue;
+      var dedans = -1;
+      for (var j = 0; j < P.seances.length; j++) if (P.seances[j].id === ids[k]) dedans = j;
+      var copie = JSON.parse(JSON.stringify(S));
+      if (dedans >= 0) P.seances[dedans] = copie; else P.seances.push(copie);
+    }
+    // Celles qui SORTENT du socle repartent — sauf si elles avaient été
+    // attribuées en bonus à ce client, auquel cas elles lui restent.
+    var bonus = P.bonus || [];
+    for (var a = 0; a < anciens.length; a++) {
+      if (ids.indexOf(anciens[a]) >= 0 || bonus.indexOf(anciens[a]) >= 0) continue;
+      P.seances = P.seances.filter(function (z) { return z.id !== anciens[a]; });
+    }
+    P.socle = ids.slice();
+    progSetCoach(slug, P);
+    touches++;
+  }
+  return touches;
+}
 function prog3Sexe(all) {
   var P = progGet(all);
   if (P.sexe === "h" || P.sexe === "f") return P.sexe;
@@ -7729,6 +7767,12 @@ function progCartesHTML(all) {
   var P = progGet(all), sexe = prog3Sexe(all), C = prog3Get();
   var moisEnCours = Math.min(3, Math.floor(today90 / 28) + 1);
   var h = "";
+  // Sur un programme court (Reset 14 jours), le socle des trois mois est hors
+  // sujet : on ne montre pas des portes verrouillées au jour 29 à quelqu'un
+  // qui s'arrête au jour 14. Ses séances bonus, elles, restent affichées.
+  var court = false;
+  try { court = progLen(lsGetStr("amcoach_start_" + CLIENT)) <= 14; } catch (e) { }
+  if (court) sexe = null;
 
   // Le socle, mois par mois
   if (sexe) {
@@ -7850,7 +7894,10 @@ function bindProg3() {
     var p = String(this.getAttribute("data-p3-sea")).split("."), m = "m" + p[0], id = p.slice(1).join(".");
     var k = C[sx][m].sea.indexOf(id);
     if (k >= 0) C[sx][m].sea.splice(k, 1); else C[sx][m].sea.push(id);
-    prog3Set(C); render();
+    prog3Set(C);
+    var n = prog3Sync(sx);
+    render();
+    feedback((k >= 0 ? "Retirée du mois " : "Ajoutée au mois ") + p[0] + (n ? " · " + n + " client" + (n > 1 ? "s" : "") + " à jour" : ""), "ok");
   });
   function champ(attr, cle) {
     var els = document.querySelectorAll("[" + attr + "]");
@@ -8041,7 +8088,11 @@ function bindProgFiche(slug) {
     var v = this.getAttribute("data-prg-sexe");
     P.sexe = (P.sexe === v ? null : v);
     progSetCoach(slug, P);
+    // Le socle correspondant part immédiatement chez lui : sans ça, le client
+    // voyait ses mois vides jusqu'à la prochaine modification du programme.
+    if (P.sexe) prog3Sync(P.sexe);
     render();
+    if (P.sexe) feedback("Socle " + (P.sexe === "f" ? "femmes" : "hommes") + " envoyé", "ok");
   });
   var pk = document.getElementById("prg-pick");
   if (pk) pk.addEventListener("click", function () {
@@ -8106,12 +8157,22 @@ function seaAttribuer(id, slugs) {
     var slug = cl[i].slug, P = progGet(lsGet("amcoach_" + slug, {}));
     var veut = slugs.indexOf(slug) >= 0, dedans = -1;
     for (var j = 0; j < P.seances.length; j++) if (P.seances[j].id === id) dedans = j;
+    // On note qui a reçu la séance EN BONUS : sans cette trace, retirer la
+    // séance du socle la reprendrait aussi à ceux à qui elle a été donnée en
+    // plus, ce qui n'est pas la même décision.
+    P.bonus = P.bonus || [];
+    var kb = P.bonus.indexOf(id);
+    if (veut && kb < 0) P.bonus.push(id);
+    if (!veut && kb >= 0) P.bonus.splice(kb, 1);
+    var duSocle = (P.socle || []).indexOf(id) >= 0;
     if (veut) {
       var copie = JSON.parse(JSON.stringify(S));
       if (dedans >= 0) P.seances[dedans] = copie; else P.seances.push(copie);
-    } else if (dedans >= 0) {
+    } else if (dedans >= 0 && !duSocle) {
+      // Une séance du socle ne se retire pas client par client : elle fait
+      // partie du programme, on la laisse.
       P.seances.splice(dedans, 1);
-    } else continue;
+    }
     progSetCoach(slug, P);
   }
 }
@@ -8184,8 +8245,10 @@ function viewProgAssign() {
       '<span class="prg-cli-n">' + esc(cl[i].name) + '</span>' +
       '<span class="prg-cli-e">' + (faites ? faites + ' fois' : '') + '</span></div>';
   }
-  h += '</div><div class="prg-barre"><button id="prg-ass-ok" class="big-btn" style="margin:0">' +
-    'Enregistrer l\'attribution' + '</button></div>';
+  h += '<div class="st-note" style="margin-top:14px">Les cases du programme fixe sont enregistrées dès que tu les touches. ' +
+    'Le bouton ci-dessous ne concerne que les clients nommés.</div>' +
+    '</div><div class="prg-barre"><button id="prg-ass-ok" class="big-btn" style="margin:0">' +
+    'Enregistrer les clients cochés' + '</button></div>';
   return h;
 }
 
@@ -8240,9 +8303,10 @@ function bindProgAssign() {
     var C = prog3Get(), L = C[sx][m].sea, k = L.indexOf(state.cdAssign);
     if (k >= 0) L.splice(k, 1); else L.push(state.cdAssign);
     prog3Set(C);
+    var n = prog3Sync(sx);
     render();
-    feedback(k >= 0 ? "Retirée du socle " + (sx === "f" ? "femmes" : "hommes") + " · mois " + p[1]
-                    : "Ajoutée au socle " + (sx === "f" ? "femmes" : "hommes") + " · mois " + p[1], "ok");
+    feedback((k >= 0 ? "Retirée du socle " : "Ajoutée au socle ") + (sx === "f" ? "femmes" : "hommes") +
+      " · mois " + p[1] + (n ? " · " + n + " client" + (n > 1 ? "s" : "") + " à jour" : ""), "ok");
   });
   var cls = document.querySelectorAll("[data-sea-cli]");
   for (var i = 0; i < cls.length; i++) cls[i].addEventListener("click", function () {
@@ -8252,11 +8316,19 @@ function bindProgAssign() {
   });
   var ok = document.getElementById("prg-ass-ok");
   if (ok) ok.addEventListener("click", function () {
-    seaAttribuer(state.cdAssign, state.cdAssignSel);
-    var n = state.cdAssignSel.length;
+    var avant = seaClients(state.cdAssign).map(function (c) { return c.slug; });
+    var apres = state.cdAssignSel || [];
+    var retires = avant.filter(function (sl) { return apres.indexOf(sl) < 0; });
+    // Retirer une séance à quelqu'un ne doit jamais arriver par accident.
+    if (retires.length && !confirm("Retirer cette séance de " + retires.length + " client" +
+        (retires.length > 1 ? "s" : "") + " ?\nLeur historique reste.")) return;
+    seaAttribuer(state.cdAssign, apres);
+    var n = apres.length;
     state.cdAssign = null; state.cdAssignSel = null;
     render();
-    feedback(n ? "Séance attribuée à " + n + " client" + (n > 1 ? "s" : "") : "Séance retirée de tous les clients", "ok");
+    feedback(n ? "Séance attribuée à " + n + " client" + (n > 1 ? "s" : "")
+               : (retires.length ? "Séance retirée de " + retires.length + " client" + (retires.length > 1 ? "s" : "")
+                                 : "Aucun client sélectionné — le socle, lui, est déjà enregistré"), "ok");
   });
 }
 
@@ -8650,7 +8722,7 @@ function bindPesees() {
 var TUTO_PAGES = [
   {
     tag: "BIENVENUE", ico: "🎯", c1: "#12B5EA", c2: "#8A3FFF",
-    t: "90 jours, un jour à la fois",
+    t: "Un jour à la fois",
     d: "Cette appli n'est pas un carnet de notes. C'est ton fil rouge quotidien : tu coches ta journée, elle te dit où tu en es, et ton coach voit la même chose que toi."
   },
   {
@@ -8671,7 +8743,7 @@ var TUTO_PAGES = [
   {
     tag: "SPORT", ico: "🏋️", c1: "#0EA5C6", c2: "#8A3FFF",
     t: "Tes séances et tes minuteurs",
-    d: "Retrouve les séances préparées par ton coach : tu coches chaque série, tu notes ce que tu as vraiment fait, et le temps de repos part tout seul. Les minuteurs continuent de sonner même écran éteint."
+    d: "Retrouve les séances préparées par ton coach : tu coches chaque série, tu notes ce que tu as vraiment fait, et le temps de repos part tout seul. Sur un test de 14 jours, c\'est la méthode séance express qui te guide. Les minuteurs continuent de sonner même écran éteint."
   },
   {
     tag: "PROGRESSION", ico: "📈", c1: "#8A3FFF", c2: "#12B5EA",

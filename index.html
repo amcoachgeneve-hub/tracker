@@ -522,7 +522,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="22/08 · Vidéo intégrée";
+var APP_VERSION="22/08 · Propagation cloud";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -7232,6 +7232,22 @@ function bibSet(b) { lsSet("amcoach_biblio", b); }
 // On ne touche QUE ce qui décrit l'exercice (nom, muscle, matériel, vidéo,
 // image) — jamais les séries, le repos ou la note, qui appartiennent à la
 // séance et non à l'exercice.
+// Rapatrie les données de tous les clients depuis le serveur, puis exécute.
+// Sans ça, toute propagation part d'un miroir local qui peut être vide.
+function progClientsCharger(cb) {
+  var cl = lsGet("amcoach_clients", []), reste = cl.length;
+  if (!reste) { cb(); return; }
+  var fini = false;
+  // Filet de sécurité : si le réseau traîne, on applique quand même au bout
+  // de 6 secondes sur ce qu'on a — mieux vaut une propagation partielle
+  // qu'un bouton qui ne répond jamais.
+  var minuteur = setTimeout(function () { if (!fini) { fini = true; cb(); } }, 6000);
+  for (var i = 0; i < cl.length; i++) {
+    coachLoadClient(cl[i].slug, true, function () {
+      if (--reste <= 0 && !fini) { fini = true; clearTimeout(minuteur); cb(); }
+    });
+  }
+}
 function bibPropager(X) {
   if (!X || !X.id) return { seances: 0, clients: 0 };
   function majExo(e) {
@@ -7248,7 +7264,11 @@ function bibPropager(X) {
   if (nS) seaSet(l);
   var nC = 0, cl = lsGet("amcoach_clients", []);
   for (var c = 0; c < cl.length; c++) {
-    var Pc = progGet(lsGet("amcoach_" + cl[c].slug, {})), chg = false;
+    var brut = lsGet("amcoach_" + cl[c].slug, {});
+    // Dossier vide en local = données pas encore redescendues : on passe,
+    // plutôt que d'écraser le vrai dossier par une version appauvrie.
+    if (!brut || !Object.keys(brut).length) continue;
+    var Pc = progGet(brut), chg = false;
     for (var k = 0; k < Pc.seances.length; k++)
       for (var z = 0; z < (Pc.seances[k].exos || []).length; z++)
         if (majExo(Pc.seances[k].exos[z])) chg = true;
@@ -7497,12 +7517,17 @@ function bindProgExoForm() {
     X.v = (document.getElementById("pxf-v").value || "").trim();
     X.g = (document.getElementById("pxf-g").value || "").trim();
     bibSet(b);
-    var prop = bibPropager(X);
     state.cdProg.edit = null;
     render();
-    feedback(id === "new" ? "Exercice créé"
-      : "Exercice mis à jour" + (prop.seances ? " · " + prop.seances + " séance" + (prop.seances > 1 ? "s" : "") : "") +
-        (prop.clients ? " · " + prop.clients + " client" + (prop.clients > 1 ? "s" : "") : ""), "ok");
+    feedback(id === "new" ? "Exercice créé" : "Mise à jour en cours…", "ok");
+    // On va chercher les dossiers clients avant de propager : c'est ce qui
+    // manquait, et qui faisait que rien ne bougeait chez eux.
+    progClientsCharger(function () {
+      var prop = bibPropager(X);
+      render();
+      if (id !== "new") feedback("Exercice mis à jour · " + prop.seances + " séance" + (prop.seances > 1 ? "s" : "") +
+        " · " + prop.clients + " client" + (prop.clients > 1 ? "s" : ""), "ok");
+    });
   });
   var del = document.getElementById("pxf-del");
   if (del) del.addEventListener("click", function () {
@@ -7756,6 +7781,7 @@ function prog3Sync(sx) {
   var cl = lsGet("amcoach_clients", []), touches = 0;
   for (var i = 0; i < cl.length; i++) {
     var slug = cl[i].slug, all = lsGet("amcoach_" + slug, {});
+    if (!all || !Object.keys(all).length) continue;   // dossier pas encore chargé
     if (prog3Sexe(all) !== sx) continue;
     var P = progGet(all), anciens = P.socle || [];
     // Le plan part avec le client : mois par mois, les identifiants, le nombre
@@ -7948,9 +7974,12 @@ function bindProg3() {
     var k = C[sx][m].sea.indexOf(id);
     if (k >= 0) C[sx][m].sea.splice(k, 1); else C[sx][m].sea.push(id);
     prog3Set(C);
-    var n = prog3Sync(sx);
     render();
-    feedback((k >= 0 ? "Retirée du mois " : "Ajoutée au mois ") + p[0] + (n ? " · " + n + " client" + (n > 1 ? "s" : "") + " à jour" : ""), "ok");
+    progClientsCharger(function () {
+      var n = prog3Sync(sx);
+      render();
+      feedback((k >= 0 ? "Retirée du mois " : "Ajoutée au mois ") + p[0] + " · " + n + " client" + (n > 1 ? "s" : "") + " à jour", "ok");
+    });
   });
   function champ(attr, cle) {
     var els = document.querySelectorAll("[" + attr + "]");
@@ -8275,7 +8304,12 @@ function seaDashHTML() {
       '<button data-sea-del="' + S.id + '" style="padding:9px 10px;border-radius:10px;background:var(--soft2);font-weight:900;font-size:12px">🗑</button></div>';
   }
   h += '<button id="sea-new" class="big-btn" style="margin:4px 0 0;padding:13px 0;font-size:13.5px">＋ Nouvelle séance type</button>' +
-    '<button id="sea-prog3" class="prg-mini" style="width:100%;margin-top:9px;padding:13px 0">🗓️ Programme fixe des 3 mois (H / F)</button></div></details>';
+    '<button id="sea-prog3" class="prg-mini" style="width:100%;margin-top:9px;padding:13px 0">🗓️ Programme fixe des 3 mois (H / F)</button>' +
+    // Le repère de version, à portée de regard côté coach : quand quelque
+    // chose « ne marche pas », la première question est toujours de savoir
+    // quelle version tourne réellement sur le téléphone.
+    '<div style="text-align:center;font-size:10.5px;color:var(--mute);opacity:.7;font-weight:700;margin-top:12px">v' + APP_VERSION + '</div>' +
+    '</div></details>';
   return h;
 }
 
@@ -8376,10 +8410,13 @@ function bindProgAssign() {
     var C = prog3Get(), L = C[sx][m].sea, k = L.indexOf(state.cdAssign);
     if (k >= 0) L.splice(k, 1); else L.push(state.cdAssign);
     prog3Set(C);
-    var n = prog3Sync(sx);
     render();
-    feedback((k >= 0 ? "Retirée du socle " : "Ajoutée au socle ") + (sx === "f" ? "femmes" : "hommes") +
-      " · mois " + p[1] + (n ? " · " + n + " client" + (n > 1 ? "s" : "") + " à jour" : ""), "ok");
+    progClientsCharger(function () {
+      var n = prog3Sync(sx);
+      render();
+      feedback((k >= 0 ? "Retirée du socle " : "Ajoutée au socle ") + (sx === "f" ? "femmes" : "hommes") +
+        " · mois " + p[1] + " · " + n + " client" + (n > 1 ? "s" : "") + " à jour", "ok");
+    });
   });
   var cls = document.querySelectorAll("[data-sea-cli]");
   for (var i = 0; i < cls.length; i++) cls[i].addEventListener("click", function () {

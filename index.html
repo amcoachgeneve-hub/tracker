@@ -522,7 +522,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="22/08 · Propagation cloud";
+var APP_VERSION="22/08 · Resync & poids du jour";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -1031,6 +1031,7 @@ var state={
   tuto:null,       // page du didacticiel d'arrivée (0..6), null = fermé
   prog3:null,      // écran du programme fixe côté coach ('h' ou 'f')
   calOpen:false,   // tiroir du calendrier ouvert sur l'accueil
+  statsExo:null,   // exercice dont on regarde la courbe de progression
   pesees:false,    // écran historique des pesées
   partage:false,   // écran de la carte à partager
   partMasque:true, // le poids est masqué par défaut sur la carte
@@ -3695,7 +3696,7 @@ function renderView(){
   else if(state.view==="nutrition")html+=viewNutrition(name,start);
   else if(state.view==="menus")html+=viewMenus(name,start);
   else if(state.view==="finance")html+=viewFinance(name,start);
-  else if(state.view==="stats")html+=(state.partage?viewPartage():state.pesees?viewPesees(name):viewStats(name));
+  else if(state.view==="stats")html+=(state.partage?viewPartage():state.pesees?viewPesees(name):state.statsExo?viewStatsExo(name):viewStats(name));
   else if(state.view==="dream")html+=viewDream(name);
   else if(state.view==="sport"||state.view==="training"){
     try{html+=(state.progRun?viewProgRun():viewSport(name,start));}
@@ -5892,6 +5893,85 @@ var ST_ECHELLE=[
   {c:"linear-gradient(140deg,#15A05C,#34D07E)",t:"#fff"},
   {c:"linear-gradient(140deg,#00D97E,#5CFFB0)",t:"#053B27"}
 ];
+
+// ═══════════ 📈 LA COURBE D'UN EXERCICE ═══════════
+// Une séance donne plusieurs séries : la courbe suit LA MEILLEURE de chaque
+// séance (charge d'abord, répétitions pour départager). C'est le seul chiffre
+// qui se compare honnêtement d'une fois à l'autre.
+function statsExoSerie(allData, ref) {
+  var PG = progGet(allData);
+  var J = (PG.journal || []).slice().reverse(), pts = [], nom = "", muscle = "complet";
+  for (var j = 0; j < J.length; j++) {
+    for (var e = 0; e < J[j].exos.length; e++) {
+      var X = J[j].exos[e];
+      if (X.ref !== ref) continue;
+      nom = X.n || nom; muscle = X.m || muscle;
+      var best = null;
+      for (var s = 0; s < X.series.length; s++) {
+        var SR = X.series[s];
+        if (!SR.ok) continue;
+        // Les kilos notés à part (cible en %) priment sur la valeur de cible.
+        var ch = parseFloat(SR.kg) || parseFloat(SR.c) || 0, rp = parseFloat(SR.v) || 0;
+        if (!ch && !rp) continue;
+        if (!best || ch > best.ch || (ch === best.ch && rp > best.rp)) best = { ch: ch, rp: rp, t: SR.t || "reps" };
+      }
+      if (best) pts.push({ d: J[j].d, ch: best.ch, rp: best.rp, t: best.t, vol: volSeance(X) });
+    }
+  }
+  return { nom: nom, muscle: muscle, pts: pts };
+}
+function volSeance(X) {
+  var v = 0;
+  for (var s = 0; s < X.series.length; s++) {
+    var SR = X.series[s];
+    if (!SR.ok) continue;
+    v += (parseFloat(SR.kg) || parseFloat(SR.c) || 0) * (parseFloat(SR.v) || 0);
+  }
+  return Math.round(v);
+}
+function viewStatsExo(name) {
+  var allData = getAllData(), E = statsExoSerie(allData, state.statsExo);
+  var M = progMuscle(E.muscle);
+  var h = '<div class="prg-top"><button id="stx-back" class="prg-back">‹</button>' +
+    '<div style="flex:1;min-width:0"><div class="prg-titre">' + esc(E.nom || "Exercice") + '</div>' +
+    '<div class="prg-sous"><span style="color:' + M[2] + '">●</span> ' + M[1] + ' · ' + E.pts.length + ' séance' + (E.pts.length > 1 ? 's' : '') + '</div></div></div>' +
+    '<div style="padding:12px 13px 26px">';
+  if (E.pts.length < 2) {
+    h += '<div class="st-ins"><span class="st-ins-i">📈</span><div>Il faut au moins deux séances avec cet exercice pour tracer une courbe. Continue, elle apparaîtra toute seule.</div></div></div>';
+    return h;
+  }
+  var p0 = E.pts[0], p1 = E.pts[E.pts.length - 1];
+  var avecCharge = E.pts.some(function (p) { return p.ch > 0; });
+  var vals = E.pts.map(function (p) { return avecCharge ? p.ch : p.rp; });
+  var dCh = Math.round((p1.ch - p0.ch) * 10) / 10, dRp = p1.rp - p0.rp;
+  var coul = (avecCharge ? dCh : dRp) > 0 ? "var(--st-ok)" : (avecCharge ? dCh : dRp) < 0 ? "var(--st-bad)" : "var(--st-dim)";
+  h += '<div class="chart-card">' +
+    '<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px">' +
+    '<div class="chart-dot" style="background:' + M[2] + '"></div>' +
+    '<div style="font-weight:900;font-size:15px;flex:1">' + (avecCharge ? "Charge de ma meilleure série" : "Répétitions de ma meilleure série") + '</div>' +
+    '<div style="font-weight:900;font-size:15px;color:' + coul + '">' + (avecCharge ? p1.ch + " kg" : p1.rp + " reps") + '</div></div>' +
+    '<div class="st-note" style="margin:0 0 8px">' +
+    (avecCharge
+      ? (dCh > 0 ? "+" + dCh + " kg depuis ta première séance" : dCh < 0 ? dCh + " kg depuis ta première séance" : "même charge qu'au début")
+      : (dRp > 0 ? "+" + dRp + " répétitions depuis ta première séance" : dRp < 0 ? dRp + " répétitions depuis ta première séance" : "même nombre qu'au début")) + '</div>' +
+    svgLineChart(vals, M[2], { txt: "#8A8FA3" }) + '</div>';
+  // Le détail séance par séance, du plus récent au plus ancien
+  h += '<div class="st-h3"><div class="st-h3-bar" style="background:' + M[2] + '"></div><span>🗓️ Séance par séance</span></div>';
+  for (var i = E.pts.length - 1; i >= 0; i--) {
+    var p = E.pts[i], prec = i > 0 ? E.pts[i - 1] : null;
+    var ec = prec ? Math.round((p.ch - prec.ch) * 10) / 10 : null;
+    h += '<div class="st-exo" style="display:flex;align-items:center;gap:10px">' +
+      '<div style="flex:1"><div class="st-exo-n">' + frDate(p.d) + '</div>' +
+      '<div class="st-exo-l">' + (p.ch ? p.ch + ' kg × ' + p.rp : p.rp + ' ' + progTypeCourt(p.t)) +
+      (p.vol ? ' · ' + p.vol + ' kg soulevés' : '') + '</div></div>' +
+      (ec != null && ec !== 0
+        ? '<div class="st-exo-d" style="color:' + (ec > 0 ? "var(--st-ok)" : "var(--st-bad)") + '">' + (ec > 0 ? "+" : "") + ec + ' kg</div>'
+        : '') + '</div>';
+  }
+  h += '</div>';
+  return h;
+}
+
 function viewStats(name){
   var allData=getAllData();
   var start=lsGetStr("amcoach_start_"+CLIENT);
@@ -6121,7 +6201,7 @@ function viewStats(name){
         for(var s2=0;s2<X.series.length;s2++){
           var SR=X.series[s2];
           if(!SR.ok)continue;
-          var ch=parseFloat(SR.c)||0, rp=parseFloat(SR.v)||0;
+          var ch=parseFloat(SR.kg)||parseFloat(SR.c)||0, rp=parseFloat(SR.v)||0;
           if(!ch&&!rp)continue;
           // Meilleure série : la charge d'abord, les répétitions pour départager.
           if(!best||ch>best.ch||(ch===best.ch&&rp>best.rp))best={ch:ch,rp:rp,t:SR.t||"reps"};
@@ -6145,11 +6225,11 @@ function viewStats(name){
       else if(dRp>0){txt="+"+dRp+" répétition"+(dRp>1?"s":"")+" à charge égale";coul="var(--st-ok)";}
       else if(dRp<0){txt=dRp+" répétition"+(dRp<-1?"s":"")+" vs la 1re fois";coul="var(--st-bad)";}
       else {txt="stable depuis la 1re fois";coul="var(--st-dim)";}
-      lignes+='<div class="st-exo">'+
+      lignes+='<button class="st-exo" data-st-exo="'+esc(ordre[o])+'" style="width:100%;text-align:left;display:block">'+
         '<div class="st-exo-hd"><span style="color:'+M[2]+'">●</span>'+
         '<span class="st-exo-n">'+esc(E.nom)+'</span>'+
         '<span class="st-exo-d" style="color:'+coul+'">'+maintenant+'</span></div>'+
-        '<div class="st-exo-l" style="color:'+coul+'">'+txt+' · '+E.pts.length+' séances</div></div>';
+        '<div class="st-exo-l" style="color:'+coul+'">'+txt+' · '+E.pts.length+' séances · voir la courbe ›</div></button>';
       n++;
     }
     if(!n)return;
@@ -7153,6 +7233,8 @@ var PROG_MUSCLES = [
 ];
 function progMuscle(k) { for (var i = 0; i < PROG_MUSCLES.length; i++) if (PROG_MUSCLES[i][0] === k) return PROG_MUSCLES[i]; return ["complet", "Corps entier", "#9AE6B4"]; }
 function progTypeNom(t) { for (var i = 0; i < PROG_TYPES.length; i++) if (PROG_TYPES[i][0] === t) return PROG_TYPES[i][1]; return "Répétitions"; }
+// Une cible en pourcentage (%1RM, %FC, %) ne dit rien du poids soulevé.
+function progEstPct(u) { return u === "%" || u === "%1RM" || u === "%FC"; }
 function progTypeCourt(t) {
   return { reps: "reps", duree: "s", distm: "m", distkm: "km", cal: "kcal", tours: "tours", puis: "W" }[t] || "reps";
 }
@@ -7247,6 +7329,57 @@ function progClientsCharger(cb) {
       if (--reste <= 0 && !fini) { fini = true; clearTimeout(minuteur); cb(); }
     });
   }
+}
+// Réaligne la description des exercices d'une séance sur la bibliothèque.
+// Ne touche ni les séries, ni le repos, ni la note : ils appartiennent à la
+// séance. Renvoie true si quelque chose a bougé.
+function seaRafraichir(S) {
+  if (!S || !S.exos) return false;
+  var b = bibGet(), chg = false;
+  for (var i = 0; i < S.exos.length; i++) {
+    var e = S.exos[i], X = null;
+    for (var k = 0; k < b.length; k++) if (b[k].id === e.ref) X = b[k];
+    if (!X) continue;
+    if (e.n !== X.n || e.m !== X.m || e.mat !== X.mat || e.v !== X.v || e.g !== X.g) {
+      e.n = X.n; e.m = X.m; e.mat = X.mat; e.v = X.v; e.g = X.g;
+      chg = true;
+    }
+  }
+  return chg;
+}
+// Remet toutes les séances et tous les clients au niveau de la bibliothèque.
+// Renvoie un compte-rendu lisible : ce qui a bougé, et ce qui cloche.
+function progResync() {
+  var b = bibGet(), ids = {};
+  for (var i = 0; i < b.length; i++) ids[b[i].id] = true;
+  var nS = 0, nC = 0, orphelins = {}, l = seaGet();
+  for (var k = 0; k < l.length; k++) {
+    for (var e = 0; e < (l[k].exos || []).length; e++)
+      if (!ids[l[k].exos[e].ref]) orphelins[l[k].exos[e].n || l[k].exos[e].ref] = true;
+    if (seaRafraichir(l[k])) nS++;
+  }
+  seaSet(l);
+  var cl = lsGet("amcoach_clients", []);
+  for (var c = 0; c < cl.length; c++) {
+    var brut = lsGet("amcoach_" + cl[c].slug, {});
+    if (!brut || !Object.keys(brut).length) continue;
+    var P = progGet(brut), chg = false;
+    for (var z = 0; z < P.seances.length; z++) {
+      // On repart de la séance type quand elle existe encore chez le coach :
+      // c'est elle qui fait foi. Sinon on réaligne au moins les exercices.
+      var T = seaTrouve(P.seances[z].id);
+      if (T) {
+        var copie = JSON.parse(JSON.stringify(T));
+        seaRafraichir(copie);
+        P.seances[z] = copie; chg = true;
+      } else if (seaRafraichir(P.seances[z])) chg = true;
+      for (var y = 0; y < (P.seances[z].exos || []).length; y++)
+        if (!ids[P.seances[z].exos[y].ref]) orphelins[P.seances[z].exos[y].n || P.seances[z].exos[y].ref] = true;
+    }
+    if (chg) { progSetCoach(cl[c].slug, P); nC++; }
+  }
+  prog3Sync("h"); prog3Sync("f");
+  return { seances: nS, clients: nC, orphelins: Object.keys(orphelins) };
 }
 function bibPropager(X) {
   if (!X || !X.id) return { seances: 0, clients: 0 };
@@ -7587,7 +7720,15 @@ function bindProgBuilder() {
   if (!S) return;
   function sauver(rerender) {
     S.maj = isoLocal();
-    l[idx] = S;
+    // La séance en mémoire peut dater d'avant une modification d'exercice :
+    // on la réaligne sur la bibliothèque avant d'écrire, sinon on écraserait
+    // le lien vidéo ou le nom qu'on vient de corriger.
+    seaRafraichir(S);
+    l = seaGet();
+    var pos = -1;
+    for (var q = 0; q < l.length; q++) if (l[q].id === S.id) pos = q;
+    if (pos >= 0) l[pos] = S; else l.push(S);
+    idx = (pos >= 0 ? pos : l.length - 1);
     seaSet(l);
     if (rerender !== false) render();
   }
@@ -7798,6 +7939,7 @@ function prog3Sync(sx) {
       var dedans = -1;
       for (var j = 0; j < P.seances.length; j++) if (P.seances[j].id === ids[k]) dedans = j;
       var copie = JSON.parse(JSON.stringify(S));
+      seaRafraichir(copie);
       if (dedans >= 0) P.seances[dedans] = copie; else P.seances.push(copie);
     }
     // Celles qui SORTENT du socle repartent — sauf si elles avaient été
@@ -8033,7 +8175,8 @@ function viewProgRun() {
       var vid = ytId(X.v);
       h += vid
         ? '<div class="prg-lecteur"><iframe src="https://www.youtube-nocookie.com/embed/' + esc(vid) +
-          '?playsinline=1&rel=0&modestbranding=1" title="Démonstration" frameborder="0" ' +
+          '?autoplay=1&mute=1&loop=1&playlist=' + esc(vid) + '&playsinline=1&rel=0&modestbranding=1&controls=1" ' +
+          'title="Démonstration" frameborder="0" ' +
           'allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>' +
           '<div class="prg-lecteur-x"><a href="' + esc(X.v) + '" target="_blank" rel="noopener">Ouvrir dans YouTube ↗</a></div>'
         : '<div class="prg-lecteur-x"><a href="' + esc(X.v) + '" target="_blank" rel="noopener">▶️ Ouvrir la vidéo ↗</a></div>';
@@ -8049,7 +8192,13 @@ function viewProgRun() {
         '<input class="prg-in" type="number" inputmode="numeric" value="' + (SR.v != null ? SR.v : "") + '" data-prg-rv="' + e + '.' + s + '" placeholder="' + (cible.v || "") + '"/>' +
         '<span class="prg-at">@</span>' +
         '<input class="prg-in court" type="number" inputmode="decimal" step="0.5" value="' + (SR.c != null ? SR.c : "") + '" data-prg-rc="' + e + '.' + s + '" placeholder="' + (cible.c || "") + '"/>' +
-        '<span class="prg-un">' + esc(cible.u && cible.u !== "—" ? cible.u : "") + '</span></div>';
+        '<span class="prg-un">' + esc(cible.u && cible.u !== "—" ? cible.u : "") + '</span>' +
+        // Cible exprimée en pourcentage : le client note en plus les kilos
+        // qu'il a vraiment mis, sinon sa progression n'est mesurable nulle part.
+        (progEstPct(cible.u)
+          ? '<input class="prg-in court" type="number" inputmode="decimal" step="0.5" value="' + (SR.kg != null ? SR.kg : "") + '" data-prg-rk="' + e + '.' + s + '" placeholder="kg"/>' +
+            '<span class="prg-un">kg</span>'
+          : '') + '</div>';
     }
     h += '</div></div>';
   }
@@ -8078,7 +8227,7 @@ function progRunEtat(S, P) {
     var X = S.exos[e], ex = { ref: X.ref, n: X.n, m: X.m, mat: X.mat, v: X.v, g: X.g, note: X.note, repos: X.repos, series: [] };
     for (var s = 0; s < X.series.length; s++) {
       var C = X.series[s];
-      ex.series.push({ t: C.t, v: C.v, c: C.c, u: C.u, ok: 0 });
+      ex.series.push({ t: C.t, v: C.v, c: C.c, u: C.u, kg: "", ok: 0 });
     }
     W.exos.push(ex);
   }
@@ -8124,6 +8273,7 @@ function bindProgRun() {
   }
   champ("data-prg-rv", function (e, s, v) { W.exos[e].series[s].v = v === "" ? "" : (parseFloat(v) || 0); });
   champ("data-prg-rc", function (e, s, v) { W.exos[e].series[s].c = v === "" ? "" : (parseFloat(v) || 0); });
+  champ("data-prg-rk", function (e, s, v) { W.exos[e].series[s].kg = v === "" ? "" : (parseFloat(v) || 0); });
 
   // Un tap sur la vignette ouvre le lecteur, un second le referme.
   var vids = document.querySelectorAll("[data-prg-vid]");
@@ -8269,6 +8419,7 @@ function seaAttribuer(id, slugs) {
     var duSocle = (P.socle || []).indexOf(id) >= 0;
     if (veut) {
       var copie = JSON.parse(JSON.stringify(S));
+      seaRafraichir(copie);
       if (dedans >= 0) P.seances[dedans] = copie; else P.seances.push(copie);
     } else if (dedans >= 0 && !duSocle) {
       // Une séance du socle ne se retire pas client par client : elle fait
@@ -8305,6 +8456,8 @@ function seaDashHTML() {
   }
   h += '<button id="sea-new" class="big-btn" style="margin:4px 0 0;padding:13px 0;font-size:13.5px">＋ Nouvelle séance type</button>' +
     '<button id="sea-prog3" class="prg-mini" style="width:100%;margin-top:9px;padding:13px 0">🗓️ Programme fixe des 3 mois (H / F)</button>' +
+    '<button id="sea-resync" class="prg-mini" style="width:100%;margin-top:8px;padding:13px 0">🔄 Remettre toutes les séances à jour</button>' +
+    '<div style="font-size:11.5px;color:var(--mute);line-height:1.55;margin-top:7px">À utiliser après avoir modifié des exercices : renvoie la dernière version de chaque séance à tous tes clients.</div>' +
     // Le repère de version, à portée de regard côté coach : quand quelque
     // chose « ne marche pas », la première question est toujours de savoir
     // quelle version tourne réellement sur le téléphone.
@@ -8381,6 +8534,17 @@ function bindProgDash() {
     var els = document.querySelectorAll("[" + attr + "]");
     for (var i = 0; i < els.length; i++) els[i].addEventListener("click", function () { cb(this.getAttribute(attr)); });
   }
+  var rs = document.getElementById("sea-resync");
+  if (rs) rs.addEventListener("click", function () {
+    feedback("Mise à jour en cours…", "ok");
+    progClientsCharger(function () {
+      var r = progResync();
+      render();
+      var msg = r.seances + " séance" + (r.seances > 1 ? "s" : "") + " · " + r.clients + " client" + (r.clients > 1 ? "s" : "") + " à jour";
+      if (r.orphelins.length) msg += " · ⚠️ " + r.orphelins.length + " exercice(s) hors bibliothèque : " + r.orphelins.slice(0, 3).join(", ");
+      feedback(msg, r.orphelins.length ? "warn" : "ok");
+    });
+  });
   var p3 = document.getElementById("sea-prog3");
   if (p3) p3.addEventListener("click", function () { state.prog3 = "h"; render(); });
   chaque("data-sea-edit", function (id) { state.cdProg = { id: id, open: 0 }; render(); });
@@ -13796,7 +13960,7 @@ function estZoome(){
 // 👈 Glisser depuis le bord gauche = revenir en arrière, comme sur iOS.
 // On ne réinvente pas la destination : on clique le bouton retour de l'écran,
 // celui qui existe déjà. Si l'écran n'en a pas, le geste ne fait rien.
-var SWIPE_RETOURS=["prg-run-back","part-back","pes-back","pxf-back","prg-bib-close","prg-ass-back","p3-back","prg-back","cd-back"];
+var SWIPE_RETOURS=["stx-back","prg-run-back","part-back","pes-back","pxf-back","prg-bib-close","prg-ass-back","p3-back","prg-back","cd-back"];
 function retourEcran(){
   for(var i=0;i<SWIPE_RETOURS.length;i++){
     var b=document.getElementById(SWIPE_RETOURS[i]);
@@ -14422,7 +14586,19 @@ function bindMain(name,start){
   }
   if(state.view==="nutrition"){bindNutrition();bindNav();return;}
   if(state.view==="menus"){bindNav();return;}
-  if(state.view==="stats"&&!state.partage&&!state.pesees){try{bindStatsExtra();}catch(e){}}
+  if(state.view==="stats"&&state.statsExo){
+    var sxb=document.getElementById("stx-back");
+    if(sxb)sxb.addEventListener("click",function(){state.statsExo=null;render();});
+    bindNav();return;
+  }
+  if(state.view==="stats"&&!state.partage&&!state.pesees){
+    try{bindStatsExtra();}catch(e){}
+    // Chaque ligne de progression ouvre la courbe de son exercice.
+    var exs=document.querySelectorAll("[data-st-exo]");
+    for(var ex=0;ex<exs.length;ex++)exs[ex].addEventListener("click",function(){
+      state.statsExo=this.getAttribute("data-st-exo");render();
+    });
+  }
   if(state.view==="stats"&&state.partage){try{bindPartage();}catch(e){}bindNav();return;}
   if(state.view==="stats"&&state.pesees){try{bindPesees();}catch(e){}bindNav();return;}
   if(state.view==="finance"){bindFinance();bindNav();return;}

@@ -326,6 +326,14 @@
 .p3-att-m{flex:0 0 52px;padding:9px 0;border-radius:10px;background:var(--soft2);color:var(--mute);font-weight:900;font-size:12.5px}
 .p3-att-m.on{background:linear-gradient(135deg,#12B5EA,#8A3FFF);color:#fff}
 
+/* Le lecteur vidéo dans la séance : carré, pour ne pas manger l'écran et
+   laisser les séries visibles juste en dessous. */
+.prg-lecteur{position:relative;width:100%;aspect-ratio:1/1;border-radius:14px;overflow:hidden;
+  background:#000;margin:0 0 6px;box-shadow:0 6px 18px rgba(16,24,40,.14)}
+.prg-lecteur iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.prg-lecteur-x{text-align:right;margin:0 2px 10px}
+.prg-lecteur-x a{font-size:11.5px;font-weight:800;color:var(--mute);text-decoration:none}
+
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Inter','Helvetica Neue',sans-serif;background:#F4F4F4;-webkit-font-smoothing:antialiased}
 button,input,textarea{font-family:inherit;font-size:inherit}
@@ -514,7 +522,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="21/08 · Socle sur le téléphone";
+var APP_VERSION="22/08 · Vidéo intégrée";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -1030,6 +1038,7 @@ var state={
   cdAssign:null,   // séance en cours d'attribution (son id)
   cdAssignSel:null,
   progRun:null,    // séance en cours d'exécution côté client (son id)
+  progVid:null,    // index de l'exercice dont la vidéo est ouverte
   progBilan:null,  // résumé affiché juste après une séance terminée
   openMonth:0,
   filter:"all",
@@ -7219,6 +7228,34 @@ function bibGet() {
   return b;
 }
 function bibSet(b) { lsSet("amcoach_biblio", b); }
+// Répercute une fiche d'exercice modifiée sur toutes les copies existantes.
+// On ne touche QUE ce qui décrit l'exercice (nom, muscle, matériel, vidéo,
+// image) — jamais les séries, le repos ou la note, qui appartiennent à la
+// séance et non à l'exercice.
+function bibPropager(X) {
+  if (!X || !X.id) return { seances: 0, clients: 0 };
+  function majExo(e) {
+    if (e.ref !== X.id) return false;
+    e.n = X.n; e.m = X.m; e.mat = X.mat; e.v = X.v; e.g = X.g;
+    return true;
+  }
+  var nS = 0, l = seaGet();
+  for (var i = 0; i < l.length; i++) {
+    var touche = false;
+    for (var j = 0; j < (l[i].exos || []).length; j++) if (majExo(l[i].exos[j])) touche = true;
+    if (touche) nS++;
+  }
+  if (nS) seaSet(l);
+  var nC = 0, cl = lsGet("amcoach_clients", []);
+  for (var c = 0; c < cl.length; c++) {
+    var Pc = progGet(lsGet("amcoach_" + cl[c].slug, {})), chg = false;
+    for (var k = 0; k < Pc.seances.length; k++)
+      for (var z = 0; z < (Pc.seances[k].exos || []).length; z++)
+        if (majExo(Pc.seances[k].exos[z])) chg = true;
+    if (chg) { progSetCoach(cl[c].slug, Pc); nC++; }
+  }
+  return { seances: nS, clients: nC };
+}
 
 // ─── Le programme d'un client (slot 520) ───
 function progGet(all) {
@@ -7460,9 +7497,12 @@ function bindProgExoForm() {
     X.v = (document.getElementById("pxf-v").value || "").trim();
     X.g = (document.getElementById("pxf-g").value || "").trim();
     bibSet(b);
+    var prop = bibPropager(X);
     state.cdProg.edit = null;
     render();
-    feedback(id === "new" ? "Exercice créé" : "Exercice mis à jour", "ok");
+    feedback(id === "new" ? "Exercice créé"
+      : "Exercice mis à jour" + (prop.seances ? " · " + prop.seances + " séance" + (prop.seances > 1 ? "s" : "") : "") +
+        (prop.clients ? " · " + prop.clients + " client" + (prop.clients > 1 ? "s" : "") : ""), "ok");
   });
   var del = document.getElementById("pxf-del");
   if (del) del.addEventListener("click", function () {
@@ -7951,14 +7991,24 @@ function viewProgRun() {
     h += '<div class="prg-exo' + (lie ? ' lie' : '') + '" style="border-left-color:' + M[2] + '">' +
       (lie ? '<div class="prg-supbadge">⛓️ enchaîné sans repos</div>' : '') +
       '<div class="prg-exo-hd" style="cursor:default">' +
-      (X.v ? '<a href="' + esc(X.v) + '" target="_blank" rel="noopener" style="flex:0 0 auto;position:relative;line-height:0">' +
-        progVignette(X, 48) + '<span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:19px">▶️</span></a>'
+      (X.v ? '<button data-prg-vid="' + e + '" style="flex:0 0 auto;position:relative;line-height:0;background:none;padding:0">' +
+        progVignette(X, 48) + '<span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:19px">▶️</span></button>'
         : progVignette(X, 48)) +
       '<div style="flex:1;min-width:0"><div class="prg-exo-n">' + esc(X.n) + '</div>' +
       '<div class="prg-exo-m"><span style="color:' + M[2] + '">●</span> ' + M[1] + (X.mat ? ' · ' + esc(X.mat) : '') +
       ' · repos ' + progRepos(X.repos) + '</div></div>' +
-      (X.v ? '<a href="' + esc(X.v) + '" target="_blank" rel="noopener" class="prg-video">🎬</a>' : '') + '</div>' +
+      (X.v ? '<button data-prg-vid="' + e + '" class="prg-video">' + (state.progVid === e ? '✕' : '🎬') + '</button>' : '') + '</div>' +
       '<div class="prg-exo-bd">';
+    // Le lecteur, juste sous l'en-tête de l'exercice concerné.
+    if (state.progVid === e && X.v) {
+      var vid = ytId(X.v);
+      h += vid
+        ? '<div class="prg-lecteur"><iframe src="https://www.youtube-nocookie.com/embed/' + esc(vid) +
+          '?playsinline=1&rel=0&modestbranding=1" title="Démonstration" frameborder="0" ' +
+          'allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>' +
+          '<div class="prg-lecteur-x"><a href="' + esc(X.v) + '" target="_blank" rel="noopener">Ouvrir dans YouTube ↗</a></div>'
+        : '<div class="prg-lecteur-x"><a href="' + esc(X.v) + '" target="_blank" rel="noopener">▶️ Ouvrir la vidéo ↗</a></div>';
+    }
     if (X.note) h += '<div class="prg-note-lue">📝 ' + esc(X.note) + '</div>';
     if (dern) h += '<div class="prg-dern">La dernière fois (' + frDate(dern.d) + ') : ' + esc(dern.txt) + '</div>';
     for (s = 0; s < X.series.length; s++) {
@@ -8046,6 +8096,13 @@ function bindProgRun() {
   champ("data-prg-rv", function (e, s, v) { W.exos[e].series[s].v = v === "" ? "" : (parseFloat(v) || 0); });
   champ("data-prg-rc", function (e, s, v) { W.exos[e].series[s].c = v === "" ? "" : (parseFloat(v) || 0); });
 
+  // Un tap sur la vignette ouvre le lecteur, un second le referme.
+  var vids = document.querySelectorAll("[data-prg-vid]");
+  for (i = 0; i < vids.length; i++) vids[i].addEventListener("click", function () {
+    var k = parseInt(this.getAttribute("data-prg-vid"), 10);
+    state.progVid = (state.progVid === k ? null : k);
+    render();
+  });
   var bk = document.getElementById("prg-run-back");
   if (bk) bk.addEventListener("click", function () { state.progRun = null; sptArreter(true); render(); });
 

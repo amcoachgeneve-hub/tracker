@@ -522,7 +522,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="22/08 · Resync & poids du jour";
+var APP_VERSION="22/08 · Synchro client";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -1202,8 +1202,27 @@ function coachLoadAll(force){
     });
   }
 }
+// Dernier rapatriement : évite d'interroger le serveur à chaque aller-retour.
+var __cloudLe=0;
+// Le client va rechercher ses données quand il REVIENT dans l'appli. C'est le
+// seul moment où une modification faite par le coach peut le rattraper sans
+// qu'il ait à tout fermer et rouvrir.
+function cloudRafraichir(force){
+  if(!CLIENT)return;
+  if(!force&&Date.now()-__cloudLe<20000)return;
+  loadFromCloud(function(){ try{render();}catch(e){} });
+}
+function brancherRetourAppli(){
+  if(window.__cloudVis)return;
+  window.__cloudVis=true;
+  document.addEventListener("visibilitychange",function(){
+    if(document.visibilityState==="visible")cloudRafraichir(false);
+  });
+  window.addEventListener("focus",function(){cloudRafraichir(false);});
+}
 function loadFromCloud(cb){
   if(!CLIENT){cb();return;}
+  __cloudLe=Date.now();
   // Load client info + tracking data from Supabase
   Promise.all([
     sbFetch("clients?slug=eq."+encodeURIComponent(CLIENT)+"&select=*").then(function(r){return r.json();}),
@@ -8221,7 +8240,19 @@ function viewProgRun() {
 function progRunEtat(S, P) {
   var k = "amcoach_run_" + CLIENT;
   var W = lsGet(k, null);
-  if (W && W.sid === S.id && W.d === isoLocal() && W.exos && W.exos.length === S.exos.length) return W;
+  if (W && W.sid === S.id && W.d === isoLocal() && W.exos && W.exos.length === S.exos.length) {
+    // La séance en cours garde ce que le client a saisi, mais reprend la
+    // DESCRIPTION à jour des exercices : sans ça, un lien vidéo ajouté par le
+    // coach pendant la journée n'apparaîtrait jamais dans la séance ouverte.
+    for (var r = 0; r < W.exos.length; r++) {
+      var src = S.exos[r];
+      if (!src) continue;
+      W.exos[r].n = src.n; W.exos[r].m = src.m; W.exos[r].mat = src.mat;
+      W.exos[r].v = src.v; W.exos[r].g = src.g;
+      W.exos[r].note = src.note; W.exos[r].repos = src.repos;
+    }
+    return W;
+  }
   W = { sid: S.id, d: isoLocal(), nom: S.nom, exos: [] };
   for (var e = 0; e < S.exos.length; e++) {
     var X = S.exos[e], ex = { ref: X.ref, n: X.n, m: X.m, mat: X.mat, v: X.v, g: X.g, note: X.note, repos: X.repos, series: [] };
@@ -14016,6 +14047,9 @@ function bindNav(){
         return;
       }
       state.view=v;render();
+      // L'onglet Sport est celui que le coach modifie le plus souvent :
+      // on vérifie le serveur en y entrant.
+      if(v==="sport")cloudRafraichir(false);
     });
   }
 }
@@ -14803,6 +14837,7 @@ function bindMain(name,start){
   render(); // instant render with local data
   if(typeof IS_COACH!=="undefined"&&IS_COACH&&state.coachAuthed){loadCoachDataFromCloud();}
   if(CLIENT){
+    try{brancherRetourAppli();}catch(e){}
     loadFromCloud(function(){
       var start=lsGetStr("amcoach_start_"+CLIENT);
       if(start)state.openMonth=Math.floor(Math.min(getToday90(start),89)/28);

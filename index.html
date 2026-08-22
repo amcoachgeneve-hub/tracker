@@ -334,6 +334,10 @@
 .prg-lecteur-x{text-align:right;margin:0 2px 10px}
 .prg-lecteur-x a{font-size:11.5px;font-weight:800;color:var(--mute);text-decoration:none}
 
+/* 🎯 La charge à battre, sous chaque série. */
+.prg-battre{font-size:11.5px;font-weight:800;color:var(--mute);margin:-2px 0 8px 40px}
+.prg-battre.ok{color:var(--ok-d)}
+
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Inter','Helvetica Neue',sans-serif;background:#F4F4F4;-webkit-font-smoothing:antialiased}
 button,input,textarea{font-family:inherit;font-size:inherit}
@@ -522,7 +526,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="22/08 · Synchro client";
+var APP_VERSION="22/08 · Sport en 2e + glissement";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -3852,20 +3856,24 @@ function navBar(){
   var tabs=[["calendar","📅","Agenda"],["stats","📈","Stats"],["dream","🌟","Dream"],
     ];
   // 🏋️ Sport : visible pour tous — c'est là que vivent les deux minuteurs.
-  // En programme court, le plan des 14 jours s'affiche dessous, dans le même onglet.
-  tabs.push(["sport","🏋️","Sport"]);
+  // En DEUXIÈME position, juste après l'accueil : c'est l'onglet qu'on ouvre
+  // en salle, il doit tomber sous le pouce. Les onglets optionnels ajoutés
+  // plus bas s'insèrent donc à partir de la troisième place.
+  tabs.splice(1,0,["sport","🏋️","Sport"]);
   // 🍗 Onglet Nutrition : visible seulement si le coach l'a activé (slot 510.on)
   if(nutCfg(getAllData()).on){
-    tabs.splice(1,0,["nutrition","🍗","Prot"]); // en 2e position, après Agenda
+    tabs.splice(2,0,["nutrition","🍗","Prot"]); // après Agenda et Sport
   }
   // 🍽️ Onglet Menus : visible si le coach l'a activé (slot 517.on)
   if(menuActif(getAllData())){
-    tabs.splice(nutCfg(getAllData()).on?2:1,0,["menus","🍽️","Menus"]);
+    tabs.splice(nutCfg(getAllData()).on?3:2,0,["menus","🍽️","Menus"]);
   }
   // 💰 Onglet Finance : visible seulement si le coach l'a activé (slot 512.on)
   if(finCfg(getAllData()).on){
-    tabs.splice(nutCfg(getAllData()).on?2:1,0,["finance","💰","Argent"]);
+    tabs.splice(nutCfg(getAllData()).on?3:2,0,["finance","💰","Argent"]);
   }
+  // La liste des onglets sert aussi au glissement latéral.
+  window.__tabs=tabs.map(function(t){return t[0];});
   var h='<div class="nav">';
   for(var i=0;i<tabs.length;i++){
     var t=tabs[i];
@@ -7072,7 +7080,8 @@ function viewSport(name, start) {
       '<div class="spt-lab" style="color:#0E9C6B">✅ ' + esc(B.nom) + ' — terminée</div>' +
       '<div style="color:var(--ink);font-weight:900;font-size:20px">' + B.faites + '/' + B.tot + ' séries' +
       (B.vol ? ' · ' + B.vol + ' kg soulevés' : '') + '</div>' +
-      '<div class="spt-txt" style="margin-top:6px">C\'est enregistré. La prochaine fois, tu verras ces chiffres en face de chaque exercice.</div></div>';
+      '<div class="spt-txt" style="margin-top:6px">C\'est enregistré. La prochaine fois, tu verras ces charges à battre en face de chaque série.' +
+      (B.sport ? '<br>✅ Ton habitude Sport du jour est cochée.' : '') + '</div></div>';
   }
   h += progCartesHTML(getAllData());
 
@@ -7984,6 +7993,19 @@ function prog3Sexe(all) {
 // donne à ses clients (« deux marches par semaine »), pas un total mensuel
 // qui laisserait tout rattraper le dernier jour.
 function prog3SemaineCle(today90) { return "S" + (Math.floor(today90 / 7) + 1); }
+// Combien de séances du programme ont été TERMINÉES cette semaine ?
+// On lit le journal : seule une séance conclue compte, comme pour le coach.
+function prog3SeancesSemaine(all, today90) {
+  var P = progGet(all), start = lsGetStr("amcoach_start_" + CLIENT);
+  var deb = Math.max(0, today90 - (today90 % 7)), n = 0;
+  for (var i = 0; i < (P.journal || []).length; i++) {
+    var d = P.journal[i].d;
+    if (!d || !start) continue;
+    var idx = Math.round((new Date(d + "T12:00:00") - new Date(start + "T12:00:00")) / 86400000);
+    if (idx >= deb && idx <= today90) n++;
+  }
+  return n;
+}
 function prog3Marches(all, today90) {
   var P = progGet(all), k = prog3SemaineCle(today90);
   return (P.marches && P.marches[k]) || 0;
@@ -8043,6 +8065,18 @@ function progCartesHTML(all) {
             '<span class="p3-fl">›</span></button>';
         }
         if (!vues) h += '<div class="spt-txt" style="padding:2px 2px 8px">Les séances de ce mois arrivent — ton coach les met en place.</div>';
+        // 🦾 Les séances de la semaine : un trou visible appelle à être
+        // rempli, exactement comme pour les marches.
+        if (m === moisEnCours && cfg.sea.length) {
+          var faitesS = prog3SeancesSemaine(all, today90), pastS = "";
+          for (var ws = 0; ws < cfg.sea.length; ws++)
+            pastS += '<span class="p3-mar' + (ws < faitesS ? " on" : "") + '">🦾</span>';
+          h += '<div class="p3-marches">' +
+            '<div style="flex:1"><div class="p3-mar-t">' + faitesS + '/' + cfg.sea.length + ' séance' + (cfg.sea.length > 1 ? 's' : '') + ' cette semaine</div>' +
+            '<div class="p3-mar-s">' + (faitesS >= cfg.sea.length ? 'Semaine bouclée 💪'
+              : 'Ouvre ta séance et coche tes séries pour la valider') + '</div></div>' +
+            '<div class="p3-mar-p">' + pastS + '</div></div>';
+        }
         // Les marches de la semaine
         if (m === moisEnCours && cfg.marches > 0) {
           var faites = prog3Marches(all, today90), pastilles = "";
@@ -8204,6 +8238,13 @@ function viewProgRun() {
     if (dern) h += '<div class="prg-dern">La dernière fois (' + frDate(dern.d) + ') : ' + esc(dern.txt) + '</div>';
     for (s = 0; s < X.series.length; s++) {
       var SR = X.series[s], cible = S.exos[e].series[s] || {};
+      // 🎯 Ce qu'il a fait à CETTE série la dernière fois : le seul chiffre
+      // qu'il ne connaît pas par cœur.
+      var ref = (dern && dern.det && dern.det[s]) ? dern.det[s] : null;
+      var monKg = (SR.kg !== "" && SR.kg != null) ? parseFloat(SR.kg) : parseFloat(SR.c);
+      var refKg = ref ? parseFloat(ref.c) : null;
+      var battu = (ref && !isNaN(monKg) && refKg != null && !isNaN(refKg) &&
+        (monKg > refKg || (monKg === refKg && (parseFloat(SR.v) || 0) > (parseFloat(ref.v) || 0))));
       h += '<div class="prg-run-serie' + (SR.ok ? ' ok' : '') + '">' +
         '<button class="prg-check' + (SR.ok ? ' on' : '') + '" data-prg-ok="' + e + '.' + s + '">' + (SR.ok ? '✓' : '') + '</button>' +
         '<span class="prg-sn">S' + (s + 1) + '</span>' +
@@ -8217,7 +8258,13 @@ function viewProgRun() {
         (progEstPct(cible.u)
           ? '<input class="prg-in court" type="number" inputmode="decimal" step="0.5" value="' + (SR.kg != null ? SR.kg : "") + '" data-prg-rk="' + e + '.' + s + '" placeholder="kg"/>' +
             '<span class="prg-un">kg</span>'
-          : '') + '</div>';
+          : '') + '</div>' +
+        // La ligne « à battre », juste sous la série concernée.
+        (ref
+          ? '<div class="prg-battre' + (battu ? ' ok' : '') + '">' +
+            (battu ? '🔥 battu — la dernière fois : ' : '🎯 à battre : ') +
+            esc(progSerieTexte({ t: ref.t, v: ref.v, c: ref.c, u: ref.u })) + '</div>'
+          : '');
     }
     h += '</div></div>';
   }
@@ -8333,13 +8380,31 @@ function bindProgRun() {
         if (!X.series[s].ok) continue;
         txt.push(progSerieTexte(X.series[s])); nb++;
       }
-      if (nb) PP.dernier[X.ref] = { d: isoLocal(), txt: txt.join(" · ") };
+      // Le détail série par série sert de repère au prochain passage : sans
+      // lui, on ne peut afficher qu'un résumé, donc rien à battre.
+      var det = [];
+      for (var q = 0; q < X.series.length; q++) {
+        var SQ = X.series[q];
+        det.push(SQ.ok ? { v: SQ.v, c: (SQ.kg !== "" && SQ.kg != null ? SQ.kg : SQ.c), u: (SQ.kg !== "" && SQ.kg != null ? "kg" : SQ.u), t: SQ.t } : null);
+      }
+      if (nb) PP.dernier[X.ref] = { d: isoLocal(), txt: txt.join(" · "), det: det };
     }
     progSetClient(PP);
+    // ✅ L'habitude Sport du jour se coche toute seule : la séance terminée
+    // en est la preuve. On ne décoche jamais — ça, ça reste sa décision.
+    var sportCoche = false;
+    try {
+      var jour = getToday90(lsGetStr("amcoach_start_" + CLIENT));
+      if (jour >= 0 && jour < 90) {
+        var DJ = getAllData()[jour] || {};
+        DJ.habits = DJ.habits || {};
+        if (!DJ.habits.sport) { DJ.habits.sport = true; saveDay(jour, DJ); sportCoche = true; }
+      }
+    } catch (x) { }
     try { localStorage.removeItem("amcoach_run_" + CLIENT); } catch (x) { }
     sptArreter(true);
     state.progRun = null;
-    state.progBilan = { nom: S.nom, faites: faites, tot: tot, vol: vol };
+    state.progBilan = { nom: S.nom, faites: faites, tot: tot, vol: vol, sport: sportCoche };
     buzz("win");
     render();
   });
@@ -14021,8 +14086,51 @@ function bindSwipeRetour(){
     if(dx>70&&dy<60&&dt<700){ if(retourEcran())buzz("tap"); }
   },{passive:true});
 }
+// 👉 Glisser horizontalement = onglet suivant ou précédent.
+function ongletVoisin(sens){
+  var l=window.__tabs||[];
+  var i=l.indexOf(state.view);
+  if(i<0)return null;
+  var j=i+sens;
+  if(j<0||j>=l.length)return null;
+  return l[j];
+}
+function bindSwipeOnglets(){
+  if(window.__swipeTabs)return;
+  window.__swipeTabs=true;
+  var x0=0,y0=0,t0=0,depart=null;
+  document.addEventListener("touchstart",function(e){
+    if(!e.touches||e.touches.length!==1){depart=null;return;}
+    var t=e.touches[0];
+    x0=t.clientX;y0=t.clientY;t0=Date.now();depart=t.target;
+  },{passive:true});
+  document.addEventListener("touchend",function(e){
+    if(!depart)return;
+    var cible=depart; depart=null;
+    // Un écran secondaire (séance, pesées, partage, didacticiel) a ses
+    // propres règles : on ne change pas d'onglet sous les pieds du client.
+    if(state.progRun||state.pesees||state.partage||state.statsExo||state.tuto!=null||state.selDay!=null)return;
+    // Le geste appartient à une bande qui défile horizontalement ?
+    for(var n=cible;n&&n!==document.body;n=n.parentNode){
+      if(n.classList&&(n.classList.contains("prg-cartes")||n.classList.contains("prg-tabs")||
+         n.classList.contains("sem-jours")||n.classList.contains("prg-chips")))return;
+      if(n.scrollWidth&&n.clientWidth&&n.scrollWidth-n.clientWidth>12)return;
+    }
+    var t=(e.changedTouches&&e.changedTouches[0]);
+    if(!t)return;
+    var dx=t.clientX-x0, dy=Math.abs(t.clientY-y0), dt=Date.now()-t0;
+    // Franc, horizontal et rapide : sinon c'est un défilement vertical.
+    if(Math.abs(dx)<70||dy>55||dt>600||Math.abs(dx)<dy*2)return;
+    if(x0<=28&&dx>0)return;   // le bord gauche appartient au geste de retour
+    var v=ongletVoisin(dx<0?1:-1);
+    if(!v)return;
+    state.view=v; buzz("tap"); render();
+    if(v==="sport")cloudRafraichir(false);
+  },{passive:true});
+}
 function bindNav(){
   try{bindSwipeRetour();}catch(e){}
+  try{bindSwipeOnglets();}catch(e){}
   var navs=document.querySelectorAll("[data-nav]");
   for(var i=0;i<navs.length;i++){
     navs[i].addEventListener("click",function(){

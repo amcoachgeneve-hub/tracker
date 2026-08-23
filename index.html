@@ -563,7 +563,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="23/08 · Bilan sur 7 jours";
+var APP_VERSION="23/08 · Gong de boxe";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -6911,6 +6911,43 @@ function sptBip(quand, freq, duree, vol, forme) {
     SPT.sources.push(o);
   } catch (e) { }
 }
+
+function sptGong(quand, vol) {
+  try {
+    var ctx = SPT.ctx;
+    var f0 = 320, V = (vol == null ? 1 : vol);
+    var modes = [[1, 1.0, 2.6], [2.76, 0.62, 1.9], [5.40, 0.38, 1.15], [8.93, 0.24, 0.7], [13.3, 0.14, 0.45]];
+    var bus = ctx.createGain();
+    bus.gain.value = V;
+    bus.connect(ctx.destination);
+    for (var i = 0; i < modes.length; i++) {
+      var m = modes[i], o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = "sine";
+      o.frequency.setValueAtTime(f0 * m[0] * 1.012, quand);        // la cloche « tombe »
+      o.frequency.exponentialRampToValueAtTime(f0 * m[0], quand + 0.09);
+      g.gain.setValueAtTime(0.0001, quand);
+      g.gain.exponentialRampToValueAtTime(m[1] * 0.5, quand + 0.006);  // attaque sèche
+      g.gain.exponentialRampToValueAtTime(0.0001, quand + m[2]);       // traîne longue
+      o.connect(g); g.connect(bus);
+      o.start(quand); o.stop(quand + m[2] + 0.05);
+      SPT.sources.push(o);
+    }
+    // Le choc du maillet : une bouffée de bruit très courte.
+    var n = ctx.createBufferSource(), buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.06), ctx.sampleRate);
+    var d = buf.getChannelData(0);
+    for (var k = 0; k < d.length; k++) d[k] = (Math.random() * 2 - 1) * (1 - k / d.length);
+    n.buffer = buf;
+    var nf = ctx.createBiquadFilter(); nf.type = "bandpass"; nf.frequency.value = 2600; nf.Q.value = 1.1;
+    var ng = ctx.createGain(); ng.gain.value = 0.5;
+    n.connect(nf); nf.connect(ng); ng.connect(bus);
+    n.start(quand); n.stop(quand + 0.08);
+    SPT.sources.push(n);
+  } catch (e) { }
+}
+// Trois coups de gong — le signal de fin de round.
+function sptGong3(quand, vol) {
+  for (var i = 0; i < 3; i++) sptGong(quand + i * 0.62, vol);
+}
 function sptVider() {
   for (var i = 0; i < SPT.sources.length; i++) { try { SPT.sources[i].stop(); } catch (e) { } }
   SPT.sources = [];
@@ -6931,8 +6968,10 @@ function sptProgrammer(plan, depuis) {
     }
     pos = fin;
   }
-  if (pos > depuis) {                                 // fin de séance : alarme longue, impossible à louper
-    for (var b = 0; b < 6; b++) sptBip(a0 + (pos - depuis) + b * 0.45, b % 2 ? 1150 : 950, 0.34, 0.6, "square");
+  if (pos > depuis) {
+    // 🥊 Fin de séance : le gong de boxe, trois coups, fort. C'est le seul
+    // son qu'on entend à l'autre bout d'une salle, casque sur les oreilles.
+    sptGong3(a0 + (pos - depuis), 1.5);
   }
   return ctx;
 }

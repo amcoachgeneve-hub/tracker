@@ -563,7 +563,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="23/08 · Gong de boxe";
+var APP_VERSION="23/08 · Marche = sport coché";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -7283,7 +7283,21 @@ function bindSport() {
   var mMoins = document.getElementById("p3-marche-moins"), mPlus = document.getElementById("p3-marche-plus");
   function majMarche(d) {
     var st = lsGetStr("amcoach_start_" + CLIENT);
-    prog3MarcheAjout(d, st ? getToday90(st) : 0);
+    var jour = st ? getToday90(st) : 0;
+    prog3MarcheAjout(d, jour);
+    // ✅ Valider une marche coche l'habitude Sport du jour, comme le fait la
+    // fin d'une séance : une heure de marche EST du sport, et le client n'a
+    // pas à faire le travail deux fois. On ne décoche jamais l'inverse —
+    // retirer une marche par erreur ne doit pas effacer sa journée.
+    if (d > 0) {
+      try {
+        if (jour >= 0 && jour < 90) {
+          var DJ = getAllData()[jour] || {};
+          DJ.habits = DJ.habits || {};
+          if (!DJ.habits.sport) { DJ.habits.sport = true; saveDay(jour, DJ); feedback("Marche validée · habitude Sport cochée", "ok"); }
+        }
+      } catch (e) { }
+    }
     buzz(d > 0 ? "ok" : "tap");
     render();
   }

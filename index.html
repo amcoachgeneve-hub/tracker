@@ -563,7 +563,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="23/08 · Marche = sport coché";
+var APP_VERSION="23/08 · Cloche de ring";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -6915,38 +6915,47 @@ function sptBip(quand, freq, duree, vol, forme) {
 function sptGong(quand, vol) {
   try {
     var ctx = SPT.ctx;
-    var f0 = 320, V = (vol == null ? 1 : vol);
-    var modes = [[1, 1.0, 2.6], [2.76, 0.62, 1.9], [5.40, 0.38, 1.15], [8.93, 0.24, 0.7], [13.3, 0.14, 0.45]];
+    var f0 = 1040, V = (vol == null ? 1 : vol);
+    // [rapport de fréquence, niveau, durée de traîne]
+    var modes = [[1, 1.00, 1.55], [1.52, 0.70, 1.25], [2.01, 0.55, 1.00],
+                 [2.68, 0.42, 0.70], [3.42, 0.30, 0.50], [4.55, 0.20, 0.34],
+                 [5.90, 0.13, 0.24], [0.50, 0.34, 1.70]];
     var bus = ctx.createGain();
-    bus.gain.value = V;
+    bus.gain.value = V * 0.9;
     bus.connect(ctx.destination);
     for (var i = 0; i < modes.length; i++) {
-      var m = modes[i], o = ctx.createOscillator(), g = ctx.createGain();
-      o.type = "sine";
-      o.frequency.setValueAtTime(f0 * m[0] * 1.012, quand);        // la cloche « tombe »
-      o.frequency.exponentialRampToValueAtTime(f0 * m[0], quand + 0.09);
-      g.gain.setValueAtTime(0.0001, quand);
-      g.gain.exponentialRampToValueAtTime(m[1] * 0.5, quand + 0.006);  // attaque sèche
-      g.gain.exponentialRampToValueAtTime(0.0001, quand + m[2]);       // traîne longue
-      o.connect(g); g.connect(bus);
-      o.start(quand); o.stop(quand + m[2] + 0.05);
-      SPT.sources.push(o);
+      var m = modes[i];
+      // Deux oscillateurs par partiel, désaccordés de quelques hertz : c'est
+      // ce battement lent qui distingue une cloche d'un simple sifflement.
+      for (var j = 0; j < 2; j++) {
+        var o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = "sine";
+        var f = f0 * m[0] * (j ? 1.0035 : 1);
+        o.frequency.setValueAtTime(f * 1.006, quand);
+        o.frequency.exponentialRampToValueAtTime(f, quand + 0.05);
+        g.gain.setValueAtTime(0.0001, quand);
+        g.gain.exponentialRampToValueAtTime(m[1] * 0.30, quand + 0.003);
+        g.gain.exponentialRampToValueAtTime(0.0001, quand + m[2]);
+        o.connect(g); g.connect(bus);
+        o.start(quand); o.stop(quand + m[2] + 0.05);
+        SPT.sources.push(o);
+      }
     }
-    // Le choc du maillet : une bouffée de bruit très courte.
-    var n = ctx.createBufferSource(), buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.06), ctx.sampleRate);
+    // La frappe du marteau sur le laiton : bruit très court, filtré très haut.
+    var n = ctx.createBufferSource(), buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.035), ctx.sampleRate);
     var d = buf.getChannelData(0);
-    for (var k = 0; k < d.length; k++) d[k] = (Math.random() * 2 - 1) * (1 - k / d.length);
+    for (var k = 0; k < d.length; k++) d[k] = (Math.random() * 2 - 1) * Math.pow(1 - k / d.length, 2);
     n.buffer = buf;
-    var nf = ctx.createBiquadFilter(); nf.type = "bandpass"; nf.frequency.value = 2600; nf.Q.value = 1.1;
-    var ng = ctx.createGain(); ng.gain.value = 0.5;
+    var nf = ctx.createBiquadFilter(); nf.type = "bandpass"; nf.frequency.value = 4800; nf.Q.value = 0.9;
+    var ng = ctx.createGain(); ng.gain.value = 0.45;
     n.connect(nf); nf.connect(ng); ng.connect(bus);
-    n.start(quand); n.stop(quand + 0.08);
+    n.start(quand); n.stop(quand + 0.05);
     SPT.sources.push(n);
   } catch (e) { }
 }
 // Trois coups de gong — le signal de fin de round.
 function sptGong3(quand, vol) {
-  for (var i = 0; i < 3; i++) sptGong(quand + i * 0.62, vol);
+  for (var i = 0; i < 3; i++) sptGong(quand + i * 0.55, vol);
 }
 function sptVider() {
   for (var i = 0; i < SPT.sources.length; i++) { try { SPT.sources[i].stop(); } catch (e) { } }
@@ -6962,8 +6971,15 @@ function sptProgrammer(plan, depuis) {
       var tc = fin - c;
       if (tc > depuis && seg.d > 4 && n < 700) { sptBip(a0 + (tc - depuis), 880, 0.08, 0.22, "sine"); n++; }
     }
-    if (fin > depuis && n < 700) {                    // bascule : aigu vers l'effort, grave vers le repos
-      if (suiv) sptBip(a0 + (fin - depuis), suiv.t === "effort" ? 1250 : 640, 0.32, 0.5, "square");
+    if (fin > depuis && n < 700) {
+      if (suiv) {
+        // 🥊 Un TOUR se termine quand le segment suivant repart sur un autre
+        // tour (ou une autre série) : c'est là que sonne la cloche. Les
+        // bascules internes effort ↔ repos gardent leur bip.
+        var finTour = (suiv.tour !== seg.tour || suiv.serie !== seg.serie) && seg.t !== "prep";
+        if (finTour) sptGong(a0 + (fin - depuis), 1.1);
+        else sptBip(a0 + (fin - depuis), suiv.t === "effort" ? 1250 : 640, 0.32, 0.5, "square");
+      }
       n++;
     }
     pos = fin;

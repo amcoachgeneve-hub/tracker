@@ -296,23 +296,40 @@
 .sem-j.ko{background:#FFE2E2;color:#B23B3B}
 
 /* 🗓️ Le programme en trois mois, dans l'onglet Sport. */
-.p3-mois{border:1.5px solid var(--line);border-radius:16px;padding:12px 13px;margin-bottom:10px;background:var(--soft)}
-.p3-mois.on{border-color:#12B5EA;background:#fff;box-shadow:0 0 0 3px rgba(18,181,234,.12)}
-.p3-mois.fait{opacity:.9}
-.p3-mois.lock{opacity:.6}
-.p3-tete{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:9px}
-.p3-n{font-weight:900;font-size:14.5px;color:var(--ink)}
-.p3-tag{font-size:10px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:#fff;background:#12B5EA;border-radius:100px;padding:3px 9px}
-.p3-sub{flex:1;text-align:right;font-size:11.5px;font-weight:700;color:var(--mute)}
-.p3-sea{width:100%;display:flex;align-items:center;gap:9px;background:#fff;border:1.5px solid var(--line);
-  border-radius:13px;padding:11px 12px;margin-bottom:7px;text-align:left}
+/* Le mois EN COURS porte le dégradé de marque en plein, écriture blanche,
+   comme les zones du Dream Board. Les autres restent clairs : si tout est
+   bleu, on ne voit plus où on en est. */
+.p3-mois{border:1.5px solid var(--line);border-radius:18px;padding:14px 15px;margin-bottom:11px;background:var(--soft)}
+.p3-mois.on{border:none;background:linear-gradient(150deg,#12B5EA 0%,#8A3FFF 100%);
+  box-shadow:0 10px 24px rgba(96,120,255,.3)}
+.p3-mois.fait{opacity:.95}
+.p3-mois.lock{opacity:.55}
+.p3-tete{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:11px}
+.p3-n{font-weight:900;font-size:16px;color:var(--ink);letter-spacing:-.3px}
+.p3-mois.on .p3-n{color:#fff;font-size:19px}
+.p3-tag{font-size:10px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:#12B5EA;background:#fff;border-radius:100px;padding:4px 10px}
+.p3-sub{flex:1;text-align:right;font-size:11.5px;font-weight:800;color:var(--mute)}
+.p3-mois.on .p3-sub{color:rgba(255,255,255,.92)}
+.p3-mois.on .spt-txt{color:rgba(255,255,255,.9)}
+.p3-sea{width:100%;display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--line);
+  border-radius:14px;padding:13px 13px;margin-bottom:8px;text-align:left}
+.p3-mois.on .p3-sea{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.35);backdrop-filter:blur(2px)}
 .p3-pt{width:9px;height:26px;border-radius:5px;flex:0 0 9px}
-.p3-sea-n{flex:1;font-weight:900;font-size:13.5px;color:var(--ink)}
+.p3-mois.on .p3-pt{background:#fff !important}
+.p3-sea-n{flex:1;font-weight:900;font-size:14px;color:var(--ink)}
+.p3-mois.on .p3-sea-n{color:#fff}
 .p3-sea-s{font-size:11.5px;font-weight:700;color:var(--mute)}
+.p3-mois.on .p3-sea-s{color:rgba(255,255,255,.9)}
 .p3-fl{font-size:20px;color:var(--mute);font-weight:900;line-height:1}
-.p3-marches{display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid var(--line);border-radius:13px;padding:11px 12px;margin-top:4px;flex-wrap:wrap}
+.p3-mois.on .p3-fl{color:#fff}
+.p3-marches{display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:12px 13px;margin-top:6px;flex-wrap:wrap}
+.p3-mois.on .p3-marches{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.35)}
 .p3-mar-t{font-weight:900;font-size:13.5px;color:var(--ink)}
+.p3-mois.on .p3-mar-t{color:#fff}
 .p3-mar-s{font-size:11.5px;font-weight:700;color:var(--mute);margin-top:2px}
+.p3-mois.on .p3-mar-s{color:rgba(255,255,255,.9)}
+.p3-mois.on .p3-mar-b{background:rgba(255,255,255,.22);color:#fff}
+.p3-mois.on .p3-mar-b.plus{background:#fff;color:#8A3FFF}
 .p3-mar-p{display:flex;gap:3px}
 .p3-mar{font-size:15px;opacity:.28;filter:grayscale(1)}
 .p3-mar.on{opacity:1;filter:none}
@@ -337,6 +354,26 @@
 /* 🎯 La charge à battre, sous chaque série. */
 .prg-battre{font-size:11.5px;font-weight:800;color:var(--mute);margin:-2px 0 8px 40px}
 .prg-battre.ok{color:var(--ok-d)}
+
+/* ⏱️ Chronomètre */
+.chr-time{font-size:46px;font-weight:900;letter-spacing:-1.5px;text-align:center;color:var(--ink);
+  font-variant-numeric:tabular-nums;margin:6px 0 14px}
+.chr-btns{display:flex;gap:9px}
+.chr-tours{margin-top:12px;max-height:190px;overflow-y:auto}
+.chr-t{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--line)}
+.chr-t-n{flex:1;font-size:12.5px;font-weight:800;color:var(--mute)}
+.chr-t-d{font-size:14px;font-weight:900;color:var(--ink);font-variant-numeric:tabular-nums}
+.chr-t-c{font-size:11.5px;font-weight:700;color:var(--mute);width:64px;text-align:right;font-variant-numeric:tabular-nums}
+/* Tiroirs de l'onglet Sport */
+.spt-tiroir{background:#fff;border:1px solid var(--line);border-radius:22px;margin-bottom:13px;
+  box-shadow:0 3px 14px rgba(16,24,40,.06);overflow:hidden}
+.spt-tiroir summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:16px 15px}
+.spt-tiroir summary::-webkit-details-marker{display:none}
+.spt-sum-t{flex:1;font-weight:900;font-size:12.5px;letter-spacing:1.1px;text-transform:uppercase;color:var(--ink)}
+.spt-sum-n{font-size:11.5px;font-weight:800;color:#0EA5C6}
+.spt-sum-c{font-size:15px;color:var(--mute);transition:transform .2s}
+.spt-tiroir[open] .spt-sum-c{transform:rotate(180deg)}
+.spt-corps{padding:0 15px 16px}
 
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Inter','Helvetica Neue',sans-serif;background:#F4F4F4;-webkit-font-smoothing:antialiased}
@@ -526,7 +563,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="22/08 · Sport en 2e + glissement";
+var APP_VERSION="23/08 · Bilan sur 7 jours";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -5126,9 +5163,11 @@ function viewCalendar(name,start){
     h+='<div class="card" style="margin-bottom:18px;border:2px solid '+K+';padding:16px 18px">'+
       '<div style="font-weight:900;font-size:14px;margin-bottom:12px;display:flex;align-items:center;gap:8px"><div class="bar bar-r"></div>⚔️ BILAN DE BATAILLE — Semaine '+Math.floor(today90/7+1)+'</div>'+
       '<div style="display:flex;gap:8px;margin-bottom:12px;text-align:center">'+
-      '<div style="flex:1"><div style="font-weight:900;font-size:20px;color:var(--gold)">'+wXP+'</div><div style="font-size:11px;color:var(--mute);font-weight:700;text-transform:uppercase">XP</div></div>'+
-      '<div style="flex:1"><div style="font-weight:900;font-size:20px;color:var(--ok)">'+wDone+'</div><div style="font-size:11px;color:var(--mute);font-weight:700;text-transform:uppercase">🟢 Sécurisées</div></div>'+
-      '<div style="flex:1"><div style="font-weight:900;font-size:20px;color:var(--amber)">'+wHalf+'</div><div style="font-size:11px;color:var(--mute);font-weight:700;text-transform:uppercase">🟡 Contestées</div></div>'+
+      // Trois chiffres qu'une cliente comprend sans vocabulaire interne :
+      // XP / zones sécurisées / contestées venaient de la mission One Thing.
+      '<div style="flex:1"><div style="font-weight:900;font-size:20px;color:#0EA5C6">'+wFilled+'<span style="font-size:12px;color:var(--mute)">/7</span></div><div style="font-size:11px;color:var(--mute);font-weight:700;text-transform:uppercase">Jours remplis</div></div>'+
+      '<div style="flex:1"><div style="font-weight:900;font-size:20px;color:var(--ok)">'+(function(){var t=0,n=Math.min(7,today90-wStart+1);for(var q=0;q<HABITS.length;q++)t+=habCount[HABITS[q].id];return n?Math.round(t/(n*HABITS.length)*100):0;})()+'<span style="font-size:12px;color:var(--mute)">%</span></div><div style="font-size:11px;color:var(--mute);font-weight:700;text-transform:uppercase">Habitudes</div></div>'+
+      '<div style="flex:1"><div style="font-weight:900;font-size:20px;color:var(--violet)">'+(function(){var n=0;for(var q=wStart;q<=today90;q++)if(mindsetFull(allData,q))n++;return n;})()+'<span style="font-size:12px;color:var(--mute)">/7</span></div><div style="font-size:11px;color:var(--mute);font-weight:700;text-transform:uppercase">Mindset</div></div>'+
       '<div style="flex:1"><div style="font-weight:900;font-size:20px;color:'+(wDp!=null&&wDp<=0?"var(--ok)":K)+'">'+(wDp!=null?(wDp>0?"+"+wDp:wDp):"—")+'</div><div style="font-size:11px;color:var(--mute);font-weight:700;text-transform:uppercase">kg</div></div></div>';
     // ⚠️ améliorations semaine prochaine
     // Trié du plus laxiste au moins laxiste : la ligne la plus lâchée en tête,
@@ -6012,7 +6051,10 @@ function viewStats(name){
   var poidsV=vals("poids");
   var nCfg=nutCfg(allData);
   var cible=parseFloat(nCfg.pCible)||null;
-  var PJ=statProjection(poidsV,cible,lastIdx,Math.max(0,90-(today90+1)));
+  // Même horizon que l'accueil : la dernière pesée jusqu'à AUJOURD'HUI.
+  // Sans ça, l'accueil affichait 80,7 et les stats 80,8 le même jour.
+  var idxPoids=Math.max(lastIdx,Math.min(89,today90));
+  var PJ=statProjection(poidsV,cible,idxPoids,Math.max(0,90-(today90+1)));
   var rempli=0;for(var f=0;f<=Math.min(89,lastIdx);f++){if(allData[f]&&Object.keys(allData[f]).length>0)rempli++;}
 
   // Titre de section : barre colorée + libellé, réutilisé partout dans la vue.
@@ -7119,8 +7161,8 @@ function viewSport(name, start) {
       '<div class="spt-flab">' + lbl + '</div>' +
       '<input id="' + id + '" class="spt-inp" type="number" inputmode="numeric" min="' + min + '" max="' + max + '" value="' + val + '"/></div>';
   }
-  h += '<div class="spt-card">' +
-    '<div class="spt-lab cy">⚙️ Ma séance</div>' +
+  h += '<details class="spt-tiroir"><summary><span class="spt-sum-t">⚙️ Régler ma séance à intervalles</span><span class="spt-sum-c">⌄</span></summary><div class="spt-corps">' +
+    '<div class="spt-card" style="border:none;box-shadow:none;padding:0;margin:0">' +
     '<div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:13px">' + pres + '</div>' +
     '<div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:10px">' +
     champ("spt-prep", "Prépa (s)", c.prep, 0, 120) +
@@ -7146,11 +7188,22 @@ function viewSport(name, start) {
     '<button id="spt-bips" class="spt-go">🔔 LANCER LE BIP ' + c.cycle + ' S</button>' +
     '<div class="spt-txt" style="text-align:center;margin-top:9px;font-size:11.5px">Il s\'affiche dans le cercle du haut, comme la séance à intervalles.</div></div>';
 
-  if (is14) h += '<div class="spt-card spt-plan">' + training14HTML(name, start) + '</div>';
+  h += '</div></div></details>';
+
+  // ⏱️ Le chronomètre, dans son tiroir
+  h += '<details class="spt-tiroir"><summary><span class="spt-sum-t">⏱️ Chronomètre à tours</span>' +
+    (CHR.tours.length ? '<span class="spt-sum-n">' + CHR.tours.length + ' tour' + (CHR.tours.length > 1 ? 's' : '') + '</span>' : '') +
+    '<span class="spt-sum-c">⌄</span></summary><div class="spt-corps">' +
+    chrHTML().replace('class="spt-card"', 'class="spt-card" style="border:none;box-shadow:none;padding:0;margin:0"') +
+    '</div></details>';
+
+  if (is14) h += '<details class="spt-tiroir" open><summary><span class="spt-sum-t">🔔 Méthode séance express</span><span class="spt-sum-c">⌄</span></summary>' +
+    '<div class="spt-corps"><div class="spt-card spt-plan">' + training14HTML(name, start) + '</div></div></details>';
   return h + '</div>';
 }
 
 function bindSport() {
+  try { chrCharger(); bindChrono(); } catch (e) { }
   function maj(k, v) { var cc = sptCfg(); cc[k] = v; sptCfgSet(cc); }
   function lire() {
     var cc = sptCfg();
@@ -9029,10 +9082,11 @@ function viewPartage() {
     '<div class="prg-sous">Aperçu de ce que verront tes amis</div></div></div>' +
     '<div style="padding:12px 13px 30px">' +
     '<div id="part-prev" class="part-prev"></div>' +
+    // Pas d'explication ici : cet écran est capturé pour être publié, le mode
+    // d'emploi du masquage n'a rien à faire dans une story.
     '<div class="prg-chips" style="margin:14px 0 4px">' +
     '<button class="prg-chip' + (masque ? ' on' : '') + '" data-part-m="1">🙈 Poids masqué</button>' +
     '<button class="prg-chip' + (!masque ? ' on' : '') + '" data-part-m="0">⚖️ Poids affiché</button></div>' +
-    '<div class="st-note">Masqué, on ne voit qu\'un pourcentage — ta série et ta régularité restent en grand. C\'est ce que la plupart des gens acceptent de publier.</div>' +
     '<button id="part-go" class="spt-go" style="margin-top:8px">📤 PARTAGER</button>' +
     '</div>';
 }
@@ -9158,6 +9212,83 @@ function bindTuto() {
   });
   var pv = document.getElementById("tuto-prev");
   if (pv) pv.addEventListener("click", function () { state.tuto = Math.max(0, (state.tuto | 0) - 1); render(); });
+}
+
+// ═══════════ ⏱️ CHRONOMÈTRE À TOURS ═══════════
+// Même principe que les minuteurs : on ne compte pas, on lit l'horloge.
+// Un chrono qui décrémente perd les minutes passées écran éteint.
+var CHR = { t0: 0, arret: 0, tours: [], on: false, tick: null };
+function chrCle() { return "amcoach_chrono_" + CLIENT; }
+function chrCharger() {
+  var c = lsGet(chrCle(), null);
+  if (c && typeof c.t0 === "number") { CHR.t0 = c.t0; CHR.arret = c.arret || 0; CHR.tours = c.tours || []; CHR.on = !!c.on; }
+}
+function chrSauver() { lsSet(chrCle(), { t0: CHR.t0, arret: CHR.arret, tours: CHR.tours, on: CHR.on }); }
+function chrEcoule() {
+  if (!CHR.t0) return 0;
+  return (CHR.on ? Date.now() : CHR.arret) - CHR.t0;
+}
+function chrFmt(ms) {
+  var t = Math.max(0, Math.floor(ms / 10));           // centièmes
+  var cs = t % 100, sec = Math.floor(t / 100) % 60, mn = Math.floor(t / 6000);
+  return mn + ":" + (sec < 10 ? "0" : "") + sec + "." + (cs < 10 ? "0" : "") + cs;
+}
+function chrAfficher() {
+  var e = document.getElementById("chr-time");
+  if (!e) { if (CHR.tick) { clearInterval(CHR.tick); CHR.tick = null; } return; }
+  e.textContent = chrFmt(chrEcoule());
+}
+function chrBoucle() {
+  if (CHR.tick) clearInterval(CHR.tick);
+  CHR.tick = setInterval(chrAfficher, 70);
+}
+function chrHTML() {
+  var t = chrEcoule(), h = "";
+  h += '<div class="spt-card"><div class="spt-lab">⏱️ Chronomètre</div>' +
+    '<div class="chr-time" id="chr-time">' + chrFmt(t) + '</div>' +
+    '<div class="chr-btns">' +
+    '<button id="chr-go" class="spt-go' + (CHR.on ? ' pause' : '') + '">' + (CHR.on ? '❙❙ PAUSE' : (t > 0 ? '▶ REPRENDRE' : '▶ DÉMARRER')) + '</button>' +
+    '<button id="chr-tour" class="spt-sq"' + (CHR.on ? '' : ' disabled style="opacity:.45"') + '>🏁</button>' +
+    '<button id="chr-raz" class="spt-sq">↺</button></div>';
+  if (CHR.tours.length) {
+    h += '<div class="chr-tours">';
+    for (var i = CHR.tours.length - 1; i >= 0; i--) {
+      var prec = i > 0 ? CHR.tours[i - 1] : 0;
+      h += '<div class="chr-t"><span class="chr-t-n">Tour ' + (i + 1) + '</span>' +
+        '<span class="chr-t-d">' + chrFmt(CHR.tours[i] - prec) + '</span>' +
+        '<span class="chr-t-c">' + chrFmt(CHR.tours[i]) + '</span></div>';
+    }
+    h += '</div>';
+  } else {
+    h += '<div class="spt-txt" style="margin-top:10px">🏁 marque un tour, ↺ remet à zéro. Le chrono continue écran éteint.</div>';
+  }
+  return h + '</div>';
+}
+function bindChrono() {
+  var go = document.getElementById("chr-go");
+  if (!go) return;
+  go.addEventListener("click", function () {
+    if (CHR.on) { CHR.arret = Date.now(); CHR.on = false; }
+    else {
+      // Reprise : on décale le point de départ du temps déjà passé en pause.
+      if (CHR.t0 && CHR.arret) CHR.t0 += (Date.now() - CHR.arret);
+      else CHR.t0 = Date.now();
+      CHR.on = true;
+    }
+    chrSauver(); render();
+    if (CHR.on) chrBoucle();
+  });
+  var tr = document.getElementById("chr-tour");
+  if (tr) tr.addEventListener("click", function () {
+    if (!CHR.on) return;
+    CHR.tours.push(chrEcoule()); chrSauver(); buzz("ok"); render(); chrBoucle();
+  });
+  var rz = document.getElementById("chr-raz");
+  if (rz) rz.addEventListener("click", function () {
+    CHR.t0 = 0; CHR.arret = 0; CHR.tours = []; CHR.on = false;
+    chrSauver(); render();
+  });
+  if (CHR.on) chrBoucle(); else chrAfficher();
 }
 
 // ═══════════ CONTRAT AVEC SOI-MÊME (#13) ═══════════

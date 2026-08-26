@@ -572,7 +572,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="26/08 · Logo & pipeline";
+var APP_VERSION="26/08 · Journal 7 jours";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -10980,20 +10980,33 @@ function viewCoachKPI(){
       }
       h+='</div></div>';
     }
-    // Le détail du jour : à qui j'ai parlé, où
-    var det=(J.detail||[]);
-    if(det.length){
+    // Le détail des SEPT DERNIERS JOURS : à qui j'ai parlé, où, et ce que
+    // j'en ai tiré. Chaque ligne reste modifiable — un contact d'il y a
+    // quatre jours peut très bien revenir vers toi aujourd'hui.
+    var O7=prospLire(), jours7=[];
+    for(var d7=0;d7<7;d7++){
+      var dd=new Date(); dd.setDate(dd.getDate()-d7);
+      var iso7=dd.getFullYear()+"-"+String(dd.getMonth()+1).padStart(2,"0")+"-"+String(dd.getDate()).padStart(2,"0");
+      var dt7=(O7[iso7]&&O7[iso7].detail)||[];
+      if(dt7.length)jours7.push({iso:iso7,det:dt7,jour:d7});
+    }
+    if(jours7.length){
       h+='<div style="border-top:1px solid var(--line);padding-top:10px;margin-top:10px">'+
-        '<div style="font-size:11.5px;font-weight:800;color:var(--ink2);margin-bottom:6px">Aujourd\'hui, en détail</div>';
-      for(var w=det.length-1;w>=0;w--){
-        var D=det[w], IA=prospIssue(D.issue), AA=null;
+        '<div style="font-size:11.5px;font-weight:800;color:var(--ink2);margin-bottom:6px">Mes 7 derniers jours, en détail</div>';
+      for(var g7=0;g7<jours7.length;g7++){
+        var G=jours7[g7];
+        h+='<div style="font-size:10.5px;font-weight:800;color:var(--mute);margin:'+(g7?'9px':'2px')+' 0 2px">'+
+          (G.jour===0?"Aujourd'hui":G.jour===1?"Hier":frDate(G.iso))+'</div>';
+      for(var w=G.det.length-1;w>=0;w--){
+        var D=G.det[w], IA=prospIssue(D.issue), AA=null;
         for(var v=0;v<PROSP_ACTIONS.length;v++){if(PROSP_ACTIONS[v].k===D.type)AA=PROSP_ACTIONS[v];}
-        h+='<button class="prosp-det" data-i="'+w+'" style="width:100%;display:flex;align-items:center;gap:8px;padding:6px 0;font-size:11.5px;background:none;text-align:left">'+
+        h+='<button class="prosp-det" data-i="'+w+'" data-d="'+G.iso+'" style="width:100%;display:flex;align-items:center;gap:8px;padding:6px 0;font-size:11.5px;background:none;text-align:left">'+
           '<span style="font-size:14px">'+(AA?AA.e:'•')+'</span>'+
           '<span style="flex:1;min-width:0;font-weight:700;color:'+(D.qui?'var(--ink2)':'var(--mute)')+'">'+(D.qui?esc(D.qui):'sans détail — toucher pour compléter')+
           (D.cp?' <span style="color:var(--mute);font-weight:600">· '+esc(D.cp)+'</span>':'')+'</span>'+
           '<span style="font-size:11px;font-weight:800;color:'+(IA.poids>=2?'var(--ok-d)':'var(--mute)')+'">'+IA.e+'</span>'+
           '<span style="font-size:10.5px;color:var(--mute)">'+esc(D.h||'')+' ›</span></button>';
+      }
       }
       h+='</div>';
     }
@@ -13399,7 +13412,7 @@ function bindCoach(){
   var pDet=document.querySelectorAll(".prosp-det");
   for(var pd=0;pd<pDet.length;pd++)pDet[pd].addEventListener("click",function(){
     var i=parseInt(this.getAttribute("data-i"),10);
-    var o=prospLire(), j=isoLocal(), det=(o[j]&&o[j].detail)||[];
+    var o=prospLire(), j=this.getAttribute("data-d")||isoLocal(), det=(o[j]&&o[j].detail)||[];
     var D=det[i]; if(!D)return;
     var qui=prompt("Qui ? (prénom, cabinet, ce dont vous avez parlé)",D.qui||"");
     if(qui===null)return;

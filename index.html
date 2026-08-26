@@ -572,7 +572,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="26/08 · Fiche prospect reliée";
+var APP_VERSION="26/08 · Contrat ou partenariat";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -1081,6 +1081,7 @@ var state={
   tuto:null,       // page du didacticiel d'arrivée (0..6), null = fermé
   prog3:null,      // écran du programme fixe côté coach ('h' ou 'f')
   calOpen:false,   // tiroir du calendrier ouvert sur l'accueil
+  blMode:null,     // issue choisie depuis la fiche prospect (contrat / partenariat)
   statsExo:null,   // exercice dont on regarde la courbe de progression
   pesees:false,    // écran historique des pesées
   partage:false,   // écran de la carte à partager
@@ -12461,7 +12462,7 @@ function viewCoachBilan(){
       '<div style="font-size:11.5px;color:var(--mute);line-height:1.5;margin:3px 0 '+(dejaClient?'0':'10px')+'">'+
       (dejaClient?'Ce prospect a déjà sa fiche client et son lien de suivi.'
                  :'Crée son lien de suivi 90 jours. Ses bilans seront repris automatiquement dans sa fiche.')+'</div>'+
-      (dejaClient?'':'<button id="bl-convertir" data-mode="contrat" style="width:100%;padding:13px 0;border-radius:12px;border:0;background:var(--ok-d);color:#fff;font-weight:900;font-size:13.5px">✍️ Contrat signé — en faire un client</button>'+
+      (dejaClient?'':(state.blMode?'<div style="font-size:12px;font-weight:800;color:var(--brand);margin-bottom:9px">'+(state.blMode==="partenariat"?"🤝 Partenariat — appuie sur le bouton correspondant":"✍️ Contrat signé — appuie sur le bouton correspondant")+'</div>':'')+'<button id="bl-convertir" data-mode="contrat" style="width:100%;padding:13px 0;border-radius:12px;border:0;background:var(--ok-d);color:#fff;font-weight:900;font-size:13.5px">✍️ Contrat signé — en faire un client</button>'+
         '<button id="bl-convertir-part" data-mode="partenariat" style="width:100%;margin-top:8px;padding:13px 0;border-radius:12px;border:2px solid var(--brand);background:#fff;color:var(--brand);font-weight:900;font-size:13.5px">🤝 Partenariat — en faire un client</button>')+
       '</div>';
   }
@@ -13673,6 +13674,11 @@ function bindCoach(){
         '<select id="pp-etape" style="width:100%;padding:13px 15px;border-radius:12px;border:2px solid '+solid("var(--line)")+';font-size:15px;font-weight:700;background:#fff">'+opts+'</select>'+
         '<textarea id="pp-note" placeholder="Détail en plus, si besoin (facultatif)" style="width:100%;margin-top:9px;padding:12px 15px;border-radius:12px;border:2px solid '+solid("var(--line)")+';font-size:13.5px;min-height:56px;font-family:inherit">'+esc(p.note||"")+'</textarea>'+
         '<button id="pp-ok" style="width:100%;margin-top:13px;padding:14px 0;border-radius:13px;border:0;background:'+solid("var(--brand)")+';color:#fff;font-weight:900;font-size:14px">Enregistrer</button>'+
+        (existant&&!p.clientSlug?'<div style="margin-top:14px;padding-top:12px;border-top:1px solid '+solid("var(--line)")+'">'+
+          '<div style="font-size:11.5px;font-weight:800;color:'+solid("var(--mute)")+';margin-bottom:8px">CONCLURE — crée le client et son lien de suivi</div>'+
+          '<button id="pp-contrat" data-mode="contrat" style="width:100%;padding:13px 0;border-radius:13px;border:0;background:'+solid("var(--ok-d)")+';color:#fff;font-weight:900;font-size:13.5px">✍️ Contrat signé</button>'+
+          '<button id="pp-partenariat" data-mode="partenariat" style="width:100%;margin-top:8px;padding:13px 0;border-radius:13px;border:2px solid '+solid("var(--brand)")+';background:#fff;color:'+solid("var(--brand)")+';font-weight:900;font-size:13.5px">🤝 Partenariat</button></div>':'')+
+        (existant&&p.clientSlug?'<div style="margin-top:14px;padding:11px 12px;border-radius:12px;background:'+solid("var(--soft)")+';font-size:12px;font-weight:700;color:'+solid("var(--ink2)")+'">✅ Déjà client'+(p.mode==="partenariat"?" (partenariat)":" (contrat)")+' · lien ?client='+esc(p.clientSlug)+'</div>':'')+
         (existant?'<button id="pp-del" style="width:100%;margin-top:8px;padding:11px 0;border-radius:13px;border:1px solid '+solid("var(--line)")+';background:#fff;color:'+solid("var(--bad)")+';font-weight:800;font-size:13px">Supprimer</button>':'')+
         '<button id="pp-no" style="width:100%;margin-top:8px;padding:11px 0;border-radius:13px;border:1px solid '+solid("var(--line)")+';background:#fff;color:'+solid("var(--mute)")+';font-weight:800;font-size:13px">Annuler</button></div>';
       cablerPuces();
@@ -13733,6 +13739,29 @@ function bindCoach(){
         pipeEcrire(L); fermer(); render();
         feedback(trouve?"Prospect mis à jour":"Prospect ajouté","ok");
       });
+      // Les deux issues passent par le MÊME chemin que depuis le bilan :
+      // on ouvre l'écran de bilan du prospect, où la conversion est déjà
+      // écrite et testée. Une seule mécanique de création de client.
+      var ppC=ov.querySelector("#pp-contrat"), ppP=ov.querySelector("#pp-partenariat");
+      function conclure(mode){
+        var L2=pipeLire(), vu=false;
+        // On retrouve par identifiant, et à défaut par nom : une fiche
+        // ouverte depuis le journal peut porter un objet reconstruit.
+        for(var z=0;z<L2.length;z++){
+          if(L2[z].id===p.id||(p.nom&&(L2[z].nom||"").toLowerCase()===String(p.nom).toLowerCase())){
+            L2[z].etape="gagne"; L2[z].maj=isoLocal(); L2[z].mode=mode; vu=true; p.id=L2[z].id;
+          }
+        }
+        if(!vu){ p.etape="gagne"; p.maj=isoLocal(); p.mode=mode; L2.unshift(p); }
+        pipeEcrire(L2);
+        fermer();
+        state.blProspect=p.id; state.blLibre=null; state.blRep=null; state.blProfil="";
+        state.blForm=false; state.blEdit=null; state.blMode=mode;
+        render();
+        feedback(mode==="partenariat"?"🤝 Partenariat — crée son lien ci-dessous":"✍️ Contrat — crée son lien ci-dessous","ok");
+      }
+      if(ppC)ppC.addEventListener("click",function(){conclure("contrat");});
+      if(ppP)ppP.addEventListener("click",function(){conclure("partenariat");});
       var del=ov.querySelector("#pp-del");
       if(del)del.addEventListener("click",function(){
         if(!confirm("Supprimer "+p.nom+" du pipeline ?"))return;

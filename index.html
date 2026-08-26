@@ -572,7 +572,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="26/08 · Journal 7 jours";
+var APP_VERSION="26/08 · Récupération coach";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -8727,6 +8727,8 @@ function seaDashHTML() {
   h += '<button id="sea-new" class="big-btn" style="margin:4px 0 0;padding:13px 0;font-size:13.5px">＋ Nouvelle séance type</button>' +
     '<button id="sea-prog3" class="prg-mini" style="width:100%;margin-top:9px;padding:13px 0">🗓️ Programme fixe des 3 mois (H / F)</button>' +
     '<button id="sea-resync" class="prg-mini" style="width:100%;margin-top:8px;padding:13px 0">🔄 Remettre toutes les séances à jour</button>' +
+    '<button id="sea-restore" class="prg-mini" style="width:100%;margin-top:8px;padding:13px 0;border-color:var(--brand);color:var(--brand)">☁️ Récupérer mes clients depuis le serveur</button>' +
+    '<div style="font-size:11.5px;color:var(--mute);line-height:1.55;margin-top:7px">Si ton tableau de bord paraît vide : tes données sont sur le serveur, ce bouton les redescend.</div>' +
     '<div style="font-size:11.5px;color:var(--mute);line-height:1.55;margin-top:7px">À utiliser après avoir modifié des exercices : renvoie la dernière version de chaque séance à tous tes clients.</div>' +
     // Le repère de version, à portée de regard côté coach : quand quelque
     // chose « ne marche pas », la première question est toujours de savoir
@@ -8804,6 +8806,16 @@ function bindProgDash() {
     var els = document.querySelectorAll("[" + attr + "]");
     for (var i = 0; i < els.length; i++) els[i].addEventListener("click", function () { cb(this.getAttribute(attr)); });
   }
+  var rst = document.getElementById("sea-restore");
+  if (rst) rst.addEventListener("click", function () {
+    this.textContent = "⏳ Récupération…";
+    try { loadCoachDataFromCloud(); } catch (e) { }
+    setTimeout(function () {
+      var n = lsGet("amcoach_clients", []).length;
+      render();
+      feedback(n ? n + " client" + (n > 1 ? "s" : "") + " récupéré" + (n > 1 ? "s" : "") : "Aucun client trouvé sur le serveur", n ? "ok" : "err");
+    }, 2500);
+  });
   var rs = document.getElementById("sea-resync");
   if (rs) rs.addEventListener("click", function () {
     feedback("Mise à jour en cours…", "ok");
@@ -12904,6 +12916,14 @@ function bindCoach(){
           state.coachAuthed=true;
           coachSessionRenouveler();
           render();
+          // Panne du 26/08 : tableau de bord vide alors que TOUT etait intact
+          // dans Supabase. Le rapatriement ne partait qu'au demarrage, quand
+          // la session coach etait deja ouverte. Apres un stockage vide par
+          // Safari ou un changement d'appareil, on arrive sur l'ecran de
+          // connexion : plus de session au demarrage, donc aucun rapatriement.
+          // On rapatrie donc TOUJOURS apres une connexion reussie.
+          feedback("Recuperation de tes donnees...","ok");
+          try{loadCoachDataFromCloud();}catch(e){}
         }else{
           cp.value="";
           cp.style.borderColor="var(--bad)";

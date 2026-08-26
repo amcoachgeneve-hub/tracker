@@ -572,7 +572,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="26/08 · Récupération coach";
+var APP_VERSION="26/08 · Sauvegarde coach";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -1124,7 +1124,48 @@ var state={
 
 // ═══════════ STORAGE LOCAL ═══════════
 function lsGet(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}}
-function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+var COACH_CLES={
+  "amcoach_seances":900,      // séances types
+  "amcoach_prog3":901,        // socle des 3 mois
+  "amcoach_pipeline":902,     // prospects
+  "amcoach_prospection":903,  // journal de prospection
+  "amcoach_bilans":904,       // bilans
+  "amcoach_biblio":905,       // bibliothèque d'exercices
+  "amcoach_clients":906       // liste des clients (secours : la table clients fait foi)
+};
+var __coachEnv={};
+function coachCloudPousser(cle){
+  if(typeof IS_COACH==="undefined"||!IS_COACH)return;
+  var slot=COACH_CLES[cle]; if(!slot)return;
+  // On regroupe les écritures : cocher dix cases ne doit pas déclencher dix
+  // appels réseau.
+  clearTimeout(__coachEnv[cle]);
+  __coachEnv[cle]=setTimeout(function(){
+    try{
+      var v=localStorage.getItem(cle); if(v===null)return;
+      sbFetch("tracking",{method:"POST",prefer:"resolution=merge-duplicates",
+        body:{client_slug:"__coach",day_index:slot,data:{cle:cle,v:v,maj:new Date().toISOString()}}}).catch(function(){});
+    }catch(e){}
+  },1200);
+}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));coachCloudPousser(k);}catch(e){}}
+// Redescend la sauvegarde du coach. `ecraser` seulement quand le local est
+// vide : sinon on écraserait un travail plus récent fait hors ligne.
+function coachCloudCharger(cb){
+  if(typeof IS_COACH==="undefined"||!IS_COACH){if(cb)cb(0);return;}
+  sbFetch("tracking?client_slug=eq.__coach&select=day_index,data")
+    .then(function(r){return r.json();})
+    .then(function(rows){
+      var n=0;
+      for(var i=0;i<(rows||[]).length;i++){
+        var d=rows[i].data||{}; if(!d.cle||d.v==null)continue;
+        var local=localStorage.getItem(d.cle);
+        var vide=(local===null||local==="[]"||local==="{}"||local==="null");
+        if(vide){ try{localStorage.setItem(d.cle,d.v);n++;}catch(e){} }
+      }
+      if(cb)cb(n);
+    }).catch(function(){if(cb)cb(0);});
+}
 function lsGetStr(k){try{return localStorage.getItem(k)||"";}catch(e){return "";}}
 function lsSetStr(k,v){try{localStorage.setItem(k,v);}catch(e){}}
 
@@ -8810,6 +8851,7 @@ function bindProgDash() {
   if (rst) rst.addEventListener("click", function () {
     this.textContent = "⏳ Récupération…";
     try { loadCoachDataFromCloud(); } catch (e) { }
+    try { coachCloudCharger(function(){}); } catch (e) { }
     setTimeout(function () {
       var n = lsGet("amcoach_clients", []).length;
       render();
@@ -12924,6 +12966,7 @@ function bindCoach(){
           // On rapatrie donc TOUJOURS apres une connexion reussie.
           feedback("Recuperation de tes donnees...","ok");
           try{loadCoachDataFromCloud();}catch(e){}
+          try{coachCloudCharger(function(n){ if(n){render();feedback("☁️ "+n+" sauvegarde"+(n>1?"s":"")+" récupérée"+(n>1?"s":""),"ok");} });}catch(e){}
         }else{
           cp.value="";
           cp.style.borderColor="var(--bad)";

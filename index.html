@@ -572,7 +572,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="26/08 · Prospection reliée";
+var APP_VERSION="26/08 · Fiche prospect reliée";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -13583,34 +13583,33 @@ function bindCoach(){
     document.body.appendChild(ov);
     dessiner();
   }
-  // ✏️ Compléter une ligne du journal (souvent une entrée « sans détail »).
+  // 🔗 Toucher une ligne du journal ouvre LA FICHE DU PROSPECT — pas un
+  // champ de renommage. C'est là que se joue tout le reste : étape, source,
+  // douleurs, bilan, conversion. Si la personne n'est pas encore suivie, on
+  // la crée à la volée et on ouvre sa fiche dans la foulée.
   var pDet=document.querySelectorAll(".prosp-det");
   for(var pd=0;pd<pDet.length;pd++)pDet[pd].addEventListener("click",function(){
     var i=parseInt(this.getAttribute("data-i"),10);
     var o=prospLire(), j=this.getAttribute("data-d")||isoLocal(), det=(o[j]&&o[j].detail)||[];
     var D=det[i]; if(!D)return;
-    var qui=prompt("Qui ? (prénom, cabinet, ce dont vous avez parlé)",D.qui||"");
-    if(qui===null)return;
-    var cp=prompt("Code postal et ville (facultatif)",D.cp||"");
-    D.qui=qui.trim(); if(cp!==null)D.cp=cp.trim();
-    prospEcrire(o);
-    // 🔗 LE PONT ENTRE LE JOURNAL ET LE PIPELINE. Une conversation notée au
-    // porte-à-porte n'était qu'une ligne d'historique : impossible de la
-    // suivre, de lui poser un bilan ou de la convertir. Si elle a un nom et
-    // qu'elle n'est pas déjà suivie, on propose de la faire entrer dans le
-    // pipeline — c'est exactement là que naissent les clients.
-    if(D.qui){
-      var L=pipeLire(), deja=false;
-      for(var q=0;q<L.length;q++) if((L[q].nom||"").toLowerCase()===D.qui.toLowerCase()) deja=true;
-      if(!deja && confirm("Suivre « "+D.qui+" » dans le pipeline ?\nTu pourras lui poser un bilan et le convertir.")){
-        L.unshift({id:"p"+Date.now().toString(36),nom:D.qui,cp:D.cp||"",etape:"discute",
-          maj:isoLocal(),cree:isoLocal(),relances:0,relanceDates:[],douleurs:[],
-          source:(D.type==="porte"?"porte":D.type||null),note:"Depuis le journal de prospection",bilans:[]});
-        pipeEcrire(L);
-        render(); feedback("« "+D.qui+" » entre dans le pipeline","ok"); return;
-      }
+    var nom=D.qui;
+    if(!nom){
+      nom=prompt("Qui était-ce ? (prénom, cabinet)","");
+      if(nom===null)return;
+      nom=nom.trim(); if(!nom)return;
+      D.qui=nom; prospEcrire(o);
     }
-    render(); feedback("Détail complété","ok");
+    var L=pipeLire(), trouve=null;
+    for(var q=0;q<L.length;q++) if((L[q].nom||"").toLowerCase()===nom.toLowerCase()) trouve=L[q];
+    if(!trouve){
+      var srcMap={salle:"salle",dm:"insta",relance:"reseau",porte:"porte"};
+      trouve={id:"p"+Date.now().toString(36),nom:nom,cp:D.cp||"",etape:"discute",
+        maj:isoLocal(),cree:isoLocal(),relances:0,relanceDates:[],douleurs:[],
+        source:srcMap[D.type]||null,note:"",bilans:[]};
+      L.unshift(trouve); pipeEcrire(L);
+      feedback("« "+nom+" » entre dans le pipeline","ok");
+    }
+    pipeFiche(trouve);
   });
   var pPlus=document.querySelectorAll(".prosp-plus");
   for(var pl=0;pl<pPlus.length;pl++)pPlus[pl].addEventListener("click",function(){

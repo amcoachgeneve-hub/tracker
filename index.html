@@ -572,7 +572,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="26/08 · Récupération & filets";
+var APP_VERSION="26/08 · Prospection reliée";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -13537,8 +13537,40 @@ function bindCoach(){
         if(q2)q2.value=vq; if(c2)c2.value=vc;
       });
       ov.querySelector("#pj-ok").addEventListener("click",function(){
-        prospJournal(type,issue,ov.querySelector("#pj-qui").value.trim(),ov.querySelector("#pj-cp").value.trim());
-        fermer(); render(); feedback(prospIssue(issue).e+" "+prospIssue(issue).n,"ok");
+        var vqui=ov.querySelector("#pj-qui").value.trim();
+        var vcp=ov.querySelector("#pj-cp").value.trim();
+        prospJournal(type,issue,vqui,vcp);
+        // 🔗 UN NOM = UN PROSPECT. C'était le trou du système : on notait un
+        // contact dans le journal du jour, et il n'existait nulle part
+        // ailleurs — donc ni relançable, ni convertible. Dès qu'un nom est
+        // saisi, la personne entre dans le pipeline, à l'étape qui
+        // correspond à ce qui s'est réellement passé.
+        var cree=false;
+        if(vqui){
+          var L=pipeLire(), deja=null;
+          for(var q=0;q<L.length;q++) if((L[q].nom||"").toLowerCase()===vqui.toLowerCase()) deja=L[q];
+          // Quelle étape ? Ce qu'on a obtenu le dit mieux qu'un menu.
+          var et=(issue==="bilan")?"propose":(issue==="num"||issue==="carte")?"relance":"discute";
+          var srcMap={salle:"salle",dm:"insta",relance:"reseau",porte:"porte"};
+          if(deja){
+            // On ne rétrograde jamais quelqu'un qui a déjà avancé.
+            var ordre=["contact","discute","relance","propose","gagne"];
+            if(ordre.indexOf(et)>ordre.indexOf(deja.etape||"contact")){deja.etape=et;deja.maj=isoLocal();deja.relances=0;}
+            if(vcp&&!deja.cp)deja.cp=vcp;
+            for(var w=0;w<L.length;w++) if(L[w].id===deja.id) L[w]=deja;
+          }else{
+            L.unshift({id:"p"+Date.now().toString(36),nom:vqui,cp:vcp,etape:et,
+              maj:isoLocal(),cree:isoLocal(),relances:0,relanceDates:[],douleurs:[],
+              source:srcMap[type]||null,note:"",bilans:[]});
+            cree=true;
+          }
+          pipeEcrire(L);
+        }
+        fermer(); render();
+        feedback(vqui
+          ? (cree?"✅ "+vqui+" ajouté au pipeline · "+prospIssue(issue).n
+                : "↗️ "+vqui+" mis à jour dans le pipeline")
+          : prospIssue(issue).e+" "+prospIssue(issue).n, "ok");
       });
       ov.querySelector("#pj-vite").addEventListener("click",function(){
         prospJournal(type,"parle","","");

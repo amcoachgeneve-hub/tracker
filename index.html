@@ -572,7 +572,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="26/08 · Sauvegarde coach";
+var APP_VERSION="26/08 · Récupération & filets";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -1148,9 +1148,55 @@ function coachCloudPousser(cle){
     }catch(e){}
   },1200);
 }
-function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));coachCloudPousser(k);}catch(e){}}
+function lsSet(k,v){
+  try{
+    // Filet supplémentaire : le porte-sauvegarde ne doit jamais atterrir
+    // dans la liste des clients, même par un chemin détourné.
+    if(k==="amcoach_clients"&&Array.isArray(v))v=v.filter(function(c){return String(c&&c.slug||"").indexOf("__")!==0;});
+    localStorage.setItem(k,JSON.stringify(v));coachCloudPousser(k);
+  }catch(e){}
+}
 // Redescend la sauvegarde du coach. `ecraser` seulement quand le local est
 // vide : sinon on écraserait un travail plus récent fait hors ligne.
+// 📚 Une photo datée de toutes les données du coach, conservée en rotation
+// sur sept emplacements. Même si la sauvegarde courante est écrasée par
+// erreur, on peut revenir à celle d'hier.
+function coachSnapshot(){
+  if(typeof IS_COACH==="undefined"||!IS_COACH)return;
+  var d=new Date(), jour=d.getDay();              // 0..6 : une photo par jour
+  var paq={date:d.toISOString(),cles:{}};
+  for(var k in COACH_CLES){var v=localStorage.getItem(k); if(v!=null)paq.cles[k]=v;}
+  if(!Object.keys(paq.cles).length)return;        // rien à sauver, on ne fait rien
+  lsSetStr("amcoach_snap_le",d.toISOString().slice(0,10));
+  sbFetch("tracking",{method:"POST",prefer:"resolution=merge-duplicates",
+    body:{client_slug:"__coach",day_index:910+jour,data:paq}}).catch(function(){});
+}
+// Une photo par jour au maximum : elle part à l'ouverture du tableau de bord.
+function coachSnapshotSiBesoin(){
+  try{
+    var hier=lsGetStr("amcoach_snap_le")||"";
+    if(hier!==isoLocal())coachSnapshot();
+  }catch(e){}
+}
+// 💾 Le fichier de secours, téléchargé sur son téléphone ou son ordinateur.
+function coachExportFichier(){
+  var paq={version:APP_VERSION,date:new Date().toISOString(),cles:{}};
+  for(var k in COACH_CLES){var v=localStorage.getItem(k); if(v!=null)paq.cles[k]=v;}
+  var blob=new Blob([JSON.stringify(paq,null,1)],{type:"application/json"});
+  var a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="discipline90-sauvegarde-"+isoLocal()+".json";
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},1500);
+}
+function coachImportFichier(txt){
+  var paq=JSON.parse(txt);
+  if(!paq||!paq.cles)throw new Error("fichier illisible");
+  var n=0;
+  for(var k in paq.cles){ if(!COACH_CLES[k])continue;
+    localStorage.setItem(k,paq.cles[k]); coachCloudPousser(k); n++; }
+  return n;
+}
 function coachCloudCharger(cb){
   if(typeof IS_COACH==="undefined"||!IS_COACH){if(cb)cb(0);return;}
   sbFetch("tracking?client_slug=eq.__coach&select=day_index,data")
@@ -1320,6 +1366,10 @@ function loadFromCloud(cb){
     sbFetch("tracking?client_slug=eq."+encodeURIComponent(CLIENT)+"&select=day_index,data").then(function(r){return r.json();})
   ]).then(function(results){
     var clients=results[0]||[], rows=results[1]||[];
+    // Le porte-sauvegarde technique « __coach » n'est pas un client : la
+    // table `tracking` exige un client existant pour accepter une ligne, on
+    // l'écarte donc partout où la liste est lue.
+    clients=clients.filter(function(cc){return String(cc.slug||"").indexOf("__")!==0;});
     if(clients.length>0){
       lsSetStr("amcoach_name_"+CLIENT,clients[0].name);
       lsSetStr("amcoach_start_"+CLIENT,clients[0].start_date);
@@ -8770,6 +8820,11 @@ function seaDashHTML() {
     '<button id="sea-resync" class="prg-mini" style="width:100%;margin-top:8px;padding:13px 0">🔄 Remettre toutes les séances à jour</button>' +
     '<button id="sea-restore" class="prg-mini" style="width:100%;margin-top:8px;padding:13px 0;border-color:var(--brand);color:var(--brand)">☁️ Récupérer mes clients depuis le serveur</button>' +
     '<div style="font-size:11.5px;color:var(--mute);line-height:1.55;margin-top:7px">Si ton tableau de bord paraît vide : tes données sont sur le serveur, ce bouton les redescend.</div>' +
+    '<div style="display:flex;gap:8px;margin-top:10px">' +
+    '<button id="sea-export" class="prg-mini" style="flex:1;padding:12px 0">💾 Exporter</button>' +
+    '<button id="sea-import" class="prg-mini" style="flex:1;padding:12px 0">📂 Restaurer</button></div>' +
+    '<input id="sea-file" type="file" accept="application/json,.json" style="display:none"/>' +
+    '<div style="font-size:11.5px;color:var(--mute);line-height:1.55;margin-top:7px">Un fichier de secours à garder chez toi. C\'est le seul qui ne dépende ni de ton téléphone ni du réseau — exporte-le une fois par semaine.</div>' +
     '<div style="font-size:11.5px;color:var(--mute);line-height:1.55;margin-top:7px">À utiliser après avoir modifié des exercices : renvoie la dernière version de chaque séance à tous tes clients.</div>' +
     // Le repère de version, à portée de regard côté coach : quand quelque
     // chose « ne marche pas », la première question est toujours de savoir
@@ -8846,6 +8901,26 @@ function bindProgDash() {
   function chaque(attr, cb) {
     var els = document.querySelectorAll("[" + attr + "]");
     for (var i = 0; i < els.length; i++) els[i].addEventListener("click", function () { cb(this.getAttribute(attr)); });
+  }
+  var exp = document.getElementById("sea-export");
+  if (exp) exp.addEventListener("click", function () {
+    try { coachExportFichier(); feedback("Sauvegarde téléchargée", "ok"); }
+    catch (e) { feedback("Export impossible sur ce navigateur", "err"); }
+  });
+  var imp = document.getElementById("sea-import"), fil = document.getElementById("sea-file");
+  if (imp && fil) {
+    imp.addEventListener("click", function () { fil.click(); });
+    fil.addEventListener("change", function () {
+      var f = this.files && this.files[0]; if (!f) return;
+      var rd = new FileReader();
+      rd.onload = function () {
+        try {
+          var n = coachImportFichier(rd.result);
+          render(); feedback(n + " élément" + (n > 1 ? "s" : "") + " restauré" + (n > 1 ? "s" : ""), "ok");
+        } catch (e) { feedback("Fichier illisible", "err"); }
+      };
+      rd.readAsText(f);
+    });
   }
   var rst = document.getElementById("sea-restore");
   if (rst) rst.addEventListener("click", function () {
@@ -11417,6 +11492,7 @@ function viewCoachKPI(){
 function viewCoachDash(){
   var clients=lsGet("amcoach_clients",[]);
   coachLoadAll(false); // télécharge les données de tous les clients au premier affichage
+  try{coachSnapshotSiBesoin();}catch(e){} // 📚 une photo datée par jour
   var h='<div class="app" style="max-width:480px">'+
     '<div class="hdr"><div class="hdr-brand"><div class="bar bar-r"></div>'+
     '<span class="hdr-title">Coach Dashboard</span><div class="bar bar-b"></div></div>'+
@@ -11755,6 +11831,10 @@ function loadCoachDataFromCloud(){
     chargerTracking()
   ]).then(function(results){
     var clients=results[0]||[], rows=results[1]||[];
+    // Le porte-sauvegarde technique « __coach » n'est pas un client : la
+    // table `tracking` exige un client existant pour accepter une ligne, on
+    // l'écarte donc partout où la liste est lue.
+    clients=clients.filter(function(cc){return String(cc.slug||"").indexOf("__")!==0;});
     // Un client supprimé ne revient pas, quoi que dise le nuage.
     var revenus=[];
     clients=clients.filter(function(cc){

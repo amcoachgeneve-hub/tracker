@@ -88,6 +88,25 @@
 .spt-go{flex:1;width:100%;padding:16px 0;border-radius:16px;color:#fff;font-weight:900;font-size:16px;letter-spacing:1.4px;
   background:linear-gradient(90deg,var(--b1) 0%,var(--b2) 100%);box-shadow:0 8px 20px rgba(96,120,255,.28)}
 .spt-go.pause{background:linear-gradient(90deg,#8C93A8 0%,#6B7280 100%);box-shadow:0 8px 18px rgba(16,24,40,.16)}
+
+/* ⚡ Séance express — la carte du corps.
+   Les zones sont des formes cliquables : au repos elles se devinent, une fois
+   choisies elles prennent la couleur du thème. Fond sombre de l'onglet Sport. */
+.spt-pills{display:flex;gap:7px;flex-wrap:wrap}
+.spt-pills .spt-pill{flex:1 1 30%}
+.xp-wrap{display:flex;justify-content:center;padding:4px 0 2px}
+.xp-corps{width:100%;max-width:230px;height:auto}
+.xp-z{fill:rgba(255,255,255,.20);stroke:rgba(255,255,255,.30);stroke-width:1.5;cursor:pointer;
+  transition:fill .18s,stroke .18s}
+.xp-z.on{fill:var(--brand);stroke:#fff;stroke-width:2}
+.xp-face{display:flex;gap:7px;margin-top:10px}
+.xp-fb{flex:1;padding:11px 4px;border-radius:13px;font-weight:900;font-size:13px;
+  background:transparent;border:1.5px solid var(--line);color:var(--ink)}
+.xp-fb.on{border-color:var(--b1);color:var(--brand-d);box-shadow:0 0 0 3px rgba(18,181,234,.14)}
+.xp-choix{margin-top:11px;font-size:12.5px;font-weight:800;color:var(--ink);text-align:center}
+.app.sport-mode .xp-fb{color:#f7f9ff;border-color:rgba(255,255,255,.18)}
+.app.sport-mode .xp-fb.on{color:#fff;border-color:var(--b1)}
+.app.sport-mode .xp-choix{color:#f7f9ff}
 .spt-go.ok{background:linear-gradient(90deg,#12C98A 0%,var(--b1) 100%);box-shadow:0 8px 20px rgba(18,201,138,.3)}
 .spt-sq{flex:0 0 70px;padding:16px 0;border-radius:16px;background:var(--soft);border:1.5px solid var(--line);
   color:var(--b1);font-size:17px}
@@ -691,7 +710,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="29/08 · Thèmes homme / femme";
+var APP_VERSION="29/08 · Séance express";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -2942,14 +2961,14 @@ function gaugeCol(pct){
 // Palettes en JS : les fenêtres partagées sont des documents à part,
 // elles n'héritent d'aucune variable de la page. On leur injecte la sienne.
 var TH_VARS={
- f:{card:"#FFFFFF",ink:"#33241F",ink2:"#4A3A34",brand:"#E8735A","brand-d":"#C9503A",
-    brand2:"#F4B678",ok:"#5FBF9C","ok-d":"#3E8F74","ok-l":"#86D3B4",warn:"#F0A44E",
-    "warn-d":"#D4772E",amber:"#F4C56A",bad:"#C0574A",violet:"#B9A6DE",gold:"#E2B15C",
-    "gold-d":"#C0904A",mute:"#96786F",line:"#F0E2DA",soft:"#FBF4EF",soft2:"#F7EDE7",bg:"#FBF5F1"},
- h:{card:"#FFFFFF",ink:"#263038",ink2:"#37424C",brand:"#2E6FB7","brand-d":"#1B4C86",
-    brand2:"#6FA8DC",ok:"#3E9E8F","ok-d":"#2C7A6E","ok-l":"#5CB8AA",warn:"#E08A3C",
-    "warn-d":"#B96A20",amber:"#E0AE4B",bad:"#96574E",violet:"#5B6BA8",gold:"#B99A4E",
-    "gold-d":"#9A7D38",mute:"#6F7E8A",line:"#E1E7EC",soft:"#F0F3F6",soft2:"#E7EDF3",bg:"#F0F3F6"}
+ f:{card:"#FFFFFF",ink:"#101828",ink2:"#26304A",brand:"#EC4899","brand-d":"#BE185D",
+    brand2:"#A855F7",b1:"#EC4899",b2:"#A855F7",ok:"#12C98A","ok-d":"#0E9C6B","ok-l":"#5FE0B4",
+    warn:"#E9A23B","warn-d":"#C07E17",amber:"#F5C46A",bad:"#E5484D",violet:"#A855F7",gold:"#E9A23B",
+    "gold-d":"#C07E17",mute:"#4A5568",line:"#F3DBE7",soft:"#FDF2F8",soft2:"#FCE7F3",bg:"#FDF2F8"},
+ h:{card:"#FFFFFF",ink:"#101828",ink2:"#26304A",brand:"#0EA5C6","brand-d":"#0A7FA0",
+    brand2:"#8A3FFF",b1:"#12B5EA",b2:"#8A3FFF",ok:"#12C98A","ok-d":"#0E9C6B","ok-l":"#5FE0B4",
+    warn:"#E9A23B","warn-d":"#C07E17",amber:"#F5C46A",bad:"#E5484D",violet:"#8A3FFF",gold:"#E9A23B",
+    "gold-d":"#C07E17",mute:"#4A5568",line:"#E1E6F0",soft:"#F5F7FC",soft2:"#EDF1F9",bg:"#F5F7FC"}
 };
 function themeCSS(){
   var t=TH_VARS[clientTheme(getAllData())]||TH_VARS.f,o=":root{";
@@ -4010,7 +4029,7 @@ function renderView(){
   else if(state.view==="stats")html+=(state.partage?viewPartage():state.pesees?viewPesees(name):state.statsExo?viewStatsExo(name):viewStats(name));
   else if(state.view==="dream")html+=viewDream(name);
   else if(state.view==="sport"||state.view==="training"){
-    try{html+=(state.progRun?viewProgRun():viewSport(name,start));}
+    try{html+=(state.progRun?viewProgRun():state.express?viewExpress():viewSport(name,start));}
     catch(e){html+='<div class="hdr"><div class="hdr-brand"><div class="bar bar-r"></div>'+
       '<span class="hdr-title">Sport</span><div class="bar bar-b"></div></div></div>'+
       '<div style="padding:20px 16px"><div class="spt-card"><div class="spt-lab">⏱️ Minuteurs</div>'+
@@ -5915,22 +5934,46 @@ function bindBlocsJour(name,start){
   // (partage pensée : géré dans bindDay via openPenseeShare)
   var _unusedPensee=function(){};
   function _openPenseeShareLocal(){}
+  // 🌙 LA CARTE « PENSÉE DU SOIR ». Format story 9/16, fond nuit, accent du
+  // thème du client (bleu homme / rose femme) : les deux couleurs sortent de
+  // themeCSS(), donc la carte suit la fiche sans rien coder en dur.
+  // Le texte est en serif italique et GRAND — c'est le message qu'on doit
+  // lire d'un coup d'œil dans une story, pas la marque.
   window.openPenseeShare=window.openPenseeShare||function(pTxt,dayNum){
+    // Un long texte doit rentrer sans déborder : la taille descend par palier.
+    var n=(pTxt||"").length;
+    var tq = n>230 ? 21 : n>170 ? 24 : n>110 ? 27 : 30;
+    var lune='<svg class="moon" viewBox="0 0 64 64" aria-hidden="true">'+
+      '<defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">'+
+      '<stop offset="0%" style="stop-color:var(--b2)"/><stop offset="100%" style="stop-color:var(--brand)"/>'+
+      '</linearGradient>'+
+      '<filter id="glow" x="-60%" y="-60%" width="220%" height="220%">'+
+      '<feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>'+
+      '</filter>'+
+      // Le croissant = un disque MOINS un disque décalé. Un tracé à deux arcs
+      // paraît plus court à écrire, il devient invisible dès que les rayons ne
+      // s'accordent pas ; le masque, lui, est toujours juste.
+      '<mask id="mk"><circle cx="32" cy="32" r="25" fill="#fff"/><circle cx="45" cy="24" r="23" fill="#000"/></mask>'+
+      '</defs>'+
+      '<circle cx="32" cy="32" r="25" style="fill:url(#lg)" mask="url(#mk)" filter="url(#glow)"/></svg>';
     var html='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Pensée du soir</title><style>'+themeCSS()+
-      'body{margin:0;font-family:-apple-system,sans-serif;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;box-sizing:border-box}'+
-      '.card{width:100%;max-width:380px;aspect-ratio:4/5;background:linear-gradient(160deg,#1a1a2e 0%,#16213e 100%);border-radius:24px;padding:36px 28px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between;border:1px solid #2a2a4a}'+
-      '.brand{display:flex;align-items:center;gap:8px}.b{width:4px;height:20px;border-radius:2px}'+
-      '.bn{color:#fff;font-weight:900;font-size:14px;letter-spacing:2px}'+
-      '.mid{text-align:center}.moon{font-size:34px;margin-bottom:14px}'+
-      '.lbl{color:var(--gold);font-weight:800;font-size:11px;letter-spacing:3px;text-transform:uppercase;margin-bottom:18px}'+
-      '.q{color:var(--line);font-size:17px;line-height:1.9;font-style:italic}'+
-      '.bot{text-align:center}.tag{color:#fff;font-weight:900;font-size:13px;letter-spacing:1px}'+
-      '.sub2{color:var(--mute);font-size:11px;margin-top:4px;letter-spacing:1px;text-transform:uppercase}'+
-      '.hint{color:var(--mute);font-size:12px;text-align:center;margin-top:18px;line-height:1.6}'+
-      '</style></head><body><button onclick=\'window.close();setTimeout(function(){if(history.length>1)history.back();},250)\' style=\'position:fixed;top:12px;right:12px;z-index:999;background:var(--ink);color:#fff;border:0;border-radius:20px;padding:9px 16px;font-weight:800;font-size:13px\'>✕ Fermer</button>'+
+      'body{margin:0;font-family:-apple-system,sans-serif;background:#05070F;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:16px;box-sizing:border-box}'+
+      '.card{aspect-ratio:9/16;height:min(calc(100vh - 118px),720px);max-width:100%;'+
+      'background:radial-gradient(circle at 50% 34%,rgba(255,255,255,.05),transparent 60%),linear-gradient(170deg,#131B2E 0%,#0B1020 100%);'+
+      'border-radius:22px;padding:44px 26px 38px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between;text-align:center}'+
+      '.brand{display:flex;align-items:center;justify-content:center;gap:10px}.b{width:5px;height:24px;border-radius:3px}'+
+      '.bn{color:#fff;font-weight:900;font-size:16px;letter-spacing:3.5px}'+
+      '.mid{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1}'+
+      '.moon{width:66px;height:66px;margin-bottom:22px}'+
+      '.lbl{color:var(--brand);font-weight:900;font-size:13px;letter-spacing:3.5px;text-transform:uppercase;margin-bottom:26px}'+
+      '.q{color:#fff;font-family:Georgia,"Times New Roman",serif;font-size:'+tq+'px;line-height:1.5;font-style:italic;letter-spacing:.2px}'+
+      '.bot .tag{color:#fff;font-weight:900;font-size:16px;letter-spacing:1.6px}'+
+      '.bot .sub2{color:rgba(255,255,255,.45);font-size:12px;margin-top:7px;letter-spacing:2.4px;text-transform:uppercase}'+
+      '.hint{color:rgba(255,255,255,.5);font-size:12px;text-align:center;margin-top:14px;line-height:1.6}'+
+      '</style></head><body><button onclick=\'window.close();setTimeout(function(){if(history.length>1)history.back();},250)\' style=\'position:fixed;top:12px;right:12px;z-index:999;background:rgba(255,255,255,.14);color:#fff;border:0;border-radius:20px;padding:9px 16px;font-weight:800;font-size:13px\'>✕ Fermer</button>'+
       '<div class="card">'+
-      '<div class="brand"><div class="b" style="background:var(--brand)"></div><span class="bn">AM COACH GENÈVE</span><div class="b" style="background:var(--brand2)"></div></div>'+
-      '<div class="mid"><div class="moon">🌙</div><div class="lbl">La pensée du soir — Jour '+dayNum+'</div>'+
+      '<div class="brand"><div class="b" style="background:var(--brand)"></div><span class="bn">AM COACH GENÈVE</span><div class="b" style="background:var(--brand)"></div></div>'+
+      '<div class="mid">'+lune+'<div class="lbl">La pensée du soir — Jour '+dayNum+'</div>'+
       '<div class="q">'+esc(pTxt)+'</div></div>'+
       '<div class="bot"><div class="tag">TRANSFO\'PHYSIQUE · 90 JOURS</div><div class="sub2">@amcoachsportif</div></div>'+
       '</div>'+
@@ -7603,6 +7646,13 @@ function bindSport() {
   if (mMoins) mMoins.addEventListener("click", function () { majMarche(-1); });
   if (mPlus) mPlus.addEventListener("click", function () { majMarche(1); });
 
+  var xpb = document.getElementById("spt-express");
+  if (xpb) xpb.addEventListener("click", function () {
+    state.express = expressEtat();
+    sptArreter(true);
+    render();
+  });
+
   var runs = document.querySelectorAll("[data-prg-run]");
   for (var rr = 0; rr < runs.length; rr++) runs[rr].addEventListener("click", function () {
     state.progRun = this.getAttribute("data-prg-run");
@@ -8533,7 +8583,15 @@ function progCartesHTML(all) {
   // `C` est déjà le socle de CE client (son plan déposé), pas l'annuaire des
   // deux sexes : l'indexer par sexe faisait planter tout l'onglet Sport.
   if (C) ["m1", "m2", "m3"].forEach(function (m) { if (C[m]) socleIds = socleIds.concat(C[m].sea || []); });
-  var bonus = P.seances.filter(function (S) { return socleIds.indexOf(S.id) < 0; });
+  var bonus = P.seances.filter(function (S) { return socleIds.indexOf(S.id) < 0 && S.id !== EXPRESS_ID; });
+  var XP = null;
+  for (var xi = 0; xi < P.seances.length; xi++) if (P.seances[xi].id === EXPRESS_ID) XP = P.seances[xi];
+  h += '<div class="spt-card"><div class="spt-lab">⚡ Séance express</div>' +
+    '<div class="spt-txt" style="margin-bottom:12px">Pas envie, mais quand même envie. 20 minutes : ' +
+    'deux exercices sur le muscle de ton choix, puis 1 min fort / 1 min souple × 5.</div>' +
+    (XP ? '<button class="p3-sea" data-prg-run="' + EXPRESS_ID + '" style="border-color:var(--brand)66;margin-bottom:10px">' +
+      '<span class="p3-sea-n">' + esc(XP.nom) + '</span><span class="p3-sea-x">reprendre ›</span></button>' : '') +
+    '<button id="spt-express" class="spt-go">⚡ Générer une séance express</button></div>';
   if (bonus.length) {
     h += '<div class="spt-card"><div class="spt-lab">🎁 Mes séances bonus</div><div class="prg-cartes">';
     for (var b = 0; b < bonus.length; b++) {
@@ -8717,6 +8775,171 @@ function viewProgRun() {
 
 // L'état de travail : ce que le client a déjà saisi aujourd'hui pour cette
 // séance. Repris tel quel s'il revient dans la journée.
+// ═══════════ ⚡ SÉANCE EXPRESS ═══════════
+// La méthode d'Akli : 20 minutes, deux exercices sur UN muscle choisi, puis
+// du cardio en 1 min forte / 1 min souple × 5. C'est la séance des jours où
+// on n'a envie de rien : on choisit son muscle sur la carte du corps, on
+// génère, on s'y met.
+// La carte du corps est un dessin VECTORIEL, pas un modèle 3D : un vrai corps
+// en 3D suppose un fichier de plusieurs mégaoctets à héberger, avec ses
+// droits, et il rame sur un téléphone en salle. Le dessin se retourne
+// (face / dos), il pèse quelques kilo-octets et il marche hors ligne.
+var EXPRESS_ID = "sx_express";
+var EXPRESS_CARDIO = [
+  ["Rameur", "🚣"], ["Vélo assis", "🚴"], ["Elliptique", "🏃"],
+  ["Escalier", "🪜"], ["Tapis de course", "🏃‍♂️"]
+];
+// Muscles proposés sur la carte, face avant et face arrière.
+var EXPRESS_ZONES = {
+  av: [
+    ["epaules", '<ellipse cx="62" cy="86" rx="16" ry="13"/><ellipse cx="138" cy="86" rx="16" ry="13"/>'],
+    ["pecs", '<path d="M74 87q11-5 22 1v17q-11 7-22 1z"/><path d="M126 87q-11-5-22 1v17q11 7 22 1z"/>'],
+    ["biceps", '<ellipse cx="46" cy="122" rx="11" ry="23"/><ellipse cx="154" cy="122" rx="11" ry="23"/>'],
+    ["abdos", '<rect x="85" y="119" width="30" height="53" rx="10"/>'],
+    ["jambes", '<rect x="76" y="208" width="21" height="76" rx="10"/><rect x="103" y="208" width="21" height="76" rx="10"/><rect x="78" y="296" width="17" height="46" rx="8"/><rect x="105" y="296" width="17" height="46" rx="8"/>']
+  ],
+  ar: [
+    ["epaules", '<ellipse cx="62" cy="86" rx="16" ry="13"/><ellipse cx="138" cy="86" rx="16" ry="13"/>'],
+    ["dos", '<path d="M72 84h56v62q-28 10-56 0z"/>'],
+    ["triceps", '<ellipse cx="46" cy="122" rx="11" ry="23"/><ellipse cx="154" cy="122" rx="11" ry="23"/>'],
+    ["fessiers", '<ellipse cx="87" cy="182" rx="17" ry="15"/><ellipse cx="113" cy="182" rx="17" ry="15"/>'],
+    ["jambes", '<rect x="76" y="208" width="21" height="76" rx="10"/><rect x="103" y="208" width="21" height="76" rx="10"/><rect x="78" y="296" width="17" height="46" rx="8"/><rect x="105" y="296" width="17" height="46" rx="8"/>']
+  ]
+};
+function expressCorpsSVG(face, sel) {
+  var Z = EXPRESS_ZONES[face] || EXPRESS_ZONES.av;
+  var base = '<g fill="rgba(255,255,255,.09)" stroke="rgba(255,255,255,.16)" stroke-width="1.5">' +
+    '<circle cx="100" cy="42" r="19"/><rect x="92" y="57" width="16" height="14" rx="5"/>' +
+    '<path d="M68 74Q100 63 132 74L128 172Q100 182 72 172Z"/>' +
+    '<path d="M72 172Q100 182 128 172L124 206Q100 215 76 206Z"/>' +
+    '<rect x="38" y="82" width="18" height="88" rx="9"/><rect x="144" y="82" width="18" height="88" rx="9"/>' +
+    '<rect x="36" y="164" width="16" height="62" rx="8"/><rect x="148" y="164" width="16" height="62" rx="8"/>' +
+    '<rect x="74" y="202" width="25" height="96" rx="12"/><rect x="101" y="202" width="25" height="96" rx="12"/>' +
+    '<rect x="76" y="292" width="21" height="60" rx="10"/><rect x="103" y="292" width="21" height="60" rx="10"/>' +
+    '</g>';
+  var zones = "";
+  for (var i = 0; i < Z.length; i++) {
+    var on = Z[i][0] === sel;
+    zones += '<g class="xp-z' + (on ? " on" : "") + '" data-xp-m="' + Z[i][0] + '">' + Z[i][1] + '</g>';
+  }
+  return '<svg class="xp-corps" viewBox="0 0 200 372">' + base + zones + '</svg>';
+}
+function expressEtat() {
+  var e = state.express;
+  if (!e || typeof e !== "object") e = { face: "av", m: null, cardio: "Rameur" };
+  return e;
+}
+// Deux exercices du muscle choisi, tirés de la bibliothèque. On privilégie
+// deux matériels différents : machine puis haltères vaut mieux que deux fois
+// la même machine.
+function expressExos(muscle) {
+  var lib = bibGet().filter(function (X) { return X.m === muscle; });
+  if (!lib.length) return [];
+  var melange = lib.slice();
+  for (var i = melange.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1)), t = melange[i]; melange[i] = melange[j]; melange[j] = t;
+  }
+  var choix = [melange[0]];
+  for (var k = 1; k < melange.length && choix.length < 2; k++) {
+    if (melange[k].mat !== choix[0].mat) choix.push(melange[k]);
+  }
+  if (choix.length < 2 && melange.length > 1) choix.push(melange[1]);
+  return choix;
+}
+function expressGenerer(muscle, machine) {
+  var all = getAllData(), P = progGet(all);
+  var choix = expressExos(muscle);
+  if (!choix.length) return null;
+  var exos = [];
+  for (var i = 0; i < choix.length; i++) {
+    var X = choix[i], series = [];
+    for (var s = 0; s < 3; s++) series.push({ t: "reps", v: 10, c: "", u: "kg" });
+    exos.push({
+      ref: X.id, n: X.n, m: X.m, mat: X.mat, v: X.v || "", g: X.g || "",
+      note: "", repos: 60, sup: 0, series: series
+    });
+  }
+  // Le bloc cardio : 5 × (1 min fort / 1 min souple). Le repos de 60 s part
+  // tout seul dès qu'une minute est cochée — c'est lui qui rythme le bloc.
+  var card = [];
+  for (var c = 0; c < 5; c++) card.push({ t: "duree", v: 60, c: "", u: "—" });
+  exos.push({
+    ref: "xp_cardio", n: machine + " — 1 min fort / 1 min souple", m: "cardio",
+    mat: "Machine", v: "", g: "",
+    note: "5 tours. Une minute à fond, une minute pour souffler sans t'arrêter.",
+    repos: 60, sup: 0, series: card
+  });
+  var S = {
+    id: EXPRESS_ID, express: 1, maj: isoLocal(),
+    nom: "⚡ Express — " + progMuscle(muscle)[1], exos: exos
+  };
+  P.seances = P.seances.filter(function (x) { return x.id !== EXPRESS_ID; });
+  P.seances.push(S);
+  // Rangée dans les bonus : sans ça, la prochaine synchro du socle par le
+  // coach effacerait une séance qu'elle ne reconnaît pas.
+  P.bonus = P.bonus || [];
+  if (P.bonus.indexOf(EXPRESS_ID) < 0) P.bonus.push(EXPRESS_ID);
+  progSetClient(P);
+  // On repart d'une feuille blanche : la séance express précédente ne doit pas
+  // laisser ses séries cochées dans la nouvelle.
+  try { localStorage.removeItem("amcoach_run_" + CLIENT); } catch (e) { }
+  return S;
+}
+function viewExpress() {
+  var E = expressEtat();
+  var h = '<div class="prg-top"><button id="xp-back" class="prg-back">‹</button>' +
+    '<div style="flex:1;min-width:0"><div class="prg-titre">⚡ Séance express</div>' +
+    '<div class="prg-sous">20 minutes · 2 exercices + cardio</div></div></div>' +
+    '<div style="padding:12px 13px 120px">';
+  h += '<div class="spt-card"><div class="spt-lab">1 · Quel muscle aujourd\'hui ?</div>' +
+    '<div class="spt-txt" style="margin-bottom:10px">Touche le muscle sur le corps. Tourne-le pour voir le dos.</div>' +
+    '<div class="xp-wrap">' + expressCorpsSVG(E.face, E.m) + '</div>' +
+    '<div class="xp-face">' +
+    '<button class="xp-fb' + (E.face === "av" ? " on" : "") + '" data-xp-face="av">Face</button>' +
+    '<button class="xp-fb' + (E.face === "ar" ? " on" : "") + '" data-xp-face="ar">Dos</button>' +
+    '</div>' +
+    '<div class="xp-choix">' + (E.m ? "Muscle choisi : <b>" + progMuscle(E.m)[1] + "</b>" : "Aucun muscle choisi") + '</div>' +
+    '</div>';
+  h += '<div class="spt-card"><div class="spt-lab">2 · Ton cardio</div><div class="spt-pills">';
+  for (var i = 0; i < EXPRESS_CARDIO.length; i++) {
+    var C = EXPRESS_CARDIO[i];
+    h += '<button class="spt-pill' + (E.cardio === C[0] ? " on" : "") + '" data-xp-cardio="' + C[0] + '">' + C[1] + ' ' + C[0] + '</button>';
+  }
+  h += '</div><div class="spt-txt" style="margin-top:9px">1 minute forte, 1 minute souple, cinq fois.' +
+    (E.cardio === "Tapis de course" ? ' Sur tapis, monte la vitesse progressivement et garde une main libre.' : '') +
+    '</div></div>';
+  h += '<button id="xp-go" class="spt-go"' + (E.m ? "" : " disabled style=\"opacity:.45\"") + '>⚡ Générer ma séance</button>';
+  h += '</div>';
+  return h;
+}
+function bindExpress() {
+  var b = document.getElementById("xp-back");
+  if (b) b.addEventListener("click", function () { state.express = null; render(); });
+  var zs = document.querySelectorAll("[data-xp-m]");
+  for (var i = 0; i < zs.length; i++) zs[i].addEventListener("click", function () {
+    var E = expressEtat(); E.m = this.getAttribute("data-xp-m"); state.express = E; buzz(); render();
+  });
+  var fs = document.querySelectorAll("[data-xp-face]");
+  for (var f = 0; f < fs.length; f++) fs[f].addEventListener("click", function () {
+    var E = expressEtat(); E.face = this.getAttribute("data-xp-face"); state.express = E; render();
+  });
+  var cs = document.querySelectorAll("[data-xp-cardio]");
+  for (var c = 0; c < cs.length; c++) cs[c].addEventListener("click", function () {
+    var E = expressEtat(); E.cardio = this.getAttribute("data-xp-cardio"); state.express = E; render();
+  });
+  var go = document.getElementById("xp-go");
+  if (go) go.addEventListener("click", function () {
+    var E = expressEtat();
+    if (!E.m) return;
+    var S = expressGenerer(E.m, E.cardio);
+    if (!S) { feedback("Aucun exercice pour ce muscle", "bad"); return; }
+    state.express = null;
+    state.progRun = EXPRESS_ID;
+    sptArreter(true);
+    feedback("⚡ Séance express prête", "ok");
+    render();
+  });
+}
 function progRunEtat(S, P) {
   var k = "amcoach_run_" + CLIENT;
   var W = lsGet(k, null);
@@ -14750,7 +14973,7 @@ function estZoome(){
 // 👈 Glisser depuis le bord gauche = revenir en arrière, comme sur iOS.
 // On ne réinvente pas la destination : on clique le bouton retour de l'écran,
 // celui qui existe déjà. Si l'écran n'en a pas, le geste ne fait rien.
-var SWIPE_RETOURS=["stx-back","prg-run-back","part-back","pes-back","pxf-back","prg-bib-close","prg-ass-back","p3-back","prg-back","cd-back"];
+var SWIPE_RETOURS=["stx-back","prg-run-back","xp-back","part-back","pes-back","pxf-back","prg-bib-close","prg-ass-back","p3-back","prg-back","cd-back"];
 function retourEcran(){
   for(var i=0;i<SWIPE_RETOURS.length;i++){
     var b=document.getElementById(SWIPE_RETOURS[i]);
@@ -14803,7 +15026,7 @@ function bindSwipeOnglets(){
     var cible=depart; depart=null;
     // Un écran secondaire (séance, pesées, partage, didacticiel) a ses
     // propres règles : on ne change pas d'onglet sous les pieds du client.
-    if(state.progRun||state.pesees||state.partage||state.statsExo||state.tuto!=null||state.selDay!=null)return;
+    if(state.progRun||state.express||state.pesees||state.partage||state.statsExo||state.tuto!=null||state.selDay!=null)return;
     // Le geste appartient à une bande qui défile horizontalement ?
     for(var n=cible;n&&n!==document.body;n=n.parentNode){
       if(n.classList&&(n.classList.contains("prg-cartes")||n.classList.contains("prg-tabs")||
@@ -15438,7 +15661,7 @@ function bindMain(name,start){
   if(state.view==="stats"&&state.partage){try{bindPartage();}catch(e){}bindNav();return;}
   if(state.view==="stats"&&state.pesees){try{bindPesees();}catch(e){}bindNav();return;}
   if(state.view==="finance"){bindFinance();bindNav();return;}
-  if(state.view==="sport"||state.view==="training"){try{if(state.progRun)bindProgRun();else bindSport();}catch(e){}bindNav();return;}
+  if(state.view==="sport"||state.view==="training"){try{if(state.progRun)bindProgRun();else if(state.express)bindExpress();else bindSport();}catch(e){}bindNav();return;}
   var oc=document.getElementById("open-contract");
   if(oc)oc.addEventListener("click",function(){state.view="contract";render();});
   // 🔔 Rappel quotidien 20h30 : événement calendrier récurrent avec alerte native

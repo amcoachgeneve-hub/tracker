@@ -711,7 +711,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="29/08 · Photo femme recadrée";
+var APP_VERSION="29/08 · Pensée partageable";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -5978,10 +5978,21 @@ function bindBlocsJour(name,start){
       '<div class="q">'+esc(pTxt)+'</div></div>'+
       '<div class="bot"><div class="tag">TRANSFO\'PHYSIQUE · 90 JOURS</div><div class="sub2">@amcoachsportif</div></div>'+
       '</div>'+
-      '<div class="hint">📸 Capture d\'écran → partage en story 🌙</div>'+
+      '<button id="pp-share" style="width:100%;max-width:380px;margin-top:16px;padding:16px 0;border-radius:16px;border:0;'+
+      'background:linear-gradient(90deg,var(--b1),var(--b2));color:#fff;font-weight:900;font-size:16px;letter-spacing:.6px">'+
+      '📤 Partager en story</button>'+
+      '<div class="hint">Instagram, TikTok, WhatsApp — au choix. Ou capture d\'écran 🌙</div>'+
       docRetourHTML(false)+'</body></html>';
     var win=window.open("","_blank");
-    if(win){win.document.write(html);win.document.close();}
+    if(win){
+      win.document.write(html);win.document.close();
+      // Le bouton est câblé depuis ici : la fenêtre partagée n'a pas de script
+      // à elle, et le partage doit partir du doigt du client, dans SA fenêtre.
+      try{
+        var bt=win.document.getElementById("pp-share");
+        if(bt)bt.addEventListener("click",function(){penseePartager(pTxt,dayNum,win);});
+      }catch(e){}
+    }
   };
   var otShare=document.getElementById("ot-share");
   if(otShare)otShare.addEventListener("click",function(){
@@ -9925,6 +9936,112 @@ function partageCarte(masquerPoids) {
   x.font = "700 34px system-ui,-apple-system,sans-serif";
   x.fillText("@amcoachsportif", W - 80, H - 68);
   return cv;
+}
+// 🌙 LA PENSÉE DU SOIR EN IMAGE — pour la partager sans capture d'écran.
+// Il n'existe aucune API qui publie directement sur Instagram ou TikTok
+// depuis une page web : les deux réseaux ne l'autorisent qu'à leurs propres
+// applications. Ce qui existe, et qui revient au même en un geste, c'est le
+// PARTAGE NATIF du téléphone : on fabrique l'image, on la passe à iOS, et la
+// feuille de partage propose Instagram, TikTok, WhatsApp, Messages.
+function penseeCarteCanvas(txt, jour) {
+  var W = 1080, H = 1920;
+  var cv = document.createElement("canvas");
+  cv.width = W; cv.height = H;
+  var x = cv.getContext("2d");
+  var b1 = solid("var(--b1)"), b2 = solid("var(--b2)"), br = solid("var(--brand)");
+
+  // Fond nuit + halo au centre
+  var g = x.createLinearGradient(0, 0, W * .3, H);
+  g.addColorStop(0, "#131B2E"); g.addColorStop(1, "#0B1020");
+  x.fillStyle = g; x.fillRect(0, 0, W, H);
+  var h = x.createRadialGradient(W / 2, H * .34, 0, W / 2, H * .34, W * .75);
+  h.addColorStop(0, "rgba(255,255,255,.055)"); h.addColorStop(1, "rgba(255,255,255,0)");
+  x.fillStyle = h; x.fillRect(0, 0, W, H);
+
+  // Marque
+  x.textAlign = "center"; x.textBaseline = "top";
+  var yb = 250;
+  x.font = "900 44px -apple-system,Helvetica,Arial,sans-serif";
+  var titre = "AM COACH GENÈVE", esp = 10;
+  var lg = x.measureText(titre).width + esp * (titre.length - 1);
+  x.fillStyle = "#fff";
+  var cx = W / 2 - lg / 2;
+  for (var i = 0; i < titre.length; i++) {
+    x.textAlign = "left";
+    x.fillText(titre[i], cx, yb);
+    cx += x.measureText(titre[i]).width + esp;
+  }
+  x.fillStyle = br;
+  x.fillRect(W / 2 - lg / 2 - 42, yb - 4, 12, 58);
+  x.fillRect(W / 2 + lg / 2 + 30, yb - 4, 12, 58);
+
+  // Croissant de lune : un disque moins un disque décalé, sur une toile à part
+  var mc = document.createElement("canvas"); mc.width = 220; mc.height = 220;
+  var m = mc.getContext("2d");
+  var mg = m.createLinearGradient(0, 0, 220, 220);
+  mg.addColorStop(0, b2); mg.addColorStop(1, br);
+  m.fillStyle = mg; m.beginPath(); m.arc(110, 110, 86, 0, 6.2832); m.fill();
+  m.globalCompositeOperation = "destination-out";
+  m.beginPath(); m.arc(155, 83, 79, 0, 6.2832); m.fill();
+  x.save();
+  x.shadowColor = br; x.shadowBlur = 55;
+  x.drawImage(mc, W / 2 - 110, 470);
+  x.restore();
+
+  // Étiquette
+  x.textAlign = "center"; x.fillStyle = br;
+  x.font = "900 34px -apple-system,Helvetica,Arial,sans-serif";
+  var lbl = "LA PENSÉE DU SOIR — JOUR " + jour, e2 = 9;
+  var l2 = x.measureText(lbl).width + e2 * (lbl.length - 1), c2 = W / 2 - l2 / 2;
+  x.textAlign = "left";
+  for (var j = 0; j < lbl.length; j++) { x.fillText(lbl[j], c2, 760); c2 += x.measureText(lbl[j]).width + e2; }
+
+  // La pensée : serif italique, taille selon la longueur, centrée
+  var n = (txt || "").length;
+  var T = n > 230 ? 54 : n > 170 ? 60 : n > 110 ? 68 : 76;
+  x.textAlign = "center"; x.fillStyle = "#fff";
+  x.font = "italic " + T + "px Georgia,'Times New Roman',serif";
+  var mots = String(txt || "").split(" "), ligne = "", lignes = [], max = W - 190;
+  for (var k = 0; k < mots.length; k++) {
+    var essai = ligne ? ligne + " " + mots[k] : mots[k];
+    if (x.measureText(essai).width > max && ligne) { lignes.push(ligne); ligne = mots[k]; }
+    else ligne = essai;
+  }
+  if (ligne) lignes.push(ligne);
+  // Le bloc est centré, sans jamais remonter sur l'étiquette du dessus.
+  var ih = Math.round(T * 1.5), y0 = Math.max(900, 1120 - (lignes.length - 1) * ih / 2);
+  for (var q = 0; q < lignes.length; q++) x.fillText(lignes[q], W / 2, y0 + q * ih);
+
+  // Pied
+  x.fillStyle = "#fff";
+  x.font = "900 40px -apple-system,Helvetica,Arial,sans-serif";
+  x.fillText("TRANSFO'PHYSIQUE · 90 JOURS", W / 2, 1660);
+  x.fillStyle = "rgba(255,255,255,.45)";
+  x.font = "800 28px -apple-system,Helvetica,Arial,sans-serif";
+  x.fillText("@AMCOACHSPORTIF", W / 2, 1722);
+  return cv;
+}
+// Le partage part de la FENÊTRE où le doigt a appuyé : iOS n'ouvre la feuille
+// de partage que si le geste vient de ce document-là.
+function penseePartager(txt, jour, win) {
+  var W = win || window;
+  var cv = penseeCarteCanvas(txt, jour);
+  if (!cv.toBlob) { feedback("Ton navigateur ne sait pas créer l'image", "warn"); return; }
+  cv.toBlob(function (blob) {
+    if (!blob) { feedback("Image impossible à créer", "warn"); return; }
+    var nom = "pensee-jour-" + jour + ".png";
+    try {
+      var f = new File([blob], nom, { type: "image/png" });
+      if (W.navigator.canShare && W.navigator.canShare({ files: [f] }) && W.navigator.share) {
+        W.navigator.share({ files: [f] }).catch(function () { });
+        return;
+      }
+    } catch (e) { }
+    var url = URL.createObjectURL(blob), a = W.document.createElement("a");
+    a.href = url; a.download = nom;
+    W.document.body.appendChild(a); a.click(); W.document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+  }, "image/png");
 }
 function partagerImage(masquerPoids) {
   var cv = partageCarte(masquerPoids);

@@ -479,6 +479,14 @@
 .sdj-go i{font-style:normal;font-size:17px}
 .sdj-vide{margin-top:12px;padding:13px 14px;border-radius:14px;background:rgba(255,255,255,.14);
   color:#fff;font-size:12.5px;font-weight:700;line-height:1.5}
+/* Les compteurs de la semaine (séances 🦾 et marches 🚶) sont posés DANS cette
+   carte : ils reprennent donc le traitement translucide sur fond coloré.
+   Écrit en .app pour passer devant les règles sombres de .app.sport-mode. */
+.app .sdj .p3-marches{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);margin-top:10px}
+.app .sdj .p3-mar-t{color:#fff}
+.app .sdj .p3-mar-s{color:rgba(255,255,255,.9)}
+.app .sdj .p3-mar-b{background:rgba(255,255,255,.22);color:#fff}
+.app .sdj .p3-mar-b.plus{background:#fff;color:#8A3FFF}
 
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Inter','Helvetica Neue',sans-serif;background:#F4F4F4;-webkit-font-smoothing:antialiased}
@@ -668,7 +676,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="28/08 · Séance du jour";
+var APP_VERSION="29/08 · Marches affichées une fois";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -8415,17 +8423,37 @@ function progCartesHTML(all) {
         if (P.seances[kj].id === cfgJ.sea[sj]) seaJ = P.seances[kj];
     var faitS = prog3SeancesSemaine(all, today90);
     var faitM = prog3Marches(all, today90);
-    var totJ = (cfgJ.sea.length || 0) + (cfgJ.marches || 0);
-    var faitJ = Math.min(faitS, cfgJ.sea.length) + Math.min(faitM, cfgJ.marches);
     var semJ = Math.floor(today90 / 7) + 1;
+    // LES DEUX COMPTEURS DE LA SEMAINE VIVENT ICI ET NULLE PART AILLEURS.
+    // Akli voyait ses marches annoncées trois fois sur le même écran (bandeau
+    // du haut, en-tête du mois, compteur) : un objectif ne s'affiche qu'une
+    // fois, à l'endroit où on peut agir dessus.
+    var pastS = "";
+    for (var ws = 0; ws < cfgJ.sea.length; ws++)
+      pastS += '<span class="p3-mar' + (ws < faitS ? " on" : "") + '">🦾</span>';
+    var pastM = "";
+    for (var wm = 0; wm < cfgJ.marches; wm++)
+      pastM += '<span class="p3-mar' + (wm < faitM ? " on" : "") + '">🚶</span>';
     h += '<div class="sdj">' +
       '<div class="sdj-t">🚀 SÉANCE DU JOUR <span>(Mois ' + moisEnCours + ' / Sem. ' + semJ + ')</span></div>' +
-      '<div class="sdj-l"><span>' + faitJ + ' / ' + totJ + ' cette semaine</span>' +
-      '<span>' + cfgJ.sea.length + ' séance' + (cfgJ.sea.length > 1 ? 's' : '') + ' · ' + cfgJ.marches + ' marche' + (cfgJ.marches > 1 ? 's' : '') + '</span></div>' +
-      '<div class="sdj-bar"><i style="width:' + (totJ ? Math.round(faitJ / totJ * 100) : 0) + '%"></i></div>' +
       (seaJ
         ? '<button class="sdj-go" data-prg-run="' + seaJ.id + '"><span>' + esc(seaJ.nom) + '</span><i>▶</i></button>'
-        : '<div class="sdj-vide">Les séances de ce mois arrivent — ton coach les met en place. En attendant, tes marches comptent.</div>') +
+        : '<div class="sdj-vide">Les séances de ce mois arrivent — ton coach les met en place.</div>') +
+      (cfgJ.sea.length
+        ? '<div class="p3-marches">' +
+          '<div style="flex:1"><div class="p3-mar-t">' + faitS + '/' + cfgJ.sea.length + ' séance' + (cfgJ.sea.length > 1 ? 's' : '') + ' cette semaine</div>' +
+          '<div class="p3-mar-s">' + (faitS >= cfgJ.sea.length ? 'Semaine bouclée 💪'
+            : 'Ouvre ta séance et coche tes séries pour la valider') + '</div></div>' +
+          '<div class="p3-mar-p">' + pastS + '</div></div>'
+        : '') +
+      (cfgJ.marches > 0
+        ? '<div class="p3-marches">' +
+          '<div style="flex:1"><div class="p3-mar-t">' + faitM + '/' + cfgJ.marches + ' marches cette semaine</div>' +
+          '<div class="p3-mar-s">' + cfgJ.min + ' min minimum, sans t\'arrêter</div></div>' +
+          '<div class="p3-mar-p">' + pastM + '</div>' +
+          '<button class="p3-mar-b" id="p3-marche-moins">\u2212</button>' +
+          '<button class="p3-mar-b plus" id="p3-marche-plus">+</button></div>'
+        : '') +
       '</div>';
   }
 
@@ -8441,7 +8469,7 @@ function progCartesHTML(all) {
         '<div class="p3-tete"><span class="p3-n">' + (passe ? "✅ Mois " + m : ouvert ? "Mois " + m : "🔒 Mois " + m) + '</span>' +
         (m === moisEnCours ? '<span class="p3-tag">en cours</span>' : '') +
         '<span class="p3-sub">' + (ouvert
-          ? cfg.sea.length + ' séance' + (cfg.sea.length > 1 ? 's' : '') + ' · ' + cfg.marches + ' marche' + (cfg.marches > 1 ? 's' : '') + '/sem'
+          ? cfg.sea.length + ' séance' + (cfg.sea.length > 1 ? 's' : '') + '/sem'
           : 'se débloque au jour ' + jourDeb) + '</span>' +
         (passe ? '<span class="p3-pli-c">⌄</span>' : '') + '</div>' + (passe ? '</summary>' : '');
       if (ouvert) {
@@ -8461,31 +8489,11 @@ function progCartesHTML(all) {
             '<span class="p3-sea-s">' + nEx + ' exo' + (nEx > 1 ? 's' : '') + '</span>' +
             '<span class="p3-fl">›</span></button>';
         }
-        if (!vues) h += '<div class="spt-txt" style="padding:2px 2px 8px">Les séances de ce mois arrivent — ton coach les met en place.</div>';
-        // 🦾 Les séances de la semaine : un trou visible appelle à être
-        // rempli, exactement comme pour les marches.
-        if (m === moisEnCours && cfg.sea.length) {
-          var faitesS = prog3SeancesSemaine(all, today90), pastS = "";
-          for (var ws = 0; ws < cfg.sea.length; ws++)
-            pastS += '<span class="p3-mar' + (ws < faitesS ? " on" : "") + '">🦾</span>';
-          h += '<div class="p3-marches">' +
-            '<div style="flex:1"><div class="p3-mar-t">' + faitesS + '/' + cfg.sea.length + ' séance' + (cfg.sea.length > 1 ? 's' : '') + ' cette semaine</div>' +
-            '<div class="p3-mar-s">' + (faitesS >= cfg.sea.length ? 'Semaine bouclée 💪'
-              : 'Ouvre ta séance et coche tes séries pour la valider') + '</div></div>' +
-            '<div class="p3-mar-p">' + pastS + '</div></div>';
-        }
-        // Les marches de la semaine
-        if (m === moisEnCours && cfg.marches > 0) {
-          var faites = prog3Marches(all, today90), pastilles = "";
-          for (var w = 0; w < cfg.marches; w++)
-            pastilles += '<span class="p3-mar' + (w < faites ? " on" : "") + '">🚶</span>';
-          h += '<div class="p3-marches">' +
-            '<div style="flex:1"><div class="p3-mar-t">' + faites + '/' + cfg.marches + ' marches cette semaine</div>' +
-            '<div class="p3-mar-s">' + cfg.min + ' min minimum, sans t\'arrêter</div></div>' +
-            '<div class="p3-mar-p">' + pastilles + '</div>' +
-            '<button class="p3-mar-b" id="p3-marche-moins">−</button>' +
-            '<button class="p3-mar-b plus" id="p3-marche-plus">+</button></div>';
-        }
+        // Le mois en cours dit déjà ça dans la carte du haut : on ne l'écrit
+        // pas deux fois sur le même écran.
+        if (!vues && m !== moisEnCours) h += '<div class="spt-txt" style="padding:2px 2px 8px">Les séances de ce mois arrivent — ton coach les met en place.</div>';
+        // Les compteurs de la semaine (séances et marches) sont affichés une
+        // seule fois, dans la carte « séance du jour » en haut de l'onglet.
       }
       h += (passe ? '</details>' : '</div>');
     }

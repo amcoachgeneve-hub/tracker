@@ -15,8 +15,12 @@
    les données chargées : d'où l'éclair orange à l'ouverture. On mémorise donc
    le thème du dernier passage et on le pose ici, avant tout rendu. */
 (function(){try{
-  if(localStorage.getItem("d90-theme")==="h")
-    document.documentElement.className+=" th-h";
+  // Le bleu est le défaut (c'est aussi la palette du tableau de bord coach).
+  // Seule une fiche de cliente pose le rose, et seulement sur un lien client.
+  if(!/[?&]client=/.test(location.search))return;
+  var t=localStorage.getItem("d90-theme");
+  if(t==="f")document.documentElement.className+=" th-f";
+  else if(t==="h")document.documentElement.className+=" th-h";
 }catch(e){}})();
 </script>
 <style>
@@ -26,10 +30,10 @@
 :root,.app,.dark-screen{
   --card:#FFFFFF;
   --ink:#101828; --ink2:#26304A;
-  --brand:#0EA5C6; --brand-d:#0A7FA0; --brand2:#8A3FFF;
+  --brand:#0EA5C6; --brand-d:#0A7FA0; --brand2:#8A3FFF; --b1:#12B5EA; --b2:#8A3FFF;
   --ok:#12C98A; --ok-d:#0E9C6B; --ok-l:#5FE0B4;
   --warn:#E9A23B; --warn-d:#C07E17; --amber:#F5C46A;
-  --bad:#E5484D; --violet:#8A3FFF;
+  --bad:#E5484D; --violet:var(--b2);
   --gold:#E9A23B; --gold-d:#C07E17;
   --mute:#4A5568; --line:#E1E6F0;
   --soft:#F5F7FC; --soft2:#EDF1F9; --bg:#F5F7FC;
@@ -37,12 +41,23 @@
   --shadow:0 4px 14px rgba(16,24,40,.07);
   --shadow-l:0 10px 26px rgba(16,24,40,.11);
 }
+/* 👩 THÈME FEMME — fuchsia. Codes donnés par Akli (#EC4899 / #A855F7).
+   Il vit dans .th-f et NON dans :root : le tableau de bord du coach n'a pas
+   de fiche client, il resterait donc rose par défaut. Bleu = défaut. */
+.th-f,.app.th-f,.dark-screen.th-f{
+  --brand:#EC4899; --brand-d:#BE185D; --brand2:#A855F7;
+  --b1:#EC4899; --b2:#A855F7; --violet:#A855F7;
+  --line:#F3DBE7;
+  --soft:#FDF2F8; --soft2:#FCE7F3; --bg:#FDF2F8;
+  --sky:linear-gradient(180deg,#FCE7F3 0%,#FDF2F8 34%,#FEF6FA 70%);
+}
+
 .th-h,.app.th-h,.dark-screen.th-h{
   --ink:#101828; --ink2:#26304A;
-  --brand:#0EA5C6; --brand-d:#0A7FA0; --brand2:#8A3FFF;
+  --brand:#0EA5C6; --brand-d:#0A7FA0; --brand2:#8A3FFF; --b1:#12B5EA; --b2:#8A3FFF;
   --ok:#12C98A; --ok-d:#0E9C6B; --ok-l:#5FE0B4;
   --warn:#E9A23B; --warn-d:#C07E17; --amber:#F5C46A;
-  --bad:#E5484D; --violet:#8A3FFF;
+  --bad:#E5484D; --violet:var(--b2);
   --gold:#E9A23B; --gold-d:#C07E17;
   --mute:#4A5568; --line:#E1E6F0;
   --soft:#F5F7FC; --soft2:#EDF1F9; --bg:#F5F7FC;
@@ -59,7 +74,7 @@
   box-shadow:0 3px 14px rgba(16,24,40,.06);transition:border-color .4s,box-shadow .4s}
 .spt-lab{font-weight:900;font-size:11.5px;letter-spacing:1.3px;text-transform:uppercase;margin-bottom:12px;color:var(--ink)}
 .spt-lab.cy{color:var(--ink)}
-.spt-cy{color:#0EA5C6}
+.spt-cy{color:var(--brand)}
 .spt-txt{font-size:12.5px;color:var(--mute);line-height:1.7}
 .spt-flab{font-size:10.5px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--mute);margin-bottom:5px}
 .spt-inp{width:100%;padding:12px 8px;border-radius:14px;border:1.5px solid var(--line);background:var(--soft);
@@ -68,18 +83,18 @@
 .spt-pill{flex:1;min-width:56px;padding:11px 4px;border-radius:13px;font-weight:900;font-size:12.5px;
   background:#fff;border:1.5px solid var(--line);color:var(--ink)}
 .spt-pill.big{font-size:14px;padding:13px 4px}
-.spt-pill.on{border-color:#12B5EA;color:#0B7FA8;box-shadow:0 0 0 3px rgba(18,181,234,.14)}
+.spt-pill.on{border-color:var(--b1);color:var(--brand-d);box-shadow:0 0 0 3px rgba(18,181,234,.14)}
 .spt-pill.gold{border-color:#E9A23B;color:#9A6511;box-shadow:0 0 0 3px rgba(233,162,59,.16)}
 .spt-go{flex:1;width:100%;padding:16px 0;border-radius:16px;color:#fff;font-weight:900;font-size:16px;letter-spacing:1.4px;
-  background:linear-gradient(90deg,#12B5EA 0%,#8A3FFF 100%);box-shadow:0 8px 20px rgba(96,120,255,.28)}
+  background:linear-gradient(90deg,var(--b1) 0%,var(--b2) 100%);box-shadow:0 8px 20px rgba(96,120,255,.28)}
 .spt-go.pause{background:linear-gradient(90deg,#8C93A8 0%,#6B7280 100%);box-shadow:0 8px 18px rgba(16,24,40,.16)}
-.spt-go.ok{background:linear-gradient(90deg,#12C98A 0%,#12B5EA 100%);box-shadow:0 8px 20px rgba(18,201,138,.3)}
+.spt-go.ok{background:linear-gradient(90deg,#12C98A 0%,var(--b1) 100%);box-shadow:0 8px 20px rgba(18,201,138,.3)}
 .spt-sq{flex:0 0 70px;padding:16px 0;border-radius:16px;background:var(--soft);border:1.5px solid var(--line);
-  color:#12B5EA;font-size:17px}
+  color:var(--b1);font-size:17px}
 .spt-plan{background:none;border:none;box-shadow:none;padding:0;margin-bottom:0}
 
 /* ═══════════ 📊 ONGLET STATS — clair ═══════════ */
-.app.stats-mode{--st-cy:#0EA5C6;--st-vi:#7C4DEF;--st-ok:#12A66B;--st-bad:#E24C4C;
+.app.stats-mode{--st-cy:var(--brand);--st-vi:#7C4DEF;--st-ok:#12A66B;--st-bad:#E24C4C;
   --st-dim:var(--mute);--st-card:#fff;--st-line:var(--line)}
 .stats-mode .chart-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:14px;
   box-shadow:0 3px 14px rgba(16,24,40,.06)}
@@ -153,7 +168,7 @@
 .prg-vig{flex:0 0 46px;height:46px;border-radius:11px;object-fit:cover;background:var(--soft2)}
 .prg-exo-n{font-weight:900;font-size:14.5px;color:var(--ink)}
 .prg-exo-m{font-size:11.5px;font-weight:700;color:var(--mute);margin-top:2px}
-.prg-exo-r{font-size:11.5px;font-weight:800;color:#0EA5C6;text-align:right;white-space:nowrap}
+.prg-exo-r{font-size:11.5px;font-weight:800;color:var(--brand);text-align:right;white-space:nowrap}
 .prg-chev{font-size:15px;color:var(--mute);flex:0 0 12px}
 .prg-exo-bd{padding:0 13px 14px}
 .prg-serie,.prg-run-serie{display:flex;align-items:center;gap:6px;margin-bottom:7px;flex-wrap:nowrap}
@@ -194,9 +209,9 @@
 .prg-carte-n{font-weight:900;font-size:16px;line-height:1.2;color:var(--ink)}
 .prg-carte-s{font-size:11.5px;font-weight:700;margin-top:3px;color:var(--mute)}
 .prg-jauge{height:5px;background:var(--soft2);margin:0 13px;border-radius:3px;overflow:hidden}
-.prg-jauge div{height:100%;background:linear-gradient(90deg,#12B5EA,#12C98A);transition:width .3s}
+.prg-jauge div{height:100%;background:linear-gradient(90deg,var(--b1),#12C98A);transition:width .3s}
 .prg-note-lue{font-size:12px;color:#5B4B8A;background:rgba(124,77,239,.09);border-radius:10px;padding:9px 11px;margin-bottom:9px;line-height:1.5}
-.prg-dern{font-size:11.5px;font-weight:700;color:#0EA5C6;margin-bottom:9px}
+.prg-dern{font-size:11.5px;font-weight:700;color:var(--brand);margin-bottom:9px}
 .prg-run-serie{padding:5px 0}
 .prg-run-serie.ok{opacity:.6}
 .prg-check{flex:0 0 30px;height:30px;border-radius:9px;border:2px solid var(--line);background:#fff;color:#fff;font-weight:900;font-size:15px}
@@ -204,11 +219,11 @@
 .prg-cible{flex:0 0 88px;font-size:11px;font-weight:800;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .prg-video{flex:0 0 34px;height:34px;border-radius:10px;background:var(--soft);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:15px}
 .prg-rest{position:fixed;left:10px;right:10px;bottom:78px;display:none;align-items:center;gap:10px;padding:12px 14px;
-  border-radius:16px;background:#fff;border:1.5px solid #12B5EA;box-shadow:0 8px 24px rgba(16,24,40,.16);z-index:30}
+  border-radius:16px;background:#fff;border:1.5px solid var(--b1);box-shadow:0 8px 24px rgba(16,24,40,.16);z-index:30}
 .prg-rest.on{display:flex}
-.prg-rest-l{font-size:11.5px;font-weight:900;letter-spacing:.6px;text-transform:uppercase;color:#0EA5C6}
+.prg-rest-l{font-size:11.5px;font-weight:900;letter-spacing:.6px;text-transform:uppercase;color:var(--brand)}
 .prg-rest-t{flex:1;text-align:right;font-size:24px;font-weight:900;color:var(--ink)}
-.prg-rest-b{flex:0 0 40px;height:38px;border-radius:11px;background:var(--soft);border:1px solid var(--line);color:#0EA5C6;font-weight:900;font-size:13px}
+.prg-rest-b{flex:0 0 40px;height:38px;border-radius:11px;background:var(--soft);border:1px solid var(--line);color:var(--brand);font-weight:900;font-size:13px}
 /* Attribution d'une séance à des clients */
 .prg-cli{display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--line);border-radius:13px;padding:12px;margin-bottom:8px;cursor:pointer}
 .prg-cli.on{border-color:var(--ok);background:#F1FBF5}
@@ -238,7 +253,7 @@
 
 /* Dream Board : la vision du client s'écrit en blanc sur le dégradé de marque
    — c'est SON texte qui porte la couleur, pas la carte autour. */
-.txt-area.db-vision{background:linear-gradient(135deg,#12B5EA 0%,#8A3FFF 100%);border:none;color:#fff;
+.txt-area.db-vision{background:linear-gradient(135deg,var(--b1) 0%,var(--b2) 100%);border:none;color:#fff;
   font-weight:700;font-size:14.5px;line-height:1.65;margin-bottom:0;
   box-shadow:0 8px 20px rgba(96,120,255,.28);caret-color:#fff}
 .txt-area.db-vision::placeholder{color:rgba(255,255,255,.75)}
@@ -274,8 +289,8 @@
 /* ⚡ Le raccourci vers la journée du jour, tout en haut de l'accueil :
    la première chose que le client doit pouvoir faire en ouvrant l'appli. */
 .jour-raccourci{width:100%;display:flex;align-items:center;gap:13px;padding:15px 16px;border-radius:18px;margin-bottom:13px;
-  background:linear-gradient(90deg,#12B5EA 0%,#8A3FFF 100%);box-shadow:0 8px 20px rgba(96,120,255,.28);text-align:left}
-.jour-raccourci.fini{background:linear-gradient(90deg,#12C98A 0%,#0EA5C6 100%);box-shadow:0 8px 20px rgba(18,201,138,.26)}
+  background:linear-gradient(90deg,var(--b1) 0%,var(--b2) 100%);box-shadow:0 8px 20px rgba(96,120,255,.28);text-align:left}
+.jour-raccourci.fini{background:linear-gradient(90deg,#12C98A 0%,var(--brand) 100%);box-shadow:0 8px 20px rgba(18,201,138,.26)}
 .jr-ico{flex:0 0 42px;height:42px;border-radius:13px;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;font-size:21px}
 .jr-txt{flex:1;min-width:0}
 .jr-t{color:#fff;font-weight:900;font-size:16px;line-height:1.2}
@@ -305,14 +320,14 @@
    comme les zones du Dream Board. Les autres restent clairs : si tout est
    bleu, on ne voit plus où on en est. */
 .p3-mois{border:1.5px solid var(--line);border-radius:18px;padding:14px 15px;margin-bottom:11px;background:var(--soft)}
-.p3-mois.on{border:none;background:linear-gradient(150deg,#12B5EA 0%,#8A3FFF 100%);
+.p3-mois.on{border:none;background:linear-gradient(150deg,var(--b1) 0%,var(--b2) 100%);
   box-shadow:0 10px 24px rgba(96,120,255,.3)}
 .p3-mois.fait{opacity:.95}
 .p3-mois.lock{opacity:.55}
 .p3-tete{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:11px}
 .p3-n{font-weight:900;font-size:16px;color:var(--ink);letter-spacing:-.3px}
 .p3-mois.on .p3-n{color:#fff;font-size:19px}
-.p3-tag{font-size:10px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:#12B5EA;background:#fff;border-radius:100px;padding:4px 10px}
+.p3-tag{font-size:10px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:var(--b1);background:#fff;border-radius:100px;padding:4px 10px}
 .p3-sub{flex:1;text-align:right;font-size:11.5px;font-weight:800;color:var(--mute)}
 .p3-mois.on .p3-sub{color:rgba(255,255,255,.92)}
 .p3-mois.on .spt-txt{color:rgba(255,255,255,.9)}
@@ -334,19 +349,19 @@
 .p3-mar-s{font-size:11.5px;font-weight:700;color:var(--mute);margin-top:2px}
 .p3-mois.on .p3-mar-s{color:rgba(255,255,255,.9)}
 .p3-mois.on .p3-mar-b{background:rgba(255,255,255,.22);color:#fff}
-.p3-mois.on .p3-mar-b.plus{background:#fff;color:#8A3FFF}
+.p3-mois.on .p3-mar-b.plus{background:#fff;color:var(--b2)}
 .p3-mar-p{display:flex;gap:3px}
 .p3-mar{font-size:15px;opacity:.28;filter:grayscale(1)}
 .p3-mar.on{opacity:1;filter:none}
 .p3-mar-b{flex:0 0 38px;height:38px;border-radius:11px;background:var(--soft2);font-size:18px;font-weight:900;color:var(--ink)}
-.p3-mar-b.plus{background:linear-gradient(90deg,#12B5EA,#8A3FFF);color:#fff}
+.p3-mar-b.plus{background:linear-gradient(90deg,var(--b1),var(--b2));color:#fff}
 
 /* Les six boutons du socle sur l'écran d'attribution. */
 .p3-att{display:flex;align-items:center;gap:7px;background:#fff;border:1.5px solid var(--line);
   border-radius:13px;padding:11px 12px;margin-bottom:8px}
 .p3-att-n{flex:1;font-weight:800;font-size:13.5px;color:var(--ink)}
 .p3-att-m{flex:0 0 52px;padding:9px 0;border-radius:10px;background:var(--soft2);color:var(--mute);font-weight:900;font-size:12.5px}
-.p3-att-m.on{background:linear-gradient(135deg,#12B5EA,#8A3FFF);color:#fff}
+.p3-att-m.on{background:linear-gradient(135deg,var(--b1),var(--b2));color:#fff}
 
 /* Le lecteur vidéo dans la séance : carré, pour ne pas manger l'écran et
    laisser les séries visibles juste en dessous. */
@@ -375,7 +390,7 @@
 .spt-tiroir summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:16px 15px}
 .spt-tiroir summary::-webkit-details-marker{display:none}
 .spt-sum-t{flex:1;font-weight:900;font-size:12.5px;letter-spacing:1.1px;text-transform:uppercase;color:var(--ink)}
-.spt-sum-n{font-size:11.5px;font-weight:800;color:#0EA5C6}
+.spt-sum-n{font-size:11.5px;font-weight:800;color:var(--brand)}
 .spt-sum-c{font-size:15px;color:var(--mute);transition:transform .2s}
 .spt-tiroir[open] .spt-sum-c{transform:rotate(180deg)}
 .spt-corps{padding:0 15px 16px}
@@ -397,7 +412,7 @@
 .spt-hero-txt{position:relative;z-index:2}
 .spt-hero-txt small{display:block;color:#aab4c5;font-size:13px;font-weight:700;letter-spacing:1.2px;margin-bottom:2px}
 .spt-hero-txt h1{font-size:40px;line-height:1;font-weight:900;letter-spacing:-1.5px;
-  background:linear-gradient(90deg,#13baff,#7750ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+  background:linear-gradient(90deg,var(--b1),var(--b2));-webkit-background-clip:text;background-clip:text;color:transparent}
 .spt-hero-txt p{color:#aeb7c7;margin-top:10px;font-size:14px;line-height:1.45}
 /* Cartes */
 .app.sport-mode .spt-card,.app.sport-mode .spt-tiroir,.app.sport-mode .card{
@@ -410,7 +425,7 @@
 .app.sport-mode .p3-mois-t,.app.sport-mode .p3-sea-n{color:#f7f9ff}
 .app.sport-mode .p3-mois-s,.app.sport-mode .p3-mar-s{color:#8d98aa}
 .app.sport-mode .p3-mois.on{background:radial-gradient(circle at 100% 0%,rgba(130,50,255,.7),transparent 55%),
-  linear-gradient(135deg,#087fc9,#4d37dc 70%,#7733ee);border:0;box-shadow:0 12px 30px rgba(77,55,220,.35)}
+  linear-gradient(135deg,var(--b1),var(--b2) 70%,var(--b2));border:0;box-shadow:0 12px 30px rgba(77,55,220,.35)}
 .app.sport-mode .p3-mois.on .p3-mois-s,.app.sport-mode .p3-mois.on .p3-mar-s{color:rgba(255,255,255,.85)}
 .app.sport-mode .p3-mois.lock{opacity:.6}
 .app.sport-mode .p3-sea,.app.sport-mode .p3-marches{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18)}
@@ -421,7 +436,7 @@
 .app.sport-mode .prg-carte-n{color:#f7f9ff}
 .app.sport-mode .prg-carte-s{color:#8d98aa}
 /* Minuteur */
-.app.sport-mode .spt-card.spt-timer{border:1px solid #744cff;
+.app.sport-mode .spt-card.spt-timer{border:1px solid var(--b2);
   background:radial-gradient(circle at 50% 45%,rgba(103,68,255,.20),transparent 38%),#101525;
   box-shadow:0 0 25px rgba(111,65,255,.13)}
 .app.sport-mode .spt-sq{background:#182131;color:#f7f9ff;border:1px solid rgba(255,255,255,.10)}
@@ -430,7 +445,7 @@
 /* Navigation */
 .app.sport-mode+.nav,.app.sport-mode .nav{background:rgba(13,19,30,.94);border-top:1px solid rgba(255,255,255,.08)}
 .app.sport-mode .nav-lbl{color:#7e899c}
-.app.sport-mode .nav-btn.active .nav-lbl{color:#13baff}
+.app.sport-mode .nav-btn.active .nav-lbl{color:var(--b1)}
 @media(max-width:390px){
   .spt-hero{height:190px}
   .spt-hero-txt h1{font-size:34px}
@@ -467,7 +482,7 @@
 .app.sport-mode .p3-pli-c{color:#8d98aa}
 /* 🚀 La séance du jour, en tête de l'onglet Sport. */
 .sdj{position:relative;overflow:hidden;border-radius:22px;padding:17px 16px;margin-bottom:14px;
-  background:linear-gradient(120deg,#4d2bb8 0%,#3b4fd8 55%,#1aa5c9 100%);box-shadow:0 12px 30px rgba(61,60,200,.35)}
+  background:linear-gradient(120deg,var(--b2) 0%,var(--b1) 100%);box-shadow:0 12px 30px rgba(61,60,200,.28)}
 .sdj-t{font-size:12.5px;font-weight:900;letter-spacing:.6px;color:#fff}
 .sdj-t span{opacity:.75;font-weight:700}
 .sdj-l{display:flex;justify-content:space-between;font-size:12px;color:rgba(255,255,255,.9);font-weight:700;margin:9px 0 5px}
@@ -486,7 +501,7 @@
 .app .sdj .p3-mar-t{color:#fff}
 .app .sdj .p3-mar-s{color:rgba(255,255,255,.9)}
 .app .sdj .p3-mar-b{background:rgba(255,255,255,.22);color:#fff}
-.app .sdj .p3-mar-b.plus{background:#fff;color:#8A3FFF}
+.app .sdj .p3-mar-b.plus{background:#fff;color:var(--b2)}
 
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Inter','Helvetica Neue',sans-serif;background:#F4F4F4;-webkit-font-smoothing:antialiased}
@@ -510,8 +525,8 @@ input,textarea{outline:none}
 .hdr{background:var(--sky);padding:20px 18px 14px;position:sticky;top:0;z-index:50;border-radius:0;border-bottom:1px solid var(--line)}
 .hdr-brand{display:flex;align-items:center;gap:8px;margin-bottom:2px}
 .bar{width:3px;height:18px;border-radius:2px}
-.bar-r{background:#12B5EA}.bar-b{background:#8A3FFF}
-.hdr-title{color:#12B5EA;font-weight:900;font-size:16px;letter-spacing:2px;text-transform:uppercase}
+.bar-r{background:var(--b1)}.bar-b{background:var(--b2)}
+.hdr-title{color:var(--b1);font-weight:900;font-size:16px;letter-spacing:2px;text-transform:uppercase}
 .hdr-sub{color:#8A6BC8;font-size:13px;padding-left:11px;font-weight:700}
 
 /* ONBOARDING / LOGIN */
@@ -615,10 +630,10 @@ input,textarea{outline:none}
 .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
 .nav-ico{font-size:22px}
 .nav-lbl{font-size:11px;font-weight:700;color:var(--mute)}
-.nav-btn.active .nav-lbl{font-weight:900;color:#12B5EA}
+.nav-btn.active .nav-lbl{font-weight:900;color:var(--b1)}
 
 /* MISC */
-.big-btn{width:100%;padding:18px 0;border-radius:16px;background:linear-gradient(90deg,#12B5EA 0%,#8A3FFF 100%);color:#fff;font-weight:900;font-size:15px;letter-spacing:1.5px;text-transform:uppercase;box-shadow:0 8px 20px rgba(96,120,255,.28);margin-bottom:12px}
+.big-btn{width:100%;padding:18px 0;border-radius:16px;background:linear-gradient(90deg,var(--b1) 0%,var(--b2) 100%);color:#fff;font-weight:900;font-size:15px;letter-spacing:1.5px;text-transform:uppercase;box-shadow:0 8px 20px rgba(96,120,255,.28);margin-bottom:12px}
 .big-btn.gray{background:linear-gradient(90deg,#8C93A8 0%,#6B7280 100%);box-shadow:none}
 .big-btn.disabled{background:#EDF0F7;color:#9AA1B2;box-shadow:none;cursor:not-allowed}
 .hint-box{background:#FFF8F0;border:2px solid #FFE0B2;border-radius:14px;padding:16px 18px;margin-bottom:12px}
@@ -676,7 +691,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="29/08 · Marches affichées une fois";
+var APP_VERSION="29/08 · Thèmes homme / femme";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -2072,17 +2087,28 @@ function clientTheme(allData){
   var sx=(allData&&allData[510]&&allData[510].sexe)||null;
   return sx==="H"?"h":"f";
 }
-function applyTheme(allData){
-  var cl=document.querySelectorAll(".app,.dark-screen");
+// Pose la palette sur la racine. Appelée AVANT de construire l'écran, sinon
+// solid() lit les couleurs de l'ancien thème pour les SVG et les canvas.
+function themeRacine(allData){
+  var d=document.documentElement;
+  // Le coach garde le bleu : son tableau de bord n'a pas de fiche client.
+  if(IS_COACH){d.classList.remove("th-f");d.classList.remove("th-h");__cvarCache={};return "h";}
   var h=clientTheme(allData)==="h";
-  // On garde le thème sous la main : au prochain lancement il sera posé
-  // avant le premier affichage, plus d'éclair de couleur.
   try{localStorage.setItem("d90-theme",h?"h":"f");}catch(e){}
-  document.documentElement.classList.toggle("th-h",h);
+  d.classList.toggle("th-h",h);
+  d.classList.toggle("th-f",!h);
   __cvarCache={}; // le thème a pu changer : on relit les couleurs
-  for(var i=0;i<cl.length;i++)cl[i].classList.toggle("th-h",h);
   var mt=document.querySelector('meta[name="theme-color"]');
-  if(mt)mt.setAttribute("content",h?"#263038":"#33241F");
+  if(mt)mt.setAttribute("content",h?"#12B5EA":"#EC4899");
+  return h?"h":"f";
+}
+function applyTheme(allData){
+  var t=themeRacine(allData), h=(t==="h");
+  var cl=document.querySelectorAll(".app,.dark-screen");
+  for(var i=0;i<cl.length;i++){
+    cl[i].classList.toggle("th-h",h);
+    cl[i].classList.toggle("th-f",!h && !IS_COACH);
+  }
 }
 // ═══════════════ 🎭 TON SUPERVISEUR ═══════════════
 // Le client choisit un caractère ET un genre au démarrage : il hérite d'un
@@ -3485,7 +3511,7 @@ function generateDiplome(name,startDate,allData){
   // regarde en premier sur un diplôme, avant même de lire son nom.
   (function(){
     var M=montagne90(allData,89);
-    return '<div style="background:linear-gradient(150deg,#12B5EA,#8A3FFF);border-radius:20px;padding:16px 14px 12px;margin:6px auto 26px;max-width:460px">'+
+    return '<div style="background:linear-gradient(150deg,var(--b1),var(--b2));border-radius:20px;padding:16px 14px 12px;margin:6px auto 26px;max-width:460px">'+
       svgMontagne(M.pct,"#5DF2A0",420,190)+
       '<div style="display:flex;justify-content:space-between;align-items:center;font-family:-apple-system,sans-serif;color:#fff;font-weight:900;font-size:14px;margin-top:4px">'+
       '<span>'+(M.avecPoids?M.depart+' kg':'Jour 1')+'</span>'+
@@ -3907,6 +3933,7 @@ function render(){
   try{bindSwipeRetour();}catch(e){}
 }
 function renderView(){
+  try{themeRacine(getAllData());}catch(e){}
   setTimeout(function(){try{applyTheme(getAllData());ancrerNav();}catch(e){}},0);
   var root=document.getElementById("root");
   if(IS_COACH){root.innerHTML=state.coachAuthed?((state.blProspect||state.blLibre)?viewCoachBilan():state.coachBilans?viewCoachBilans():state.coachKPI?viewCoachKPI():state.coachStats?viewCoachStats():state.coachCalc?viewCoachCalc():(state.prog3?viewProg3():state.cdAssign?viewProgAssign():state.cdProg?viewProgBuilder():(state.coachDetail?(state.cdTab==="bilan"?viewCoachBilan():viewCoachDetail()):viewCoachDash()))):viewCoachLogin();bindCoach();return;}
@@ -4112,11 +4139,11 @@ function viewDream(name){
     '<div style="padding:16px 14px">'+
     '<div class="card" style="padding:16px 18px;margin-bottom:14px;border-left:4px solid var(--gold)">'+
     '<div style="font-size:12.5px;color:var(--ink);font-weight:500;line-height:1.8">Ton cerveau ne peut pas atteindre une cible qu\'il ne voit pas. Ce que tu écris ici n\'est pas un rêve — c\'est <strong>une commande passée à ton subconscient</strong>. Les études le montrent : écrire ses objectifs augmente de 42% les chances de les atteindre. Décris ta semaine idéale et ta vie idéale avec précision, <strong>comme si tu y étais déjà</strong>. Puis relis cette page chaque dimanche : ton cerveau travaillera toute la semaine à combler l\'écart entre ta vie actuelle et cette vision. Ce que tu vois clairement, tu finis par le vivre.</div></div>'+
-    '<div class="card" style="padding:18px 16px;margin-bottom:14px;border-left:4px solid #12B5EA">'+
+    '<div class="card" style="padding:18px 16px;margin-bottom:14px;border-left:4px solid var(--b1)">'+
     '<div class="card-label" style="letter-spacing:1.4px">🌟 Ma semaine idéale</div>'+
     '<div style="color:var(--mute);font-size:12px;font-weight:600;margin-bottom:10px">À quoi ressemble une semaine parfaite pour toi ?</div>'+
     '<textarea id="db-semaine" class="txt-area db-vision" rows="6">'+esc(db.semaine||"")+'</textarea></div>'+
-    '<div class="card" style="padding:18px 16px;margin-bottom:14px;border-left:4px solid #8A3FFF">'+
+    '<div class="card" style="padding:18px 16px;margin-bottom:14px;border-left:4px solid var(--b2)">'+
     '<div class="card-label" style="letter-spacing:1.4px">🚀 Ma vie idéale</div>'+
     '<div style="color:var(--mute);font-size:12px;font-weight:600;margin-bottom:10px">Ce que tu veux réaliser. Ta destination. Relis-le chaque semaine.</div>'+
     '<textarea id="db-vie" class="txt-area db-vision" rows="8">'+esc(db.vie||"")+'</textarea></div>'+
@@ -4199,7 +4226,7 @@ function viewNutrition(name,start){
   }
 
   // ⚔️ QUÊTE DU JOUR (bandeau)
-  h+='<div class="card" style="background:linear-gradient(135deg,#12C98A,#0EA5C6);border:none;padding:15px 16px;margin-bottom:14px;box-shadow:0 8px 20px rgba(18,201,138,.28)">'+
+  h+='<div class="card" style="background:linear-gradient(135deg,#12C98A,var(--brand));border:none;padding:15px 16px;margin-bottom:14px;box-shadow:0 8px 20px rgba(18,201,138,.28)">'+
     '<div style="color:rgba(255,255,255,.92);font-weight:900;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:5px">⚔️ Ta quête du jour</div>'+
     '<div style="color:#fff;font-weight:900;font-size:17px">Atteindre '+target+' g de protéines</div>'+
     (atteint?'<div style="color:#fff;font-weight:900;font-size:13px;margin-top:6px">✅ QUÊTE ACCOMPLIE — '+tot+' g !</div>'
@@ -4225,7 +4252,7 @@ function viewNutrition(name,start){
     '<div style="display:flex;gap:8px;margin-bottom:8px">'+
     '<input id="nut-name" type="text" placeholder="ex : poulet, œufs, riz..." style="flex:1;padding:11px 12px;border-radius:9px;border:1.5px solid var(--line);font-size:15px;font-weight:600"/>'+
     '<input id="nut-qty" type="number" inputmode="numeric" placeholder="g" style="width:78px;padding:11px 10px;border-radius:9px;border:1.5px solid var(--line);font-size:15px;font-weight:700;text-align:center"/></div>'+
-    '<button id="nut-add" style="width:100%;padding:14px 0;border-radius:13px;background:linear-gradient(90deg,#12C98A,#0EA5C6);color:#fff;font-weight:900;font-size:14px;box-shadow:0 6px 16px rgba(18,201,138,.26)">➕ Ajouter</button>'+
+    '<button id="nut-add" style="width:100%;padding:14px 0;border-radius:13px;background:linear-gradient(90deg,#12C98A,var(--brand));color:#fff;font-weight:900;font-size:14px;box-shadow:0 6px 16px rgba(18,201,138,.26)">➕ Ajouter</button>'+
     '<div style="display:flex;gap:8px;margin-top:8px">'+
     '<button id="nut-scan" style="flex:1;padding:12px 0;border-radius:11px;background:var(--brand2);border:0;color:#fff;font-weight:800;font-size:13px">▮▯ Scanner</button>'+
     '<button id="nut-search" style="flex:1;padding:12px 0;border-radius:11px;background:#fff;border:1.5px solid var(--brand2);color:var(--brand2);font-weight:800;font-size:13px">🔍 Chercher</button></div>'+
@@ -5411,7 +5438,7 @@ function viewCalendar(name,start){
       '<div style="display:flex;gap:8px;margin-bottom:12px;text-align:center">'+
       // Trois chiffres qu'une cliente comprend sans vocabulaire interne :
       // XP / zones sécurisées / contestées venaient de la mission One Thing.
-      '<div style="flex:1"><div style="font-weight:900;font-size:20px;color:#0EA5C6">'+wFilled+'<span style="font-size:12px;color:var(--mute)">/7</span></div><div style="font-size:11px;color:var(--mute);font-weight:700;text-transform:uppercase">Jours remplis</div></div>'+
+      '<div style="flex:1"><div style="font-weight:900;font-size:20px;color:var(--brand)">'+wFilled+'<span style="font-size:12px;color:var(--mute)">/7</span></div><div style="font-size:11px;color:var(--mute);font-weight:700;text-transform:uppercase">Jours remplis</div></div>'+
       '<div style="flex:1"><div style="font-weight:900;font-size:20px;color:var(--ok)">'+(function(){var t=0,n=Math.min(7,today90-wStart+1);for(var q=0;q<HABITS.length;q++)t+=habCount[HABITS[q].id];return n?Math.round(t/(n*HABITS.length)*100):0;})()+'<span style="font-size:12px;color:var(--mute)">%</span></div><div style="font-size:11px;color:var(--mute);font-weight:700;text-transform:uppercase">Habitudes</div></div>'+
       '<div style="flex:1"><div style="font-weight:900;font-size:20px;color:var(--violet)">'+(function(){var n=0;for(var q=wStart;q<=today90;q++)if(mindsetFull(allData,q))n++;return n;})()+'<span style="font-size:12px;color:var(--mute)">/7</span></div><div style="font-size:11px;color:var(--mute);font-weight:700;text-transform:uppercase">Mindset</div></div>'+
       '<div style="flex:1"><div style="font-weight:900;font-size:20px;color:'+(wDp!=null&&wDp<=0?"var(--ok)":K)+'">'+(wDp!=null?(wDp>0?"+"+wDp:wDp):"—")+'</div><div style="font-size:11px;color:var(--mute);font-weight:700;text-transform:uppercase">kg</div></div></div>';
@@ -5588,7 +5615,7 @@ function viewDay(name,start){
 
   // 🌙 Pensée du jour + message du coach (déplacés ici pour épurer l'accueil)
   var penseeJ=pickPensee(allData,idx);
-  h+='<div class="card" style="padding:17px 16px;border:0;background:linear-gradient(150deg,#12B5EA 0%,#8A3FFF 100%);box-shadow:0 8px 22px rgba(96,120,255,.26)">'+
+  h+='<div class="card" style="padding:17px 16px;border:0;background:linear-gradient(150deg,var(--b1) 0%,var(--b2) 100%);box-shadow:0 8px 22px rgba(96,120,255,.26)">'+
     '<div style="color:rgba(255,255,255,.85);font-weight:800;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">🌙 La pensée du jour '+(idx+1)+'</div>'+
     '<div style="color:#fff;font-size:14px;line-height:1.75;font-weight:600;font-style:italic">'+esc(penseeJ)+'</div>'+
     '<button id="pensee-share" style="margin-top:10px;font-size:11px;font-weight:800;color:#fff;padding:7px 13px;border:1.5px solid rgba(255,255,255,.55);border-radius:16px;background:rgba(255,255,255,.14)">📤 Partager</button></div>';
@@ -6392,7 +6419,7 @@ function viewStats(name){
     '<div class="chart-hdr"><div class="chart-dot" style="background:var(--st-cy)"></div>'+
     '<span class="chart-title">Mon poids</span>'+
     (PJ&&PJ.act?'<span class="chart-avg">'+PJ.act+' kg</span>':'')+'</div>'+
-    svgPoidsChart(poidsV,cible,{trait:"#0EA5C6"})+
+    svgPoidsChart(poidsV,cible,{trait:solid("var(--brand)")})+
     '<div class="st-leg">'+
     '<span><i style="background:var(--st-cy)"></i> tes pesées</span>'+
     '<span><i style="background:var(--gold-d)"></i> ta tendance</span>'+
@@ -6494,7 +6521,7 @@ function viewStats(name){
       '<div class="chart-card"><div class="chart-hdr"><div class="chart-dot" style="background:var(--st-cy)"></div>'+
       '<span class="chart-title">Score global</span>'+
       (avgScore!=null?'<span class="chart-avg">moy. '+avgScore+'%</span>':'')+'</div>'+
-      svgLineChart(vals("score"),"#0EA5C6",{min:0,max:100})+
+      svgLineChart(vals("score"),solid("var(--brand)"),{min:0,max:100})+
       '<div class="st-note" style="margin:7px 0 0">Ce score résume ta journée : habitudes cochées, ressenti, sommeil.</div></div>';
   })();
 
@@ -7100,8 +7127,8 @@ var SPT_PRESETS = [
 var SPT_PHASES = {
   prep: { nom: "Préparation", col: "#E9A23B" },
   effort: { nom: "EFFORT", col: "#12C98A" },
-  repos: { nom: "Repos", col: "#12B5EA" },
-  serie: { nom: "Repos de série", col: "#8A3FFF" },
+  repos: { nom: "Repos", col: "var(--b1)" },
+  serie: { nom: "Repos de série", col: "var(--b2)" },
   cycle: { nom: "En cours", col: "#12C98A" }
 };
 
@@ -7352,6 +7379,7 @@ function sptAfficher() {
   var mini = !!(zone && zone.className.indexOf("prg-rest") >= 0);
   function barre(on) { if (mini) zone.className = "prg-rest" + (on ? " on" : ""); }
   function peindre(col, pct) {
+    col = solid(col);   // un attribut SVG n'accepte pas var(--x)
     if (ring) {
       ring.setAttribute("stroke-dasharray", pct + " 100");
       ring.setAttribute("stroke", col);
@@ -7373,7 +7401,7 @@ function sptAfficher() {
     ph.textContent = "Prêt"; ph.setAttribute("fill", "#E9A23B");
     tr.textContent = c0.tours + " tours" + (c0.series > 1 ? " × " + c0.series + " séries" : "");
     tt.textContent = "Séance de " + sptFmt(sptTotal(p0));
-    peindre("#8A3FFF", 0);
+    peindre("var(--b2)", 0);
     if (go) { go.textContent = "▶ DÉMARRER"; go.className = "spt-go"; }
     barre(false);
     return;
@@ -7444,10 +7472,10 @@ function viewSport(name, start) {
     '<svg viewBox="0 0 128 128" style="width:216px;height:216px;overflow:visible">' +
     '<defs><filter id="sptglow" x="-60%" y="-60%" width="220%" height="220%">' +
     '<feGaussianBlur stdDeviation="2.6" result="f"/><feMerge><feMergeNode in="f"/><feMergeNode in="f"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>' +
-    '<circle cx="64" cy="64" r="58" fill="none" stroke="#8A3FFF" stroke-width="2.4" opacity=".8" filter="url(#sptglow)"/>' +
-    '<circle cx="64" cy="64" r="48" fill="none" stroke="#12B5EA" stroke-width="2.6" opacity=".3" filter="url(#sptglow)"/>' +
-    '<circle id="spt-ring" cx="64" cy="64" r="48" fill="none" stroke="#8A3FFF" stroke-width="3.4" stroke-linecap="round" pathLength="100" stroke-dasharray="0 100" transform="rotate(-90 64 64)" filter="url(#sptglow)"/>' +
-    '<circle id="spt-dot" cx="64" cy="64" r="48" fill="none" stroke="#8A3FFF" stroke-width="9" stroke-linecap="round" pathLength="100" stroke-dasharray="0.01 100" stroke-dashoffset="0" transform="rotate(-90 64 64)" filter="url(#sptglow)" opacity="0"/>' +
+    '<circle cx="64" cy="64" r="58" fill="none" stroke="'+solid("var(--b2)")+'" stroke-width="2.4" opacity=".8" filter="url(#sptglow)"/>' +
+    '<circle cx="64" cy="64" r="48" fill="none" stroke="'+solid("var(--b1)")+'" stroke-width="2.6" opacity=".3" filter="url(#sptglow)"/>' +
+    '<circle id="spt-ring" cx="64" cy="64" r="48" fill="none" stroke="'+solid("var(--b2)")+'" stroke-width="3.4" stroke-linecap="round" pathLength="100" stroke-dasharray="0 100" transform="rotate(-90 64 64)" filter="url(#sptglow)"/>' +
+    '<circle id="spt-dot" cx="64" cy="64" r="48" fill="none" stroke="'+solid("var(--b2)")+'" stroke-width="9" stroke-linecap="round" pathLength="100" stroke-dasharray="0.01 100" stroke-dashoffset="0" transform="rotate(-90 64 64)" filter="url(#sptglow)" opacity="0"/>' +
     '<text id="spt-time" x="64" y="66" text-anchor="middle" fill="#101828" font-size="30" font-weight="900">' + sptFmt(c.prep > 0 ? c.prep : c.effort) + '</text>' +
     '<text id="spt-phase" x="64" y="84" text-anchor="middle" fill="#E9A23B" font-size="10.5" font-weight="800" letter-spacing="1">Prêt</text>' +
     '</svg></div>' +
@@ -9353,7 +9381,7 @@ function partageCarte(masquerPoids) {
   x.fillStyle = "#FFFFFF"; x.fillRect(0, 0, W, H);
   // Liseré de marque en haut
   var g = x.createLinearGradient(0, 0, W, 0);
-  g.addColorStop(0, "#12B5EA"); g.addColorStop(1, "#8A3FFF");
+  g.addColorStop(0, solid("var(--b1)")); g.addColorStop(1, solid("var(--b2)"));
   x.fillStyle = g; x.fillRect(0, 0, W, 16);
   x.textAlign = "left";
   x.fillStyle = "#101828";
@@ -9374,7 +9402,7 @@ function partageCarte(masquerPoids) {
   x.font = "900 250px system-ui,-apple-system,sans-serif";
   x.fillText(String(heros), 80, 470);
   var lg = x.measureText(String(heros)).width;
-  x.fillStyle = "#12B5EA";
+  x.fillStyle = solid("var(--b1)");
   x.font = "900 62px system-ui,-apple-system,sans-serif";
   x.fillText(unite, 96 + lg, 470);
   x.fillStyle = "#5A6072";
@@ -9387,7 +9415,7 @@ function partageCarte(masquerPoids) {
     var M = montagne90(getAllData(), (D.jour - 1));
     var bx = 80, by = 585, bw = W - 160, bh = 330;
     var g2 = x.createLinearGradient(bx, by, bx + bw, by + bh);
-    g2.addColorStop(0, "#12B5EA"); g2.addColorStop(1, "#8A3FFF");
+    g2.addColorStop(0, solid("var(--b1)")); g2.addColorStop(1, solid("var(--b2)"));
     x.fillStyle = g2;
     if (x.roundRect) { x.beginPath(); x.roundRect(bx, by, bw, bh, 28); x.fill(); }
     else x.fillRect(bx, by, bw, bh);
@@ -9535,37 +9563,37 @@ function bindPesees() {
 // pouvoir y revenir sans réinstaller quoi que ce soit.
 var TUTO_PAGES = [
   {
-    tag: "BIENVENUE", ico: "🎯", c1: "#12B5EA", c2: "#8A3FFF",
+    tag: "BIENVENUE", ico: "🎯", c1: "var(--b1)", c2: "var(--b2)",
     t: "Un jour à la fois",
     d: "Cette appli n'est pas un carnet de notes. C'est ton fil rouge quotidien : tu coches ta journée, elle te dit où tu en es, et ton coach voit la même chose que toi."
   },
   {
-    tag: "TA JOURNÉE", ico: "📅", c1: "#12C98A", c2: "#0EA5C6",
+    tag: "TA JOURNÉE", ico: "📅", c1: "#12C98A", c2: "var(--brand)",
     t: "Deux minutes chaque soir",
     d: "Touche le jour en cours dans l'agenda : ton poids, tes heures de sommeil, ton ressenti, tes habitudes du jour. Trois questions de mindset closent la journée. C'est ce petit rituel qui fait toute la différence sur 90 jours."
   },
   {
-    tag: "NUTRITION", ico: "🍗", c1: "#12C98A", c2: "#8A3FFF",
+    tag: "NUTRITION", ico: "🍗", c1: "#12C98A", c2: "var(--b2)",
     t: "Tes protéines et tes menus",
     d: "L'onglet Prot suit ton quota du jour : tape un aliment, scanne un code-barres, ou reprends un aliment récent d'un tap. L'onglet Menus déroule ton plan alimentaire, phase après phase."
   },
   {
-    tag: "MENUS", ico: "🍽️", c1: "#12C98A", c2: "#12B5EA",
+    tag: "MENUS", ico: "🍽️", c1: "#12C98A", c2: "var(--b1)",
     t: "Ton plan alimentaire, phase par phase",
     d: "L'onglet Menus déroule tes repas du jour, préparés par ton coach. Le programme avance en trois phases — Équilibre, Accélération, Cyclage — et la suivante se débloque quand tu arrives à sa date. Tu n'as rien à calculer : tu ouvres, tu suis."
   },
   {
-    tag: "SPORT", ico: "🏋️", c1: "#0EA5C6", c2: "#8A3FFF",
+    tag: "SPORT", ico: "🏋️", c1: "var(--brand)", c2: "var(--b2)",
     t: "Tes séances et tes minuteurs",
     d: "Retrouve les séances préparées par ton coach : tu coches chaque série, tu notes ce que tu as vraiment fait, et le temps de repos part tout seul. Sur un test de 14 jours, c\'est la méthode séance express qui te guide. Les minuteurs continuent de sonner même écran éteint."
   },
   {
-    tag: "PROGRESSION", ico: "📈", c1: "#8A3FFF", c2: "#12B5EA",
+    tag: "PROGRESSION", ico: "📈", c1: "var(--b2)", c2: "var(--b1)",
     t: "Ce que disent tes chiffres",
     d: "L'onglet Stats montre ta courbe de poids, ta régularité et ta progression en force. Ton superviseur y commente franchement : quand ça avance, et quand ça n'avance pas."
   },
   {
-    tag: "DREAM BOARD", ico: "🌟", c1: "#12B5EA", c2: "#8A3FFF",
+    tag: "DREAM BOARD", ico: "🌟", c1: "var(--b1)", c2: "var(--b2)",
     t: "Écris où tu veux aller",
     d: "Le Dream Board, c'est ta semaine idéale et ta vie idéale, écrites au présent comme si tu y étais déjà. Relis-le chaque dimanche : c'est ce qui te tient quand la motivation retombe. L'onglet Argent, lui, met la même clarté sur tes finances."
   }
@@ -10132,12 +10160,12 @@ function viewCoachDetail(){
         return o2;
       })()+'</div>'+
       '<div style="font-size:11px;color:var(--mute);margin-bottom:16px;line-height:1.5">Commande le sens de tous les commentaires du superviseur.</div>'+
-      '<div style="font-weight:800;font-size:13px;margin-bottom:8px">🎨 Thème visuel</div>'+
+      '<div style="font-weight:800;font-size:13px;margin-bottom:8px">🎨 Thème de son appli</div>'+
       '<div style="display:flex;gap:7px">'+
-      '<button class="cd-th" data-t="f" style="flex:1;padding:11px 4px;border-radius:12px;border:2px solid '+(th==="f"?"#E8735A":"var(--line)")+';background:'+(th==="f"?"#FDF0EB":"#fff")+';font-weight:800;font-size:12px;color:'+(th==="f"?"#C9503A":"var(--mute)")+'">☀️ Clair</button>'+
-      '<button class="cd-th" data-t="h" style="flex:1;padding:11px 4px;border-radius:12px;border:2px solid '+(th==="h"?"#2E6FB7":"var(--line)")+';background:'+(th==="h"?"#EAF1F9":"#fff")+';font-weight:800;font-size:12px;color:'+(th==="h"?"#1B4C86":"var(--mute)")+'">🌙 Sombre</button>'+
+      '<button class="cd-th" data-t="h" style="flex:1;padding:11px 4px;border-radius:12px;border:2px solid '+(th==="h"?"#12B5EA":"var(--line)")+';background:'+(th==="h"?"linear-gradient(135deg,#12B5EA,#8A3FFF)":"#fff")+';font-weight:800;font-size:12px;color:'+(th==="h"?"#fff":"var(--mute)")+'">👨 Homme · bleu</button>'+
+      '<button class="cd-th" data-t="f" style="flex:1;padding:11px 4px;border-radius:12px;border:2px solid '+(th==="f"?"#EC4899":"var(--line)")+';background:'+(th==="f"?"linear-gradient(135deg,#EC4899,#A855F7)":"#fff")+';font-weight:800;font-size:12px;color:'+(th==="f"?"#fff":"var(--mute)")+'">👩 Femme · rose</button>'+
       '</div>'+
-      '<div style="font-size:10.5px;color:var(--mute);margin-top:8px;line-height:1.5">Par défaut selon le sexe du client. Change-le si la personne préfère l\'autre.</div>'+
+      '<div style="font-size:10.5px;color:var(--mute);margin-top:8px;line-height:1.5">Par défaut selon le sexe du client. Change-le si la personne préfère l\'autre palette.</div>'+
       '</div>';
   })();
 

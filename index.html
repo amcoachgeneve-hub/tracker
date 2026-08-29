@@ -99,6 +99,7 @@
 .xp-z{fill:rgba(255,255,255,.20);stroke:rgba(255,255,255,.30);stroke-width:1.5;cursor:pointer;
   transition:fill .18s,stroke .18s}
 .xp-z.on{fill:var(--brand);stroke:#fff;stroke-width:2}
+.xp-z.off{fill:rgba(255,255,255,.05);stroke:rgba(255,255,255,.10);cursor:default;pointer-events:none}
 .xp-face{display:flex;gap:7px;margin-top:10px}
 .xp-fb{flex:1;padding:11px 4px;border-radius:13px;font-weight:900;font-size:13px;
   background:transparent;border:1.5px solid var(--line);color:var(--ink)}
@@ -710,7 +711,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="29/08 · Séance express";
+var APP_VERSION="29/08 · Express lieu & relances";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -7738,12 +7739,93 @@ function progImg(X) {
   var id = ytId(X && X.v);
   return id ? "https://img.youtube.com/vi/" + id + "/mqdefault.jpg" : "";
 }
+// ─── PICTOGRAMMES D'EXERCICE ───
+// Akli voulait « une image pour chaque exercice ». Aucune bibliothèque de
+// photos ou de GIF d'exercices n'est libre de droits : on ne peut ni les
+// embarquer ni les héberger pour une appli commerciale. On DESSINE donc le
+// geste — un bonhomme par famille de mouvement, à la couleur du muscle. Ça
+// pèse quelques octets, ça marche hors ligne, et ça se reconnaît à 46 px.
+// Dès qu'un lien vidéo est collé, la miniature YouTube prend le dessus.
+var PROG_GESTES = {
+  "presse-h": '<line x1="10" y1="46" x2="54" y2="46"/><line x1="18" y1="41" x2="44" y2="41"/>' +
+    '<line x1="44" y1="41" x2="52" y2="52"/><line x1="32" y1="41" x2="32" y2="24"/>' +
+    '<line x1="20" y1="21" x2="46" y2="21"/><circle cx="14" cy="38" r="5" data-f="1"/>',
+  "presse-v": '<circle cx="32" cy="15" r="6" data-f="1"/><line x1="32" y1="21" x2="32" y2="40"/>' +
+    '<line x1="32" y1="40" x2="24" y2="56"/><line x1="32" y1="40" x2="40" y2="56"/>' +
+    '<line x1="32" y1="26" x2="21" y2="16"/><line x1="32" y1="26" x2="43" y2="16"/>' +
+    '<line x1="15" y1="11" x2="49" y2="11"/>',
+  "traction": '<line x1="10" y1="9" x2="54" y2="9"/><line x1="23" y1="9" x2="30" y2="27"/>' +
+    '<line x1="41" y1="9" x2="34" y2="27"/><circle cx="32" cy="24" r="6" data-f="1"/>' +
+    '<line x1="32" y1="30" x2="32" y2="44"/><line x1="32" y1="44" x2="25" y2="55"/><line x1="32" y1="44" x2="40" y2="53"/>',
+  "rowing": '<circle cx="15" cy="23" r="5" data-f="1"/><line x1="19" y1="27" x2="44" y2="33"/>' +
+    '<line x1="30" y1="30" x2="30" y2="45"/><line x1="22" y1="46" x2="40" y2="46"/>' +
+    '<line x1="44" y1="33" x2="46" y2="55"/>',
+  "curl": '<circle cx="32" cy="13" r="6" data-f="1"/><line x1="32" y1="19" x2="32" y2="39"/>' +
+    '<line x1="32" y1="39" x2="25" y2="55"/><line x1="32" y1="39" x2="39" y2="55"/>' +
+    '<line x1="32" y1="25" x2="22" y2="33"/><line x1="22" y1="33" x2="27" y2="21"/>' +
+    '<line x1="23" y1="19" x2="33" y2="19"/>',
+  "extension": '<circle cx="32" cy="13" r="6" data-f="1"/><line x1="32" y1="19" x2="32" y2="39"/>' +
+    '<line x1="32" y1="39" x2="25" y2="55"/><line x1="32" y1="39" x2="39" y2="55"/>' +
+    '<line x1="32" y1="24" x2="42" y2="30"/><line x1="42" y1="30" x2="46" y2="18"/>' +
+    '<line x1="41" y1="16" x2="51" y2="16"/>',
+  "ouverture": '<circle cx="32" cy="14" r="6" data-f="1"/><line x1="32" y1="20" x2="32" y2="40"/>' +
+    '<line x1="32" y1="40" x2="25" y2="56"/><line x1="32" y1="40" x2="39" y2="56"/>' +
+    '<line x1="32" y1="26" x2="13" y2="26"/><line x1="32" y1="26" x2="51" y2="26"/>' +
+    '<line x1="10" y1="22" x2="10" y2="30"/><line x1="54" y1="22" x2="54" y2="30"/>',
+  "squat": '<circle cx="24" cy="14" r="6" data-f="1"/><line x1="24" y1="20" x2="28" y2="34"/>' +
+    '<line x1="28" y1="34" x2="44" y2="34"/><line x1="44" y1="34" x2="44" y2="52"/>' +
+    '<line x1="12" y1="23" x2="40" y2="23"/>',
+  "hinge": '<circle cx="17" cy="19" r="5" data-f="1"/><line x1="21" y1="23" x2="42" y2="31"/>' +
+    '<line x1="42" y1="31" x2="44" y2="52"/><line x1="30" y1="27" x2="30" y2="44"/>' +
+    '<line x1="19" y1="46" x2="41" y2="46"/>',
+  "gainage": '<circle cx="14" cy="32" r="5" data-f="1"/><line x1="18" y1="35" x2="48" y2="43"/>' +
+    '<line x1="18" y1="35" x2="18" y2="47"/><line x1="14" y1="47" x2="24" y2="47"/>' +
+    '<line x1="48" y1="43" x2="54" y2="50"/>',
+  "abdos": '<line x1="8" y1="50" x2="56" y2="50"/><circle cx="20" cy="32" r="5" data-f="1"/>' +
+    '<line x1="24" y1="35" x2="36" y2="44"/><line x1="36" y1="44" x2="44" y2="34"/>' +
+    '<line x1="44" y1="34" x2="48" y2="49"/>',
+  "cardio": '<circle cx="34" cy="12" r="5" data-f="1"/><line x1="32" y1="17" x2="28" y2="33"/>' +
+    '<line x1="28" y1="33" x2="38" y2="44"/><line x1="38" y1="44" x2="36" y2="56"/>' +
+    '<line x1="28" y1="33" x2="18" y2="45"/><line x1="18" y1="45" x2="10" y2="43"/>' +
+    '<line x1="31" y1="22" x2="44" y2="18"/><line x1="31" y1="24" x2="20" y2="28"/>',
+  "mobilite": '<circle cx="20" cy="16" r="5" data-f="1"/><line x1="23" y1="20" x2="34" y2="34"/>' +
+    '<line x1="34" y1="34" x2="52" y2="34"/><line x1="34" y1="34" x2="20" y2="50"/>' +
+    '<line x1="26" y1="26" x2="46" y2="32"/>',
+  "complet": '<circle cx="32" cy="13" r="6" data-f="1"/><line x1="32" y1="19" x2="32" y2="38"/>' +
+    '<line x1="32" y1="38" x2="22" y2="55"/><line x1="32" y1="38" x2="42" y2="55"/>' +
+    '<line x1="32" y1="24" x2="18" y2="14"/><line x1="32" y1="24" x2="46" y2="14"/>'
+};
+function progGesteCle(X) {
+  var n = ((X && X.n) || "").toLowerCase();
+  if (/couché|incliné|chest press|pompe|dips|pec deck|pull-over/.test(n)) return "presse-h";
+  if (/militaire|shoulder press|développé épaules/.test(n)) return "presse-v";
+  if (/traction|tirage vertical|lat pulldown|pulldown/.test(n)) return "traction";
+  if (/rowing|tirage/.test(n)) return "rowing";
+  if (/leg curl|ischio/.test(n)) return "hinge";
+  if (/curl/.test(n)) return "curl";
+  if (/extension|barre au front|kickback/.test(n)) return "extension";
+  if (/élévation|oiseau|face pull|écarté|papillon/.test(n)) return "ouverture";
+  if (/squat|presse à cuisses|fente|leg extension|chaise|mollet|abduction/.test(n)) return "squat";
+  if (/soulevé|hip thrust|pont|leg curl|swing|good morning/.test(n)) return "hinge";
+  if (/gainage|planche|superman/.test(n)) return "gainage";
+  if (/crunch|relevé de jambes|roue|russian|mountain/.test(n)) return "abdos";
+  if (/étirement|mobilité|chat-vache|hanches|respiration/.test(n)) return "mobilite";
+  if ((X && X.m) === "cardio" || /corde|burpee|montée de genoux|jumping/.test(n)) return "cardio";
+  if ((X && X.m) === "mobilite") return "mobilite";
+  if ((X && X.m) === "abdos") return "abdos";
+  return "complet";
+}
+function progPicto(X, t) {
+  var M = progMuscle(X.m), g = PROG_GESTES[progGesteCle(X)] || PROG_GESTES.complet;
+  // Les têtes sont marquées data-f : elles se remplissent au lieu d'être vides.
+  g = g.replace(/data-f="1"/g, 'fill="' + M[2] + '"');
+  return '<svg class="prg-vig" viewBox="0 0 64 64" style="width:' + t + 'px;height:' + t + 'px;background:' + M[2] + '1A">' +
+    '<g fill="none" stroke="' + M[2] + '" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">' + g + '</g></svg>';
+}
 function progVignette(X, taille) {
-  var M = progMuscle(X.m), t = taille || 46, src = progImg(X);
+  var t = taille || 46, src = progImg(X);
   if (src) return '<img class="prg-vig" src="' + esc(src) + '" alt="" style="width:' + t + 'px;height:' + t + 'px" loading="lazy"/>';
-  return '<div class="prg-vig" style="width:' + t + 'px;height:' + t + 'px;background:' + M[2] + '22;color:' + M[2] +
-    ';display:flex;align-items:center;justify-content:center;font-weight:900;font-size:' + Math.round(t / 2.6) + 'px">' +
-    esc(M[1].slice(0, 1)) + '</div>';
+  return progPicto(X, t);
 }
 
 // ─── La bibliothèque (chez le coach) ───
@@ -7779,7 +7861,33 @@ var BIBLIO_BASE = [
   ["Marche à pied extérieur", "cardio", "Extérieur"], ["Corde à sauter", "cardio", "Accessoire"],
   ["Étirement ischio-jambiers", "mobilite", "Tapis"], ["Ouverture de hanches", "mobilite", "Tapis"],
   ["Mobilité épaules bâton", "mobilite", "Accessoire"], ["Chat-vache", "mobilite", "Tapis"],
-  ["Burpees", "complet", "Poids du corps"], ["Kettlebell swing", "complet", "Kettlebell"]
+  ["Burpees", "complet", "Poids du corps"], ["Kettlebell swing", "complet", "Kettlebell"],
+  // ─── Ajouts « maison / dehors » : sans matériel, élastique, TRX, petits
+  // poids. Sans eux, une séance express à la maison ne trouvait rien à
+  // proposer sur la moitié des muscles.
+  ["Pompes inclinées", "pecs", "Poids du corps"], ["Pompes diamant", "triceps", "Poids du corps"],
+  ["Pompes TRX", "pecs", "TRX"], ["Écarté élastique", "pecs", "Élastique"],
+  ["Pull-over haltère", "pecs", "Haltères"],
+  ["Superman", "dos", "Poids du corps"], ["Bird dog", "dos", "Poids du corps"],
+  ["Rowing élastique", "dos", "Élastique"], ["Tirage élastique haut", "dos", "Élastique"],
+  ["Développé épaules élastique", "epaules", "Élastique"],
+  ["Élévations latérales élastique", "epaules", "Élastique"],
+  ["Pull apart élastique", "epaules", "Élastique"],
+  ["Curl élastique", "biceps", "Élastique"], ["Curl TRX", "biceps", "TRX"],
+  ["Extension triceps élastique", "triceps", "Élastique"],
+  ["Extension triceps TRX", "triceps", "TRX"], ["Dips sur chaise", "triceps", "Poids du corps"],
+  ["Fentes au poids du corps", "jambes", "Poids du corps"], ["Chaise contre le mur", "jambes", "Poids du corps"],
+  ["Squat sauté", "jambes", "Poids du corps"], ["Squat gobelet", "jambes", "Haltères"],
+  ["Squat élastique", "jambes", "Élastique"], ["Squat TRX", "jambes", "TRX"],
+  ["Fentes TRX", "jambes", "TRX"], ["Soulevé de terre roumain haltères", "jambes", "Haltères"],
+  ["Fentes marchées", "fessiers", "Poids du corps"], ["Donkey kick", "fessiers", "Poids du corps"],
+  ["Abduction hanche élastique", "fessiers", "Élastique"], ["Hip thrust élastique", "fessiers", "Élastique"],
+  ["Mountain climbers", "abdos", "Poids du corps"], ["Gainage TRX", "abdos", "TRX"],
+  ["Crunch haltère", "abdos", "Haltères"], ["Russian twist", "abdos", "Poids du corps"],
+  ["Pompes piquées", "epaules", "Poids du corps"], ["Tirage sous une table", "dos", "Poids du corps"],
+  ["Montées de genoux", "cardio", "Poids du corps"], ["Jumping jacks", "cardio", "Poids du corps"],
+  ["Talons-fesses", "cardio", "Poids du corps"], ["Course à pied", "cardio", "Extérieur"],
+  ["Montées d'escalier", "cardio", "Extérieur"]
 ];
 function bibGet() {
   var b = lsGet("amcoach_biblio", null);
@@ -8806,7 +8914,7 @@ var EXPRESS_ZONES = {
     ["jambes", '<rect x="76" y="208" width="21" height="76" rx="10"/><rect x="103" y="208" width="21" height="76" rx="10"/><rect x="78" y="296" width="17" height="46" rx="8"/><rect x="105" y="296" width="17" height="46" rx="8"/>']
   ]
 };
-function expressCorpsSVG(face, sel) {
+function expressCorpsSVG(face, sel, dispo) {
   var Z = EXPRESS_ZONES[face] || EXPRESS_ZONES.av;
   var base = '<g fill="rgba(255,255,255,.09)" stroke="rgba(255,255,255,.16)" stroke-width="1.5">' +
     '<circle cx="100" cy="42" r="19"/><rect x="92" y="57" width="16" height="14" rx="5"/>' +
@@ -8819,21 +8927,63 @@ function expressCorpsSVG(face, sel) {
     '</g>';
   var zones = "";
   for (var i = 0; i < Z.length; i++) {
-    var on = Z[i][0] === sel;
-    zones += '<g class="xp-z' + (on ? " on" : "") + '" data-xp-m="' + Z[i][0] + '">' + Z[i][1] + '</g>';
+    var on = Z[i][0] === sel, off = dispo && !dispo[Z[i][0]];
+    zones += '<g class="xp-z' + (on ? " on" : "") + (off ? " off" : "") + '"' +
+      (off ? "" : ' data-xp-m="' + Z[i][0] + '"') + '>' + Z[i][1] + '</g>';
   }
   return '<svg class="xp-corps" viewBox="0 0 200 372">' + base + zones + '</svg>';
 }
+// OÙ on s'entraîne, et AVEC QUOI. C'est la première question : proposer un
+// développé couché à quelqu'un dans son salon ne sert à rien.
+var EXPRESS_LIEUX = [
+  ["salle", "Salle", "🏋️"], ["dehors", "Dehors", "🌳"], ["maison", "Maison", "🏠"]
+];
+var EXPRESS_OUTILS = [
+  ["trx", "TRX", "🪢", ["TRX"]],
+  ["elast", "Élastique", "🎗️", ["Élastique"]],
+  ["poids", "Petits poids", "🏋️", ["Haltères", "Kettlebell"]]
+];
+// Le cardio dépend du lieu : pas de rameur dans un salon.
+var EXPRESS_CARDIO = {
+  salle: [["Rameur", "🚣"], ["Vélo assis", "🚴"], ["Elliptique", "🏃"], ["Escalier", "🪜"], ["Tapis de course", "🏃‍♂️"]],
+  dehors: [["Course", "🏃"], ["Marche rapide", "🚶"], ["Escaliers", "🪜"], ["Corde à sauter", "🪢"]],
+  maison: [["Corde à sauter", "🪢"], ["Montées de genoux", "🦵"], ["Burpees", "🔥"], ["Jumping jacks", "⭐"], ["Escaliers", "🪜"]]
+};
+function expressCardios(lieu) { return EXPRESS_CARDIO[lieu] || EXPRESS_CARDIO.salle; }
+// Les matériels autorisés par les réponses données.
+function expressMateriels(E) {
+  if (E.lieu === "salle") return null;           // null = tout est permis
+  var ok = ["Poids du corps", "Tapis", "Extérieur"];
+  if (E.mat === "avec") {
+    for (var i = 0; i < EXPRESS_OUTILS.length; i++)
+      if (EXPRESS_OUTILS[i][0] === E.outil) ok = ok.concat(EXPRESS_OUTILS[i][3]);
+  }
+  return ok;
+}
 function expressEtat() {
   var e = state.express;
-  if (!e || typeof e !== "object") e = { face: "av", m: null, cardio: "Rameur" };
+  if (!e || typeof e !== "object") e = { lieu: null, mat: null, outil: null, face: "av", m: null, cardio: null };
   return e;
+}
+// Les muscles réellement travaillables ici et maintenant : une zone sans
+// aucun exercice disponible s'éteint au lieu de générer une séance vide.
+function expressMusclesDispo(E) {
+  var mats = expressMateriels(E), lib = bibGet(), r = {};
+  for (var i = 0; i < lib.length; i++) {
+    var X = lib[i];
+    if (X.m === "cardio" || X.m === "mobilite") continue;
+    if (mats && mats.indexOf(X.mat) < 0) continue;
+    r[X.m] = (r[X.m] || 0) + 1;
+  }
+  return r;
 }
 // Deux exercices du muscle choisi, tirés de la bibliothèque. On privilégie
 // deux matériels différents : machine puis haltères vaut mieux que deux fois
 // la même machine.
-function expressExos(muscle) {
-  var lib = bibGet().filter(function (X) { return X.m === muscle; });
+function expressExos(muscle, mats) {
+  var lib = bibGet().filter(function (X) {
+    return X.m === muscle && (!mats || mats.indexOf(X.mat) >= 0);
+  });
   if (!lib.length) return [];
   var melange = lib.slice();
   for (var i = melange.length - 1; i > 0; i--) {
@@ -8846,9 +8996,9 @@ function expressExos(muscle) {
   if (choix.length < 2 && melange.length > 1) choix.push(melange[1]);
   return choix;
 }
-function expressGenerer(muscle, machine) {
+function expressGenerer(muscle, machine, E) {
   var all = getAllData(), P = progGet(all);
-  var choix = expressExos(muscle);
+  var choix = expressExos(muscle, expressMateriels(E || {}));
   if (!choix.length) return null;
   var exos = [];
   for (var i = 0; i < choix.length; i++) {
@@ -8865,13 +9015,16 @@ function expressGenerer(muscle, machine) {
   for (var c = 0; c < 5; c++) card.push({ t: "duree", v: 60, c: "", u: "—" });
   exos.push({
     ref: "xp_cardio", n: machine + " — 1 min fort / 1 min souple", m: "cardio",
-    mat: "Machine", v: "", g: "",
+    mat: (E && E.lieu === "salle") ? "Machine" : (E && E.lieu === "dehors") ? "Extérieur" : "Poids du corps",
+    v: "", g: "",
     note: "5 tours. Une minute à fond, une minute pour souffler sans t'arrêter.",
     repos: 60, sup: 0, series: card
   });
+  var lieuNom = "";
+  for (var L0 = 0; L0 < EXPRESS_LIEUX.length; L0++) if (EXPRESS_LIEUX[L0][0] === (E && E.lieu)) lieuNom = EXPRESS_LIEUX[L0][1];
   var S = {
     id: EXPRESS_ID, express: 1, maj: isoLocal(),
-    nom: "⚡ Express — " + progMuscle(muscle)[1], exos: exos
+    nom: "⚡ Express — " + progMuscle(muscle)[1] + (lieuNom ? " · " + lieuNom : ""), exos: exos
   };
   P.seances = P.seances.filter(function (x) { return x.id !== EXPRESS_ID; });
   P.seances.push(S);
@@ -8891,30 +9044,85 @@ function viewExpress() {
     '<div style="flex:1;min-width:0"><div class="prg-titre">⚡ Séance express</div>' +
     '<div class="prg-sous">20 minutes · 2 exercices + cardio</div></div></div>' +
     '<div style="padding:12px 13px 120px">';
-  h += '<div class="spt-card"><div class="spt-lab">1 · Quel muscle aujourd\'hui ?</div>' +
-    '<div class="spt-txt" style="margin-bottom:10px">Touche le muscle sur le corps. Tourne-le pour voir le dos.</div>' +
-    '<div class="xp-wrap">' + expressCorpsSVG(E.face, E.m) + '</div>' +
+  var i;
+
+  // 1 · Où
+  h += '<div class="spt-card"><div class="spt-lab">1 · Tu t\'entraînes où ?</div><div class="spt-pills">';
+  for (i = 0; i < EXPRESS_LIEUX.length; i++) {
+    var L = EXPRESS_LIEUX[i];
+    h += '<button class="spt-pill' + (E.lieu === L[0] ? " on" : "") + '" data-xp-lieu="' + L[0] + '">' + L[2] + ' ' + L[1] + '</button>';
+  }
+  h += '</div></div>';
+  if (!E.lieu) return h + '</div>';
+
+  // 2 · Matériel — la question ne se pose pas en salle, tout y est.
+  if (E.lieu !== "salle") {
+    h += '<div class="spt-card"><div class="spt-lab">2 · Avec du matériel ?</div><div class="spt-pills">' +
+      '<button class="spt-pill' + (E.mat === "sans" ? " on" : "") + '" data-xp-mat="sans">🚫 Sans matériel</button>' +
+      '<button class="spt-pill' + (E.mat === "avec" ? " on" : "") + '" data-xp-mat="avec">🎒 Avec matériel</button>' +
+      '</div>';
+    if (E.mat === "avec") {
+      h += '<div class="spt-pills" style="margin-top:8px">';
+      for (i = 0; i < EXPRESS_OUTILS.length; i++) {
+        var O = EXPRESS_OUTILS[i];
+        h += '<button class="spt-pill' + (E.outil === O[0] ? " on" : "") + '" data-xp-outil="' + O[0] + '">' + O[2] + ' ' + O[1] + '</button>';
+      }
+      h += '</div>';
+    }
+    h += '</div>';
+    if (!E.mat || (E.mat === "avec" && !E.outil)) return h + '</div>';
+  }
+
+  // 3 · Le muscle
+  var dispo = expressMusclesDispo(E), etape = E.lieu === "salle" ? 2 : 3;
+  h += '<div class="spt-card"><div class="spt-lab">' + etape + ' · Quel muscle aujourd\'hui ?</div>' +
+    '<div class="spt-txt" style="margin-bottom:10px">Touche le muscle sur le corps. Tourne-le pour voir le dos. ' +
+    'Les zones éteintes n\'ont pas d\'exercice avec ce que tu as sous la main.</div>' +
+    '<div class="xp-wrap">' + expressCorpsSVG(E.face, E.m, dispo) + '</div>' +
     '<div class="xp-face">' +
     '<button class="xp-fb' + (E.face === "av" ? " on" : "") + '" data-xp-face="av">Face</button>' +
     '<button class="xp-fb' + (E.face === "ar" ? " on" : "") + '" data-xp-face="ar">Dos</button>' +
     '</div>' +
     '<div class="xp-choix">' + (E.m ? "Muscle choisi : <b>" + progMuscle(E.m)[1] + "</b>" : "Aucun muscle choisi") + '</div>' +
     '</div>';
-  h += '<div class="spt-card"><div class="spt-lab">2 · Ton cardio</div><div class="spt-pills">';
-  for (var i = 0; i < EXPRESS_CARDIO.length; i++) {
-    var C = EXPRESS_CARDIO[i];
-    h += '<button class="spt-pill' + (E.cardio === C[0] ? " on" : "") + '" data-xp-cardio="' + C[0] + '">' + C[1] + ' ' + C[0] + '</button>';
+
+  // 4 · Le cardio
+  var CL = expressCardios(E.lieu);
+  h += '<div class="spt-card"><div class="spt-lab">' + (etape + 1) + ' · Ton cardio</div><div class="spt-pills">';
+  for (i = 0; i < CL.length; i++) {
+    h += '<button class="spt-pill' + (E.cardio === CL[i][0] ? " on" : "") + '" data-xp-cardio="' + CL[i][0] + '">' + CL[i][1] + ' ' + CL[i][0] + '</button>';
   }
   h += '</div><div class="spt-txt" style="margin-top:9px">1 minute forte, 1 minute souple, cinq fois.' +
     (E.cardio === "Tapis de course" ? ' Sur tapis, monte la vitesse progressivement et garde une main libre.' : '') +
     '</div></div>';
-  h += '<button id="xp-go" class="spt-go"' + (E.m ? "" : " disabled style=\"opacity:.45\"") + '>⚡ Générer ma séance</button>';
+
+  var pret = E.m && E.cardio;
+  h += '<button id="xp-go" class="spt-go"' + (pret ? "" : " disabled style=\"opacity:.45\"") + '>⚡ Générer ma séance</button>';
   h += '</div>';
   return h;
 }
 function bindExpress() {
   var b = document.getElementById("xp-back");
   if (b) b.addEventListener("click", function () { state.express = null; render(); });
+  var ls = document.querySelectorAll("[data-xp-lieu]");
+  for (var l = 0; l < ls.length; l++) ls[l].addEventListener("click", function () {
+    var E = expressEtat(); E.lieu = this.getAttribute("data-xp-lieu");
+    // Changer de lieu invalide ce qui en dépend : matériel, muscle, cardio.
+    E.mat = null; E.outil = null; E.m = null; E.cardio = null;
+    if (E.lieu === "salle") E.cardio = "Rameur";
+    state.express = E; render();
+  });
+  var ms = document.querySelectorAll("[data-xp-mat]");
+  for (var mm = 0; mm < ms.length; mm++) ms[mm].addEventListener("click", function () {
+    var E = expressEtat(); E.mat = this.getAttribute("data-xp-mat"); E.outil = null; E.m = null;
+    state.express = E; render();
+  });
+  var os = document.querySelectorAll("[data-xp-outil]");
+  for (var oo = 0; oo < os.length; oo++) os[oo].addEventListener("click", function () {
+    var E = expressEtat(); E.outil = this.getAttribute("data-xp-outil"); E.m = null;
+    state.express = E; render();
+  });
+
   var zs = document.querySelectorAll("[data-xp-m]");
   for (var i = 0; i < zs.length; i++) zs[i].addEventListener("click", function () {
     var E = expressEtat(); E.m = this.getAttribute("data-xp-m"); state.express = E; buzz(); render();
@@ -8930,8 +9138,8 @@ function bindExpress() {
   var go = document.getElementById("xp-go");
   if (go) go.addEventListener("click", function () {
     var E = expressEtat();
-    if (!E.m) return;
-    var S = expressGenerer(E.m, E.cardio);
+    if (!E.m || !E.cardio) return;
+    var S = expressGenerer(E.m, E.cardio, E);
     if (!S) { feedback("Aucun exercice pour ce muscle", "bad"); return; }
     state.express = null;
     state.progRun = EXPRESS_ID;
@@ -11191,7 +11399,43 @@ var PROSP_ISSUES=[
   {k:"recu",   n:"J'ai eu son numéro",e:"✅", poids:2},
   {k:"rdv",    n:"Bilan calé",        e:"📅", poids:3}
 ];
-function prospIssue(k){for(var i=0;i<PROSP_ISSUES.length;i++){if(PROSP_ISSUES[i].k===k)return PROSP_ISSUES[i];}return PROSP_ISSUES[0];}
+// UNE RELANCE N'A PAS LES MÊMES ISSUES QU'UNE PREMIÈRE RENCONTRE. Akli :
+// « ça me met des options qui n'ont aucun rapport, comme j'ai eu son numéro —
+// forcément, si je le relance c'est que je l'ai déjà. » Ce qui se joue dans
+// une relance, c'est : est-ce qu'il répond, est-ce que l'objectif tient
+// toujours, est-ce qu'on cale un bilan.
+var PROSP_ISSUES_RELANCE=[
+  {k:"r_muet",  n:"Pas de réponse",            e:"⏳", poids:0},
+  {k:"r_rep",   n:"A répondu",                 e:"💬", poids:1},
+  {k:"r_actu",  n:"Objectif toujours d'actu",  e:"🎯", poids:2},
+  {k:"r_bilan", n:"Bilan proposé",             e:"📋", poids:3},
+  {k:"r_cale",  n:"Bilan accepté",             e:"📅", poids:4},
+  {k:"r_stop",  n:"Plus intéressé",            e:"⚪", poids:0}
+];
+var PROSP_ISSUES_DM=[
+  {k:"parle",   n:"Message envoyé",            e:"📨", poids:0},
+  {k:"r_rep",   n:"A répondu",                 e:"💬", poids:1},
+  {k:"recu",    n:"J'ai eu son numéro",        e:"✅", poids:2},
+  {k:"r_bilan", n:"Bilan proposé",             e:"📋", poids:3},
+  {k:"rdv",     n:"Bilan calé",                e:"📅", poids:4},
+  {k:"r_stop",  n:"Plus intéressé",            e:"⚪", poids:0}
+];
+function prospIssuesDe(type){
+  if(type==="relance")return PROSP_ISSUES_RELANCE;
+  if(type==="dm")return PROSP_ISSUES_DM;
+  return PROSP_ISSUES;
+}
+function prospToutesIssues(){return PROSP_ISSUES.concat(PROSP_ISSUES_RELANCE,PROSP_ISSUES_DM);}
+function prospIssue(k){var T=prospToutesIssues();for(var i=0;i<T.length;i++){if(T[i].k===k)return T[i];}return PROSP_ISSUES[0];}
+// Où l'issue place la personne dans le pipeline. null = on ne bouge pas.
+// Les clés doivent être celles de PIPE_ETAPES : l'ancienne version écrivait
+// « discute » et « relance », qui n'existent pas — les fiches créées depuis le
+// terrain retombaient donc toutes en « Contact identifié ».
+var PROSP_ISSUE_ETAPE={
+  parle:"contact", numero:"contact", carte:"contact", recu:"qualifie", rdv:"propose",
+  r_muet:null, r_rep:"contact", r_actu:"qualifie", r_bilan:"propose", r_cale:"propose",
+  r_stop:"perdu"
+};
 function prospLire(){var o=lsGet("amcoach_prospection",{});return (o&&typeof o==="object")?o:{};}
 function prospEcrire(o){lsSet("amcoach_prospection",o);}
 function prospJour(iso){var o=prospLire();return o[iso||isoLocal()]||{};}
@@ -11221,7 +11465,8 @@ function prospJournal(type,issue,qui,cp){
 // Ce qui a été laissé cette semaine : numéros, cartes, bilans calés.
 function prospIssuesSemaine(){
   var o=prospLire(), r={}, d=new Date();
-  for(var i=0;i<PROSP_ISSUES.length;i++)r[PROSP_ISSUES[i].k]=0;
+  var TI=prospToutesIssues();
+  for(var i=0;i<TI.length;i++)r[TI[i].k]=0;
   for(var k=6;k>=0;k--){
     var x=new Date(d.getFullYear(),d.getMonth(),d.getDate()-k);
     var iso=x.getFullYear()+"-"+("0"+(x.getMonth()+1)).slice(-2)+"-"+("0"+x.getDate()).slice(-2);
@@ -11248,7 +11493,14 @@ function prospSemaine(){
   return {jours:jours, total:total, tenus:tenus, moyenne:Math.round(total/7*10)/10, objSem:obj*7};
 }
 
-function pipeLire(){var l=lsGet("amcoach_pipeline",[]);return Array.isArray(l)?l:[];}
+function pipeLire(){
+  var l=lsGet("amcoach_pipeline",[]);
+  if(!Array.isArray(l))return [];
+  // Réparation des fiches créées avec les anciennes clés d'étape.
+  var vieux={discute:"contact", relance:"qualifie", bilanfait:"bilan"};
+  for(var i=0;i<l.length;i++) if(l[i]&&vieux[l[i].etape]) l[i].etape=vieux[l[i].etape];
+  return l;
+}
 function pipeEcrire(l){lsSet("amcoach_pipeline",l);}
 function pipeEtape(k){for(var i=0;i<PIPE_ETAPES.length;i++){if(PIPE_ETAPES[i].k===k)return PIPE_ETAPES[i];}return PIPE_ETAPES[0];}
 function pipeJoursDepuis(iso){
@@ -13900,71 +14152,107 @@ function bindCoach(){
     var A=null;
     for(var i=0;i<PROSP_ACTIONS.length;i++){if(PROSP_ACTIONS[i].k===type)A=PROSP_ACTIONS[i];}
     if(!A)return;
-    var issue="parle";
+    var ISS=prospIssuesDe(type);
+    var issue=ISS[0].k, cible=null;   // cible = fiche du pipeline visée
     var ov=document.createElement("div");
     ov.style.cssText="position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center";
     function dessiner(){
       var puces='';
-      for(var j=0;j<PROSP_ISSUES.length;j++){
-        var I=PROSP_ISSUES[j], on=(I.k===issue);
+      for(var j=0;j<ISS.length;j++){
+        var I=ISS[j], on=(I.k===issue);
         puces+='<button type="button" class="pj-issue" data-k="'+I.k+'" style="padding:9px 13px;border-radius:100px;font-size:12.5px;font-weight:800;cursor:pointer;'+
           'border:1.5px solid '+(on?solid("var(--brand)"):solid("var(--line)"))+';background:'+(on?solid("var(--brand)"):"#fff")+';color:'+(on?"#fff":solid("var(--mute)"))+'">'+I.e+' '+I.n+'</button>';
       }
+      // ON RELANCE QUELQU'UN QU'ON CONNAÎT DÉJÀ : on le choisit dans le
+      // pipeline au lieu de retaper son nom, sinon on crée un doublon et la
+      // relance n'apparaît pas sur sa fiche.
+      var listeH='';
+      if(type==="relance"){
+        var L=pipeLire().filter(function(x){return x.etape!=="gagne"&&x.etape!=="perdu";});
+        L.sort(function(a,b){return (a.maj||"")<(b.maj||"")?-1:1;});
+        var chips='';
+        for(var q=0;q<L.length&&q<12;q++){
+          var pq=L[q], onq=cible&&cible.id===pq.id, E2=pipeEtat(pq);
+          chips+='<button type="button" class="pj-cible" data-id="'+pq.id+'" style="padding:9px 12px;border-radius:100px;font-size:12.5px;font-weight:800;cursor:pointer;'+
+            'border:1.5px solid '+(onq?solid("var(--brand)"):solid("var(--line)"))+';background:'+(onq?solid("var(--brand)"):"#fff")+';color:'+(onq?"#fff":solid("var(--ink)"))+'">'+
+            esc(pipeNomComplet(pq)||"Sans nom")+'<span style="opacity:.7;font-weight:700"> · '+E2.jours+' j</span></button>';
+        }
+        listeH='<div style="font-size:12px;font-weight:800;color:'+solid("var(--ink)")+';margin-top:14px">Qui relances-tu ?</div>'+
+          (chips?'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">'+chips+'</div>'
+                :'<div style="font-size:12px;color:'+solid("var(--mute)")+';margin-top:6px">Personne dans le pipeline pour l\'instant — écris son nom en dessous.</div>');
+      }
       ov.innerHTML='<div style="background:'+solid("var(--card)")+';width:100%;max-width:430px;border-radius:22px 22px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));max-height:88vh;overflow-y:auto">'+
         '<div style="font-weight:900;font-size:18px;color:'+solid("var(--ink)")+'">'+A.e+' '+A.n+'</div>'+
-        '<div style="font-size:12px;color:'+solid("var(--mute)")+';margin-top:4px;line-height:1.45">Qu\'est-ce qui s\'est passé ? C\'est ça qui compte, pas le nombre de gens croisés.</div>'+
+        '<div style="font-size:12px;color:'+solid("var(--mute)")+';margin-top:4px;line-height:1.45">'+
+        (type==="relance"?"Où en est-il ? C'est ce qui fait avancer sa fiche."
+                         :"Qu'est-ce qui s'est passé ? C'est ça qui compte, pas le nombre de gens croisés.")+'</div>'+
+        listeH+
         '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:14px">'+puces+'</div>'+
-        '<input id="pj-qui" placeholder="'+(type==="porte"?"Qui ? ex : cabinet Dr Martin":"Qui ? prénom, ou ce dont vous avez parlé")+'" style="width:100%;margin-top:12px;padding:13px 15px;border-radius:12px;border:2px solid '+solid("var(--line)")+';font-size:15px;font-weight:700"/>'+
-        '<input id="pj-cp" placeholder="Code postal et ville (facultatif)" style="width:100%;margin-top:8px;padding:12px 15px;border-radius:12px;border:2px solid '+solid("var(--line)")+';font-size:14px;font-weight:700"/>'+
+        '<input id="pj-qui" value="'+(cible?esc(pipeNomComplet(cible)):"")+'" placeholder="'+(type==="porte"?"Qui ? ex : cabinet Dr Martin":"Qui ? prénom, ou ce dont vous avez parlé")+'" style="width:100%;margin-top:12px;padding:13px 15px;border-radius:12px;border:2px solid '+solid("var(--line)")+';font-size:15px;font-weight:700"/>'+
+        '<input id="pj-cp" value="'+(cible&&cible.cp?esc(cible.cp):"")+'" placeholder="Code postal et ville (facultatif)" style="width:100%;margin-top:8px;padding:12px 15px;border-radius:12px;border:2px solid '+solid("var(--line)")+';font-size:14px;font-weight:700"/>'+
         '<button id="pj-ok" style="width:100%;margin-top:13px;padding:14px 0;border-radius:13px;border:0;background:'+solid("var(--brand)")+';color:#fff;font-weight:900;font-size:14px">Enregistrer</button>'+
         '<button id="pj-vite" style="width:100%;margin-top:8px;padding:11px 0;border-radius:13px;border:1px solid '+solid("var(--line)")+';background:#fff;color:'+solid("var(--ink2)")+';font-weight:800;font-size:13px">+1 sans détail</button>'+
         '<button id="pj-no" style="width:100%;margin-top:8px;padding:11px 0;border-radius:13px;border:1px solid '+solid("var(--line)")+';background:#fff;color:'+solid("var(--mute)")+';font-weight:800;font-size:13px">Annuler</button></div>';
+      function memo(){var q=ov.querySelector("#pj-qui"),c=ov.querySelector("#pj-cp");return [q?q.value:"",c?c.value:""];}
+      function remettre(v){var q=ov.querySelector("#pj-qui"),c=ov.querySelector("#pj-cp");if(q&&v[0])q.value=v[0];if(c&&v[1])c.value=v[1];}
       var qs=ov.querySelectorAll(".pj-issue");
-      for(var q=0;q<qs.length;q++)qs[q].addEventListener("click",function(){
-        var qui=ov.querySelector("#pj-qui"), cp=ov.querySelector("#pj-cp");
-        var vq=qui?qui.value:"", vc=cp?cp.value:"";
-        issue=this.getAttribute("data-k"); dessiner();
-        var q2=ov.querySelector("#pj-qui"), c2=ov.querySelector("#pj-cp");
-        if(q2)q2.value=vq; if(c2)c2.value=vc;
+      for(var q0=0;q0<qs.length;q0++)qs[q0].addEventListener("click",function(){
+        var v=memo(); issue=this.getAttribute("data-k"); dessiner(); remettre(v);
+      });
+      var cs=ov.querySelectorAll(".pj-cible");
+      for(var c0=0;c0<cs.length;c0++)cs[c0].addEventListener("click",function(){
+        var id=this.getAttribute("data-id");
+        cible=(cible&&cible.id===id)?null:pipeTrouver(id);
+        dessiner();
       });
       ov.querySelector("#pj-ok").addEventListener("click",function(){
         var vqui=ov.querySelector("#pj-qui").value.trim();
         var vcp=ov.querySelector("#pj-cp").value.trim();
         prospJournal(type,issue,vqui,vcp);
-        // 🔗 UN NOM = UN PROSPECT. C'était le trou du système : on notait un
-        // contact dans le journal du jour, et il n'existait nulle part
-        // ailleurs — donc ni relançable, ni convertible. Dès qu'un nom est
-        // saisi, la personne entre dans le pipeline, à l'étape qui
-        // correspond à ce qui s'est réellement passé.
-        var cree=false;
-        if(vqui){
-          var L=pipeLire(), deja=null;
-          for(var q=0;q<L.length;q++) if((L[q].nom||"").toLowerCase()===vqui.toLowerCase()) deja=L[q];
-          // Quelle étape ? Ce qu'on a obtenu le dit mieux qu'un menu.
-          var et=(issue==="bilan")?"propose":(issue==="num"||issue==="carte")?"relance":"discute";
+        // 🔗 UN NOM = UN PROSPECT. Un contact noté nulle part ailleurs n'est
+        // ni relançable, ni convertible.
+        var cree=false, P0=cible;
+        if(!P0&&vqui){
+          var L2=pipeLire();
+          for(var w=0;w<L2.length;w++) if((pipeNomComplet(L2[w])||"").toLowerCase()===vqui.toLowerCase()) P0=L2[w];
+        }
+        if(P0||vqui){
+          var L=pipeLire();
+          var et=PROSP_ISSUE_ETAPE[issue]||null;
           var srcMap={salle:"salle",dm:"insta",relance:"reseau",porte:"porte"};
-          if(deja){
-            // On ne rétrograde jamais quelqu'un qui a déjà avancé.
-            var ordre=["contact","discute","relance","propose","gagne"];
-            if(ordre.indexOf(et)>ordre.indexOf(deja.etape||"contact")){deja.etape=et;deja.maj=isoLocal();deja.relances=0;}
-            if(vcp&&!deja.cp)deja.cp=vcp;
-            for(var w=0;w<L.length;w++) if(L[w].id===deja.id) L[w]=deja;
+          if(P0){
+            var ordre=["contact","qualifie","propose","bilan","gagne"];
+            // On ne rétrograde jamais quelqu'un qui a déjà avancé — sauf
+            // « plus intéressé », qui sort le dossier.
+            if(et==="perdu"){P0.avant=P0.etape;P0.etape="perdu";P0.maj=isoLocal();
+              P0.note=((P0.note||"")+" · Relance : plus intéressé ("+isoLocal()+")").trim();}
+            else if(et&&ordre.indexOf(et)>ordre.indexOf(P0.etape||"contact")){P0.etape=et;P0.maj=isoLocal();P0.relances=0;}
+            if(type==="relance"){
+              P0.relances=(P0.relances||0)+1;
+              P0.relanceDates=(P0.relanceDates||[]).concat([isoLocal()]);
+              P0.maj=isoLocal();
+            }
+            if(vcp&&!P0.cp)P0.cp=vcp;
+            if(vqui&&!pipeNomComplet(P0))P0.nom=vqui;
+            for(var x=0;x<L.length;x++) if(L[x].id===P0.id) L[x]=P0;
           }else{
-            L.unshift({id:"p"+Date.now().toString(36),nom:vqui,cp:vcp,etape:et,
-              maj:isoLocal(),cree:isoLocal(),relances:0,relanceDates:[],douleurs:[],
+            L.unshift({id:"p"+Date.now().toString(36),nom:vqui,cp:vcp,etape:et==="perdu"?"perdu":(et||"contact"),
+              maj:isoLocal(),cree:isoLocal(),relances:type==="relance"?1:0,
+              relanceDates:type==="relance"?[isoLocal()]:[],douleurs:[],
               source:srcMap[type]||null,note:"",bilans:[]});
             cree=true;
           }
           pipeEcrire(L);
         }
+        var nomAff=P0?pipeNomComplet(P0):vqui;
         fermer(); render();
-        feedback(vqui
-          ? (cree?"✅ "+vqui+" ajouté au pipeline · "+prospIssue(issue).n
-                : "↗️ "+vqui+" mis à jour dans le pipeline")
+        feedback(nomAff
+          ? (cree?"✅ "+nomAff+" ajouté · "+prospIssue(issue).n
+                : "↗️ "+nomAff+" · "+prospIssue(issue).n)
           : prospIssue(issue).e+" "+prospIssue(issue).n, "ok");
       });
       ov.querySelector("#pj-vite").addEventListener("click",function(){
-        prospJournal(type,"parle","","");
+        prospJournal(type,ISS[0].k,"","");
         fermer(); render(); feedback("+1 "+A.n.toLowerCase()+" · complétable plus tard","ok");
       });
       ov.querySelector("#pj-no").addEventListener("click",fermer);

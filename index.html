@@ -711,7 +711,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="29/08 · Express lieu & relances";
+var APP_VERSION="29/08 · Programme rétabli";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -8549,6 +8549,13 @@ function prog3Sync(sx) {
 function prog3Sexe(all) {
   var P = progGet(all);
   if (P.sexe === "h" || P.sexe === "f") return P.sexe;
+  // LE THÈME CHOISI PAR LE COACH FAIT FOI quand le sexe n'a pas été posé
+  // ailleurs. Sans ça, une cliente en thème rose voyait la photo d'un homme
+  // et surtout PLUS AUCUN programme : tout le socle est conditionné au sexe,
+  // et un sexe inconnu effaçait la séance du jour, les trois mois et les
+  // séances bonus d'un coup. (Cas de Leila, 29/08.)
+  var t = (all && all[514] && all[514].theme) || null;
+  if (t === "h" || t === "f") return t;
   try { var n = nutCfg(all); if (n && n.sexe) return String(n.sexe).toLowerCase() === "f" ? "f" : "h"; } catch (e) { }
   return null;
 }
@@ -8596,6 +8603,27 @@ function progCartesHTML(all) {
   var court = false;
   try { court = progLen(lsGetStr("amcoach_start_" + CLIENT)) <= 14; } catch (e) { }
   if (court) sexe = null;
+
+  // ═══ ⚡ LA SÉANCE EXPRESS, EN PREMIER ═══
+  // Ordre voulu par Akli : l'express en tête (c'est le jour où on n'a envie de
+  // rien qu'on ouvre l'appli), puis la séance du jour du programme, puis les
+  // trois mois, puis les bonus.
+  var XP = null;
+  for (var xi = 0; xi < P.seances.length; xi++) if (P.seances[xi].id === EXPRESS_ID) XP = P.seances[xi];
+  h += '<div class="spt-card"><div class="spt-lab">⚡ Séance express</div>' +
+    '<div class="spt-txt" style="margin-bottom:12px">Pas envie, mais quand même envie. 20 minutes : ' +
+    'deux exercices sur le muscle de ton choix, puis 1 min fort / 1 min souple × 5.</div>' +
+    (XP ? '<button class="p3-sea" data-prg-run="' + EXPRESS_ID + '" style="border-color:var(--brand)66;margin-bottom:10px">' +
+      '<span class="p3-sea-n">' + esc(XP.nom) + '</span><span class="p3-sea-x">reprendre ›</span></button>' : '') +
+    '<button id="spt-express" class="spt-go">⚡ Générer une séance express</button></div>';
+
+  // Sexe inconnu = pas de socle possible. On le DIT au lieu de laisser un vide
+  // que personne ne sait interpréter.
+  if (!sexe && !court) {
+    h += '<div class="spt-card"><div class="spt-lab">🗓️ Mon programme</div>' +
+      '<div class="spt-txt">Ton programme des trois mois arrive — ton coach doit encore choisir ' +
+      'la version homme ou femme. En attendant, la séance express et les minuteurs sont à toi.</div></div>';
+  }
 
   // ═══ 🚀 LA SÉANCE DU JOUR ═══
   // Akli veut qu'on ouvre l'appli et qu'on sache quoi faire, sans chercher.
@@ -8692,14 +8720,6 @@ function progCartesHTML(all) {
   // deux sexes : l'indexer par sexe faisait planter tout l'onglet Sport.
   if (C) ["m1", "m2", "m3"].forEach(function (m) { if (C[m]) socleIds = socleIds.concat(C[m].sea || []); });
   var bonus = P.seances.filter(function (S) { return socleIds.indexOf(S.id) < 0 && S.id !== EXPRESS_ID; });
-  var XP = null;
-  for (var xi = 0; xi < P.seances.length; xi++) if (P.seances[xi].id === EXPRESS_ID) XP = P.seances[xi];
-  h += '<div class="spt-card"><div class="spt-lab">⚡ Séance express</div>' +
-    '<div class="spt-txt" style="margin-bottom:12px">Pas envie, mais quand même envie. 20 minutes : ' +
-    'deux exercices sur le muscle de ton choix, puis 1 min fort / 1 min souple × 5.</div>' +
-    (XP ? '<button class="p3-sea" data-prg-run="' + EXPRESS_ID + '" style="border-color:var(--brand)66;margin-bottom:10px">' +
-      '<span class="p3-sea-n">' + esc(XP.nom) + '</span><span class="p3-sea-x">reprendre ›</span></button>' : '') +
-    '<button id="spt-express" class="spt-go">⚡ Générer une séance express</button></div>';
   if (bonus.length) {
     h += '<div class="spt-card"><div class="spt-lab">🎁 Mes séances bonus</div><div class="prg-cartes">';
     for (var b = 0; b < bonus.length; b++) {

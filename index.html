@@ -711,7 +711,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="29/08 · Programme rétabli";
+var APP_VERSION="29/08 · Sexe = thème";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -8557,6 +8557,12 @@ function prog3Sexe(all) {
   var t = (all && all[514] && all[514].theme) || null;
   if (t === "h" || t === "f") return t;
   try { var n = nutCfg(all); if (n && n.sexe) return String(n.sexe).toLowerCase() === "f" ? "f" : "h"; } catch (e) { }
+  // DERNIER RECOURS : la même règle que la couleur de l'appli. Le compte de
+  // Leila n'avait NI sexe NI thème enregistré — l'appli s'affichait en rose
+  // (le défaut de clientTheme) pendant que le programme, lui, retombait sur
+  // la photo d'homme et n'affichait plus rien. Deux règles pour une seule
+  // question, donc deux réponses différentes. Une seule règle désormais.
+  try { return clientTheme(all); } catch (e) { }
   return null;
 }
 // Les marches se comptent PAR SEMAINE de programme : c'est l'unité qu'Akli
@@ -10616,7 +10622,10 @@ function viewCoachDetail(){
       '<button class="cd-th" data-t="h" style="flex:1;padding:11px 4px;border-radius:12px;border:2px solid '+(th==="h"?"#12B5EA":"var(--line)")+';background:'+(th==="h"?"linear-gradient(135deg,#12B5EA,#8A3FFF)":"#fff")+';font-weight:800;font-size:12px;color:'+(th==="h"?"#fff":"var(--mute)")+'">👨 Homme · bleu</button>'+
       '<button class="cd-th" data-t="f" style="flex:1;padding:11px 4px;border-radius:12px;border:2px solid '+(th==="f"?"#EC4899":"var(--line)")+';background:'+(th==="f"?"linear-gradient(135deg,#EC4899,#A855F7)":"#fff")+';font-weight:800;font-size:12px;color:'+(th==="f"?"#fff":"var(--mute)")+'">👩 Femme · rose</button>'+
       '</div>'+
-      '<div style="font-size:10.5px;color:var(--mute);margin-top:8px;line-height:1.5">Par défaut selon le sexe du client. Change-le si la personne préfère l\'autre palette.</div>'+
+      '<div style="font-size:10.5px;color:var(--mute);margin-top:8px;line-height:1.5">'+
+      ((allData&&allData[514]&&allData[514].theme)
+        ? 'Enregistré. Il commande la couleur de son appli ET son programme (photo, séances, marches).'
+        : '⚠️ Rien d\'enregistré : c\'est le rose qui s\'applique par défaut. Touche un des deux boutons pour fixer son programme.')+'</div>'+
       '</div>';
   })();
 

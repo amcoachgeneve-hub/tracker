@@ -80,6 +80,45 @@ input,textarea,select{outline:none}
 .admin-ta{width:100%;padding:12px 14px;border-radius:10px;border:1.5px solid #E0E0E0;font-size:14px;background:#fff;min-height:80px;resize:vertical;line-height:1.5}
 .big-btn{width:100%;padding:17px 0;border-radius:14px;background:#D52B1E;color:#fff;font-weight:900;font-size:15px;letter-spacing:1.5px;text-transform:uppercase;box-shadow:0 4px 18px rgba(213,43,30,.27)}
 .big-btn.gray{background:#444;box-shadow:none}
+
+/* 🧊 Mon frigo */
+.fr-intro{background:#F6F7F9;border-radius:14px;padding:13px 14px;font-size:12.5px;color:#444;line-height:1.7;margin-bottom:14px}
+.fr-lab{font-weight:900;font-size:11px;color:#AAA;letter-spacing:1px;text-transform:uppercase;margin:14px 0 7px}
+.fr-txt{width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid #E0E0E0;font-size:15px;background:#fff;
+  font-family:inherit;line-height:1.6;resize:vertical}
+.fr-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.fr-chip{padding:7px 11px;border-radius:20px;border:1.5px solid #E0E0E0;background:#fff;color:#555;font-weight:700;font-size:12px}
+.fr-meal{flex:1;padding:11px 0;border-radius:11px;border:1.5px solid #E0E0E0;background:#fff;color:#888;font-weight:800;font-size:13px}
+.fr-meal.on{background:#1A1A1A;color:#fff;border-color:#1A1A1A}
+.fr-regle{margin-top:10px;padding:8px 12px;border-radius:20px;color:#fff;font-weight:800;font-size:11.5px;
+  letter-spacing:.6px;text-transform:uppercase;display:inline-block}
+.fr-go{width:100%;margin-top:16px;padding:16px 0;border-radius:14px;border:0;background:#D52B1E;color:#fff;
+  font-weight:900;font-size:14.5px;letter-spacing:1px;text-transform:uppercase;box-shadow:0 4px 18px rgba(213,43,30,.27)}
+.fr-card{margin-top:18px;background:#fff;border:1.5px solid #EEE;border-radius:16px;padding:16px 15px;
+  box-shadow:0 3px 16px rgba(0,0,0,.06)}
+.fr-titre{font-weight:900;font-size:18px;color:#1A1A1A;line-height:1.3}
+.fr-temps{font-size:12px;color:#888;font-weight:700;margin-top:4px}
+.fr-manque{margin-top:11px;background:#FFF6E5;border:1.5px solid #F0C67A;border-radius:12px;padding:11px 12px;
+  font-size:12.5px;color:#8A5B00;line-height:1.6;font-weight:700}
+.fr-note{margin-top:9px;font-size:12px;color:#777;line-height:1.6;background:#F6F7F9;border-radius:11px;padding:10px 12px}
+.fr-sec{font-weight:900;font-size:11px;color:#AAA;letter-spacing:1px;text-transform:uppercase;margin:16px 0 7px}
+.fr-ul,.fr-ol{margin:0;padding-left:20px;font-size:13.5px;color:#333;line-height:1.9}
+.fr-ol li{margin-bottom:8px}
+.fr-autre{width:100%;margin-top:16px;padding:13px 0;border-radius:12px;border:1.5px solid #E0E0E0;background:#fff;
+  color:#555;font-weight:800;font-size:13px}
+.meal-frigo{width:100%;margin-top:12px;padding:12px 0;border-radius:12px;border:1.5px dashed #CFCFCF;background:#FAFAFA;
+  color:#555;font-weight:800;font-size:13px}
+
+/* 🔌 Interrupteurs de l'écran admin */
+.cfg-box{background:#F6F7F9;border-radius:14px;padding:14px 15px;margin-bottom:18px}
+.cfg-l{display:flex;align-items:center;gap:12px}
+.cfg-t{font-weight:900;font-size:14px;color:#1A1A1A}
+.cfg-s{font-size:11.5px;color:#777;line-height:1.6;margin-top:3px}
+.cfg-sw{flex:0 0 52px;height:30px;border-radius:99px;border:0;background:#CFCFCF;position:relative;transition:background .2s}
+.cfg-sw.on{background:#2E7D32}
+.cfg-sw span{position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:left .2s}
+.cfg-sw.on span{left:25px}
+.cfg-msg{font-size:11.5px;color:#666;font-weight:700;margin-top:10px;min-height:14px}
 .sync-note{text-align:center;font-size:12px;font-weight:700;margin-top:10px;min-height:16px}
 
 /* 🍽️ Les assiettes de référence, en tête de l'onglet Aliments. */
@@ -195,6 +234,7 @@ var state={
   selDay:0,
   adminAuthed:false,
   recipes:{},        // {"equilibre|3|dej":{title,video,prep,ingredients,steps}}
+  frTxt:"", frMeal:"dej", frRes:null, frTri:null, frVar:0,   // 🧊 mon frigo
   loaded:false,
   saveMsg:""
 };
@@ -290,6 +330,310 @@ function ytEmbed(url){
 <script>
 "use strict";
 
+// ═══════════════════════════════════════════════════════════════
+// ⚙️ RÉGLAGE — les recettes sont-elles visibles ?
+// ───────────────────────────────────────────────────────────────
+// Tant qu'Akli n'a pas écrit ses recettes, afficher « Recette à
+// venir 🔜 » sur les 90 repas donne l'impression d'un menu vide.
+// L'interrupteur vit dans la table tracking, sur un faux client
+// « _reglages » : aucune table à créer, et le réglage voyage
+// jusqu'au téléphone de chaque cliente.
+// ═══════════════════════════════════════════════════════════════
+var CFG_SLUG = "_reglages", CFG_SLOT = 900;
+var cfgMenu = { recettes: false, frigo: true, charge: false };
+
+function cfgCharger(cb) {
+  try {
+    var loc = lsGetStr("amcoach_menucfg");
+    if (loc) { var o = JSON.parse(loc); cfgMenu.recettes = !!o.recettes; cfgMenu.frigo = o.frigo !== false; }
+  } catch (e) { }
+  sbFetch("tracking?client_slug=eq." + CFG_SLUG + "&day_index=eq." + CFG_SLOT + "&select=data")
+    .then(function (r) { return r.json(); })
+    .then(function (rows) {
+      if (rows && rows.length && rows[0].data) {
+        cfgMenu.recettes = !!rows[0].data.recettes;
+        cfgMenu.frigo = rows[0].data.frigo !== false;
+        lsSetStr("amcoach_menucfg", JSON.stringify(cfgMenu));
+      }
+      cfgMenu.charge = true;
+      if (cb) cb();
+    })
+    .catch(function () { cfgMenu.charge = true; if (cb) cb(); });
+}
+
+function cfgEnregistrer(cb) {
+  lsSetStr("amcoach_menucfg", JSON.stringify(cfgMenu));
+  sbFetch("tracking?on_conflict=client_slug,day_index", {
+    method: "POST", prefer: "resolution=merge-duplicates",
+    body: { client_slug: CFG_SLUG, day_index: CFG_SLOT, data: { recettes: cfgMenu.recettes, frigo: cfgMenu.frigo }, updated_at: new Date().toISOString() }
+  }).then(function (r) { if (cb) cb(r.ok); }).catch(function () { if (cb) cb(false); });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 🧊 MON FRIGO — une recette avec ce qu'il reste
+// ───────────────────────────────────────────────────────────────
+// Pas d'intelligence artificielle et pas de connexion : la recette
+// est construite ici, à partir des listes d'aliments déjà validées
+// par Akli. On classe ce que la cliente tape dans les trois cases
+// de l'assiette (protéines, glucides, fibres), on vérifie que ça
+// respecte la règle du repas du jour, puis on assemble une méthode
+// de cuisson adaptée à la famille de l'aliment. Le résultat est
+// toujours cohérent avec la Méthode Balance-360.
+// ═══════════════════════════════════════════════════════════════
+
+function frNorm(s) {
+  return String(s || "").toLowerCase()
+    .replace(/\u0153/g, "oe").replace(/\u00e6/g, "ae")   // œuf → oeuf, sinon le mot disparaît
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+}
+// Deux mots se correspondent si l'un contient l'autre, au pluriel près.
+function frMotEgal(a, b) {
+  if (!a || !b || a.length < 3 || b.length < 3) return false;
+  a = a.replace(/s$/, ""); b = b.replace(/s$/, "");
+  return a === b || a.indexOf(b) === 0 || b.indexOf(a) === 0;
+}
+// Deux passes volontaires. STRICT : le mot tapé correspond au PREMIER mot
+// de l'entrée — « riz » trouve « Riz », pas « Protéine de pois / riz (poudre) ».
+// LARGE : n'importe quel mot de l'entrée, utilisé seulement si la passe
+// stricte n'a rien donné dans aucune liste.
+function frDansListe(saisie, liste, strict) {
+  var mots = frNorm(saisie).split(" ");
+  for (var i = 0; i < liste.length; i++) {
+    var ref = frNorm(liste[i]).split(" ").filter(function (w) { return w.length >= 3; });
+    if (!ref.length) continue;
+    var cibles = strict ? [ref[0]] : ref;
+    for (var j = 0; j < cibles.length; j++)
+      for (var k = 0; k < mots.length; k++) if (frMotEgal(mots[k], cibles[j])) return liste[i];
+  }
+  return null;
+}
+
+var FR_AROMATES = ["ail", "oignon", "échalote", "citron", "citron vert", "persil", "coriandre", "basilic",
+  "thym", "romarin", "laurier", "curry", "curcuma", "paprika", "cumin", "piment", "gingembre",
+  "moutarde", "vinaigre", "huile d'olive", "huile de coco", "sel", "poivre", "herbes de Provence",
+  "sauce soja", "bouillon", "crème de coco", "olives", "câpres"];
+
+// Familles de cuisson : c'est ce qui rend la recette réaliste.
+var FR_CUISSON = [
+  { k: "poisson", mots: ["cabillaud", "saumon", "truite", "thon", "maquereau", "haddock", "sardine", "morue", "poisson", "seiche", "poulpe", "calamar"], v: "poisson" },
+  { k: "fruitsmer", mots: ["crevette", "moule", "saint jacques", "st jacques", "petoncle", "langoustine", "crabe", "homard", "langouste", "crustace"], v: "fruits de mer" },
+  { k: "oeuf", mots: ["oeuf", "blanc d oeuf"], v: "œufs" },
+  { k: "hache", mots: ["hache", "boulette", "steak hache"], v: "viande hachée" },
+  { k: "vegetal", mots: ["tofu", "tempeh", "soja", "edamame", "proteine de pois", "filet vegetarien"], v: "protéine végétale" },
+  { k: "volaille", mots: ["poulet", "dinde", "pintade", "lapin", "canard", "magret", "pigeon", "faisan", "perdreau"], v: "volaille" },
+  { k: "viande", mots: ["boeuf", "veau", "porc", "agneau", "cheval", "rumsteak", "tournedos", "roastbeef", "filet mignon", "hampe", "rouelle", "foie", "marcassin", "chevreuil"], v: "viande" }
+];
+function frFamille(nom) {
+  var n = frNorm(nom);
+  for (var i = 0; i < FR_CUISSON.length; i++)
+    for (var j = 0; j < FR_CUISSON[i].mots.length; j++)
+      if (n.indexOf(FR_CUISSON[i].mots[j]) >= 0) return FR_CUISSON[i];
+  return { k: "viande", v: "protéine" };
+}
+
+var FR_FEUILLES = ["epinard", "salade", "roquette", "mache", "laitue", "cresson", "kale", "blette", "pousse", "endive", "chicorée", "chou chinois", "pak choi"];
+function frFeuille(nom) {
+  var n = frNorm(nom);
+  for (var i = 0; i < FR_FEUILLES.length; i++) if (n.indexOf(frNorm(FR_FEUILLES[i])) >= 0) return true;
+  return false;
+}
+var FR_CRUS = ["concombre", "tomate", "radis", "avocat", "poivron", "cornichon", "capre", "olive"];
+function frCru(nom) {
+  var n = frNorm(nom);
+  for (var i = 0; i < FR_CRUS.length; i++) if (n.indexOf(FR_CRUS[i]) >= 0) return true;
+  return false;
+}
+
+// ─── Le tri de ce que la cliente a tapé ───
+function frTrier(txt) {
+  var brut = String(txt || "").split(/[\n,;]+/).map(function (s) { return s.trim(); }).filter(function (s) { return s.length > 1; });
+  var res = { P: [], G: [], F: [], A: [], inconnus: [], interdits: [] };
+  var vus = {};
+  for (var i = 0; i < brut.length; i++) {
+    var m = brut[i];
+    var cle = frNorm(m);
+    if (!cle || vus[cle]) continue;
+    vus[cle] = 1;
+    var range = false;
+    for (var pas = 0; pas < 2 && !range; pas++) {
+      var st = (pas === 0);
+      // Les aromates d'abord : l'ail est dans la liste des fibres, mais
+      // personne ne fait une assiette de fibres avec une gousse d'ail.
+      if (frDansListe(m, FR_AROMATES, st)) { res.A.push(m); range = true; }
+      else if (frDansListe(m, PROTEINES, st) || frDansListe(m, PROTEINES_RETOUR, st)) { res.P.push(m); range = true; }
+      else if (frDansListe(m, FIBRES, st)) { res.F.push(m); range = true; }
+      else if (frDansListe(m, GLUCIDES_RA, st) || frDansListe(m, GLUCIDES_GB_OK, st) || frDansListe(m, GLUCIDES_RETOUR, st)) { res.G.push(m); range = true; }
+    }
+    if (!range) res.inconnus.push(m);
+  }
+  return res;
+}
+
+// La règle du repas, telle qu'elle s'affiche déjà dans le menu du jour.
+function frRegle(mealId) {
+  var dayTag = MENU === "cyclage" ? cyclageTag(state.selDay) : null;
+  var r = mealRule(MENU, mealId, dayTag);
+  var parts = r.txt.split("+").map(function (s) { return s.trim(); });
+  return { txt: r.txt, color: r.color, glucides: parts.indexOf("G") >= 0 || parts.indexOf("GB") >= 0, bas: parts.indexOf("GB") >= 0, tag: dayTag };
+}
+
+// ─── La recette ───
+function frRecette(tri, mealId, variante) {
+  var R = frRegle(mealId);
+  var P = tri.P[0] || null, F = tri.F.slice(0, 3), G = R.glucides ? (tri.G[0] || null) : null;
+  var manque = [];
+  if (!P) manque.push("une protéine");
+  if (!F.length) manque.push("des fibres (un légume)");
+  if (R.glucides && !G) manque.push(R.bas ? "un glucide bas" : "un glucide");
+
+  var fam = P ? frFamille(P) : null;
+  var styles = ["poêlée", "papillote", "salade tiède"];
+  if (fam && (fam.k === "oeuf")) styles = ["omelette", "brouillés", "œufs plat & poêlée"];
+  var style = styles[(variante || 0) % styles.length];
+
+  // Titre
+  var titre;
+  var legTxt = F.length ? F.slice(0, 2).join(" et ").toLowerCase() : "légumes";
+  if (!P) titre = "Poêlée de " + legTxt;
+  else if (style === "papillote") titre = "Papillote de " + P.toLowerCase() + ", " + legTxt;
+  else if (style === "salade tiède") titre = "Salade tiède de " + P.toLowerCase() + " et " + legTxt;
+  else if (style === "omelette") titre = "Omelette " + legTxt;
+  else if (style === "brouillés") titre = "Œufs brouillés, " + legTxt;
+  else titre = "Poêlée de " + P.toLowerCase() + ", " + legTxt;
+  if (G) titre += " et " + G.toLowerCase();
+
+  // Ingrédients avec des portions qui tiennent debout
+  var ing = [];
+  if (P) ing.push(P + " — " + (fam.k === "oeuf" ? "3 œufs" : "150 à 180 g"));
+  for (var i = 0; i < F.length; i++) ing.push(F[i] + " — " + (frFeuille(F[i]) ? "2 belles poignées" : "150 g"));
+  if (G) ing.push(G + " — " + (R.bas ? "80 g cuits" : "120 g cuits"));
+  for (var a = 0; a < tri.A.length && a < 5; a++) ing.push(tri.A[a]);
+  if (!tri.A.length) ing.push("Ail, sel, poivre, 1 c. à s. d'huile d'olive");
+
+  // Étapes, dans l'ordre réel de la cuisine
+  var et = [];
+  if (G) et.push("Mets " + G.toLowerCase() + " à cuire en premier : c'est ce qui prend le plus de temps. Compte 10 à 15 min selon l'aliment, et sale l'eau.");
+
+  var durs = F.filter(function (x) { return !frFeuille(x) && !frCru(x); });
+  var feuilles = F.filter(function (x) { return frFeuille(x); });
+  var crus = F.filter(function (x) { return frCru(x); });
+  if (durs.length) et.push("Coupe " + durs.join(" et ").toLowerCase() + " en morceaux réguliers. Fais revenir 8 à 10 min à feu moyen dans un filet d'huile, à couvert, en remuant de temps en temps.");
+
+  if (P) {
+    if (style === "papillote") {
+      et.push("Préchauffe le four à 200 °C. Pose " + P.toLowerCase() + " sur une feuille de papier cuisson, ajoute les aromates et un filet d'huile, referme hermétiquement.");
+      et.push("Enfourne 15 à 18 min. La chair doit se détacher toute seule.");
+    } else if (fam.k === "poisson") {
+      et.push("Poêle bien chaude, un filet d'huile : saisis " + P.toLowerCase() + " 3 à 4 min de chaque côté. Ne le retourne qu'une fois.");
+    } else if (fam.k === "fruitsmer") {
+      et.push("Feu vif, 2 à 3 min pour " + P.toLowerCase() + " — dès que la chair devient opaque, c'est prêt. Au-delà, ça devient caoutchouteux.");
+    } else if (fam.k === "oeuf") {
+      et.push(style === "brouillés"
+        ? "Bats les œufs, verse-les à feu doux et remue sans arrêt jusqu'à la texture crémeuse — 3 à 4 min."
+        : "Bats les œufs, verse-les sur les légumes chauds, couvre et laisse prendre 5 à 6 min à feu doux.");
+    } else if (fam.k === "hache") {
+      et.push("Émiette " + P.toLowerCase() + " dans la poêle chaude et laisse colorer 5 à 6 min sans remuer tout le temps : c'est la coloration qui donne le goût.");
+    } else if (fam.k === "vegetal") {
+      et.push("Coupe " + P.toLowerCase() + " en cubes et fais-le dorer 5 à 6 min sur toutes les faces. Sale en fin de cuisson.");
+    } else if (fam.k === "volaille") {
+      et.push("Coupe " + P.toLowerCase() + " en morceaux et fais-le saisir 6 à 8 min à feu moyen-vif, jusqu'à ce qu'il soit doré et cuit à cœur.");
+    } else {
+      et.push("Saisis " + P.toLowerCase() + " 2 à 3 min par face à feu vif, puis laisse reposer 3 min avant de trancher : la viande reste tendre.");
+    }
+  }
+  if (feuilles.length) et.push("Ajoute " + feuilles.join(" et ").toLowerCase() + " à la toute fin, hors du feu : le temps de fondre, sans cuire.");
+  if (crus.length) et.push("Ajoute " + crus.join(" et ").toLowerCase() + " cru" + (crus.length > 1 ? "s" : "") + " au moment de servir.");
+  if (tri.A.length) et.push("Assaisonne avec " + tri.A.join(", ").toLowerCase() + ". Goûte avant de resaler.");
+
+  et.push(R.glucides
+    ? "Dans l'assiette : " + (R.bas ? "1/3 glucides bas" : "1/3 glucides") + " · 1/3 protéines · 1/3 fibres."
+    : "Dans l'assiette : 1/2 protéines · 1/2 fibres. Pas de glucides à ce repas.");
+
+  var temps = 10 + (G ? 12 : 0) + (durs.length ? 8 : 0) + (style === "papillote" ? 8 : 4);
+  return { titre: titre, ing: ing, etapes: et, temps: temps, regle: R, manque: manque, style: style };
+}
+
+// ─── L'écran ───
+var FR_SUGG = ["Poulet (blanc)", "Œufs", "Cabillaud", "Steak haché 5%", "Tofu", "Crevettes",
+  "Courgette", "Brocoli", "Épinards", "Champignons", "Haricots verts", "Poivrons",
+  "Salade", "Tomates", "Avocat", "Riz", "Quinoa", "Patate douce", "Lentilles", "Pois chiches"];
+
+function viewFrigo() {
+  var meal = state.frMeal || "dej";
+  var R = frRegle(meal);
+  var h = '<div style="padding:0 14px 26px">' +
+    '<div class="fr-intro"><b>🧊 Mon frigo</b><br>Écris ce qu\'il te reste — un aliment par ligne ou séparés par des virgules. ' +
+    'Je te compose une recette avec ça, en respectant ton assiette du moment.</div>' +
+
+    '<div class="fr-lab">Ce repas</div>' +
+    '<div class="fr-chips">' +
+    '<button class="fr-meal' + (meal === "dej" ? " on" : "") + '" data-fr-meal="dej">☀️ Déjeuner</button>' +
+    '<button class="fr-meal' + (meal === "diner" ? " on" : "") + '" data-fr-meal="diner">🌙 Dîner</button>' +
+    '</div>' +
+    '<div class="fr-regle" style="background:' + R.color + '">Règle du jour : ' + R.txt + (R.tag ? ' · jour ' + R.tag : '') + '</div>' +
+
+    '<div class="fr-lab">Dans mon frigo</div>' +
+    '<textarea id="fr-txt" class="fr-txt" rows="5" placeholder="poulet&#10;courgette&#10;ail, citron">' + esc(state.frTxt || "") + '</textarea>' +
+    '<div class="fr-chips">';
+  for (var i = 0; i < FR_SUGG.length; i++) h += '<button class="fr-chip" data-fr-add="' + esc(FR_SUGG[i]) + '">+ ' + esc(FR_SUGG[i]) + '</button>';
+  h += '</div>' +
+    '<button id="fr-go" class="fr-go">🍳 Générer ma recette</button>';
+
+  if (state.frRes) {
+    var Rc = state.frRes;
+    h += '<div class="fr-card">' +
+      '<div class="fr-titre">' + esc(Rc.titre) + '</div>' +
+      '<div class="fr-temps">⏱️ environ ' + Rc.temps + ' min · ' + esc(Rc.style) + '</div>';
+    if (Rc.manque.length)
+      h += '<div class="fr-manque">Il te manque ' + Rc.manque.join(" et ") + ' pour une assiette complète. La recette tient debout sans, elle est juste incomplète.</div>';
+    if (state.frTri && state.frTri.inconnus.length)
+      h += '<div class="fr-note">Pas reconnu : ' + esc(state.frTri.inconnus.join(", ")) + '. Soit c\'est écrit autrement dans mes listes, soit ce n\'est pas dans la méthode — vérifie l\'onglet Aliments.</div>';
+    if (!Rc.regle.glucides && state.frTri && state.frTri.G.length)
+      h += '<div class="fr-note">Tu as ' + esc(state.frTri.G.join(", ")) + ' — c\'est un glucide, on le garde pour un repas qui en autorise. Il n\'est pas dans la recette.</div>';
+    h += '<div class="fr-sec">🛒 Ingrédients</div><ul class="fr-ul">';
+    for (var g = 0; g < Rc.ing.length; g++) h += '<li>' + esc(Rc.ing[g]) + '</li>';
+    h += '</ul><div class="fr-sec">👨‍🍳 Préparation</div><ol class="fr-ol">';
+    for (var s = 0; s < Rc.etapes.length; s++) h += '<li>' + esc(Rc.etapes[s]) + '</li>';
+    h += '</ol><button id="fr-autre" class="fr-autre">🔄 Une autre idée avec les mêmes ingrédients</button></div>';
+  }
+  return h + '</div>';
+}
+
+function bindFrigo() {
+  var ta = document.getElementById("fr-txt");
+  if (ta) ta.addEventListener("input", function () { state.frTxt = this.value; });
+
+  var meals = document.querySelectorAll("[data-fr-meal]");
+  for (var m = 0; m < meals.length; m++) meals[m].addEventListener("click", function () {
+    state.frMeal = this.getAttribute("data-fr-meal");
+    if (state.frRes) frGenerer(0);
+    render();
+  });
+
+  var chips = document.querySelectorAll("[data-fr-add]");
+  for (var c = 0; c < chips.length; c++) chips[c].addEventListener("click", function () {
+    var v = this.getAttribute("data-fr-add");
+    var t = state.frTxt || "";
+    if (frNorm(t).indexOf(frNorm(v)) < 0) state.frTxt = (t ? t.replace(/\s*$/, "") + "\n" : "") + v;
+    render();
+  });
+
+  var go = document.getElementById("fr-go");
+  if (go) go.addEventListener("click", function () {
+    if (!(state.frTxt || "").trim()) { alert("Écris d'abord ce qu'il te reste dans le frigo."); return; }
+    frGenerer(0); render();
+  });
+  var autre = document.getElementById("fr-autre");
+  if (autre) autre.addEventListener("click", function () { frGenerer((state.frVar || 0) + 1); render(); });
+}
+
+function frGenerer(variante) {
+  state.frVar = variante || 0;
+  state.frTri = frTrier(state.frTxt || "");
+  state.frRes = frRecette(state.frTri, state.frMeal || "dej", state.frVar);
+}
+
 // ═══════════ RENDER ═══════════
 function render(){
   var root=document.getElementById("root");
@@ -311,6 +655,7 @@ function render(){
     }
     var hh='<div class="app">'+viewClientHeader()+viewBanner()+viewPhaseNav()+viewTabs();
     if(state.tab==="menu")hh+=viewCalendar()+viewDayMeals();
+    else if(state.tab==="frigo")hh+=viewFrigo();
     else hh+=viewAliments();
     hh+='</div>';
     root.innerHTML=hh;
@@ -324,6 +669,7 @@ function render(){
   else{
     h+=viewBanner()+viewTabs();
     if(state.tab==="menu")h+=viewCalendar()+viewDayMeals();
+    else if(state.tab==="frigo")h+=viewFrigo();
     else h+=viewAliments();
   }
   h+='</div>';
@@ -437,7 +783,8 @@ function viewBanner(){
 function viewTabs(){
   return '<div class="tabs">'+
     '<button class="tab'+(state.tab==="menu"?" active":"")+'" data-tab="menu">📅 Menu 30 jours</button>'+
-    '<button class="tab'+(state.tab==="aliments"?" active":"")+'" data-tab="aliments">🥗 Aliments</button></div>';
+    '<button class="tab'+(state.tab==="aliments"?" active":"")+'" data-tab="aliments">🥗 Aliments</button>'+
+    (cfgMenu.frigo?'<button class="tab'+(state.tab==="frigo"?" active":"")+'" data-tab="frigo">🧊 Mon frigo</button>':'')+'</div>';
 }
 
 // ═══════════ CALENDRIER 30 JOURS ═══════════
@@ -447,7 +794,7 @@ function viewCalendar(){
   for(var w=0;w<4;w++){
     h+='<div style="display:flex;align-items:center;justify-content:space-between;margin:10px 0 6px">'+
       '<span style="font-weight:900;font-size:11px;color:#AAA;letter-spacing:1px;text-transform:uppercase">Semaine '+(w+1)+'</span>'+
-      '<button class="week-courses" data-week="'+w+'" style="font-size:11px;font-weight:800;color:'+R+';padding:4px 10px;border:1.5px solid '+R+';border-radius:20px;background:#fff">🛒 Liste de courses</button></div>';
+      (cfgMenu.recettes?'<button class="week-courses" data-week="'+w+'" style="font-size:11px;font-weight:800;color:'+R+';padding:4px 10px;border:1.5px solid '+R+';border-radius:20px;background:#fff">🛒 Liste de courses</button>':'')+'</div>';
     h+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:2px">';
     for(var dn=0;dn<7;dn++)h+='<div style="text-align:center;font-size:9px;font-weight:700;color:#CCC">'+DAYN[dn]+'</div>';
     h+='</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px">';
@@ -460,7 +807,7 @@ function viewCalendar(){
         cls+=t==="SG"?" sg":" gb";
         tag='<span class="dc-tag" style="color:'+(t==="SG"?"#2E7D32":"#B45309")+'">'+t+'</span>';
       }
-      var hasRecipe=state.recipes[keyOf(MENU,i,"dej")]||state.recipes[keyOf(MENU,i,"pdej")]||state.recipes[keyOf(MENU,i,"diner")];
+      var hasRecipe=cfgMenu.recettes&&(state.recipes[keyOf(MENU,i,"dej")]||state.recipes[keyOf(MENU,i,"pdej")]||state.recipes[keyOf(MENU,i,"diner")]);
       var phIdx=PHASE_ORDER.indexOf(MENU);
       var isToday=CLIENT&&state.clientStart&&(FORCED?(dayGlobal()%MENU_DAYS(MENU))===i:(Math.floor(dayGlobal()/28)===phIdx&&(dayGlobal()%28)===i));
       var todayStyle=isToday?'border-color:#D52B1E;border-width:2.5px;font-weight:900':'';
@@ -485,7 +832,7 @@ function viewDayMeals(){
   for(var i=0;i<MEALS.length;i++){
     var meal=MEALS[i];
     var rule=mealRule(MENU,meal.id,dayTag);
-    var rec=state.recipes[keyOf(MENU,day,meal.id)];
+    var rec=cfgMenu.recettes?state.recipes[keyOf(MENU,day,meal.id)]:null;
     h+='<div class="meal-card"><div class="meal-hdr">'+
       '<span class="meal-ico">'+meal.icon+'</span>'+
       '<span class="meal-name">'+meal.name+'</span>'+
@@ -511,8 +858,17 @@ function viewDayMeals(){
       if(rec.ingredients)h+='<div class="meal-sec">🛒 Ingrédients</div><div class="meal-txt">'+esc(rec.ingredients)+'</div>';
       if(rec.steps)h+='<div class="meal-sec">👨‍🍳 Préparation</div><div class="meal-txt">'+esc(rec.steps)+'</div>';
       h+='</div>';
-    }else{
+    }else if(cfgMenu.recettes){
       h+='<div class="meal-empty">Recette à venir 🔜</div>';
+    }else{
+      // Recettes désactivées : la règle de l'assiette EST le menu. On montre
+      // l'assiette de référence plutôt qu'une promesse de recette vide.
+      h+='<div class="meal-body">'+
+        (meal.id==="pdej"
+          ? '<div class="meal-txt">Une protéine au réveil. Choisis dans l\'onglet Aliments.</div>'
+          : assietteHTML(MENU==="cyclage"?(dayTag==="SG"?"sg":"soir"):(meal.id==="dej"?"midi":(MENU==="equilibre"?"soir":"sg"))))+
+        (cfgMenu.frigo?'<button class="meal-frigo" data-tab="frigo">🧊 Composer avec mon frigo</button>':'')+
+        '</div>';
     }
     h+='</div>';
   }
@@ -592,6 +948,17 @@ function bindAdminLogin(){
 function viewAdmin(){
   var day=state.selDay;
   var h='<div style="padding:14px">'+
+    // 🔌 L'interrupteur des recettes : tant qu'il est éteint, les clientes
+    // voient la règle de l'assiette et rien d'autre. Un menu sobre vaut mieux
+    // que trente « Recette à venir ».
+    '<div class="cfg-box">'+
+    '<div class="cfg-l"><div><div class="cfg-t">Recettes visibles</div>'+
+    '<div class="cfg-s">Éteint : les clientes voient la règle de l\'assiette. Allumé : elles voient les recettes que tu as écrites.</div></div>'+
+    '<button id="cfg-rec" class="cfg-sw'+(cfgMenu.recettes?' on':'')+'"><span></span></button></div>'+
+    '<div class="cfg-l" style="margin-top:12px"><div><div class="cfg-t">Onglet « Mon frigo »</div>'+
+    '<div class="cfg-s">Compose une recette avec ce qu\'il leur reste, en respectant l\'assiette du jour.</div></div>'+
+    '<button id="cfg-fri" class="cfg-sw'+(cfgMenu.frigo?' on':'')+'"><span></span></button></div>'+
+    '<div id="cfg-msg" class="cfg-msg"></div></div>'+
     '<div class="admin-field"><div class="admin-label">Jour (1–30)</div>'+
     '<select id="ad-day" class="admin-input">';
   for(var i=0;i<MENU_DAYS(MENU);i++)h+='<option value="'+i+'"'+(i===day?' selected':'')+'>Jour '+(i+1)+(MENU==="cyclage"?" — "+cyclageTag(i):"")+'</option>';
@@ -618,6 +985,20 @@ function viewAdmin(){
   return h;
 }
 function bindAdmin(){
+  function bascule(cle,el){
+    cfgMenu[cle]=!cfgMenu[cle];
+    var msg=document.getElementById("cfg-msg");
+    if(msg)msg.textContent="Enregistrement…";
+    cfgEnregistrer(function(ok){
+      if(msg)msg.textContent=ok?"✅ Enregistré — visible par toutes tes clientes":"⚠️ Pas enregistré sur le serveur : vérifie ta connexion";
+      render();
+    });
+  }
+  var cr=document.getElementById("cfg-rec");
+  if(cr)cr.addEventListener("click",function(){bascule("recettes");});
+  var cf=document.getElementById("cfg-fri");
+  if(cf)cf.addEventListener("click",function(){bascule("frigo");});
+
   var home=document.getElementById("go-home");
   if(home)home.addEventListener("click",function(){window.location.search="?admin=1";});
   function fill(){
@@ -746,10 +1127,13 @@ function bindMain(){
   for(var i=0;i<tabs.length;i++){
     tabs[i].addEventListener("click",function(){state.tab=this.getAttribute("data-tab");render();});
   }
+  var mf=document.querySelectorAll(".meal-frigo");
+  for(var f2=0;f2<mf.length;f2++)mf[f2].addEventListener("click",function(){state.tab="frigo";render();});
   var days=document.querySelectorAll("[data-day]");
   for(var d=0;d<days.length;d++){
     days[d].addEventListener("click",function(){state.selDay=parseInt(this.getAttribute("data-day"));render();});
   }
+  try{if(state.tab==="frigo")bindFrigo();}catch(e){}
   var wc=document.querySelectorAll(".week-courses");
   for(var w2=0;w2<wc.length;w2++){
     wc[w2].addEventListener("click",function(e){
@@ -761,6 +1145,7 @@ function bindMain(){
 
 // ═══════════ BOOT ═══════════
 (function(){
+  cfgCharger(function(){render();});
   if(CLIENT&&!IS_ADMIN){
     render();
     loadClient(function(){

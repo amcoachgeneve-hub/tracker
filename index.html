@@ -817,7 +817,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="01/09 · Historique & revue";
+var APP_VERSION="01/09 · Un seul démarrer";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -1569,21 +1569,46 @@ function coachLoadClient(slug,force,cb){
     })
     .catch(function(){if(cb)cb();});
 }
+// UNE SEULE REQUÊTE POUR TOUS LES CLIENTS. Avant, le tableau de bord ouvrait
+// un appel par client — six clients, six allers-retours qui s'attendent sur un
+// réseau mobile. PostgREST sait filtrer sur une liste : `in.(a,b,c)`. Le
+// dépouillement se fait ensuite en local, ça ne coûte rien.
 function coachLoadAll(force){
   if(__coachBusy)return;
   var cl=lsGet("amcoach_clients",[]);
   if(!cl.length)return;
-  var reste=0;
-  for(var i=0;i<cl.length;i++){if(force||!coachFrais(cl[i].slug))reste++;}
-  if(!reste)return;
+  var aFaire=[];
+  for(var i=0;i<cl.length;i++){if(force||!coachFrais(cl[i].slug))aFaire.push(cl[i].slug);}
+  if(!aFaire.length)return;
   __coachBusy=true;
-  var fait=0;
-  for(var j=0;j<cl.length;j++){
-    coachLoadClient(cl[j].slug,force,function(){
-      fait++;
-      if(fait>=cl.length){__coachBusy=false;render();}
+  for(var k=0;k<aFaire.length;k++)__coachLoaded[aFaire[k]]=Date.now();
+  var liste=aFaire.map(function(s){return '"'+String(s).replace(/"/g,'')+'"';}).join(",");
+  sbFetch("tracking?client_slug=in.("+encodeURIComponent(liste)+")&select=client_slug,day_index,data")
+    .then(function(r){return r.json();})
+    .then(function(rows){
+      var par={};
+      for(var x=0;x<(rows||[]).length;x++){
+        var R2=rows[x];
+        (par[R2.client_slug]=par[R2.client_slug]||[]).push(R2);
+      }
+      for(var s2 in par){
+        var all=lsGet("amcoach_"+s2,{});
+        for(var y=0;y<par[s2].length;y++)all[par[s2][y].day_index]=par[s2][y].data;
+        lsSet("amcoach_"+s2,all);
+      }
+      __coachBusy=false;
+      render();
+    })
+    .catch(function(){
+      // Repli sur l'ancienne méthode, un client à la fois.
+      var fait=0;
+      for(var j=0;j<aFaire.length;j++){
+        coachLoadClient(aFaire[j],true,function(){
+          fait++;
+          if(fait>=aFaire.length){__coachBusy=false;render();}
+        });
+      }
     });
-  }
 }
 // Dernier rapatriement : évite d'interroger le serveur à chaque aller-retour.
 var __cloudLe=0;
@@ -7297,7 +7322,10 @@ var SPT_PHASES = {
 };
 
 function sptCfg() {
-  var d = { prep: 10, effort: 30, repos: 30, tours: 8, series: 1, rserie: 60, dur: 300, cycle: 30 };
+  // `arme` retient lequel des deux minuteurs part quand on appuie sur
+  // DÉMARRER. Sans lui dans les valeurs par défaut, la clé serait perdue à
+  // chaque lecture : sptCfg ne recopie que ce qu'il connaît.
+  var d = { prep: 10, effort: 30, repos: 30, tours: 8, series: 1, rserie: 60, dur: 300, cycle: 30, arme: "intervalles" };
   var c = lsGet("amcoach_sport_" + CLIENT, null) || {};
   for (var k in d) if (c[k] !== undefined && c[k] !== null) d[k] = c[k];
   return d;
@@ -7560,11 +7588,18 @@ function sptAfficher() {
     }
   }
   if (!run) {
-    var c0 = sptCfg(), p0 = sptPlanIntervalles(c0);
-    min.textContent = sptFmt(c0.prep > 0 ? c0.prep : c0.effort);
+    // DEUX MINUTEURS, UN SEUL BOUTON. Akli : « à partir du moment où je
+    // choisis 5 minutes, le démarrer du haut suffit, l'autre bouton fait trop
+    // de biper, on ne comprend plus. » Le dernier réglage touché arme le
+    // minuteur correspondant, et le cercle du haut l'annonce.
+    var c0 = sptCfg(), bips = (c0.arme === "bips");
+    var p0 = bips ? sptPlanBips(c0.dur, c0.cycle) : sptPlanIntervalles(c0);
+    min.textContent = bips ? sptFmt(c0.cycle) : sptFmt(c0.prep > 0 ? c0.prep : c0.effort);
     ph.textContent = "Prêt"; ph.setAttribute("fill", "#E9A23B");
-    tr.textContent = c0.tours + " tours" + (c0.series > 1 ? " × " + c0.series + " séries" : "");
-    tt.textContent = "Séance de " + sptFmt(sptTotal(p0));
+    tr.textContent = bips
+      ? "🔔 Bip toutes les " + c0.cycle + " s"
+      : c0.tours + " tours" + (c0.series > 1 ? " × " + c0.series + " séries" : "");
+    tt.textContent = (bips ? "Méthode express — " : "Séance de ") + sptFmt(sptTotal(p0));
     peindre("var(--b2)", 0);
     if (go) { go.textContent = "▶ DÉMARRER"; go.className = "spt-go"; }
     barre(false);
@@ -7687,8 +7722,11 @@ function viewSport(name, start) {
     [20, 30, 45, 60].map(function (s) {
       return '<button data-spt-cycle="' + s + '" class="spt-pill' + (c.cycle === s ? ' gold' : '') + '">' + s + ' s</button>';
     }).join("") + '</div>' +
-    '<button id="spt-bips" class="spt-go">🔔 LANCER LE BIP ' + c.cycle + ' S</button>' +
-    '<div class="spt-txt" style="text-align:center;margin-top:9px;font-size:11.5px">Il s\'affiche dans le cercle du haut, comme la séance à intervalles.</div></div>';
+    '<div class="spt-txt" style="text-align:center;margin-top:4px;font-size:11.5px">' +
+    (c.arme === "bips"
+      ? '✅ Armé : ' + (c.dur / 60) + ' min, bip toutes les ' + c.cycle + ' s. Appuie sur ▶ DÉMARRER en haut.'
+      : 'Choisis une durée et un cycle : le cercle du haut passe en méthode express.') +
+    '</div></div>';
 
   h += '</div></div></details>';
 
@@ -7837,7 +7875,10 @@ function bindSport() {
   }
   ["spt-prep", "spt-effort", "spt-repos", "spt-tours", "spt-series", "spt-rserie"].forEach(function (id) {
     var el = document.getElementById(id);
-    if (el) el.addEventListener("change", function () { lire(); if (!SPT.run) sptAfficher(); });
+    if (el) el.addEventListener("change", function () {
+      lire(); armer("intervalles");
+      if (!SPT.run) { render(); }
+    });
   });
   var pres = document.querySelectorAll("[data-spt-preset]");
   for (var i = 0; i < pres.length; i++) pres[i].addEventListener("click", function () {
@@ -7848,15 +7889,18 @@ function bindSport() {
         cc.prep = P.prep; cc.effort = P.effort; cc.repos = P.repos; cc.tours = P.tours; cc.series = P.series; cc.rserie = P.rserie;
       }
     }
+    cc.arme = "intervalles";   // un préréglage d'intervalles arme les intervalles
     sptCfgSet(cc); sptArreter(true); render();
   });
+  function armer(quoi) { var cc = sptCfg(); cc.arme = quoi; sptCfgSet(cc); }
+
   var durs = document.querySelectorAll("[data-spt-dur]");
   for (var d = 0; d < durs.length; d++) durs[d].addEventListener("click", function () {
-    maj("dur", parseInt(this.getAttribute("data-spt-dur"), 10)); render();
+    maj("dur", parseInt(this.getAttribute("data-spt-dur"), 10)); armer("bips"); render();
   });
   var cyc = document.querySelectorAll("[data-spt-cycle]");
   for (var y = 0; y < cyc.length; y++) cyc[y].addEventListener("click", function () {
-    maj("cycle", parseInt(this.getAttribute("data-spt-cycle"), 10)); render();
+    maj("cycle", parseInt(this.getAttribute("data-spt-cycle"), 10)); armer("bips"); render();
   });
 
   var mMoins = document.getElementById("p3-marche-moins"), mPlus = document.getElementById("p3-marche-plus");
@@ -7946,17 +7990,16 @@ function bindSport() {
   var go = document.getElementById("spt-go");
   if (go) go.addEventListener("click", function () {
     var cc = lire();
-    if (!SPT.run) { sptDemarrer(sptPlanIntervalles(cc), "intervalles"); return; }
+    if (!SPT.run) {
+      if (cc.arme === "bips") sptDemarrer(sptPlanBips(cc.dur, cc.cycle), "bips");
+      else sptDemarrer(sptPlanIntervalles(cc), "intervalles");
+      return;
+    }
     if (SPT.run.pause != null) sptReprendre(); else sptPause();
   });
   var stop = document.getElementById("spt-stop");
   if (stop) stop.addEventListener("click", function () { sptArreter(false); });
-  var bips = document.getElementById("spt-bips");
-  if (bips) bips.addEventListener("click", function () {
-    var cc = sptCfg();
-    sptDemarrer(sptPlanBips(cc.dur, cc.cycle), "bips");
-    try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch (e) { window.scrollTo(0, 0); }
-  });
+
 
   // Sortie et retour d'écran : bascule audio automatique, puis recalage
   if (!window.__sptVis) {
@@ -17113,6 +17156,32 @@ function bindMain(name,start){
   }
 
 }
+
+// ═══════════ OUVERTURE INSTANTANÉE ═══════════
+// Le fichier sw.js sert la copie locale sans attendre le réseau. S'il n'est
+// pas déployé, l'enregistrement échoue sans conséquence : l'appli fonctionne
+// comme avant, simplement moins vite à l'ouverture.
+(function(){
+  if(!("serviceWorker" in navigator))return;
+  if(location.protocol!=="https:"&&location.hostname!=="localhost")return;
+  window.addEventListener("load",function(){
+    navigator.serviceWorker.register("/sw.js").catch(function(){});
+  });
+  navigator.serviceWorker.addEventListener("message",function(e){
+    if(!e.data||e.data.d90!=="maj")return;
+    if(document.getElementById("d90-maj"))return;
+    // On ne recharge JAMAIS tout seul : quelqu'un peut être au milieu d'une
+    // séance, avec des séries cochées qui ne sont pas encore parties.
+    var b=document.createElement("button");
+    b.id="d90-maj";
+    b.textContent="⬆️ Nouvelle version ("+(e.data.version||"")+") — appuie pour l'installer";
+    b.style.cssText="position:fixed;left:12px;right:12px;bottom:86px;z-index:99999;padding:13px 14px;"+
+      "border:0;border-radius:14px;background:linear-gradient(90deg,var(--b1),var(--b2));color:#fff;"+
+      "font-weight:900;font-size:12.5px;box-shadow:0 8px 22px rgba(16,24,40,.3)";
+    b.addEventListener("click",function(){location.reload();});
+    document.body.appendChild(b);
+  });
+})();
 
 // ═══════════ BOOT ═══════════
 (function(){

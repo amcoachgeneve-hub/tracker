@@ -215,14 +215,14 @@
 .prg-tab.on{background:var(--ink);color:#fff}
 .prg-search{width:100%;padding:12px 14px;border-radius:13px;border:1.5px solid var(--line);background:#fff;font-size:14px;margin-bottom:12px}
 .prg-bx{display:flex;align-items:center;gap:11px;background:#fff;border:1.5px solid var(--line);border-radius:13px;padding:10px 12px;margin-bottom:8px;cursor:pointer}
-.prg-bx.on{border-color:var(--ok);background:#F1FBF5}
+.prg-bx.on{border-color:var(--ok-d);background:#F1FBF5}
 .prg-bx-p{flex:0 0 10px;height:34px;border-radius:6px}
 .prg-bx-n{font-weight:900;font-size:13.5px;color:var(--ink)}
 .prg-bx-m{font-size:11.5px;color:var(--mute);font-weight:700;margin-top:2px}
 .prg-star{flex:0 0 30px;font-size:17px;color:var(--line);background:none}
 .prg-star.on{color:var(--gold)}
 .prg-plus{flex:0 0 22px;text-align:center;font-size:17px;font-weight:900;color:var(--mute)}
-.prg-bx.on .prg-plus{color:var(--ok)}
+.prg-bx.on .prg-plus{color:var(--ok-d)}
 .prg-barre{position:fixed;left:0;right:0;bottom:0;padding:12px 13px calc(12px + env(safe-area-inset-bottom));background:var(--sky);border-top:1px solid var(--line);z-index:20}
 .prg-cartes{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
 .prg-carte{flex:0 0 60%;min-height:92px;border-radius:16px;border:1.5px solid;padding:13px;text-align:left;display:flex;flex-direction:column;justify-content:flex-end}
@@ -246,7 +246,7 @@
 .prg-rest-b{flex:0 0 40px;height:38px;border-radius:11px;background:var(--soft);border:1px solid var(--line);color:var(--brand);font-weight:900;font-size:13px}
 /* Attribution d'une séance à des clients */
 .prg-cli{display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--line);border-radius:13px;padding:12px;margin-bottom:8px;cursor:pointer}
-.prg-cli.on{border-color:var(--ok);background:#F1FBF5}
+.prg-cli.on{border-color:var(--ok-d);background:#F1FBF5}
 .prg-cli-n{flex:1;font-weight:800;font-size:13.5px;color:var(--ink)}
 .prg-cli-e{font-size:11.5px;color:var(--mute);font-weight:700}
 
@@ -643,14 +643,14 @@ input,textarea{outline:none}
 .chart-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
 .chart-title{font-weight:900;font-size:14px;color:var(--ink);flex:1}
 .chart-avg{font-size:11px;color:var(--mute)}
-.chart-empty{height:80px;display:flex;align-items:center;justify-content:center;color:#CCC;font-size:13px}
+.chart-empty{height:80px;display:flex;align-items:center;justify-content:center;color:var(--mute);font-size:13px;font-weight:700}
 
 /* NAV */
 .nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:rgba(255,255,255,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--line);display:flex;padding:10px 0 18px;z-index:200}
 .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
 .nav-ico{font-size:22px}
 .nav-lbl{font-size:11px;font-weight:700;color:var(--mute)}
-.nav-btn.active .nav-lbl{font-weight:900;color:var(--b1)}
+.nav-btn.active .nav-lbl{font-weight:900;color:var(--brand-d)}
 
 /* MISC */
 .big-btn{width:100%;padding:18px 0;border-radius:16px;background:linear-gradient(90deg,var(--b1) 0%,var(--b2) 100%);color:#fff;font-weight:900;font-size:15px;letter-spacing:1.5px;text-transform:uppercase;box-shadow:0 8px 20px rgba(96,120,255,.28);margin-bottom:12px}
@@ -660,7 +660,7 @@ input,textarea{outline:none}
 .hint-title{font-weight:800;font-size:13px;color:var(--warn-d);margin-bottom:8px}
 .hint-text{font-size:13px;color:var(--mute);line-height:1.8}
 .info-banner{background:#EEF4FF;border:2px solid #C5D8F0;border-radius:12px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;font-size:13px;color:#5580AA;font-weight:700}
-.saved-badge{font-size:11px;color:var(--ok);font-weight:700}
+.saved-badge{font-size:11px;color:var(--ok-d);font-weight:700}
 .legend{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 .legend span{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--mute)}
 .legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
@@ -671,6 +671,58 @@ input,textarea{outline:none}
 .xp-glow{animation:xp-glow 1.6s ease-in-out infinite}
 
 /* ═══ Apport de la session du 31/08 : carte du cycle + sélecteur de muscle ═══ */
+/* 📅 L'historique des séances : un calendrier compact sous le chronomètre. */
+.hst-tete{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.hst-mois{font-weight:900;font-size:13.5px;color:var(--ink);text-transform:capitalize}
+.hst-nav{width:34px;height:34px;border-radius:11px;border:1.5px solid var(--line);background:var(--card);
+  color:var(--ink);font-size:17px;font-weight:900;line-height:1}
+.hst-nav[disabled]{opacity:.3}
+.hst-jours,.hst-grille{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.hst-e{text-align:center;font-size:10px;font-weight:800;color:var(--mute);padding-bottom:4px}
+.hst-c{position:relative;aspect-ratio:1;border-radius:10px;border:1px solid var(--line);background:var(--card);
+  font-size:11.5px;font-weight:800;color:var(--mute);display:flex;align-items:center;justify-content:center}
+.hst-c.vide{border:none;background:none}
+.hst-c[disabled]{opacity:.55}
+.hst-c.auj{outline:2px solid var(--brand);outline-offset:-2px}
+.hst-c.fait{color:var(--ink);border-color:var(--hc);background:color-mix(in srgb,var(--hc) 14%,transparent)}
+.hst-c.fait i{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:5px;height:5px;
+  border-radius:50%;background:var(--hc)}
+.hst-c.fait b{position:absolute;top:2px;right:3px;font-size:8.5px;color:var(--hc)}
+.hst-c.sel{background:var(--hc);color:#fff;border-color:var(--hc)}
+.hst-c.sel i,.hst-c.sel b{background:#fff;color:#fff}
+.hst-titre{font-weight:900;font-size:12px;color:var(--mute);text-transform:uppercase;letter-spacing:.6px;
+  margin:14px 0 8px;display:flex;align-items:center;gap:9px}
+.hst-tout{font-size:10.5px;font-weight:800;color:var(--brand);background:none;border:0;text-decoration:underline}
+.hst-l{display:flex;align-items:center;gap:10px;background:var(--soft);border-left:3px solid var(--line);
+  border-radius:11px;padding:10px 12px;margin-bottom:7px}
+.hst-l-c{flex:1;min-width:0}
+.hst-l-n{font-weight:900;font-size:13px;color:var(--ink)}
+.hst-l-s{font-size:11px;font-weight:700;color:var(--mute);margin-top:2px}
+.hst-refaire{flex:0 0 auto;padding:8px 11px;border-radius:10px;border:1.5px solid var(--brand);
+  background:var(--card);color:var(--brand);font-size:11.5px;font-weight:900}
+.app.sport-mode .hst-c{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.13);color:#8d98aa}
+.app.sport-mode .hst-c.fait{color:#f7f9ff}
+.app.sport-mode .hst-mois,.app.sport-mode .hst-l-n{color:#f7f9ff}
+.app.sport-mode .hst-l{background:rgba(255,255,255,.05)}
+.app.sport-mode .hst-nav{background:transparent;border-color:rgba(255,255,255,.15);color:#f7f9ff}
+.app.sport-mode .hst-refaire{background:transparent}
+
+/* 🌙 La ligne du cycle sur l'accueil : repliée, elle ne prend qu'une ligne. */
+.cyc-ligne-t{background:var(--card);border:1px solid var(--line);border-radius:18px;margin-bottom:13px;
+  overflow:hidden;box-shadow:0 3px 12px rgba(16,24,40,.05)}
+.cyc-ligne-t summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:12px;padding:13px 15px}
+.cyc-ligne-t summary::-webkit-details-marker{display:none}
+.cyc-l-ico{flex:0 0 38px;height:38px;border-radius:12px;font-size:19px;
+  background:linear-gradient(135deg,#B4436C22,#8A3FFF18);display:flex;align-items:center;justify-content:center}
+.cyc-l-txt{flex:1;min-width:0;display:flex;flex-direction:column}
+.cyc-l-t{font-weight:900;font-size:14.5px;color:var(--ink);line-height:1.2}
+.cyc-l-s{font-size:11.5px;font-weight:700;color:var(--mute);margin-top:3px}
+.cyc-l-c{color:var(--mute);font-size:17px;font-weight:900;transition:transform .2s}
+.cyc-ligne-t[open] .cyc-l-c{transform:rotate(180deg)}
+.cyc-l-corps{padding:0 13px 13px}
+.cyc-l-pourquoi{background:var(--soft2);border-radius:14px;padding:12px 13px;margin-bottom:11px;
+  font-size:12.5px;line-height:1.6;color:var(--ink2);font-weight:600}
+.cyc-l-corps .cyc-card{margin-bottom:0}
 /* 🌙 La carte du cycle menstruel — onglet Sport, clientes uniquement. */
 .cyc-card{border-width:1.5px}
 .cyc-tete{display:flex;align-items:center;gap:11px;margin:2px 0 10px}
@@ -765,7 +817,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="31/08 · Fusion express + cycle";
+var APP_VERSION="01/09 · Historique & revue";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -3318,7 +3370,7 @@ function cycleVizHTML(hVal){
   if(sc.critical){
     html+='<div style="margin-top:8px;background:#FFEBEE;border-radius:9px;padding:9px 11px;font-size:11.5px;color:var(--bad);line-height:1.65"><strong>🚨 Sous les 7 h — cortisol élevé.</strong> Stockage de gras ↑, faim sucrée ↑, récupération musculaire ↓.<br>💤 <strong>Conseil :</strong> micro-sieste de 20-25 min entre 13 h et 15 h. Jamais plus de 30 min — au-delà, réveil en plein sommeil profond, tu te lèves groggy.</div>';
   }else if(sc.total>=5){
-    html+='<div style="margin-top:6px;font-size:11px;color:var(--ok);font-weight:700">✅ Nuit complète — récupération optimale.</div>';
+    html+='<div style="margin-top:6px;font-size:11px;color:var(--ok-d);font-weight:700">✅ Nuit complète — récupération optimale.</div>';
   }
   return html;
 }
@@ -4060,7 +4112,7 @@ function renderView(){
       '<div class="dark-brand"><div class="bar bar-r"></div><span>AM Coach</span><div class="bar bar-b"></div></div>'+
       '<div style="font-size:44px;margin:20px 0 8px">⏸️</div>'+
       '<div style="color:#fff;font-weight:900;font-size:19px;margin-bottom:10px">Ton accès est terminé</div>'+
-      '<div style="color:var(--mute);font-size:13px;line-height:1.8;max-width:300px;text-align:center;margin-bottom:20px">Regarde ce que tu as construit'+(aDp!=null?' : <strong style=\'color:var(--ok)\'>'+aDp+' kg</strong>':'')+' en '+(aT+1)+' jours.<br>Imagine 90 jours.</div>'+
+      '<div style="color:var(--mute);font-size:13px;line-height:1.8;max-width:300px;text-align:center;margin-bottom:20px">Regarde ce que tu as construit'+(aDp!=null?' : <strong style=\'color:var(--ok-d)\'>'+aDp+' kg</strong>':'')+' en '+(aT+1)+' jours.<br>Imagine 90 jours.</div>'+
       '<div style="color:#fff;font-size:14px;font-weight:800;text-align:center">Contacte ton coach pour continuer<br>ta transformation 💪</div></div>';
     return;
   }
@@ -4221,7 +4273,7 @@ function viewDream(name){
     '<div class="card-label" style="letter-spacing:1.4px">🚀 Ma vie idéale</div>'+
     '<div style="color:var(--mute);font-size:12px;font-weight:600;margin-bottom:10px">Ce que tu veux réaliser. Ta destination. Relis-le chaque semaine.</div>'+
     '<textarea id="db-vie" class="txt-area db-vision" rows="8">'+esc(db.vie||"")+'</textarea></div>'+
-    '<div style="font-size:11px;color:var(--mute);text-align:center;line-height:1.7">📖 Relis ta vision chaque dimanche après ton bilan.<br>💾 Sauvegarde automatique <span id="db-saved" style="color:var(--ok);font-weight:700"></span></div>'+
+    '<div style="font-size:11px;color:var(--mute);text-align:center;line-height:1.7">📖 Relis ta vision chaque dimanche après ton bilan.<br>💾 Sauvegarde automatique <span id="db-saved" style="color:var(--ok-d);font-weight:700"></span></div>'+
     '<button id="open-contract" class="big-btn gray" style="margin-top:14px">📜 Mon contrat d\'engagement</button>'+
     '</div>';
 }
@@ -4331,12 +4383,12 @@ function viewNutrition(name,start){
     '<button id="nut-scan" style="flex:1;padding:12px 0;border-radius:11px;background:var(--brand2);border:0;color:#fff;font-weight:800;font-size:13px">▮▯ Scanner</button>'+
     '<button id="nut-search" style="flex:1;padding:12px 0;border-radius:11px;background:#fff;border:1.5px solid var(--brand2);color:var(--brand2);font-weight:800;font-size:13px">🔍 Chercher</button></div>'+
     (state.nutSearchBusy?'<div style="text-align:center;color:var(--brand2);font-size:13px;font-weight:700;margin-top:10px">🔎 Recherche du produit...</div>':'')+
-    '<div style="font-size:11px;color:#AAA;margin-top:8px;line-height:1.6">💡 Trois façons d\'ajouter : tape l\'aliment et le poids en grammes (pour les œufs, le nombre d\'œufs) · <strong>▮▯ Scanner</strong> le code-barres d\'un produit · <strong>🔍 Chercher</strong> une marque par son nom.</div>';
+    '<div style="font-size:11px;color:var(--mute);margin-top:8px;line-height:1.6">💡 Trois façons d\'ajouter : tape l\'aliment et le poids en grammes (pour les œufs, le nombre d\'œufs) · <strong>▮▯ Scanner</strong> le code-barres d\'un produit · <strong>🔍 Chercher</strong> une marque par son nom.</div>';
 
   // 🔎 Résultats de recherche
   if(state.nutResults&&state.nutResults.length){
     h+='<div style="margin-top:11px;border-top:1px solid var(--soft2);padding-top:10px">'+
-      '<div style="font-size:10.5px;font-weight:900;color:#AAA;letter-spacing:.8px;text-transform:uppercase;margin-bottom:7px">Résultats — appuie pour ajouter</div>';
+      '<div style="font-size:10.5px;font-weight:900;color:var(--mute);letter-spacing:.8px;text-transform:uppercase;margin-bottom:7px">Résultats — appuie pour ajouter</div>';
     for(var ri=0;ri<state.nutResults.length;ri++){
       var rr=state.nutResults[ri];
       var qDef=rr.portion||100;
@@ -4363,7 +4415,7 @@ function viewNutrition(name,start){
     }
     h+='<div class="card" style="padding:14px">'+
       '<div class="card-label">🕘 Mes aliments récents</div>'+
-      '<div style="font-size:11px;color:#AAA;margin-bottom:9px">Un tap et c\'est ajouté — plus besoin de retaper</div>'+
+      '<div style="font-size:11px;color:var(--mute);margin-bottom:9px">Un tap et c\'est ajouté — plus besoin de retaper</div>'+
       items+'</div>';
   })();
 
@@ -4379,7 +4431,7 @@ function viewNutrition(name,start){
         '<div style="flex:1"><div style="font-weight:800;font-size:14px">'+esc(f.name)+'</div>'+
         '<div style="font-size:12px;color:var(--mute);font-weight:600">'+f.qty+' g</div></div>'+
         '<div style="font-weight:900;font-size:15px;color:var(--ok-d);margin-right:10px">'+f.prot+' g</div>'+
-        '<button class="nut-del" data-i="'+i+'" style="color:#CCC;font-size:17px;padding:4px">🗑️</button></div>';
+        '<button class="nut-del" data-i="'+i+'" style="color:var(--mute);font-size:17px;padding:4px">🗑️</button></div>';
     }
     h+='<div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;margin-top:2px">'+
       '<span style="font-weight:900;font-size:14px">TOTAL</span>'+
@@ -4530,7 +4582,7 @@ function viewFinance(name,start){
     // Revenus du mois en cours
     h+='<div class="card" style="padding:16px;margin-bottom:12px">'+
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">'+
-      '<span style="font-size:11px;font-weight:900;color:#AAA;letter-spacing:1px;text-transform:uppercase">📊 Mes revenus — '+moisLbl+'</span>'+
+      '<span style="font-size:11px;font-weight:900;color:var(--mute);letter-spacing:1px;text-transform:uppercase">📊 Mes revenus — '+moisLbl+'</span>'+
       '<button id="fin-statut-chg" style="border:none;background:none;color:var(--brand2);font-size:11px;font-weight:800;cursor:pointer;padding:0">'+
       (cfg.statut==="salarie"?"💼 Salarié":cfg.statut==="indep"?"🚀 Indépendant":"💼🚀 Les deux")+' ✏️</button></div>'+
       (!R.saisi&&R.report?'<div id="fin-rev-report" style="font-size:11px;color:var(--warn-d);font-weight:700;margin-bottom:8px">↩️ Repris de '+finMonthLabel(R.report)+' — corrige si ça a changé</div>':'<div style="height:4px"></div>');
@@ -4554,7 +4606,7 @@ function viewFinance(name,start){
         '<span style="font-size:13px;font-weight:900">Total du mois</span>'+
         '<span id="fin-rev-tot" style="font-size:15px;font-weight:900;color:var(--brand2)">'+finFmt(R.sal+R.ind,dev)+'</span></div>';
     }
-    h+='<div style="font-size:11px;color:#AAA;margin-top:8px;line-height:1.5">💡 Chaque mois, tes revenus sont repris automatiquement. Tu les corriges ici quand ils changent, puis tu recalcules.</div>';
+    h+='<div style="font-size:11px;color:var(--mute);margin-top:8px;line-height:1.5">💡 Chaque mois, tes revenus sont repris automatiquement. Tu les corriges ici quand ils changent, puis tu recalcules.</div>';
 
     // Historique des revenus
     (function(){
@@ -4606,7 +4658,7 @@ function viewFinance(name,start){
 
     // Liste des charges
     h+='<div class="card" style="padding:16px">'+
-      '<div style="font-size:11px;font-weight:900;color:#AAA;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">📋 Tes charges mensuelles</div>';
+      '<div style="font-size:11px;font-weight:900;color:var(--mute);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">📋 Tes charges mensuelles</div>';
     
     for(var i=0;i<lst.length;i++){
       var ch=lst[i];
@@ -4622,7 +4674,7 @@ function viewFinance(name,start){
       '<button id="fin-calcul" style="width:100%;padding:16px 0;border-radius:12px;border:none;background:var(--brand2);color:#fff;font-weight:900;font-size:14px;cursor:pointer;box-shadow:0 4px 14px var(--brand2)44">'+
       '🧮 Calculer mon plan financier</button></div>';
     
-    h+='<div style="font-size:11px;color:#AAA;text-align:center;margin-top:10px">Remplis tes revenus et tes charges, puis appuie</div>'+
+    h+='<div style="font-size:11px;color:var(--mute);text-align:center;margin-top:10px">Remplis tes revenus et tes charges, puis appuie</div>'+
     '</div>';
     
     var _posRes=h.length;
@@ -4763,7 +4815,7 @@ function viewFinance(name,start){
         '<div style="display:flex;align-items:center;gap:8px;margin:20px 0 10px">'+
         '<div style="width:3px;height:18px;background:var(--brand2);border-radius:2px"></div>'+
         '<span style="font-weight:900;font-size:14px;text-transform:uppercase;letter-spacing:1px">Mes chiffres</span>'+
-        '<span style="flex:1;text-align:right;font-size:11px;color:#AAA;font-weight:700">modifie et recalcule</span></div>'+
+        '<span style="flex:1;text-align:right;font-size:11px;color:var(--mute);font-weight:700">modifie et recalcule</span></div>'+
         _form;
     }
   }
@@ -4888,7 +4940,7 @@ function blocMission(allData,today90,start){
     h+='<div style="color:var(--mute);font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">⚡ Ta mission du jour — '+esc(mission.hour||"")+'</div>'+
       '<div style="color:#fff;font-weight:900;font-size:16px;margin-bottom:12px">'+esc(mission.task)+'</div>'+
       '<button id="ot-go" style="width:100%;padding:15px 0;border-radius:12px;background:'+R+';color:#fff;font-weight:900;font-size:15px;letter-spacing:2px">🚀 5-4-3-2-1 GO</button>'+
-      '<button id="ot-quick" style="width:100%;margin-top:8px;padding:11px 0;border-radius:10px;background:var(--ink2);color:var(--ok);font-weight:800;font-size:12px">✓ Déjà accomplie — valider</button>'+
+      '<button id="ot-quick" style="width:100%;margin-top:8px;padding:11px 0;border-radius:10px;background:var(--ink2);color:var(--ok-d);font-weight:800;font-size:12px">✓ Déjà accomplie — valider</button>'+
       '<a href="'+gcalLink(mission.task,isoLocal(),mission.hour)+'" target="_blank" style="display:block;text-align:center;color:var(--mute);font-size:11px;font-weight:700;margin-top:10px;text-decoration:none">📅 Ajouter à Google Agenda</a>';
   }else{
     var stMap={done:["🟢 ZONE SÉCURISÉE","+"+(mission.xp||0)+" XP","var(--ok)"],half:["🟡 ZONE CONTESTÉE","+"+(mission.xp||0)+" XP","var(--amber)"],lost:["⚪ ZONE PERDUE","0 XP","#888"]};
@@ -4904,7 +4956,7 @@ function blocMission(allData,today90,start){
   if(today90<89){
     var tomorrow=getMission(allData,today90+1);
     if(tomorrow&&tomorrow.status==="pending"){
-      h+='<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--ink2);font-size:11px;color:var(--mute)">🌙 Demain : <span style="color:#CCC;font-weight:700">'+esc(tomorrow.task)+'</span> à '+esc(tomorrow.hour||"")+'</div>';
+      h+='<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--ink2);font-size:11px;color:var(--mute)">🌙 Demain : <span style="color:var(--mute);font-weight:700">'+esc(tomorrow.task)+'</span> à '+esc(tomorrow.hour||"")+'</div>';
     }else if(mission&&mission.status!=="pending"){
       h+='<button id="ot-tomorrow" style="width:100%;margin-top:12px;padding:12px 0;border-radius:10px;background:var(--ink2);color:var(--gold);font-weight:800;font-size:12px">🌙 Préparer ma conquête de demain</button>';
     }
@@ -5138,6 +5190,9 @@ function viewCalendar(name,start){
       '<div class="jr-fl">›</div></button>';
   })();
 
+  // 🌙 Le cycle, en une ligne, juste sous le raccourci du jour.
+  try { h += cycLigneHTML(allData); } catch (e) { }
+
   // ⭕ CARTE HÉROS — la jauge en premier, en grand.
   // Sa couleur suit le remplissage : rouge → orange → jaune → vert.
   // Six formules par palier, qui tournent chaque jour : le même message
@@ -5265,7 +5320,7 @@ function viewCalendar(name,start){
     var phrase=__ph[today90%__ph.length];
     h+='<div class="card" style="margin-bottom:18px;border-left:4px solid '+(reached?"var(--ok)":R)+';padding:16px 18px">';
     if(reached){
-      h+='<div style="font-weight:900;font-size:16px;color:var(--ok)">🏆 OBJECTIF ATTEINT !</div>'+
+      h+='<div style="font-weight:900;font-size:16px;color:var(--ok-d)">🏆 OBJECTIF ATTEINT !</div>'+
          '<div style="font-size:13px;color:#333;margin-top:6px;line-height:1.6">Tu as mérité ta récompense :<br><strong>'+esc(goal.reward||"—")+'</strong></div>';
     }else{
       // 🎯 Carte objectif — trois colonnes, anneau central, piste et récompense
@@ -5513,7 +5568,7 @@ function viewCalendar(name,start){
       // Trois chiffres qu'une cliente comprend sans vocabulaire interne :
       // XP / zones sécurisées / contestées venaient de la mission One Thing.
       '<div style="flex:1"><div style="font-weight:900;font-size:20px;color:var(--brand)">'+wFilled+'<span style="font-size:12px;color:var(--mute)">/7</span></div><div style="font-size:11px;color:var(--mute);font-weight:700;text-transform:uppercase">Jours remplis</div></div>'+
-      '<div style="flex:1"><div style="font-weight:900;font-size:20px;color:var(--ok)">'+(function(){var t=0,n=Math.min(7,today90-wStart+1);for(var q=0;q<HABITS.length;q++)t+=habCount[HABITS[q].id];return n?Math.round(t/(n*HABITS.length)*100):0;})()+'<span style="font-size:12px;color:var(--mute)">%</span></div><div style="font-size:11px;color:var(--mute);font-weight:700;text-transform:uppercase">Habitudes</div></div>'+
+      '<div style="flex:1"><div style="font-weight:900;font-size:20px;color:var(--ok-d)">'+(function(){var t=0,n=Math.min(7,today90-wStart+1);for(var q=0;q<HABITS.length;q++)t+=habCount[HABITS[q].id];return n?Math.round(t/(n*HABITS.length)*100):0;})()+'<span style="font-size:12px;color:var(--mute)">%</span></div><div style="font-size:11px;color:var(--mute);font-weight:700;text-transform:uppercase">Habitudes</div></div>'+
       '<div style="flex:1"><div style="font-weight:900;font-size:20px;color:var(--violet)">'+(function(){var n=0;for(var q=wStart;q<=today90;q++)if(mindsetFull(allData,q))n++;return n;})()+'<span style="font-size:12px;color:var(--mute)">/7</span></div><div style="font-size:11px;color:var(--mute);font-weight:700;text-transform:uppercase">Mindset</div></div>'+
       '<div style="flex:1"><div style="font-weight:900;font-size:20px;color:'+(wDp!=null&&wDp<=0?"var(--ok)":K)+'">'+(wDp!=null?(wDp>0?"+"+wDp:wDp):"—")+'</div><div style="font-size:11px;color:var(--mute);font-weight:700;text-transform:uppercase">kg</div></div></div>';
     // ⚠️ améliorations semaine prochaine
@@ -5535,7 +5590,7 @@ function viewCalendar(name,start){
         '<div style="font-weight:800;font-size:11px;color:var(--warn-d);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">⚠️ Priorités semaine prochaine</div>'+
         '<div style="font-size:12px;color:#7A4A00;font-weight:700;line-height:1.8">'+warns.join("<br>")+'</div></div>';
     }else if(wFilled>=3){
-      h+='<div style="font-size:12px;color:var(--ok);font-weight:800">✅ Toutes les lignes tenues. Semaine de guerrier.</div>';
+      h+='<div style="font-size:12px;color:var(--ok-d);font-weight:800">✅ Toutes les lignes tenues. Semaine de guerrier.</div>';
     }
     var wF=[],wP=[],wN=[];
     for(var mw=wStart;mw<=today90;mw++){
@@ -5912,7 +5967,7 @@ function bindBlocsJour(name,start){
         feedback(r==="lost"?"Mission manquée — demain on repart":"⚔️ Mission validée !",r==="lost"?"undo":"win");
         if(r!=="lost"){
           ov.innerHTML='<div style="font-size:72px;margin-bottom:14px">🔨</div>'+
-            '<div style="color:var(--ok);font-size:24px;font-weight:900;margin-bottom:10px">VICTOIRE DU JOUR VALIDÉE !</div>'+
+            '<div style="color:var(--ok-d);font-size:24px;font-weight:900;margin-bottom:10px">VICTOIRE DU JOUR VALIDÉE !</div>'+
             '<div style="color:#fff;font-size:16px;font-weight:800">+'+xpVal+' XP ajoutés à ta conquête</div>'+
             '<div style="color:var(--mute);font-size:12px;margin-top:14px">Une brique de plus vers ton identité 🧱</div>';
           setTimeout(function(){document.body.removeChild(ov);render();},1800);
@@ -5941,7 +5996,7 @@ function bindBlocsJour(name,start){
     function startChrono(){
       var sec=0;
       var mission=getAllData()[200+today90];
-      ov.innerHTML='<div style="color:var(--ok);font-size:56px;font-weight:900;margin-bottom:10px">GO 🚀</div>'+
+      ov.innerHTML='<div style="color:var(--ok-d);font-size:56px;font-weight:900;margin-bottom:10px">GO 🚀</div>'+
         '<div style="color:#fff;font-size:16px;font-weight:800;margin-bottom:30px;max-width:300px">'+esc(mission.task)+'</div>'+
         '<div id="ot-timer" style="color:#fff;font-size:64px;font-weight:900;font-variant-numeric:tabular-nums">00:00</div>'+
         '<div style="color:var(--mute);font-size:12px;margin:10px 0 40px">Objectif : 5 à 10 minutes</div>'+
@@ -5976,7 +6031,7 @@ function bindBlocsJour(name,start){
           feedback(r==="lost"?"Mission manquée — demain on repart":"⚔️ Mission validée !",r==="lost"?"undo":"win");
         if(r!=="lost"){
           ov.innerHTML='<div style="font-size:72px;margin-bottom:14px">🔨</div>'+
-            '<div style="color:var(--ok);font-size:24px;font-weight:900;margin-bottom:10px">VICTOIRE DU JOUR VALIDÉE !</div>'+
+            '<div style="color:var(--ok-d);font-size:24px;font-weight:900;margin-bottom:10px">VICTOIRE DU JOUR VALIDÉE !</div>'+
             '<div style="color:#fff;font-size:16px;font-weight:800">+'+xpVal+' XP ajoutés à ta conquête</div>'+
             '<div style="color:var(--mute);font-size:12px;margin-top:14px">Une brique de plus vers ton identité 🧱</div>';
           setTimeout(function(){document.body.removeChild(ov);render();},1800);
@@ -6066,7 +6121,7 @@ function bindBlocsJour(name,start){
       '.gi{font-size:56px;margin-bottom:8px}'+
       '.gn{color:var(--gold);font-weight:900;font-size:26px;letter-spacing:1px;text-transform:uppercase}'+
       '.xp{color:#fff;font-weight:900;font-size:17px;margin-top:6px}'+
-      '.st{color:var(--ok);font-weight:900;font-size:13px;margin-top:14px;letter-spacing:1px}'+
+      '.st{color:var(--ok-d);font-weight:900;font-size:13px;margin-top:14px;letter-spacing:1px}'+
       '.day{color:var(--mute);font-size:12px;margin-top:4px;font-weight:700}'+
       '.bot{text-align:center}'+
       '.tag{color:#fff;font-weight:900;font-size:13px;letter-spacing:1px}'+
@@ -7573,9 +7628,6 @@ function viewSport(name, start) {
       (B.sport ? '<br>✅ Ton habitude Sport du jour est cochée.' : '') + '</div></div>';
   }
   h += progCartesHTML(getAllData());
-  // 🌙 Le cycle, juste après le programme : c'est lui qui dit si la grosse
-  // séance de la semaine tombe au bon moment.
-  try { h += cycCarteHTML(getAllData()); } catch (e) { }
 
   // ─── Le minuteur à intervalles ───
   h += '<div id="spt-zone" class="spt-card spt-timer">' +
@@ -7647,11 +7699,127 @@ function viewSport(name, start) {
     chrHTML().replace('class="spt-card"', 'class="spt-card" style="border:none;box-shadow:none;padding:0;margin:0"') +
     '</div></details>';
 
+  // 📅 L'historique, juste sous le chronomètre.
+  try { h += progHistoHTML(progGet(getAllData())); } catch (e) { }
+
   if (is14) h += '<details class="spt-tiroir" open><summary><span class="spt-sum-t">🔔 Méthode séance express</span><span class="spt-sum-c">⌄</span></summary>' +
     '<div class="spt-corps"><div class="spt-card spt-plan">' + training14HTML(name, start) + '</div></div></details>';
   return h + '</div>';
 }
 
+// 📅 L'HISTORIQUE DES SÉANCES — sous le chronomètre.
+// Akli : « qu'on puisse voir quelle séance on a faite, même les séances
+// générées, au cas où ça nous a plu et qu'on veut le refaire. »
+// Le journal garde déjà le DÉTAIL de chaque séance faite (exercices, séries,
+// charges) : on peut donc en relancer une à l'identique, y compris une express
+// qui a été écrasée depuis par une autre génération.
+function histoMois(dec) {
+  var d = new Date();
+  d.setDate(1);
+  d.setMonth(d.getMonth() + (dec || 0));
+  return d;
+}
+var HISTO_MOIS = ["janvier", "février", "mars", "avril", "mai", "juin",
+  "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+function progHistoHTML(P) {
+  var J = P.journal || [];
+  // Au premier affichage on ouvre sur le mois de la DERNIÈRE séance : arriver
+  // sur un mois vide parce qu'on est le 1er donne l'impression que rien n'est
+  // enregistré.
+  if (state.histoDec == null) {
+    state.histoDec = 0;
+    if (J.length) {
+      var au = new Date(), dr = new Date(J[0].d + "T12:00:00");
+      if (!isNaN(dr)) state.histoDec = Math.min(0,
+        (dr.getFullYear() - au.getFullYear()) * 12 + (dr.getMonth() - au.getMonth()));
+    }
+  }
+  var dec = state.histoDec || 0, ref = histoMois(dec);
+  var an = ref.getFullYear(), mo = ref.getMonth();
+  // Une entrée par jour du mois : ce qui a été fait, et de quelle couleur.
+  var parJour = {};
+  for (var i = 0; i < J.length; i++) {
+    var dt = new Date(J[i].d + "T12:00:00");
+    if (isNaN(dt) || dt.getFullYear() !== an || dt.getMonth() !== mo) continue;
+    var k = dt.getDate();
+    (parJour[k] = parJour[k] || []).push(J[i]);
+  }
+  var prem = new Date(an, mo, 1), dLun = (prem.getDay() + 6) % 7;
+  var nbj = new Date(an, mo + 1, 0).getDate(), auj = new Date();
+  var estMoisCourant = (auj.getFullYear() === an && auj.getMonth() === mo);
+
+  var g = '<div class="hst-jours">';
+  ["L", "M", "M", "J", "V", "S", "D"].forEach(function (x) { g += '<span class="hst-e">' + x + '</span>'; });
+  g += '</div><div class="hst-grille">';
+  for (var v = 0; v < dLun; v++) g += '<span class="hst-c vide"></span>';
+  for (var d2 = 1; d2 <= nbj; d2++) {
+    var L = parJour[d2], sel = (state.histoJour === d2 && state.histoDec === dec);
+    var coul = "";
+    if (L) {
+      var MU = progMuscle((L[0].exos && L[0].exos[0] || {}).m);
+      coul = MU[2];
+    }
+    g += '<button class="hst-c' + (L ? ' fait' : '') + (sel ? ' sel' : '') +
+      (estMoisCourant && d2 === auj.getDate() ? ' auj' : '') + '"' +
+      (L ? ' data-hst-j="' + d2 + '" style="--hc:' + coul + '"' : ' disabled') + '>' +
+      d2 + (L ? '<i></i>' + (L.length > 1 ? '<b>' + L.length + '</b>' : '') : '') + '</button>';
+  }
+  g += '</div>';
+
+  // Ce qu'on liste dessous : le jour choisi, sinon les dernières séances.
+  var liste = state.histoJour && parJour[state.histoJour] ? parJour[state.histoJour] : J.slice(0, 6);
+  var titre = state.histoJour && parJour[state.histoJour]
+    ? "Le " + state.histoJour + " " + HISTO_MOIS[mo]
+    : "Mes dernières séances";
+  var l = "";
+  for (var q = 0; q < liste.length; q++) {
+    var E = liste[q], faites = 0, tot = 0;
+    for (var x = 0; x < (E.exos || []).length; x++)
+      for (var y = 0; y < E.exos[x].series.length; y++) { tot++; if (E.exos[x].series[y].ok) faites++; }
+    var M2 = progMuscle((E.exos && E.exos[0] || {}).m);
+    l += '<div class="hst-l" style="border-left-color:' + M2[2] + '">' +
+      '<div class="hst-l-c"><div class="hst-l-n">' + esc(E.nom) + '</div>' +
+      '<div class="hst-l-s">' + frDate(E.d) + ' · ' + faites + '/' + tot + ' séries' +
+      (E.vol ? ' · ' + E.vol + ' kg' : '') + '</div></div>' +
+      '<button class="hst-refaire" data-hst-r="' + esc(E.d) + '|' + q + '">🔁 Refaire</button></div>';
+  }
+  if (!l) l = '<div class="spt-txt">Aucune séance terminée pour l\'instant. Elles apparaîtront ici, jour par jour.</div>';
+
+  return '<details class="spt-tiroir" id="hst-tiroir"' + (state.histoOpen ? ' open' : '') + '>' +
+    '<summary><span class="spt-sum-t">📅 Mes séances faites</span>' +
+    (J.length ? '<span class="spt-sum-n">' + J.length + '</span>' : '') +
+    '<span class="spt-sum-c">⌄</span></summary><div class="spt-corps">' +
+    '<div class="hst-tete"><button class="hst-nav" data-hst-d="-1">‹</button>' +
+    '<span class="hst-mois">' + HISTO_MOIS[mo] + ' ' + an + '</span>' +
+    '<button class="hst-nav" data-hst-d="1"' + (dec >= 0 ? ' disabled' : '') + '>›</button></div>' +
+    g +
+    '<div class="hst-titre">' + titre +
+    (state.histoJour ? ' <button class="hst-tout" id="hst-tout">tout voir</button>' : '') + '</div>' + l +
+    '</div></details>';
+}
+// 🔁 REFAIRE UNE SÉANCE : on repart du détail enregistré, séries décochées,
+// charges gardées en cible. C'est ce qui permet de rejouer une express que la
+// génération suivante a écrasée.
+function progRefaire(E) {
+  var A = getAllData(), P = progGet(A);
+  var exos = JSON.parse(JSON.stringify(E.exos || []));
+  for (var i = 0; i < exos.length; i++) {
+    for (var j = 0; j < exos[i].series.length; j++) {
+      var S = exos[i].series[j];
+      // Le poids réellement soulevé devient la cible à égaler.
+      if (S.kg != null && S.kg !== "" && S.u !== "%") S.c = S.kg;
+      S.ok = false; delete S.kg;
+    }
+  }
+  var id = "sx_refait";
+  P.seances = P.seances.filter(function (x) { return x.id !== id; });
+  P.seances.push({ id: id, nom: E.nom, refait: 1, maj: isoLocal(), exos: exos });
+  P.bonus = P.bonus || [];
+  if (P.bonus.indexOf(id) < 0) P.bonus.push(id);
+  progSetClient(P);
+  try { localStorage.removeItem("amcoach_run_" + CLIENT); } catch (e) { }
+  return id;
+}
 function bindSport() {
   try { chrCharger(); bindChrono(); } catch (e) { }
   function maj(k, v) { var cc = sptCfg(); cc[k] = v; sptCfgSet(cc); }
@@ -7715,7 +7883,51 @@ function bindSport() {
   if (mMoins) mMoins.addEventListener("click", function () { majMarche(-1); });
   if (mPlus) mPlus.addEventListener("click", function () { majMarche(1); });
 
-  try { bindCycle(); } catch (e) { }
+  // 📅 L'historique des séances
+  var th = document.getElementById("hst-tiroir");
+  if (th) th.addEventListener("toggle", function () { state.histoOpen = this.open; });
+  var hn = document.querySelectorAll("[data-hst-d]");
+  for (var hi = 0; hi < hn.length; hi++) hn[hi].addEventListener("click", function () {
+    state.histoDec = (state.histoDec || 0) + parseInt(this.getAttribute("data-hst-d"), 10);
+    if (state.histoDec > 0) state.histoDec = 0;
+    state.histoJour = null; state.histoOpen = true; render();
+  });
+  var hj = document.querySelectorAll("[data-hst-j]");
+  for (var hk = 0; hk < hj.length; hk++) hj[hk].addEventListener("click", function () {
+    var j = parseInt(this.getAttribute("data-hst-j"), 10);
+    state.histoJour = (state.histoJour === j ? null : j);
+    state.histoOpen = true; buzz(); render();
+  });
+  var ht = document.getElementById("hst-tout");
+  if (ht) ht.addEventListener("click", function (e) {
+    e.preventDefault(); state.histoJour = null; render();
+  });
+  var hr = document.querySelectorAll("[data-hst-r]");
+  for (var hm = 0; hm < hr.length; hm++) hr[hm].addEventListener("click", function () {
+    var ref = this.getAttribute("data-hst-r").split("|");
+    var P0 = progGet(getAllData()), dec = state.histoDec || 0, ref2 = histoMois(dec);
+    var jour = state.histoJour, liste;
+    if (jour) {
+      liste = (P0.journal || []).filter(function (E) {
+        var dt = new Date(E.d + "T12:00:00");
+        return dt.getFullYear() === ref2.getFullYear() && dt.getMonth() === ref2.getMonth() && dt.getDate() === jour;
+      });
+    } else liste = (P0.journal || []).slice(0, 6);
+    var E0 = liste[parseInt(ref[1], 10)];
+    if (!E0) { feedback("Séance introuvable", "warn"); return; }
+    state.progRun = progRefaire(E0);
+    sptArreter(true);
+    feedback("🔁 " + E0.nom + " — c'est reparti", "ok");
+    render();
+  });
+
+  // Les tiroirs gardent leur position d'un rendu à l'autre : cocher une marche
+  // ne doit pas refermer le programme qu'on venait d'ouvrir.
+  var tp = document.getElementById("p3-tiroir");
+  if (tp) tp.addEventListener("toggle", function () { state.p3Open = this.open; });
+  var tb = document.getElementById("bonus-tiroir");
+  if (tb) tb.addEventListener("toggle", function () { state.bonusOpen = this.open; });
+
 
   var xpb = document.getElementById("spt-express");
   if (xpb) xpb.addEventListener("click", function () {
@@ -8756,7 +8968,12 @@ function progCartesHTML(all) {
   // Le socle, mois par mois
   if (sexe && C) {
     var socle = C;
-    h += '<div class="spt-card"><div class="spt-lab cy">🗓️ Mon programme — ' + (sexe === "f" ? "femme" : "homme") + '</div>';
+    // PAGE TROP LONGUE : les mois deviennent un tiroir replié. La séance du
+    // jour est déjà en haut ; les mois servent à consulter, pas à agir.
+    h += '<details class="spt-tiroir" id="p3-tiroir"' + (state.p3Open ? ' open' : '') + '>' +
+      '<summary><span class="spt-sum-t">🗓️ Mon programme — ' + (sexe === "f" ? "femme" : "homme") + '</span>' +
+      '<span class="spt-sum-n">Mois ' + moisEnCours + ' sur 3</span>' +
+      '<span class="spt-sum-c">⌄</span></summary><div class="spt-corps">';
     for (var m = 1; m <= 3; m++) {
       var cfg = socle["m" + m], ouvert = (m <= moisEnCours);
       var jourDeb = (m - 1) * 28 + 1;
@@ -8793,7 +9010,7 @@ function progCartesHTML(all) {
       }
       h += (passe ? '</details>' : '</div>');
     }
-    h += '</div>';
+    h += '</div></details>';
   }
 
   // Les séances bonus : tout ce que le coach a attribué en plus du socle
@@ -8803,14 +9020,17 @@ function progCartesHTML(all) {
   if (C) ["m1", "m2", "m3"].forEach(function (m) { if (C[m]) socleIds = socleIds.concat(C[m].sea || []); });
   var bonus = P.seances.filter(function (S) { return socleIds.indexOf(S.id) < 0 && S.id !== EXPRESS_ID; });
   if (bonus.length) {
-    h += '<div class="spt-card"><div class="spt-lab">🎁 Mes séances bonus</div><div class="prg-cartes">';
+    h += '<details class="spt-tiroir" id="bonus-tiroir"' + (state.bonusOpen ? ' open' : '') + '>' +
+      '<summary><span class="spt-sum-t">🎁 Mes séances bonus</span>' +
+      '<span class="spt-sum-n">' + bonus.length + '</span>' +
+      '<span class="spt-sum-c">⌄</span></summary><div class="spt-corps"><div class="prg-cartes">';
     for (var b = 0; b < bonus.length; b++) {
       var SB = bonus[b], nB = (SB.exos || []).length, MB = progMuscle((SB.exos[0] || {}).m);
       h += '<button class="prg-carte" data-prg-run="' + SB.id + '" style="background:linear-gradient(150deg,' + MB[2] + '1F,#fff);border-color:' + MB[2] + '80">' +
         '<div class="prg-carte-n">' + esc(SB.nom) + '</div>' +
         '<div class="prg-carte-s">' + nB + ' exercice' + (nB > 1 ? 's' : '') + '</div></button>';
     }
-    h += '</div></div>';
+    h += '</div></div></details>';
   }
   if (!sexe && !bonus.length && P.seances.length) {
     // Sécurité : un client sans sexe renseigné garde accès à ses séances.
@@ -9156,6 +9376,32 @@ function cycEtat(c, aujourdhui) {
 }
 
 // ─── La carte affichée dans l'onglet Sport ───
+// 🌙 LE CYCLE SUR L'ACCUEIL — une seule ligne, qui s'ouvre.
+// Akli : « mets-le dans l'accueil sous Remplir ma journée, juste une ligne,
+// l'accueil doit rester compressé. » Replié, il ne coûte qu'une ligne ;
+// ouvert, il donne la carte complète. Et il dit POURQUOI on note son cycle :
+// sans cette phrase, personne ne remplit un champ dont l'intérêt n'est pas
+// clair.
+function cycLigneHTML(all) {
+  var sexe = null;
+  try { sexe = prog3Sexe(all); } catch (e) { }
+  if (sexe !== "f") return "";
+  var c = cycGet(all), E = c.on ? cycEtat(c) : null;
+  var titre = E ? "Mon cycle — jour " + E.jour : "Remplir mon cycle";
+  var sous = E ? E.def.nom + " · énergie " + E.def.energie.toLowerCase()
+    : "Deux informations, une fois. 30 secondes.";
+  return '<details class="cyc-ligne-t"' + (state.cycOpen ? ' open' : '') + ' id="cyc-tiroir">' +
+    '<summary><span class="cyc-l-ico">🌙</span>' +
+    '<span class="cyc-l-txt"><span class="cyc-l-t">' + titre + '</span>' +
+    '<span class="cyc-l-s">' + sous + '</span></span>' +
+    '<span class="cyc-l-c">⌄</span></summary>' +
+    '<div class="cyc-l-corps">' +
+    (E ? '' : '<div class="cyc-l-pourquoi">Pourquoi le noter ? Ton énergie, ta force et ta faim ne sont ' +
+      'pas les mêmes au jour 3 et au jour 21. En sachant où tu en es, l\'appli place les grosses séances ' +
+      'quand ton corps encaisse et allège quand il demande à souffler. Et une stagnation du poids avant ' +
+      'les règles n\'est pas un échec : c\'est de l\'eau.</div>') +
+    cycCarteHTML(all) + '</div></details>';
+}
 function cycCarteHTML(all) {
   var sexe = null;
   try { sexe = prog3Sexe(all); } catch (e) { }
@@ -9962,7 +10208,7 @@ function seaDashHTML() {
   h += '<button id="sea-new" class="big-btn" style="margin:4px 0 0;padding:13px 0;font-size:13.5px">＋ Nouvelle séance type</button>' +
     '<button id="sea-prog3" class="prg-mini" style="width:100%;margin-top:9px;padding:13px 0">🗓️ Programme fixe des 3 mois (H / F)</button>' +
     '<button id="sea-resync" class="prg-mini" style="width:100%;margin-top:8px;padding:13px 0">🔄 Remettre toutes les séances à jour</button>' +
-    '<button id="sea-restore" class="prg-mini" style="width:100%;margin-top:8px;padding:13px 0;border-color:var(--brand);color:var(--brand)">☁️ Récupérer mes clients depuis le serveur</button>' +
+    '<button id="sea-restore" class="prg-mini" style="width:100%;margin-top:8px;padding:13px 0;border-color:var(--brand);color:var(--brand-d)">☁️ Récupérer mes clients depuis le serveur</button>' +
     '<div style="font-size:11.5px;color:var(--mute);line-height:1.55;margin-top:7px">Si ton tableau de bord paraît vide : tes données sont sur le serveur, ce bouton les redescend.</div>' +
     '<div style="display:flex;gap:8px;margin-top:10px">' +
     '<button id="sea-export" class="prg-mini" style="flex:1;padding:12px 0">💾 Exporter</button>' +
@@ -10997,14 +11243,18 @@ function viewCoachDetail(){
     return '<div class="chart-card"><div class="chart-hdr"><div class="chart-dot" style="background:'+color+'"></div>'+
       '<span class="chart-title">'+title+'</span></div>'+svgLineChart(vals,color,{min:min,max:max})+'</div>';
   }
-  h+=chart("Score global",R,"score",0,100);
-  h+=chart("Poids (kg)","#555","poids",null,null);
-  h+=chart("Mental",B,"mental",0,100);
+  // ÉCRAN TROP LONG : les courbes ne se regardent pas à chaque ouverture de
+  // fiche, elles se consultent. Elles passent en tiroir, replié par défaut.
+  h+=cdSecOpen("courbes","📈","Courbes","Score, poids, mental")+
+    chart("Score global",R,"score",0,100)+
+    chart("Poids (kg)","#555","poids",null,null)+
+    chart("Mental",B,"mental",0,100)+
+    cdSecClose();
 
   // Bilans dimanche avec questions
   var bilans=series.filter(function(s){return s.bilan&&(s.bilan.victoire||s.bilan.ressenti||s.bilan.blocage||s.bilan.question);});
   if(bilans.length){
-    h+='<div style="display:flex;align-items:center;gap:8px;margin:16px 0 10px"><div class="bar bar-r"></div><span style="font-weight:900;font-size:14px;text-transform:uppercase;letter-spacing:1px">Bilans dimanche</span></div>';
+    h+=cdSecOpen("bilansdim","📝","Bilans du dimanche",bilans.length+" semaine"+(bilans.length>1?"s":""));
     for(var b=bilans.length-1;b>=0;b--){
       var bl=bilans[b];
       h+='<div class="card" style="border-left:4px solid '+R+'">'+
@@ -11015,10 +11265,11 @@ function viewCoachDetail(){
       if(bl.bilan.ressenti)h+='<div><div style="font-size:11px;color:var(--mute);font-weight:800;text-transform:uppercase">💬 Ressenti</div><div style="font-size:12px;color:#333;line-height:1.5">'+esc(bl.bilan.ressenti)+'</div></div>';
       h+='</div>';
     }
+    h+=cdSecClose();
   }
 
   // 📅 Calendrier 90 jours (couleurs client)
-  h+='<div class="card"><div style="font-weight:900;font-size:13px;margin-bottom:10px">📅 Son calendrier</div>';
+  h+=cdSecOpen("calclient","📅","Son calendrier","Les 90 jours, jour par jour")+'<div class="card" style="border:none;box-shadow:none;padding:0;margin:0">';
   (function(){
     var wkO=(new Date(c.start_date).getDay()+6)%7;
     for(var mi3=0;mi3<3;mi3++){
@@ -11050,9 +11301,18 @@ function viewCoachDetail(){
   // s'affiche QUE si une mission du jour a été définie — pas quand le client
   // remplit simplement ses habitudes. D'où l'impression que l'éclair manque.
   h+='<div style="font-size:11px;color:var(--mute);margin-top:6px;line-height:1.6">🟢 complet · 🟠 partiel · 🔴 manqué'+
-    '<br><span style="opacity:.85">⚡ les 3 questions du mindset ont été remplies</span></div></div>';
+    '<br><span style="opacity:.85">⚡ les 3 questions du mindset ont été remplies</span></div></div>'+cdSecClose();
 
-  h+=cdSecOpen("reglages","⚙️","Réglages du client","Date de départ, accès à l&rsquo;appli");
+  h+=cdSecOpen("reglages","⚙️","Réglages du client","Départ, accès, mise en pause");
+  // 📦 Mettre en pause : le client sort du tableau de bord, son suivi reste.
+  // Placé dans les réglages et non dans l'affichage : c'est une décision de
+  // suivi, on la cherche là où on règle le départ et l'accès.
+  (function(){
+    var ar=archEst(c.slug);
+    h+='<button id="cd-archive" style="width:100%;padding:12px 0;border-radius:12px;border:1.5px solid '+(ar?"var(--brand2)":"var(--line)")+
+      ';background:'+(ar?"#F3ECFF":"var(--card)")+';color:'+(ar?"var(--brand2)":"var(--ink2)")+';font-weight:800;font-size:12.5px;margin-bottom:10px">'+
+      (ar?'📦 En pause — la remettre dans le tableau de bord':'📦 Mettre en pause — la retirer du tableau de bord')+'</button>';
+  })();
   // 🚀 Date de départ (modifiable)
   h+='<div class="card" style="border-left:4px solid '+B+';padding:13px 15px;display:flex;align-items:center;justify-content:space-between">'+
     '<span style="font-weight:800;font-size:13px">🚀 Départ : <strong>'+new Date(c.start_date).toLocaleDateString("fr-FR")+'</strong></span>'+
@@ -11062,7 +11322,7 @@ function viewCoachDetail(){
   var acc2=allData[504]||{};
   var isOff=!!acc2.off;
   var isExpired=acc2.end&&isoLocal()>acc2.end;
-  var accStatus=isOff?'<span style="color:var(--brand)">⛔ COUPÉ</span>':isExpired?'<span style="color:var(--warn-d)">⏸️ EXPIRÉ ('+frDate(acc2.end)+')</span>':'<span style="color:var(--ok)">✅ ACTIF'+(acc2.end?' → '+frDate(acc2.end):' · illimité')+'</span>';
+  var accStatus=isOff?'<span style="color:var(--brand)">⛔ COUPÉ</span>':isExpired?'<span style="color:var(--warn-d)">⏸️ EXPIRÉ ('+frDate(acc2.end)+')</span>':'<span style="color:var(--ok-d)">✅ ACTIF'+(acc2.end?' → '+frDate(acc2.end):' · illimité')+'</span>';
   h+='<div class="card" style="border-left:4px solid '+(isOff||isExpired?"var(--brand)":"var(--ok)")+';padding:13px 15px">'+
     '<div style="font-weight:800;font-size:13px;margin-bottom:10px">🔑 Accès : '+accStatus+'</div>'+
     '<div style="display:flex;gap:8px">'+
@@ -11077,7 +11337,7 @@ function viewCoachDetail(){
     '<div style="font-weight:800;font-size:13px;margin-bottom:10px">⚡ Reset 14 jours</div>'+
     '<div style="display:flex;gap:8px;margin-bottom:8px">'+
     '<button id="reset14-on" style="flex:1;font-size:11px;font-weight:800;padding:9px 0;border:1.5px solid var(--warn-d);border-radius:10px;background:#fff;color:var(--warn-d)">⚡ Activer 14 jours</button>'+
-    '<button id="reset14-off" style="flex:1;font-size:11px;font-weight:800;padding:9px 0;border:1.5px solid var(--ok);border-radius:10px;background:#fff;color:var(--ok)">🔓 Passer au 90 jours</button></div>'+
+    '<button id="reset14-off" style="flex:1;font-size:11px;font-weight:800;padding:9px 0;border:1.5px solid var(--ok);border-radius:10px;background:#fff;color:var(--ok-d)">🔓 Passer au 90 jours</button></div>'+
     '<button class="copy-menu14 big-btn" data-slug="'+esc(c.slug)+'" style="width:100%;padding:11px 0;font-size:12px;background:var(--warn-d);box-shadow:none">🍽️ Copier lien MENU 14 jours</button>'+
     '<div style="font-size:11px;color:var(--mute);margin-top:8px;line-height:1.5">"Activer" fixe la fin d\'accès à J+14 : app et menu se bloquent ensuite automatiquement. "Passer au 90 jours" débloque tout (accès illimité) — renvoie alors le lien tracker habituel.</div></div>';
 
@@ -11554,7 +11814,7 @@ function viewCoachStats(){
 
   // ── Vue d'ensemble
   h+='<div class="kpi-row" style="margin-bottom:10px">'+
-    '<div class="kpi-card"><div class="kpi-val" style="color:var(--ok)">'+A.finis+'</div><div class="kpi-lbl">Programmes finis</div></div>'+
+    '<div class="kpi-card"><div class="kpi-val" style="color:var(--ok-d)">'+A.finis+'</div><div class="kpi-lbl">Programmes finis</div></div>'+
     '<div class="kpi-card"><div class="kpi-val" style="color:var(--brand2)">'+A.actifs+'</div><div class="kpi-lbl">En cours</div></div></div>'+
     '<div class="kpi-row" style="margin-bottom:16px">'+
     '<div class="kpi-card"><div class="kpi-val" style="color:'+(A.abandons?"var(--warn-d)":"var(--mute)")+'">'+A.abandons+'</div><div class="kpi-lbl">Décrochés</div></div>'+
@@ -11631,8 +11891,23 @@ function viewCoachStats(){
 // ═══════════ 🚦 BAROMÈTRE D'ADHÉRENCE ═══════════
 // Point 5 du rapport : donner au coach un résumé immédiat de qui va bien
 // et de qui décroche, sans ouvrir cinq fiches.
+// 📦 CLIENTS EN PAUSE. Akli : « Céline et Manel, je ne veux plus les voir
+// quand j'ouvre le dashboard, elles sont en pause. » On ne SUPPRIME pas — leur
+// suivi doit rester intact pour le jour où elles reprennent. On les sort de la
+// liste, des alertes et du décompte, et on les range dans un tiroir en bas.
+// Le drapeau reste LOCAL (comme le pipeline et le journal de prospection) :
+// la table Supabase n'a pas de colonne pour ça et un PATCH sur une colonne
+// inconnue échouerait.
+function archLire(){var a=lsGet("amcoach_archives",[]);return Array.isArray(a)?a:[];}
+function archEst(slug){return archLire().indexOf(slug)>=0;}
+function archBascule(slug){
+  var a=archLire(), i=a.indexOf(slug);
+  if(i>=0)a.splice(i,1); else a.push(slug);
+  lsSet("amcoach_archives",a);
+  return i<0;   // true = vient d'être mis en pause
+}
 function coachPouls(){
-  var cl=lsGet("amcoach_clients",[]);
+  var cl=lsGet("amcoach_clients",[]).filter(function(c){return !archEst(c.slug);});
   var out={vert:[],orange:[],rouge:[],fini:[],tous:[]};
   for(var i=0;i<cl.length;i++){
     var c=cl[i], d=lsGet("amcoach_"+c.slug,{});
@@ -12844,7 +13119,9 @@ function viewCoachDash(){
   // Ces deux signaux se lisent AVANT la liste des clients : ce sont des
   // appels à passer aujourd'hui, pas des statistiques à consulter.
   (function(){
-    var cl=lsGet("amcoach_clients",[]), moral=[], churn=[];
+    // Les clients en pause ne déclenchent aucune alerte : on ne rappelle pas
+    // quelqu'un qui a arrêté d'un commun accord.
+    var cl=lsGet("amcoach_clients",[]).filter(function(x){return !archEst(x.slug);}), moral=[], churn=[];
     for(var i=0;i<cl.length;i++){
       var c=cl[i], dat=lsGet("amcoach_"+c.slug,{});
       var st=c.start_date||isoLocal();
@@ -12942,6 +13219,10 @@ function viewCoachDash(){
   }
   h+='<input id="client-search" class="num-input" placeholder="\ud83d\udd0d Rechercher un client..." value="'+esc(state.searchQ||"")+'" style="font-size:15px;font-weight:400;margin-bottom:14px"/>';
   var q=(state.searchQ||"").toLowerCase();
+  // Les clients en pause sortent aussi des grandes cartes détaillées : elles
+  // occupaient tout l'écran alors qu'Akli ne veut plus les voir. Une recherche
+  // par leur nom les retrouve quand même.
+  clients=clients.filter(function(c){return !archEst(c.slug)||q;});
   var shown=q?clients.filter(function(c){return c.name.toLowerCase().indexOf(q)>=0||c.slug.toLowerCase().indexOf(q)>=0;}):clients;
   // Tri par assiduité : dernière activité la plus récente en haut, "jamais ouverte" en bas, égalité départagée par le % de remplissage
   shown=shown.slice().sort(function(a,b){
@@ -13064,6 +13345,25 @@ function viewCoachDash(){
         '<button class="copy-menu big-btn" data-slug="'+esc(c.slug)+'" style="padding:12px 0;font-size:13px;background:var(--ok-d);box-shadow:none;margin-bottom:0">🍽️ Copier lien MENU</button></div>';
     }
   }
+  // 📦 LES CLIENTS EN PAUSE, tout en bas, dans un tiroir replié.
+  // Ils restent accessibles en un tap — c'est une pause, pas une suppression.
+  (function(){
+    var arch=lsGet("amcoach_clients",[]).filter(function(x){return archEst(x.slug);});
+    if(!arch.length)return;
+    var l='';
+    for(var i=0;i<arch.length;i++){
+      var a=arch[i];
+      l+='<button class="pouls-go" data-s="'+esc(a.slug)+'" style="width:100%;display:flex;align-items:center;gap:10px;text-align:left;'+
+        'background:none;border:0;border-top:1px solid var(--line);padding:11px 2px;cursor:pointer">'+
+        '<span style="font-size:13px">📦</span>'+
+        '<span style="flex:1;font-weight:800;font-size:13.5px;color:var(--mute)">'+esc(a.name)+'</span>'+
+        '<span style="font-size:11px;font-weight:700;color:var(--mute)">rouvrir ›</span></button>';
+    }
+    h+='<details class="cd-sec"><summary><span class="cd-sec-e">📦</span>'+
+      '<span class="cd-sec-t">Clients en pause<span class="cd-sec-r">'+arch.length+' — hors tableau de bord et hors alertes</span></span>'+
+      '<span class="cd-sec-c">›</span></summary><div class="cd-sec-b">'+l+'</div></details>';
+  })();
+
   return h+'</div></div>';
 }
 
@@ -13263,7 +13563,7 @@ function avertissementsHTML(res){
 function scenarioRowV2(sc){
   return '<div style="padding:8px 0;border-bottom:1px solid var(--soft2);font-size:12.5px;line-height:1.7"><strong>'+sc.label+'</strong> <span style="color:var(--mute)">('+frNum(sc.rMin)+'–'+frNum(sc.rMax)+' kg/sem · '+Math.round(sc.ratio*100)+' % de la perte en gras)</span><br>'+
     sc.gras.toFixed(1)+' kg de gras + '+sc.maigre.toFixed(1)+' kg de maigre · <strong style="color:var(--brand)">'+sc.wMin+'–'+sc.wMax+' semaines</strong>'+
-    (sc.in12?' <span style="color:var(--ok);font-weight:800">✅ atteignable en 12 sem</span>':'')+'</div>';
+    (sc.in12?' <span style="color:var(--ok-d);font-weight:800">✅ atteignable en 12 sem</span>':'')+'</div>';
 }
 function planCardHTMLV2(res,mgc){
   var h='<div class="card" style="padding:16px;border-left:4px solid '+(res.blocked?'var(--bad)':'var(--brand2)')+'">'+
@@ -13275,7 +13575,7 @@ function planCardHTMLV2(res,mgc){
     }
     h+='<div style="background:#FDECEA;border-radius:10px;padding:11px 13px;font-size:12.5px;color:var(--bad);line-height:1.7;margin-bottom:10px"><strong>🛑 PROTECTION IMC :</strong> viser '+mgc+' % demanderait '+res.L.toFixed(1)+' kg de perte → '+res.pF.toFixed(1)+' kg, IMC '+res.imcF.toFixed(1)+' (plancher '+res.S.imcMin.toFixed(0)+').<br><strong>Plan ajusté :</strong> '+res.adjL.toFixed(1)+' kg maximum → '+res.adjP.toFixed(1)+' kg (\u2248 '+res.adjMgc.toFixed(1)+' % de MG).</div>';
   }else{
-    h+='<div style="font-weight:900;font-size:24px;margin-bottom:2px">Poids final : '+res.pF.toFixed(1)+' kg <span style="font-size:13px;color:var(--ok)">IMC '+res.imcF.toFixed(1)+' ✅</span></div>'+
+    h+='<div style="font-weight:900;font-size:24px;margin-bottom:2px">Poids final : '+res.pF.toFixed(1)+' kg <span style="font-size:13px;color:var(--ok-d)">IMC '+res.imcF.toFixed(1)+' ✅</span></div>'+
       '<div style="font-size:14px;font-weight:800;color:var(--brand);margin-bottom:8px">À perdre : '+res.L.toFixed(1)+' kg</div>';
   }
   for(var i=0;i<res.scenarios.length;i++)h+=scenarioRowV2(res.scenarios[i]);
@@ -13330,7 +13630,7 @@ function morphoHTML(A,mgc,compact){
     }else if(A.visceral===1){
       h+='<div style="margin-top:8px;background:#FFF3E0;border-left:4px solid var(--warn-d);border-radius:10px;padding:10px 12px;font-size:12px;color:#7A3D00;line-height:1.7"><strong>⚠️ Tour de taille '+A.ventre+' cm (zone de vigilance dès '+A.w1+' cm) :</strong> risque métabolique modéré — chaque centimètre perdu compte plus que chaque kilo.</div>';
     }else{
-      h+='<div style="margin-top:8px;font-size:11.5px;color:var(--ok);font-weight:700">✅ Tour de taille '+A.ventre+' cm — sous les seuils de risque ('+A.w1+' cm).</div>';
+      h+='<div style="margin-top:8px;font-size:11.5px;color:var(--ok-d);font-weight:700">✅ Tour de taille '+A.ventre+' cm — sous les seuils de risque ('+A.w1+' cm).</div>';
     }
   }
   return h+'</div>';
@@ -14188,7 +14488,7 @@ function successCard(slug,iA,iB){
     '.ti{text-align:center;margin-top:6px}'+
     '.t1{color:var(--gold);font-weight:900;font-size:12px;letter-spacing:3px;text-transform:uppercase}'+
     '.t2{color:#fff;font-weight:900;font-size:24px;margin-top:4px}'+
-    '.t3{color:var(--ok);font-weight:800;font-size:13px;margin-top:4px;letter-spacing:1px}'+
+    '.t3{color:var(--ok-d);font-weight:800;font-size:13px;margin-top:4px;letter-spacing:1px}'+
     '.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}'+
     '.cell{background:rgba(255,255,255,.05);border:1px solid #333;border-radius:16px;padding:16px 8px;text-align:center}'+
     '.cn{font-weight:900;font-size:24px;letter-spacing:.5px}'+
@@ -14729,6 +15029,15 @@ function bindCoach(){
     if(!confirm("Arrêter le challenge en cours ?"))return;
     coachSaveSlot(state.coachDetail,515,{on:false});
     feedback("Challenge arrêté","undo");
+    render();
+  });
+
+  // 📦 Mettre en pause / réactiver
+  var arb=document.getElementById("cd-archive");
+  if(arb)arb.addEventListener("click",function(){
+    var mis=archBascule(state.coachDetail);
+    feedback(mis?"📦 Mise en pause — elle n'apparaît plus au tableau de bord"
+                :"↩︎ De retour dans le tableau de bord", mis?"undo":"ok");
     render();
   });
 
@@ -16570,6 +16879,12 @@ function bindMain(name,start){
   // redessine la page, et le refermer à chaque fois serait insupportable.
   var tirCal=document.querySelector(".cal-tiroir");
   if(tirCal)tirCal.addEventListener("toggle",function(){state.calOpen=this.open;});
+
+  // 🌙 Le cycle : le tiroir garde sa position, et ses boutons vivent ici
+  // maintenant qu'il a quitté l'onglet Sport.
+  var tirCyc=document.getElementById("cyc-tiroir");
+  if(tirCyc)tirCyc.addEventListener("toggle",function(){state.cycOpen=this.open;});
+  try{ bindCycle(); }catch(e){}
 
   // ⚡ Le raccourci vers la journée du jour, en haut de l'accueil
   var gjt=document.getElementById("go-jour-top");

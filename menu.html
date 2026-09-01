@@ -391,7 +391,15 @@ function frNorm(s) {
 function frMotEgal(a, b) {
   if (!a || !b || a.length < 3 || b.length < 3) return false;
   a = a.replace(/s$/, ""); b = b.replace(/s$/, "");
-  return a === b || a.indexOf(b) === 0 || b.indexOf(a) === 0;
+  if (a === b) return true;
+  // LE PRÉFIXE SEUL NE SUFFIT PAS. « pois » est un préfixe de « poivre » ET
+  // de « poisson » : les pois chiches finissaient donc dans les aromates, et
+  // l'appli réclamait un glucide qui était déjà dans le frigo. On n'accepte
+  // un préfixe que si le mot le plus court fait au moins 5 lettres et que
+  // les deux se ressemblent à une lettre près.
+  var court = a.length < b.length ? a : b, long = a.length < b.length ? b : a;
+  if (court.length < 5 || long.length - court.length > 1) return false;
+  return long.indexOf(court) === 0;
 }
 // Deux passes volontaires. STRICT : le mot tapé correspond au PREMIER mot
 // de l'entrée — « riz » trouve « Riz », pas « Protéine de pois / riz (poudre) ».
@@ -446,6 +454,52 @@ function frCru(nom) {
 }
 
 // ─── Le tri de ce que la cliente a tapé ───
+// À QUELLE LISTE APPARTIENT CET ALIMENT ?
+// Un seul mot ne suffit pas à décider : « pois » se trouve dans les pois
+// chiches (glucide), les pois mange-tout (fibre) ET la protéine de pois.
+// On compare donc l'entrée à CHAQUE aliment des listes et on garde celui qui
+// partage le plus de mots avec elle ; à égalité, celui dont le nom est le
+// mieux couvert. « pois chiche » colle à 2 mots sur 2 de « Pois chiches »,
+// à 1 sur 3 de « Pois mange-tout » : le glucide gagne.
+function frMots(t) {
+  return frNorm(t).split(" ").filter(function (w) { return w.length >= 3; });
+}
+function frMeilleur(saisie) {
+  var mots = frMots(saisie);
+  if (!mots.length) return null;
+  var listes = [
+    ["A", FR_AROMATES], ["P", PROTEINES], ["P", PROTEINES_RETOUR], ["F", FIBRES],
+    ["G", GLUCIDES_RA], ["G", GLUCIDES_GB_OK], ["G", GLUCIDES_RETOUR]
+  ];
+  var best = null;
+  for (var l = 0; l < listes.length; l++) {
+    var cat = listes[l][0], liste = listes[l][1] || [];
+    for (var i = 0; i < liste.length; i++) {
+      // Ce qui est entre parenthèses reste CHERCHABLE (« laitue » trouve la
+      // salade) mais ne compte pas dans la longueur du nom : sans ça, « Noix
+      // (1 poignée) » paraissait aussi vague que « Noix de St-Jacques ».
+      var ref = frMots(liste[i]);
+      var base = frMots(String(liste[i]).replace(/\(.*?\)/g, " "));
+      if (!ref.length) continue;
+      var n = 0;
+      for (var j = 0; j < ref.length; j++)
+        for (var k = 0; k < mots.length; k++)
+          if (frMotEgal(mots[k], ref[j])) { n++; break; }
+      if (!n) continue;
+      var lon = base.length || ref.length;
+      // Une entrée COURTE qui colle entièrement bat une entrée longue dont on
+      // n'a qu'un mot : « noix » désigne la noix (fibre), pas la noix de
+      // Saint-Jacques. On départage sur la part du nom couverte, puis sur le
+      // nombre de mots du nom — le plus court est le plus précis.
+      var cand = { cat: cat, nom: liste[i], score: n, part: Math.min(1, n / lon), taille: lon, rang: l };
+      if (!best || cand.score > best.score ||
+        (cand.score === best.score && cand.part > best.part) ||
+        (cand.score === best.score && cand.part === best.part && cand.taille < best.taille) ||
+        (cand.score === best.score && cand.part === best.part && cand.taille === best.taille && cand.rang < best.rang)) best = cand;
+    }
+  }
+  return best;
+}
 function frTrier(txt) {
   var brut = String(txt || "").split(/[\n,;]+/).map(function (s) { return s.trim(); }).filter(function (s) { return s.length > 1; });
   var res = { P: [], G: [], F: [], A: [], inconnus: [], interdits: [] };
@@ -455,17 +509,8 @@ function frTrier(txt) {
     var cle = frNorm(m);
     if (!cle || vus[cle]) continue;
     vus[cle] = 1;
-    var range = false;
-    for (var pas = 0; pas < 2 && !range; pas++) {
-      var st = (pas === 0);
-      // Les aromates d'abord : l'ail est dans la liste des fibres, mais
-      // personne ne fait une assiette de fibres avec une gousse d'ail.
-      if (frDansListe(m, FR_AROMATES, st)) { res.A.push(m); range = true; }
-      else if (frDansListe(m, PROTEINES, st) || frDansListe(m, PROTEINES_RETOUR, st)) { res.P.push(m); range = true; }
-      else if (frDansListe(m, FIBRES, st)) { res.F.push(m); range = true; }
-      else if (frDansListe(m, GLUCIDES_RA, st) || frDansListe(m, GLUCIDES_GB_OK, st) || frDansListe(m, GLUCIDES_RETOUR, st)) { res.G.push(m); range = true; }
-    }
-    if (!range) res.inconnus.push(m);
+    var B = frMeilleur(m);
+    if (B) res[B.cat].push(m); else res.inconnus.push(m);
   }
   return res;
 }
@@ -601,8 +646,21 @@ function viewFrigo() {
 }
 
 function bindFrigo() {
+  // TANT QU'UNE RECETTE EST À L'ÉCRAN, ELLE SUIT LE FRIGO. Sinon on corrige
+  // un oubli, on ajoute l'ingrédient, et le message « il te manque un
+  // glucide » reste affiché sous une recette qui n'est plus la bonne.
+  function suivre() { if (state.frRes) frGenerer(state.frVar || 0); }
+
   var ta = document.getElementById("fr-txt");
-  if (ta) ta.addEventListener("input", function () { state.frTxt = this.value; });
+  if (ta) {
+    ta.addEventListener("input", function () { state.frTxt = this.value; });
+    // À la sortie du champ, pas à chaque frappe : recomposer la recette
+    // lettre par lettre ferait danser le titre sous les doigts.
+    ta.addEventListener("change", function () {
+      state.frTxt = this.value;
+      if (state.frRes) { frGenerer(state.frVar || 0); render(); }
+    });
+  }
 
   var meals = document.querySelectorAll("[data-fr-meal]");
   for (var m = 0; m < meals.length; m++) meals[m].addEventListener("click", function () {
@@ -616,6 +674,7 @@ function bindFrigo() {
     var v = this.getAttribute("data-fr-add");
     var t = state.frTxt || "";
     if (frNorm(t).indexOf(frNorm(v)) < 0) state.frTxt = (t ? t.replace(/\s*$/, "") + "\n" : "") + v;
+    suivre();
     render();
   });
 
@@ -630,6 +689,7 @@ function bindFrigo() {
 
 function frGenerer(variante) {
   state.frVar = variante || 0;
+  if (!(state.frTxt || "").trim()) { state.frTri = null; state.frRes = null; return; }
   state.frTri = frTrier(state.frTxt || "");
   state.frRes = frRecette(state.frTri, state.frMeal || "dej", state.frVar);
 }

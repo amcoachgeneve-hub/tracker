@@ -817,7 +817,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="01/09 · Un seul démarrer";
+var APP_VERSION="01/09 · Outils coach sauvegardés";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -1377,7 +1377,10 @@ var COACH_CLES={
   "amcoach_prospection":903,  // journal de prospection
   "amcoach_bilans":904,       // bilans
   "amcoach_biblio":905,       // bibliothèque d'exercices
-  "amcoach_clients":906       // liste des clients (secours : la table clients fait foi)
+  "amcoach_clients":906,      // liste des clients (secours : la table clients fait foi)
+  "amcoach_archives":907,     // clients mis en pause
+  "amcoach_depenses":908,     // dépenses du mois
+  "amcoach_abos":909          // abonnements
 };
 var __coachEnv={};
 function coachCloudPousser(cle){

@@ -817,7 +817,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="01/09 · Outils coach sauvegardés";
+var APP_VERSION="03/09 · Alertes justes";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -13186,18 +13186,31 @@ function viewCoachDash(){
       var pts=0, causes=[];
       var der=-1;
       for(var k=t90;k>=0;k--){if(dat[k]&&Object.keys(dat[k]).length){der=k;break;}}
-      var silence=(der<0)?t90+1:(t90-der);
-      // 🔒 Le verrou tombe au 4ᵉ jour de silence. On alerte AVANT : à 2 et 3
-      // jours, il est encore temps d'un message ; une fois l'accès fermé,
-      // c'est le client qui doit faire le premier pas, et beaucoup ne le font
-      // jamais. Une alerte qui arrive après la fermeture ne sert à rien.
+      // JOURS ENTIERS SANS RIEN REMPLIR. On ne compte JAMAIS aujourd'hui : à
+      // 8 h du matin, personne n'a encore rempli sa soirée. Compter le jour en
+      // cours affichait « 2 j sans rien remplir » à quelqu'un qui avait rempli
+      // avant-hier soir et qui n'avait donc qu'un seul jour de retard.
+      var vide=Math.max(0,(der<0)?t90:(t90-der-1));
+      // 🔒 L'ACCÈS FERMÉ SE LIT AU MÊME ENDROIT QUE LE VERROU : la dernière
+      // OUVERTURE de l'appli (slot 505), pas le dernier jour rempli. Les deux
+      // ne disent pas la même chose — une cliente peut ouvrir tous les jours
+      // sans rien cocher. Le tableau de bord annonçait « accès fermé » à des
+      // clientes dont l'accès était grand ouvert.
       var silSeuil=SIL_DEFAUT;
       try{var accS=dat[504]||{};if(accS.silence!==undefined)silSeuil=accS.silence;}catch(e){}
-      if(silSeuil>0&&silence>silSeuil){pts+=60;causes.push("🔒 accès fermé — "+silence+" j de silence");}
-      else if(silSeuil>0&&silence===silSeuil){pts+=50;causes.push("⏳ accès fermé demain — "+silence+" j de silence");}
-      else if(silence>=2){pts+=30;causes.push(silence+" j sans rien remplir");}
+      var vu505=dat[505]&&dat[505].d;
+      var joursOuv=vu505?Math.floor((new Date(isoLocal())-new Date(vu505))/86400000):null;
+      if(silSeuil>0&&joursOuv!=null&&joursOuv>silSeuil){
+        pts+=60;causes.push("🔒 accès fermé — "+joursOuv+" j sans ouvrir");
+      }else if(silSeuil>0&&joursOuv!=null&&joursOuv===silSeuil){
+        pts+=50;causes.push("⏳ accès fermé demain — "+joursOuv+" j sans ouvrir");
+      }
+      // Le retard de remplissage compte à part : c'est lui qui monte avec le
+      // temps, même quand la personne continue d'ouvrir l'appli.
+      if(vide>=7)pts+=60; else if(vide>=4)pts+=40; else if(vide>=2)pts+=30;
+      if(vide>=2)causes.push(vide+" j sans rien remplir");
       var somOk=0,nutOk=0,vus=0;
-      for(var w=Math.max(0,t90-6);w<=t90;w++){
+      for(var w=Math.max(0,t90-7);w<=t90-1;w++){
         var dw=dat[w]||{}, hw=dw.habits||{};
         if(Object.keys(dw).length)vus++;
         if(hw.sommeil)somOk++;

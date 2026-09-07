@@ -671,6 +671,12 @@ input,textarea{outline:none}
 .xp-glow{animation:xp-glow 1.6s ease-in-out infinite}
 
 /* ═══ Apport de la session du 31/08 : carte du cycle + sélecteur de muscle ═══ */
+/* 👨👩 Le choix du programme à la création d'un client. */
+.nc-sx{flex:1;padding:13px 4px;border-radius:12px;border:2px solid var(--line);background:var(--card);
+  color:var(--mute);font-weight:900;font-size:13px}
+.nc-sx.on[data-sx="h"]{border-color:#12B5EA;background:linear-gradient(135deg,#12B5EA,#8A3FFF);color:#fff}
+.nc-sx.on[data-sx="f"]{border-color:#EC4899;background:linear-gradient(135deg,#EC4899,#A855F7);color:#fff}
+
 /* 📅 L'historique des séances : un calendrier compact sous le chronomètre. */
 .hst-tete{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .hst-mois{font-weight:900;font-size:13.5px;color:var(--ink);text-transform:capitalize}
@@ -817,7 +823,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="03/09 · Alertes justes";
+var APP_VERSION="07/09 · Programme à la création";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -1748,22 +1754,27 @@ function computeAlert(allData,today90,voix){
   if(days.length<4)return null;
   var worst=null,worstRate=1;
   for(var h=0;h<HABITS.length;h++){
-    var id=HABITS[h].id,done=0;
+    var id=HABITS[h].id;
+    // LES COMPLÉMENTS NE SONT PAS UN ÉCHEC. Quelqu'un qui n'en prend pas
+    // simplement pas n'a aucun problème de discipline : le désigner comme
+    // « l'alerte du moment » détourne l'attention de ce qui transforme
+    // vraiment. Cette règle existait déjà pour le rapport client, elle
+    // manquait ici. Les habitudes d'équilibre (famille, travail) sortent
+    // aussi : reprocher « travail 2/7 » à quelqu'un le week-end n'a pas de
+    // sens. Restent les quatre piliers — nutrition, sport, sommeil,
+    // hydratation — plus l'identité et la mission du jour.
+    if(HABITS_FACULT[id]||HABITS_EQUILIBRE[id])continue;
+    var done=0;
     for(var d=0;d<days.length;d++){if(days[d][id])done++;}
     var rate=done/days.length;
     if(rate<0.5&&rate<worstRate){worstRate=rate;worst=id;}
   }
-  var span=Math.min(7,today90+1);
-  if(span>=4&&allData[502]){
-    var bDone=0;for(var b3=today90-span+1;b3<=today90;b3++){if(hasBrique(allData,b3))bDone++;}
-    var bRate=bDone/span;
-    if(bRate<0.5&&bRate<worstRate){worstRate=bRate;worst="identite";}
-  }
-  if(span>=4){
-    var mWon=0;for(var m3=today90-span+1;m3<=today90;m3++){if(missionWon(allData,m3))mWon++;}
-    var mRate=mWon/span;
-    if(mRate<0.5&&mRate<worstRate){worstRate=mRate;worst="onething";}
-  }
+  // L'ALERTE NE PARLE QUE DE CE QUI TRANSFORME. La brique d'identité et la
+  // mission du jour ont leurs propres emplacements dans l'appli ; ici elles
+  // passaient devant la nutrition dès qu'une cliente ne les remplissait
+  // jamais — Noémie se voyait reprocher sa forteresse pendant que son
+  // assiette décrochait. Si les quatre piliers tiennent, il n'y a pas
+  // d'alerte, et c'est une bonne nouvelle qui mérite le silence.
   var src=voix?supAlertes(allData):HABIT_ALERTS;
   return worst?{habit:worst,msg:src[worst]||HABIT_ALERTS[worst]}:null;
 }
@@ -4611,7 +4622,7 @@ function viewFinance(name,start){
     h+='<div class="card" style="padding:16px;margin-bottom:12px">'+
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">'+
       '<span style="font-size:11px;font-weight:900;color:var(--mute);letter-spacing:1px;text-transform:uppercase">📊 Mes revenus — '+moisLbl+'</span>'+
-      '<button id="fin-statut-chg" style="border:none;background:none;color:var(--brand2);font-size:11px;font-weight:800;cursor:pointer;padding:0">'+
+      '<button id="fin-statut-chg" style="border:1px solid var(--line);background:var(--card);color:var(--brand2);font-size:11px;font-weight:800;cursor:pointer;padding:8px 11px;border-radius:100px;min-height:34px">'+
       (cfg.statut==="salarie"?"💼 Salarié":cfg.statut==="indep"?"🚀 Indépendant":"💼🚀 Les deux")+' ✏️</button></div>'+
       (!R.saisi&&R.report?'<div id="fin-rev-report" style="font-size:11px;color:var(--warn-d);font-weight:700;margin-bottom:8px">↩️ Repris de '+finMonthLabel(R.report)+' — corrige si ça a changé</div>':'<div style="height:4px"></div>');
 
@@ -5280,7 +5291,7 @@ function viewCalendar(name,start){
     // l'écran de choix (il n'apparaît qu'au tout premier démarrage). Le bouton
     // leur donne l'accès, et rappelle à tous qui leur parle.
     (function(){var S=supGet(allData),T=TONS[S.ton];
-      var b='<button id="sup-edit" style="margin:9px auto 0;display:flex;align-items:center;gap:6px;background:var(--soft2);border:1px solid var(--line);border-radius:100px;padding:6px 13px;font-size:11.5px;font-weight:700;color:var(--ink2);cursor:pointer">'+
+      var b='<button id="sup-edit" style="margin:9px auto 0;display:flex;align-items:center;gap:6px;background:var(--soft2);border:1px solid var(--line);border-radius:100px;padding:9px 15px;min-height:36px;font-size:11.5px;font-weight:700;color:var(--ink2);cursor:pointer">'+
         '<span style="font-size:14px">'+T.emoji+'</span>'+esc(S.prenom)+'<span style="color:var(--mute);font-weight:600">· changer</span></button>';
       if(!state.showSupForm)return b;
       var f='<div id="sup-form" style="margin-top:13px;padding-top:13px;border-top:1px solid var(--line);text-align:left">'+
@@ -5802,6 +5813,33 @@ function viewDay(name,start){
     '</div>';
 
   // mental
+  // ⚡ LES HABITUDES D'ABORD. C'est l'écran que la cliente ouvre chaque
+  // soir : sept cases à cocher se remplissent en vingt secondes, trois
+  // paragraphes à écrire demandent trois minutes. Le geste rapide passe donc
+  // avant la réflexion — celle qui n'a que trente secondes peut boucler sa
+  // journée sans faire défiler deux écrans.
+  // habits
+  h+='<div style="margin-top:16px"><div class="card-label">HABITUDES DU JOUR</div>';
+  for(var hb=0;hb<HABITS.length;hb++){
+    var hab=HABITS[hb];
+    var checked=!!habits[hab.id];
+    h+='<div class="habit'+(checked?" checked":"")+'" data-habit="'+hab.id+'" style="'+(checked?"background:"+hab.color+";border-color:"+hab.color+";box-shadow:0 3px 12px "+hab.color+"33":"")+'">'+
+      '<div class="habit-left"><span class="habit-icon">'+hab.icon+'</span><span class="habit-name">'+hab.label+'</span></div>'+
+      '<div class="habit-check">'+(checked?"✓":"")+'</div></div>';
+  }
+  // ⭐ Habitude perso (slot 506) — choisie par le client : lecture, méditation, étirements...
+  var persoHab=allData[506];
+  if(persoHab&&persoHab.name){
+    var pChecked=!!habits.perso,pColor="#F9A825";
+    h+='<div class="habit'+(pChecked?" checked":"")+'" data-habit="perso" style="'+(pChecked?"background:"+pColor+";border-color:"+pColor+";box-shadow:0 3px 12px "+pColor+"33":"")+'">'+
+      '<div class="habit-left"><span class="habit-icon">⭐</span><span class="habit-name">'+esc(persoHab.name)+'</span></div>'+
+      '<div style="display:flex;align-items:center;gap:10px"><span id="perso-edit" style="font-size:13px;opacity:.55;padding:4px">✏️</span><div class="habit-check">'+(pChecked?"✓":"")+'</div></div></div>';
+  }else{
+    h+='<div id="perso-add" class="habit" style="border:2px dashed #CCC;background:transparent;color:var(--mute)">'+
+      '<div class="habit-left"><span class="habit-icon">➕</span><span class="habit-name" style="color:var(--mute);font-size:13px">Ajoute TON habitude perso<br><span style="font-size:11px;font-weight:600">lecture, méditation, étirements... à toi de choisir</span></span></div></div>';
+  }
+  h+='</div>';
+
   // 🔁 AFFICHÉ À L'ENVERS, volontairement. MENTAL est stocké du meilleur (0)
   // au pire (4), ÉNERGIE du pire (0) au meilleur (4) : à l'écran, les deux
   // échelles allaient donc en sens opposé, ce qui fait hésiter à chaque
@@ -5854,27 +5892,6 @@ function viewDay(name,start){
     )+
     '</div>';
 
-  // habits
-  h+='<div style="margin-top:16px"><div class="card-label">HABITUDES DU JOUR</div>';
-  for(var hb=0;hb<HABITS.length;hb++){
-    var hab=HABITS[hb];
-    var checked=!!habits[hab.id];
-    h+='<div class="habit'+(checked?" checked":"")+'" data-habit="'+hab.id+'" style="'+(checked?"background:"+hab.color+";border-color:"+hab.color+";box-shadow:0 3px 12px "+hab.color+"33":"")+'">'+
-      '<div class="habit-left"><span class="habit-icon">'+hab.icon+'</span><span class="habit-name">'+hab.label+'</span></div>'+
-      '<div class="habit-check">'+(checked?"✓":"")+'</div></div>';
-  }
-  // ⭐ Habitude perso (slot 506) — choisie par le client : lecture, méditation, étirements...
-  var persoHab=allData[506];
-  if(persoHab&&persoHab.name){
-    var pChecked=!!habits.perso,pColor="#F9A825";
-    h+='<div class="habit'+(pChecked?" checked":"")+'" data-habit="perso" style="'+(pChecked?"background:"+pColor+";border-color:"+pColor+";box-shadow:0 3px 12px "+pColor+"33":"")+'">'+
-      '<div class="habit-left"><span class="habit-icon">⭐</span><span class="habit-name">'+esc(persoHab.name)+'</span></div>'+
-      '<div style="display:flex;align-items:center;gap:10px"><span id="perso-edit" style="font-size:13px;opacity:.55;padding:4px">✏️</span><div class="habit-check">'+(pChecked?"✓":"")+'</div></div></div>';
-  }else{
-    h+='<div id="perso-add" class="habit" style="border:2px dashed #CCC;background:transparent;color:var(--mute)">'+
-      '<div class="habit-left"><span class="habit-icon">➕</span><span class="habit-name" style="color:var(--mute);font-size:13px">Ajoute TON habitude perso<br><span style="font-size:11px;font-weight:600">lecture, méditation, étirements... à toi de choisir</span></span></div></div>';
-  }
-  h+='</div>';
 
   // ⚡ MISSION + 🏰 IDENTITÉ — sur la journée active uniquement.
   // On borne au dernier jour du programme : sans ça, un client au-delà de la fin
@@ -13270,11 +13287,23 @@ function viewCoachDash(){
       '<div class="card-label">LIEN (identifiant)</div>'+
       '<input id="nc-slug" class="num-input" style="font-size:15px;font-weight:400;margin-bottom:4px" placeholder="ex: sarah"/>'+
       '<div id="nc-preview" style="font-size:11px;color:var(--mute);margin-bottom:12px"></div>'+
+      // 👨👩 LE SEXE SE POSE À LA CRÉATION. C'est lui qui commande la photo,
+      // le programme des trois mois, la couleur de l'appli et la carte du
+      // cycle. Le laisser vide obligeait à y revenir plus tard, et un homme
+      // ouvrait « programme femme » entre-temps.
+      '<div class="card-label">PROGRAMME</div>'+
+      '<div style="display:flex;gap:8px;margin-bottom:12px">'+
+      '<button id="nc-h" class="nc-sx' + (state.ncSexe === "h" ? " on" : "") + '" data-sx="h">👨 Homme</button>'+
+      '<button id="nc-f" class="nc-sx' + (state.ncSexe === "f" ? " on" : "") + '" data-sx="f">👩 Femme</button>'+
+      '</div>'+
       '<div class="card-label">DATE DE DÉPART</div>'+
       '<input id="nc-date" type="date" class="num-input" style="font-size:15px;font-weight:400;margin-bottom:12px" value="'+isoLocal()+'"/>'+
       '<div class="card-label">DATE DE FIN D\'ACCÈS (OPTIONNEL — vide = illimité)</div>'+
       '<input id="nc-end" type="date" class="num-input" style="font-size:15px;font-weight:400;margin-bottom:16px"/>'+
-      '<button id="nc-create" class="big-btn" style="padding:14px 0;font-size:14px;margin-bottom:0">Créer le lien →</button></div>';
+      '<button id="nc-create" class="big-btn" style="padding:14px 0;font-size:14px;margin-bottom:0'+
+      (state.ncSexe?'':';opacity:.45')+'"'+(state.ncSexe?'':' disabled')+'>Créer le lien →</button>'+
+      (state.ncSexe?'':'<div style="font-size:11px;color:var(--warn-d);font-weight:800;margin-top:8px;text-align:center">Choisis Homme ou Femme pour continuer</div>')+
+      '</div>';
   }
   h+='<input id="client-search" class="num-input" placeholder="\ud83d\udd0d Rechercher un client..." value="'+esc(state.searchQ||"")+'" style="font-size:15px;font-weight:400;margin-bottom:14px"/>';
   var q=(state.searchQ||"").toLowerCase();
@@ -14814,6 +14843,27 @@ function bindCoach(){
   }
   var ft=document.getElementById("form-toggle");
   if(ft)ft.addEventListener("click",function(){state.showForm=!state.showForm;render();});
+  var ncSx=document.querySelectorAll(".nc-sx");
+  for(var nx=0;nx<ncSx.length;nx++)ncSx[nx].addEventListener("click",function(){
+    // On garde ce que le coach a déjà tapé : le formulaire se redessine.
+    var n1=document.getElementById("nc-name"), s1=document.getElementById("nc-slug"),
+        d1=document.getElementById("nc-date"), e1=document.getElementById("nc-end");
+    state.ncBrouillon={nom:n1?n1.value:"",slug:s1?s1.value:"",debut:d1?d1.value:"",fin:e1?e1.value:""};
+    state.ncSexe=this.getAttribute("data-sx");
+    render();
+  });
+  (function(){
+    var B=state.ncBrouillon; if(!B)return;
+    var n1=document.getElementById("nc-name"), s1=document.getElementById("nc-slug"),
+        d1=document.getElementById("nc-date"), e1=document.getElementById("nc-end"),
+        p1=document.getElementById("nc-preview");
+    if(n1&&B.nom)n1.value=B.nom;
+    if(s1&&B.slug){s1.value=B.slug;if(p1)p1.textContent="Lien : ?client="+B.slug;}
+    if(d1&&B.debut)d1.value=B.debut;
+    if(e1&&B.fin)e1.value=B.fin;
+    state.ncBrouillon=null;
+  })();
+
   var ncName=document.getElementById("nc-name"), ncSlug=document.getElementById("nc-slug"), ncPrev=document.getElementById("nc-preview");
   if(ncName){
     function slugify(s){return s.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");}
@@ -14865,6 +14915,25 @@ function bindCoach(){
         try{coachSaveSlot(slug,600,{list:__blHerite});}catch(e){}
         feedback("📋 Bilan du prospect repris dans sa fiche","ok");
       }
+      // 👨👩 Le programme choisi est posé tout de suite, des deux côtés :
+      // slot 514 pour la couleur et la photo, slot 520 pour le socle des
+      // trois mois. Sans ça, le client ouvrirait sur le thème par défaut.
+      if(state.ncSexe){
+        var sx=state.ncSexe;
+        var allS=lsGet("amcoach_"+slug,{});
+        allS[514]={theme:sx};
+        var P0=allS[520]||{};
+        P0.sexe=sx; P0.seances=P0.seances||[]; P0.journal=P0.journal||[];
+        P0.dernier=P0.dernier||{}; P0.marches=P0.marches||{};
+        P0.socle=P0.socle||[]; P0.bonus=P0.bonus||[];
+        allS[520]=P0;
+        lsSet("amcoach_"+slug,allS);
+        try{coachSaveSlot(slug,514,allS[514]);}catch(e){}
+        try{coachSaveSlot(slug,520,P0);}catch(e){}
+        // Le socle des trois mois descend chez lui dans la foulée.
+        try{prog3Sync(sx);}catch(e){}
+      }
+      state.ncSexe=null;
       state.showForm=false;
       render();
     });

@@ -823,7 +823,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="07/09 · Programme à la création";
+var APP_VERSION="08/09 · Reprise hors ligne";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -947,14 +947,24 @@ function nutContientMots(saisie,cle){
   var re=new RegExp("(^|\\s)"+cle.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"($|\\s)");
   return re.test(saisie);
 }
+// Les clés de FOODS étaient re-normalisées à CHAQUE recherche, pour les 310
+// aliments, dans deux fonctions différentes. On le fait une fois pour toutes.
+// (Idée reprise d'une suggestion d'Akli ; l'implémentation garde la recherche
+// par mots entiers — un simple accès direct par clé aurait cassé « poulet
+// 150 g », qui ne correspond à aucune clé exacte.)
+var __foodsNorm=null;
+function foodsNorm(){
+  if(__foodsNorm)return __foodsNorm;
+  __foodsNorm=[];
+  for(var k in FOODS){ if(FOODS.hasOwnProperty(k)) __foodsNorm.push([k,nutNorm(k)]); }
+  return __foodsNorm;
+}
 function nutProtFor(name,qty){
   var clean=nutNorm(name);
   if(!clean||!qty)return null;
-  var best=null,bestLen=-1;
-  for(var k in FOODS){
-    if(!FOODS.hasOwnProperty(k))continue;
-    var nk=nutNorm(k);
-    var score=-1;
+  var best=null,bestLen=-1,L=foodsNorm();
+  for(var i=0;i<L.length;i++){
+    var k=L[i][0], nk=L[i][1], score=-1;
     if(nk===clean)score=1000;                              // match exact : priorité absolue
     else if(nutContientMots(clean,nk))score=nk.length;     // la clé est dans la saisie, en mots entiers
     if(score>bestLen){bestLen=score;best=k;}
@@ -967,13 +977,12 @@ function nutProtFor(name,qty){
 function nutMatchInfo(name){
   var clean=nutNorm(name);
   if(!clean)return null;
-  var best=null,bestLen=-1;
-  for(var k in FOODS){
-    if(!FOODS.hasOwnProperty(k))continue;
-    var nk=nutNorm(k),score=-1;
-    if(nk===clean)score=1000;
-    else if(nutContientMots(clean,nk))score=nk.length;
-    if(score>bestLen){bestLen=score;best=k;}
+  var best=null,bestLen=-1,L2=foodsNorm();
+  for(var j=0;j<L2.length;j++){
+    var k2=L2[j][0], nk2=L2[j][1], sc=-1;
+    if(nk2===clean)sc=1000;
+    else if(nutContientMots(clean,nk2))sc=nk2.length;
+    if(sc>bestLen){bestLen=sc;best=k2;}
   }
   return best?{cle:best,p:FOODS[best].p,u:FOODS[best].u,exact:bestLen===1000}:null;
 }
@@ -1507,6 +1516,7 @@ function syncDayToCloud(idx,data){
   }
   pushTracking().then(function(r){
     if(r.ok){
+      syncFileRetirer(idx);
       state.syncStatus="ok";updateSyncBadge();
       setTimeout(function(){state.syncStatus="";updateSyncBadge();},2000);
       return null;
@@ -1519,15 +1529,60 @@ function syncDayToCloud(idx,data){
       prefer:"resolution=merge-duplicates",
       body:{slug:CLIENT,name:name,start_date:start}
     }).then(function(){return pushTracking();}).then(function(r2){
+      if(r2.ok)syncFileRetirer(idx); else syncEnAttente(idx,data);
       state.syncStatus=r2.ok?"ok":"err";
       updateSyncBadge();
       if(r2.ok)setTimeout(function(){state.syncStatus="";updateSyncBadge();},2000);
     });
   }).catch(function(){
+    // ÉCHEC = ON GARDE LA JOURNÉE SOUS LE COUDE. Avant, le badge affichait
+    // « hors-ligne » et c'était tout : la donnée restait en local, et la
+    // prochaine descente du cloud pouvait passer par-dessus. Elle est
+    // maintenant mise en attente sur le disque et rejouée dès le retour du
+    // réseau, même après un redémarrage du téléphone.
+    syncEnAttente(idx, data);
     state.syncStatus="err";
     updateSyncBadge();
   });
 }
+// ─── Les journées qui n'ont pas pu partir ───
+function syncFileLire(){
+  if(!CLIENT)return {};
+  var f=lsGet("amcoach_afaire_"+CLIENT,{});
+  return (f&&typeof f==="object")?f:{};
+}
+function syncEnAttente(idx,data){
+  if(!CLIENT)return;
+  var f=syncFileLire(); f[idx]=data;
+  lsSet("amcoach_afaire_"+CLIENT,f);
+}
+function syncFileRetirer(idx){
+  var f=syncFileLire();
+  if(f[idx]!==undefined){delete f[idx];lsSet("amcoach_afaire_"+CLIENT,f);}
+}
+// Rejoue tout ce qui attend. Appelée au retour du réseau, au retour dans
+// l'appli et au démarrage.
+function syncRattraper(){
+  if(!CLIENT)return;
+  var f=syncFileLire(), cles=Object.keys(f);
+  if(!cles.length)return;
+  cles.forEach(function(k){
+    sbFetch("tracking?on_conflict=client_slug,day_index",{
+      method:"POST",
+      prefer:"resolution=merge-duplicates",
+      body:{client_slug:CLIENT,day_index:parseInt(k,10),data:f[k],updated_at:new Date().toISOString()}
+    }).then(function(r){
+      if(r&&r.ok){
+        syncFileRetirer(k);
+        if(!Object.keys(syncFileLire()).length){
+          state.syncStatus="ok";updateSyncBadge();
+          setTimeout(function(){state.syncStatus="";updateSyncBadge();},2000);
+        }
+      }
+    }).catch(function(){});
+  });
+}
+window.addEventListener("online",function(){try{syncRattraper();}catch(e){}});
 
 function updateSyncBadge(){
   var el=document.getElementById("sync-badge");
@@ -17274,6 +17329,7 @@ function bindMain(name,start){
   if(typeof IS_COACH!=="undefined"&&IS_COACH&&state.coachAuthed){loadCoachDataFromCloud();}
   if(CLIENT){
     try{brancherRetourAppli();}catch(e){}
+    try{syncRattraper();}catch(e){}
     loadFromCloud(function(){
       var start=lsGetStr("amcoach_start_"+CLIENT);
       if(start)state.openMonth=Math.floor(Math.min(getToday90(start),89)/28);

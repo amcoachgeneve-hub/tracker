@@ -823,7 +823,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="08/09 · Reprise hors ligne";
+var APP_VERSION="10/09 · Synchro deux appareils";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -1407,8 +1407,11 @@ function coachCloudPousser(cle){
   __coachEnv[cle]=setTimeout(function(){
     try{
       var v=localStorage.getItem(cle); if(v===null)return;
+      var ts=new Date().toISOString();
       sbFetch("tracking",{method:"POST",prefer:"resolution=merge-duplicates",
-        body:{client_slug:"__coach",day_index:slot,data:{cle:cle,v:v,maj:new Date().toISOString()}}}).catch(function(){});
+        body:{client_slug:"__coach",day_index:slot,data:{cle:cle,v:v,maj:ts}}})
+        .then(function(r){ if(r&&r.ok)lsSetStr("amcoach_maj_"+cle,ts); })
+        .catch(function(){});
     }catch(e){}
   },1200);
 }
@@ -1466,12 +1469,26 @@ function coachCloudCharger(cb){
   sbFetch("tracking?client_slug=eq.__coach&select=day_index,data")
     .then(function(r){return r.json();})
     .then(function(rows){
+      // DEUX APPAREILS, UNE SEULE VÉRITÉ. Avant, on ne rapatriait une clé
+      // que si elle était VIDE en local : sur un deuxième appareil, la
+      // bibliothèque d'exercices se créait avec ses 56 entrées par défaut,
+      // donc elle n'était plus vide, donc la vraie version ne descendait
+      // jamais. On compare désormais la date : la version la plus récente
+      // gagne, quel que soit l'appareil qui l'a écrite.
       var n=0;
       for(var i=0;i<(rows||[]).length;i++){
         var d=rows[i].data||{}; if(!d.cle||d.v==null)continue;
         var local=localStorage.getItem(d.cle);
         var vide=(local===null||local==="[]"||local==="{}"||local==="null");
-        if(vide){ try{localStorage.setItem(d.cle,d.v);n++;}catch(e){} }
+        var majLocale=lsGetStr("amcoach_maj_"+d.cle);
+        var plusRecent=(d.maj && (!majLocale || d.maj>majLocale));
+        if(vide||plusRecent){
+          try{
+            localStorage.setItem(d.cle,d.v);
+            if(d.maj)lsSetStr("amcoach_maj_"+d.cle,d.maj);
+            n++;
+          }catch(e){}
+        }
       }
       if(cb)cb(n);
     }).catch(function(){if(cb)cb(0);});
@@ -17326,7 +17343,12 @@ function bindMain(name,start){
 // ═══════════ BOOT ═══════════
 (function(){
   render(); // instant render with local data
-  if(typeof IS_COACH!=="undefined"&&IS_COACH&&state.coachAuthed){loadCoachDataFromCloud();}
+  if(typeof IS_COACH!=="undefined"&&IS_COACH&&state.coachAuthed){
+    loadCoachDataFromCloud();
+    // Deux appareils : on redescend d'abord les outils du coach (séances,
+    // bibliothèque, pipeline, prospection…) si le nuage est plus récent.
+    try{ coachCloudCharger(function(n){ if(n)render(); }); }catch(e){}
+  }
   if(CLIENT){
     try{brancherRetourAppli();}catch(e){}
     try{syncRattraper();}catch(e){}

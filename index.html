@@ -823,7 +823,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="10/09 · Synchro deux appareils";
+var APP_VERSION="10/09 · Suppression d un bilan";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -14230,7 +14230,11 @@ function viewCoachBilan(){
         '<span style="display:flex;gap:6px">'+
         '<button class="bl-report" data-i="'+b+'" data-mode="client" style="font-size:11px;font-weight:800;color:#fff;padding:5px 10px;border:0;border-radius:14px;background:var(--ok)">📤 Client</button>'+
         '<button class="bl-report" data-i="'+b+'" data-mode="full" style="font-size:11px;font-weight:800;color:var(--brand2);padding:5px 10px;border:1.5px solid var(--brand2);border-radius:14px;background:#fff">📄 Complet</button>'+
-        '<button class="bl-edit" data-i="'+b+'" style="font-size:11px;font-weight:800;color:var(--mute);padding:5px 10px;border:1.5px solid var(--line);border-radius:14px;background:#fff">✏️</button></span></div>';
+        // ⚠️ LA LIGNE DU DESSOUS S'ARRÊTAIT ICI PAR UN POINT-VIRGULE, ce qui
+        // fermait la phrase : le bouton de suppression était bien écrit juste
+        // après, mais il devenait une expression perdue que rien n'affichait.
+        // Le gestionnaire de clic existait pourtant depuis le début.
+        '<button class="bl-edit" data-i="'+b+'" style="font-size:11px;font-weight:800;color:var(--mute);padding:5px 10px;border:1.5px solid var(--line);border-radius:14px;background:#fff">✏️</button>'+
         // 🗑️ Suppression d'une analyse — il en faut une pour les essais, et
         // pour corriger une saisie faite sur la mauvaise personne.
         '<button class="bl-del" data-i="'+b+'" style="font-size:11px;font-weight:800;color:var(--bad);padding:5px 9px;border:1.5px solid var(--line);border-radius:8px;background:#fff">🗑️</button>'+

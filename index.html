@@ -823,7 +823,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="10/09 · Suppression d un bilan";
+var APP_VERSION="10/09 · Crayon sur la 1re analyse";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -1390,7 +1390,7 @@ var COACH_CLES={
   "amcoach_prog3":901,        // socle des 3 mois
   "amcoach_pipeline":902,     // prospects
   "amcoach_prospection":903,  // journal de prospection
-  "amcoach_bilans":904,       // bilans
+  "amcoach_bilans_libres":904,// bilans des personnes reçues sans tracker
   "amcoach_biblio":905,       // bibliothèque d'exercices
   "amcoach_clients":906,      // liste des clients (secours : la table clients fait foi)
   "amcoach_archives":907,     // clients mis en pause
@@ -6035,7 +6035,7 @@ function viewDay(name,start){
         '<div class="txt-label">💬 Ressenti général</div><textarea id="b-ressenti" class="txt-area" placeholder="Corps, tête, énergie...">'+esc(b.ressenti||"")+'</textarea>'+
         '<div class="txt-label">❓ Question pour Akli</div><textarea id="b-question" class="txt-area" placeholder="Ce que tu veux me dire...">'+esc(b.question||"")+'</textarea>'+
         '</div><div id="bl-draft-info" style="text-align:center;font-size:11px;color:var(--mute);font-weight:700;margin-bottom:9px"></div>'+
-        '<button id="bilan-save" class="big-btn">'+(state.blEdit?'Mettre à jour ✓':'Enregistrer ✓')+'</button>';
+        '<button id="bilan-save" class="big-btn">'+(state.blEdit!=null?'Mettre à jour ✓':'Enregistrer ✓')+'</button>';
     }
   }
   return h+'</div></div>';
@@ -14137,7 +14137,7 @@ var __blTimer=null;
 function blDraftSauver(){
   var slug=blSujet();
   if(!slug||state.blJusteEnregistre)return;
-  var d={champs:{},maj:new Date().toISOString(),edit:state.blEdit||null};
+  var d={champs:{},maj:new Date().toISOString(),edit:(state.blEdit!=null?state.blEdit:null)};
   var n=document.querySelectorAll("#bl-form input,#bl-form textarea,#bl-form select");
   for(var i=0;i<n.length;i++){
     if(!n[i].id)continue;
@@ -14234,10 +14234,10 @@ function viewCoachBilan(){
         // fermait la phrase : le bouton de suppression était bien écrit juste
         // après, mais il devenait une expression perdue que rien n'affichait.
         // Le gestionnaire de clic existait pourtant depuis le début.
-        '<button class="bl-edit" data-i="'+b+'" style="font-size:11px;font-weight:800;color:var(--mute);padding:5px 10px;border:1.5px solid var(--line);border-radius:14px;background:#fff">✏️</button>'+
+        '<button type="button" class="bl-edit" data-i="'+b+'" style="font-size:11px;font-weight:800;color:var(--mute);padding:5px 10px;border:1.5px solid var(--line);border-radius:14px;background:#fff">✏️</button>'+
         // 🗑️ Suppression d'une analyse — il en faut une pour les essais, et
         // pour corriger une saisie faite sur la mauvaise personne.
-        '<button class="bl-del" data-i="'+b+'" style="font-size:11px;font-weight:800;color:var(--bad);padding:5px 9px;border:1.5px solid var(--line);border-radius:8px;background:#fff">🗑️</button>'+
+        '<button type="button" class="bl-del" data-i="'+b+'" style="font-size:11px;font-weight:800;color:var(--bad);padding:5px 9px;border:1.5px solid var(--line);border-radius:8px;background:#fff">🗑️</button>'+
         '</span></div>';
     }
     h+='</div>';
@@ -14298,8 +14298,8 @@ function viewCoachBilan(){
   }
   h+='<div class="card" id="bl-form" style="padding:16px;margin-bottom:14px">'+
     '<div style="display:flex;align-items:center;gap:9px;margin-bottom:12px">'+
-    '<div style="flex:1;font-weight:900;font-size:14px">'+(state.blEdit?'✏️ Modifier l\'analyse':'➕ Nouvelle analyse')+'</div>'+
-    (state.blEdit?'<button id="bl-cancel" style="font-size:11px;font-weight:800;color:var(--mute);background:none;border:0;padding:4px 8px">Annuler</button>':'')+'</div>'+
+    '<div style="flex:1;font-weight:900;font-size:14px">'+(state.blEdit!=null?'✏️ Modifier l\'analyse '+(state.blEdit+1):'➕ Nouvelle analyse')+'</div>'+
+    (state.blEdit!=null?'<button id="bl-cancel" style="font-size:11px;font-weight:800;color:var(--mute);background:none;border:0;padding:4px 8px">Annuler</button>':'')+'</div>'+
     (__dr?'<div style="background:#FFF8E8;border:1px solid #F0D9A0;border-radius:12px;padding:11px 13px;margin-bottom:12px">'+
       '<div style="font-size:12.5px;font-weight:800;color:#8A6A2F">💾 Brouillon retrouvé</div>'+
       '<div style="font-size:11.5px;color:#8A6A2F;margin-top:3px;line-height:1.45">Tu avais commencé cette analyse le '+
@@ -16089,7 +16089,10 @@ function bindCoach(){
   // 💾 Brouillon : on restaure puis on enregistre à chaque frappe
   var blForm=document.getElementById("bl-form");
   if(blForm){
-    if(!state.blEdit)blDraftRestaurer();
+    // Zéro est une position valide : sans ce test explicite, le brouillon
+    // d'une nouvelle analyse venait se coller par-dessus la modification de
+    // l'analyse n°1.
+    if(state.blEdit==null)blDraftRestaurer();
     var ch=blForm.querySelectorAll("input,textarea,select");
     for(var bi=0;bi<ch.length;bi++){
       ch[bi].addEventListener("input",blDraftPlanifier);
@@ -16145,17 +16148,30 @@ function bindCoach(){
     feedback("Analyse supprimée","undo");
   });
 
-  var blEd=document.querySelectorAll(".bl-edit");
-  for(var be=0;be<blEd.length;be++){
-    blEd[be].addEventListener("click",function(){
-      state.blEdit=parseInt(this.getAttribute("data-i"),10);
-      blDraftEffacer(blSujet());
+  // ✏️ LE CRAYON PASSE EN ÉCOUTE DÉLÉGUÉE. Un écouteur posé sur chaque bouton
+  // disparaît au moindre redéploiement de la liste, et un bouton recréé entre
+  // deux branchements reste muet. Un seul écouteur sur la page, installé une
+  // fois, répond pour tous les crayons présents et à venir.
+  if(!window.__blDelegue){
+    window.__blDelegue=true;
+    document.addEventListener("click",function(e){
+      var c=e.target&&e.target.closest?e.target.closest(".bl-edit"):null;
+      if(!c)return;
+      var i=parseInt(c.getAttribute("data-i"),10);
+      if(isNaN(i))return;
+      state.blEdit=i;
+      try{blDraftEffacer(blSujet());}catch(err){}
       render();
+      // On le dit à l'écran : si le défilement échoue, on sait quand même
+      // que le bouton a répondu.
+      try{feedback("✏️ Modification de l'analyse "+(i+1),"ok");}catch(err){}
       setTimeout(function(){
         var f=document.getElementById("bl-form");
-        if(f)f.scrollIntoView({behavior:"smooth",block:"start"});
-      },200);
-    });
+        if(!f)return;
+        try{f.scrollIntoView({behavior:"smooth",block:"start"});}
+        catch(err){window.scrollTo(0,Math.max(0,f.getBoundingClientRect().top+window.scrollY-70));}
+      },250);
+    },true);
   }
   // 🧮 Recalculer autant de fois qu'on veut avant d'enregistrer
   function nv2(id){var e=document.getElementById(id);return e?(parseFloat(e.value)||0):0;}

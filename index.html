@@ -671,6 +671,11 @@ input,textarea{outline:none}
 .xp-glow{animation:xp-glow 1.6s ease-in-out infinite}
 
 /* ═══ Apport de la session du 31/08 : carte du cycle + sélecteur de muscle ═══ */
+/* 🧩 Les modules à ouvrir à la création d'un client. */
+.nc-mod{flex:1;padding:11px 3px;border-radius:11px;border:2px solid var(--line);background:var(--card);
+  color:var(--mute);font-weight:800;font-size:11.5px;min-height:44px}
+.nc-mod.on{border-color:var(--ok-d);background:#E9FBF3;color:var(--ok-d)}
+
 /* 👨👩 Le choix du programme à la création d'un client. */
 .nc-sx{flex:1;padding:13px 4px;border-radius:12px;border:2px solid var(--line);background:var(--card);
   color:var(--mute);font-weight:900;font-size:13px}
@@ -823,7 +828,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="10/09 · Crayon sur la 1re analyse";
+var APP_VERSION="12/09 · Modules à la création";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -3407,10 +3412,12 @@ function pickDate(titre,valeurISO,cb,options){
       else d.setDate(d.getDate()+(parseInt(o,10)||0));
       inp.value=isoLocal(d);
       buzz("tap");
+      fermer(inp.value);   // un raccourci est une réponse : on n'en demande pas deux
     });
   }
-  // Sur iOS, un appel direct ouvre le calendrier tout de suite
-  setTimeout(function(){try{inp.focus();if(inp.showPicker)inp.showPicker();}catch(e){}},120);
+  // On n'ouvre PLUS le calendrier tout seul : il s'affichait par-dessus les
+  // trois raccourcis et les rendait intouchables. Celui qui veut une date
+  // libre touche le champ.
 }
 // Conversions entre AAAA-MM-JJ (technique) et JJ/MM/AAAA (affiché)
 function isoVersFr(iso){
@@ -13368,6 +13375,16 @@ function viewCoachDash(){
       '<button id="nc-h" class="nc-sx' + (state.ncSexe === "h" ? " on" : "") + '" data-sx="h">👨 Homme</button>'+
       '<button id="nc-f" class="nc-sx' + (state.ncSexe === "f" ? " on" : "") + '" data-sx="f">👩 Femme</button>'+
       '</div>'+
+      // 🧩 LES MODULES SE CHOISISSENT ICI. Akli : « sinon je vais oublier de
+      // mettre le menu ». Les activer plus tard oblige à rouvrir la fiche, et
+      // un oubli ne se voit pas — la cliente n'a simplement pas l'onglet.
+      '<div class="card-label">MODULES À OUVRIR</div>'+
+      '<div style="display:flex;gap:7px;margin-bottom:5px">'+
+      '<button class="nc-mod' + (state.ncMenus !== false ? " on" : "") + '" data-mod="menus">🍽️ Menus</button>'+
+      '<button class="nc-mod' + (state.ncProt ? " on" : "") + '" data-mod="prot">🍗 Protéines</button>'+
+      '<button class="nc-mod' + (state.ncArgent ? " on" : "") + '" data-mod="argent">💰 Argent</button>'+
+      '</div>'+
+      '<div style="font-size:11px;color:var(--mute);margin-bottom:12px;line-height:1.5">Les menus démarrent à la date de départ ci-dessous. Tout reste modifiable ensuite dans sa fiche.</div>'+
       '<div class="card-label">DATE DE DÉPART</div>'+
       '<input id="nc-date" type="date" class="num-input" style="font-size:15px;font-weight:400;margin-bottom:12px" value="'+isoLocal()+'"/>'+
       '<div class="card-label">DATE DE FIN D\'ACCÈS (OPTIONNEL — vide = illimité)</div>'+
@@ -14919,6 +14936,21 @@ function bindCoach(){
   }
   var ft=document.getElementById("form-toggle");
   if(ft)ft.addEventListener("click",function(){state.showForm=!state.showForm;render();});
+  function ncBrouillon(){
+    var n1=document.getElementById("nc-name"), s1=document.getElementById("nc-slug"),
+        d1=document.getElementById("nc-date"), e1=document.getElementById("nc-end");
+    state.ncBrouillon={nom:n1?n1.value:"",slug:s1?s1.value:"",debut:d1?d1.value:"",fin:e1?e1.value:""};
+  }
+  var ncMod=document.querySelectorAll(".nc-mod");
+  for(var nm=0;nm<ncMod.length;nm++)ncMod[nm].addEventListener("click",function(){
+    ncBrouillon();
+    var k=this.getAttribute("data-mod");
+    if(k==="menus")state.ncMenus=(state.ncMenus===false);   // ouvert par défaut
+    else if(k==="prot")state.ncProt=!state.ncProt;
+    else state.ncArgent=!state.ncArgent;
+    render();
+  });
+
   var ncSx=document.querySelectorAll(".nc-sx");
   for(var nx=0;nx<ncSx.length;nx++)ncSx[nx].addEventListener("click",function(){
     // On garde ce que le coach a déjà tapé : le formulaire se redessine.
@@ -15009,7 +15041,31 @@ function bindCoach(){
         // Le socle des trois mois descend chez lui dans la foulée.
         try{prog3Sync(sx);}catch(e){}
       }
-      state.ncSexe=null;
+      // 🧩 Les modules cochés sont posés tout de suite, en local et dans la
+      // base. Les menus démarrent le jour du départ ; si l'accès dure 14 jours
+      // ou moins, c'est le Reset 14 jours qui s'applique.
+      (function(){
+        var allM=lsGet("amcoach_"+slug,{});
+        if(state.ncMenus!==false){
+          var court=false;
+          if(endDate){
+            var jj=Math.round((new Date(endDate+"T12:00:00")-new Date(startDate+"T12:00:00"))/86400000);
+            court=(jj<=14);
+          }
+          allM[517]={on:true,debut:startDate,reset:court,phaseForcee:null,note:""};
+          try{coachSaveSlot(slug,517,allM[517]);}catch(e){}
+        }
+        if(state.ncProt){
+          allM[510]={on:true,sexe:(state.ncSexe==="f"?"F":"H"),pDepart:null,pCible:null,prot:null,kcal:null,duree:12,daily:{}};
+          try{coachSaveSlot(slug,510,allM[510]);}catch(e){}
+        }
+        if(state.ncArgent){
+          allM[512]={on:true,devise:"CHF",statut:"salarie",revenus:null,charges:[],moisCible:3,margeImprevu:10};
+          try{coachSaveSlot(slug,512,allM[512]);}catch(e){}
+        }
+        lsSet("amcoach_"+slug,allM);
+      })();
+      state.ncSexe=null; state.ncMenus=undefined; state.ncProt=false; state.ncArgent=false;
       state.showForm=false;
       render();
     });
@@ -17352,7 +17408,7 @@ function bindMain(name,start){
     var b=document.createElement("button");
     b.id="d90-maj";
     b.textContent="⬆️ Nouvelle version ("+(e.data.version||"")+") — appuie pour l'installer";
-    b.style.cssText="position:fixed;left:12px;right:12px;bottom:86px;z-index:99999;padding:13px 14px;"+
+    b.style.cssText="position:fixed;left:12px;right:12px;bottom:86px;z-index:9000;padding:13px 14px;"+
       "border:0;border-radius:14px;background:linear-gradient(90deg,var(--b1),var(--b2));color:#fff;"+
       "font-weight:900;font-size:12.5px;box-shadow:0 8px 22px rgba(16,24,40,.3)";
     b.addEventListener("click",function(){location.reload();});

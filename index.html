@@ -671,6 +671,27 @@ input,textarea{outline:none}
 .xp-glow{animation:xp-glow 1.6s ease-in-out infinite}
 
 /* ═══ Apport de la session du 31/08 : carte du cycle + sélecteur de muscle ═══ */
+/* 🎤 La dictée d'une séance. */
+.dict-box{margin-top:10px;padding:15px;border-left:4px solid var(--brand2)}
+.dict-t{font-weight:900;font-size:13.5px;margin-bottom:7px;color:var(--ink)}
+.dict-aide{font-size:12.5px;color:var(--mute);line-height:1.6;margin-bottom:11px}
+.dict-aide i{color:var(--brand2)}
+.dict-l{background:var(--soft);border-left:3px solid var(--line);border-radius:10px;
+  padding:9px 12px;margin-top:7px;display:flex;flex-direction:column}
+.dict-l b{font-size:13.5px;color:var(--ink)}
+.dict-l span{font-size:11.5px;color:var(--mute);font-weight:700;margin-top:2px}
+.dict-no{background:#FFF6E5;border:1px solid #F0C67A;border-radius:11px;padding:11px 12px;
+  margin-top:10px;font-size:12.5px;color:#7A5A15;line-height:1.55;font-weight:600}
+
+/* 🔁 Le réglage d'un circuit, en tête de chaîne. */
+.prg-circuit{background:var(--soft2);border:1px solid var(--line);border-radius:12px;padding:11px 12px;margin-bottom:10px}
+.prg-circuit-t{font-weight:900;font-size:12.5px;color:var(--brand2);margin-bottom:8px}
+.prg-circuit-r{display:flex;align-items:center;gap:9px;margin-top:6px;font-size:12.5px;font-weight:700;color:var(--ink2)}
+.prg-circuit-r span{flex:1}
+.prg-circuit-r b{min-width:46px;text-align:center;font-size:14px;font-weight:900;color:var(--ink)}
+.prg-cc{width:38px;height:38px;border-radius:11px;border:1.5px solid var(--line);background:var(--card);
+  font-size:17px;font-weight:900;color:var(--ink);line-height:1}
+
 /* 🧩 Les modules à ouvrir à la création d'un client. */
 .nc-mod{flex:1;padding:11px 3px;border-radius:11px;border:2px solid var(--line);background:var(--card);
   color:var(--mute);font-weight:800;font-size:11.5px;min-height:44px}
@@ -828,7 +849,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="12/09 · Modules à la création";
+var APP_VERSION="13/09 · Circuits & dictée";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -8246,6 +8267,150 @@ function progPicto(X, t) {
   return '<svg class="prg-vig" viewBox="0 0 64 64" style="width:' + t + 'px;height:' + t + 'px;background:' + M[2] + '1A">' +
     '<g fill="none" stroke="' + M[2] + '" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">' + g + '</g></svg>';
 }
+// 🔗 LE CIRCUIT. Un exercice « enchaîné » (sup) pointe vers le suivant :
+// trois exercices attachés forment donc une chaîne de trois. Ces deux
+// fonctions permettent de la manipuler d'un bloc.
+function progChaineDebut(S, e) {
+  // Remonte jusqu'au premier exercice de la chaîne qui contient e.
+  while (e > 0 && S.exos[e - 1] && S.exos[e - 1].sup) e--;
+  return e;
+}
+function progChaine(S, e) {
+  var d = progChaineDebut(S, e), l = [d];
+  while (S.exos[d] && S.exos[d].sup && S.exos[d + 1]) { d++; l.push(d); }
+  return l;
+}
+// Applique un nombre de tours à toute la chaîne : chaque exercice reçoit le
+// même nombre de séries, le repos tombe à zéro entre les exercices du tour,
+// et le repos de fin de tour se pose sur le dernier.
+function progCircuitTours(S, e, tours, reposTour) {
+  var l = progChaine(S, e);
+  for (var i = 0; i < l.length; i++) {
+    var X = S.exos[l[i]];
+    var modele = X.series[0] || { t: "reps", v: 10, c: "", u: "kg" };
+    var nv = [];
+    for (var t = 0; t < tours; t++) {
+      nv.push({ t: modele.t, v: modele.v, c: modele.c, u: modele.u });
+    }
+    X.series = nv;
+    X.repos = (i === l.length - 1) ? reposTour : 0;
+  }
+}
+// ═══════════ 🎤 DICTER UNE SÉANCE ═══════════
+var DICT_NOMBRES = {
+  "un": 1, "une": 1, "deux": 2, "trois": 3, "quatre": 4, "cinq": 5, "six": 6,
+  "sept": 7, "huit": 8, "neuf": 9, "dix": 10, "onze": 11, "douze": 12,
+  "treize": 13, "quatorze": 14, "quinze": 15, "seize": 16, "vingt": 20,
+  "trente": 30, "quarante": 40, "cinquante": 50, "soixante": 60
+};
+function dictNorm(t) {
+  return String(t || "").toLowerCase()
+    .replace(/(\d+)\s*[x\*]\s*(\d+)/g, "$1 series de $2")   // « 4x12 »
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+}
+function dictNombre(mot) {
+  if (/^\d+$/.test(mot)) return parseInt(mot, 10);
+  return DICT_NOMBRES[mot] !== undefined ? DICT_NOMBRES[mot] : null;
+}
+// Un morceau dicté → un exercice. On y cherche les séries, les répétitions,
+// la charge, le repos, puis on identifie l'exercice dans la bibliothèque.
+function dictMorceau(txt, biblio) {
+  var m = dictNorm(txt), mots = m.split(" ");
+  var series = null, reps = null, charge = null, repos = null, duree = null;
+
+  for (var i = 0; i < mots.length; i++) {
+    var v = dictNombre(mots[i]);
+    if (v === null) continue;
+    var suite = mots.slice(i + 1, i + 4).join(" ");
+    if (/^(series?|serie)/.test(suite)) series = v;
+    else if (/^(rep|reps|repetitions?|fois)/.test(suite)) reps = v;
+    else if (/^(kilos?|kg)/.test(suite)) charge = v;
+    else if (/^(secondes?|s)\b/.test(suite) && /recup|repos|pause/.test(m)) repos = v;
+    else if (/^(minutes?|min)/.test(suite) && /recup|repos|pause/.test(m)) repos = v * 60;
+    else if (/^(secondes?)/.test(suite)) duree = v;
+    else if (/^(minutes?|min)/.test(suite)) duree = v * 60;
+  }
+  // « 4 séries de 12 » : le nombre qui suit « de » donne les répétitions.
+  if (series !== null && reps === null) {
+    var k = m.indexOf("series");
+    if (k < 0) k = m.indexOf("serie");
+    if (k >= 0) {
+      var apres = m.slice(k).split(" ");
+      for (var j = 1; j < apres.length; j++) {
+        var vv = dictNombre(apres[j]);
+        if (vv === null) continue;
+        var apresNb = (apres[j + 1] || "");
+        if (/^secondes?$/.test(apresNb)) duree = vv;
+        else if (/^(minutes?|min)$/.test(apresNb)) duree = vv * 60;
+        else reps = vv;
+        break;
+      }
+    }
+  }
+  // Ce qui reste, une fois les chiffres et les mots techniques retirés, c'est
+  // le nom de l'exercice.
+  var reste = mots.filter(function (w) {
+    if (dictNombre(w) !== null) return false;
+    return !/^(series?|serie|reps?|repetitions?|fois|de|du|des|d|kilos?|kg|secondes?|minutes?|min|s|recup|recuperation|repos|pause|entre|puis|ensuite|apres|et|avec|a|au|le|la|les|un|une|sur)$/.test(w);
+  }).join(" ");
+
+  var X = null;
+  if (reste) {
+    var best = null, bestScore = 0;
+    for (var b = 0; b < biblio.length; b++) {
+      var nomN = dictNorm(biblio[b].n), score = 0;
+      var motsR = reste.split(" "), motsN = nomN.split(" ");
+      for (var r = 0; r < motsR.length; r++) {
+        if (motsR[r].length < 3) continue;
+        for (var q = 0; q < motsN.length; q++) {
+          if (motsN[q].indexOf(motsR[r]) === 0 || motsR[r].indexOf(motsN[q]) === 0) { score++; break; }
+        }
+      }
+      if (score > bestScore) { bestScore = score; best = biblio[b]; }
+    }
+    if (best && bestScore >= 1) X = best;
+  }
+  // Un morceau sans exercice mais qui porte un repos (« repos 90 secondes »)
+  // doit remonter : c'est lui qui complète l'exercice précédent.
+  if (!X && !reste && !repos && !duree) return null;
+  return {
+    exo: X, dit: reste,
+    series: series || (reps || duree ? 1 : null),
+    reps: reps, charge: charge, repos: repos, duree: duree
+  };
+}
+// Le texte entier → une liste d'exercices prêts à enregistrer.
+function dictLire(texte) {
+  var biblio = bibGet();
+  // On coupe sur la ponctuation et sur les mots qui annoncent la suite.
+  var bouts = String(texte || "")
+    .split(/[\n,;.]+|\b(?:ensuite|puis|apres|après)\b/i)
+    .map(function (x) { return (x || "").trim(); })
+    .filter(function (x) { return x.length > 2; });
+  var out = [], inconnus = [];
+  for (var i = 0; i < bouts.length; i++) {
+    var r = dictMorceau(bouts[i], biblio);
+    if (!r) continue;
+    // Un morceau sans exercice mais avec un repos : il complète le précédent.
+    if (!r.exo) {
+      if (r.repos && out.length) { out[out.length - 1].repos = r.repos; continue; }
+      if (r.dit) inconnus.push(r.dit);
+      continue;
+    }
+    var nb = Math.max(1, r.series || 1);
+    var serie = [];
+    for (var t = 0; t < nb; t++) {
+      if (r.duree && !r.reps) serie.push({ t: "temps", v: r.duree, c: r.charge || "", u: "kg" });
+      else serie.push({ t: "reps", v: r.reps || 10, c: r.charge || "", u: "kg" });
+    }
+    out.push({
+      m: r.exo.m || "complet", n: r.exo.n, mat: r.exo.mat || "",
+      ref: r.exo.id || "", repos: r.repos || 60, note: "", sup: 0, series: serie
+    });
+  }
+  return { exos: out, inconnus: inconnus };
+}
 function progVignette(X, taille) {
   var t = taille || 46, src = progImg(X);
   if (src) return '<img class="prg-vig" src="' + esc(src) + '" alt="" style="width:' + t + 'px;height:' + t + 'px" loading="lazy"/>';
@@ -8536,6 +8701,28 @@ function viewProgBuilder() {
     var ouvert = (state.cdProg.open === e);
     h += '<div class="prg-exo' + (lie ? ' lie' : '') + (X.sup ? ' sup' : '') + '" style="border-left-color:' + M[2] + '">' +
       (lie ? '<div class="prg-supbadge">⛓️ enchaîné sans repos</div>' : '') +
+      (lie ? '<div class="prg-supbadge">⛓️ enchaîné sans repos</div>' : '') +
+      // 🔁 En tête de chaîne : le réglage du circuit, une seule fois pour tous
+      // les exercices attachés.
+      ((X.sup && !lie) ? (function () {
+        var L = progChaine(S, e), dernier = S.exos[L[L.length - 1]];
+        var tours = (S.exos[e].series || []).length || 1;
+        var rt = parseInt(dernier.repos, 10) || 0;
+        return '<div class="prg-circuit">' +
+          '<div class="prg-circuit-t">🔁 Circuit de ' + L.length + ' exercices</div>' +
+          '<div class="prg-circuit-r">' +
+          '<span>Tours</span>' +
+          '<button class="prg-cc" data-circ-t="' + e + '|-1">−</button>' +
+          '<b>' + tours + '</b>' +
+          '<button class="prg-cc" data-circ-t="' + e + '|1">＋</button>' +
+          '</div>' +
+          '<div class="prg-circuit-r">' +
+          '<span>Récup entre les tours</span>' +
+          '<button class="prg-cc" data-circ-r="' + e + '|-15">−</button>' +
+          '<b>' + rt + ' s</b>' +
+          '<button class="prg-cc" data-circ-r="' + e + '|15">＋</button>' +
+          '</div></div>';
+      })() : '') +
       '<div class="prg-exo-hd" data-prg-open="' + e + '">' + progVignette(X, 44) +
       '<div style="flex:1;min-width:0">' +
       '<div class="prg-exo-n">' + esc(X.n) + '</div>' +
@@ -8583,6 +8770,43 @@ function viewProgBuilder() {
   }
 
   h += '<button id="prg-add" class="big-btn" style="margin-top:6px">＋ Ajouter des exercices</button>';
+
+  // 🎤 DICTER LA SÉANCE. Cinq minutes de saisie deviennent vingt secondes de
+  // parole : on appuie sur le micro du clavier et on dit la séance.
+  h += '<button id="prg-dict" class="big-btn gray" style="margin-top:8px;padding:13px 0;font-size:13.5px">🎤 Dicter la séance</button>';
+  if (state.dictOn) {
+    var apercu = "";
+    if (state.dictTxt) {
+      var L = dictLire(state.dictTxt);
+      if (L.exos.length) {
+        apercu += '<div class="dict-t">Ce que je comprends</div>';
+        for (var dz = 0; dz < L.exos.length; dz++) {
+          var E = L.exos[dz], MD = progMuscle(E.m);
+          apercu += '<div class="dict-l" style="border-left-color:' + MD[2] + '">' +
+            '<b>' + esc(E.n) + '</b><span>' + E.series.length + ' × ' +
+            esc(progSerieTexte(E.series[0])) + ' · repos ' + E.repos + ' s</span></div>';
+        }
+      }
+      if (L.inconnus.length) {
+        apercu += '<div class="dict-no">Pas trouvé dans ta bibliothèque : ' +
+          esc(L.inconnus.join(", ")) + '. Ajoute-les à la main, ou dis-les autrement.</div>';
+      }
+      if (!L.exos.length && !L.inconnus.length) {
+        apercu += '<div class="dict-no">Je n\'ai rien reconnu. Essaie : « développé couché 4 séries de 12, repos 90 secondes ».</div>';
+      }
+    }
+    h += '<div class="card dict-box">' +
+      '<div class="dict-t">🎤 Dicte ta séance</div>' +
+      '<div class="dict-aide">Appuie sur le micro de ton clavier et parle normalement.<br>' +
+      '<i>« Développé couché 4 séries de 12, repos 90 secondes, ensuite biceps poulie 4 séries de 15 »</i></div>' +
+      '<textarea id="dict-txt" class="prg-note" rows="4" placeholder="Dicte ou écris ta séance ici...">' +
+      esc(state.dictTxt || "") + '</textarea>' +
+      apercu +
+      '<div style="display:flex;gap:8px;margin-top:11px">' +
+      '<button id="dict-annul" class="prg-mini" style="flex:1">Annuler</button>' +
+      '<button id="dict-ok" class="big-btn" style="flex:2;margin:0;padding:13px 0;font-size:13.5px">Ajouter à la séance</button>' +
+      '</div></div>';
+  }
   if (qui.length) {
     h += '<button id="prg-maj" class="big-btn gray" style="margin-top:8px;padding:13px 0;font-size:13px">🔄 Renvoyer la nouvelle version à ' + qui.length + ' client' + (qui.length > 1 ? 's' : '') + '</button>' +
       '<div class="spt-txt" style="text-align:center;margin-top:9px">Tes modifications ne partent pas toutes seules chez ceux qui ont déjà la séance : ce bouton leur envoie la version à jour.</div>';
@@ -8863,6 +9087,52 @@ function bindProgBuilder() {
   paire("data-prg-up", function (e) { if (e > 0) { var x = S.exos.splice(e, 1)[0]; S.exos.splice(e - 1, 0, x); state.cdProg.open = e - 1; sauver(); } });
   paire("data-prg-down", function (e) { if (e < S.exos.length - 1) { var x = S.exos.splice(e, 1)[0]; S.exos.splice(e + 1, 0, x); state.cdProg.open = e + 1; sauver(); } });
   paire("data-prg-sup", function (e) { S.exos[e].sup = S.exos[e].sup ? 0 : 1; sauver(); });
+
+  // 🎤 La dictée
+  var dOn = document.getElementById("prg-dict");
+  if (dOn) dOn.addEventListener("click", function () {
+    state.dictOn = !state.dictOn; state.dictTxt = state.dictTxt || ""; render();
+  });
+  var dTx = document.getElementById("dict-txt");
+  if (dTx) {
+    // On ne redessine qu'à la pause, pas à chaque syllabe dictée.
+    dTx.addEventListener("change", function () { state.dictTxt = this.value; render(); });
+    dTx.addEventListener("input", function () { state.dictTxt = this.value; });
+  }
+  var dAn = document.getElementById("dict-annul");
+  if (dAn) dAn.addEventListener("click", function () {
+    state.dictOn = false; state.dictTxt = ""; render();
+  });
+  var dOk = document.getElementById("dict-ok");
+  if (dOk) dOk.addEventListener("click", function () {
+    var L = dictLire(state.dictTxt || "");
+    if (!L.exos.length) { feedback("Rien à ajouter — je n'ai reconnu aucun exercice", "warn"); return; }
+    for (var i = 0; i < L.exos.length; i++) S.exos.push(L.exos[i]);
+    state.dictOn = false; state.dictTxt = "";
+    feedback("🎤 " + L.exos.length + " exercice" + (L.exos.length > 1 ? "s" : "") + " ajouté" + (L.exos.length > 1 ? "s" : ""), "ok");
+    sauver();
+  });
+
+  // 🔁 Réglages du circuit : ils s'appliquent à toute la chaîne d'un coup.
+  function circuitBtns(attr, appliquer) {
+    var els = document.querySelectorAll("[" + attr + "]");
+    for (var i = 0; i < els.length; i++) els[i].addEventListener("click", function (ev) {
+      ev.stopPropagation();
+      var p = (this.getAttribute(attr) || "").split("|");
+      appliquer(parseInt(p[0], 10), parseInt(p[1], 10));
+      sauver();
+    });
+  }
+  circuitBtns("data-circ-t", function (e, d) {
+    var L = progChaine(S, e), dernier = S.exos[L[L.length - 1]];
+    var tours = Math.max(1, Math.min(20, ((S.exos[e].series || []).length || 1) + d));
+    progCircuitTours(S, e, tours, parseInt(dernier.repos, 10) || 60);
+  });
+  circuitBtns("data-circ-r", function (e, d) {
+    var L = progChaine(S, e), dernier = S.exos[L[L.length - 1]];
+    var rt = Math.max(0, Math.min(600, (parseInt(dernier.repos, 10) || 0) + d));
+    progCircuitTours(S, e, (S.exos[e].series || []).length || 1, rt);
+  });
   paire("data-prg-delexo", function (e) {
     if (!confirm("Retirer « " + S.exos[e].n + " » de la séance ?")) return;
     S.exos.splice(e, 1); state.cdProg.open = -1; sauver();

@@ -689,6 +689,8 @@ input,textarea{outline:none}
 .prg-circuit-r{display:flex;align-items:center;gap:9px;margin-top:6px;font-size:12.5px;font-weight:700;color:var(--ink2)}
 .prg-circuit-r span{flex:1}
 .prg-circuit-r b{min-width:46px;text-align:center;font-size:14px;font-weight:900;color:var(--ink)}
+.prg-circuit-a{font-size:11px;color:var(--mute);line-height:1.5;margin-top:9px}
+.prg-circuit-n{font-size:11px;color:var(--mute);line-height:1.5;margin-top:9px}
 .prg-cc{width:38px;height:38px;border-radius:11px;border:1.5px solid var(--line);background:var(--card);
   font-size:17px;font-weight:900;color:var(--ink);line-height:1}
 
@@ -849,7 +851,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="13/09 · Circuits & dictée";
+var APP_VERSION="13/09 · Récup respectée";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -8283,6 +8285,11 @@ function progChaine(S, e) {
 // Applique un nombre de tours à toute la chaîne : chaque exercice reçoit le
 // même nombre de séries, le repos tombe à zéro entre les exercices du tour,
 // et le repos de fin de tour se pose sur le dernier.
+// ⚠️ ON NE TOUCHE PLUS AUX REPOS DES EXERCICES. Akli règle lui-même une
+// récupération sur chaque exercice ; les remettre à zéro d'autorité effaçait
+// son travail et imposait un enchaînement sec qu'il n'avait pas demandé.
+// Seul le dernier exercice de la chaîne porte la récup de fin de tour, et
+// encore : uniquement quand on la règle explicitement.
 function progCircuitTours(S, e, tours, reposTour) {
   var l = progChaine(S, e);
   for (var i = 0; i < l.length; i++) {
@@ -8293,7 +8300,9 @@ function progCircuitTours(S, e, tours, reposTour) {
       nv.push({ t: modele.t, v: modele.v, c: modele.c, u: modele.u });
     }
     X.series = nv;
-    X.repos = (i === l.length - 1) ? reposTour : 0;
+  }
+  if (reposTour !== null && reposTour !== undefined) {
+    S.exos[l[l.length - 1]].repos = reposTour;
   }
 }
 // ═══════════ 🎤 DICTER UNE SÉANCE ═══════════
@@ -8700,8 +8709,13 @@ function viewProgBuilder() {
     var X = S.exos[e], M = progMuscle(X.m), lie = (e > 0 && S.exos[e - 1].sup);
     var ouvert = (state.cdProg.open === e);
     h += '<div class="prg-exo' + (lie ? ' lie' : '') + (X.sup ? ' sup' : '') + '" style="border-left-color:' + M[2] + '">' +
-      (lie ? '<div class="prg-supbadge">⛓️ enchaîné sans repos</div>' : '') +
-      (lie ? '<div class="prg-supbadge">⛓️ enchaîné sans repos</div>' : '') +
+      (lie ? (function () {
+        // Le badge annonce le repos que le coach a posé sur l'exercice
+        // précédent, au lieu de prétendre qu'il n'y en a aucun.
+        var rp = parseInt(S.exos[e - 1].repos, 10) || 0;
+        return '<div class="prg-supbadge">⛓️ enchaîné' +
+          (rp > 0 ? ' · ' + rp + ' s de récup avant' : ' sans repos') + '</div>';
+      })() : '') +
       // 🔁 En tête de chaîne : le réglage du circuit, une seule fois pour tous
       // les exercices attachés.
       ((X.sup && !lie) ? (function () {
@@ -8717,11 +8731,13 @@ function viewProgBuilder() {
           '<button class="prg-cc" data-circ-t="' + e + '|1">＋</button>' +
           '</div>' +
           '<div class="prg-circuit-r">' +
-          '<span>Récup entre les tours</span>' +
+          '<span>Récup à la fin du tour</span>' +
           '<button class="prg-cc" data-circ-r="' + e + '|-15">−</button>' +
           '<b>' + rt + ' s</b>' +
           '<button class="prg-cc" data-circ-r="' + e + '|15">＋</button>' +
-          '</div></div>';
+          '</div>' +
+          '<div class="prg-circuit-a">La récup de chaque exercice reste celle que tu as réglée dans sa fiche. Celle-ci s\'ajoute à la fin du tour.</div>' +
+          '</div>';
       })() : '') +
       '<div class="prg-exo-hd" data-prg-open="' + e + '">' + progVignette(X, 44) +
       '<div style="flex:1;min-width:0">' +
@@ -9124,9 +9140,8 @@ function bindProgBuilder() {
     });
   }
   circuitBtns("data-circ-t", function (e, d) {
-    var L = progChaine(S, e), dernier = S.exos[L[L.length - 1]];
     var tours = Math.max(1, Math.min(20, ((S.exos[e].series || []).length || 1) + d));
-    progCircuitTours(S, e, tours, parseInt(dernier.repos, 10) || 60);
+    progCircuitTours(S, e, tours, null);   // null = on ne touche à aucun repos
   });
   circuitBtns("data-circ-r", function (e, d) {
     var L = progChaine(S, e), dernier = S.exos[L[L.length - 1]];
@@ -10015,7 +10030,11 @@ function viewProgRun() {
     var X = W.exos[e], M = progMuscle(X.m), lie = (e > 0 && S.exos[e - 1] && S.exos[e - 1].sup);
     var dern = P.dernier[X.ref];
     h += '<div class="prg-exo' + (lie ? ' lie' : '') + '" style="border-left-color:' + M[2] + '">' +
-      (lie ? '<div class="prg-supbadge">⛓️ enchaîné sans repos</div>' : '') +
+      (lie ? (function () {
+        var rp = parseInt((S.exos[e - 1] || {}).repos, 10) || 0;
+        return '<div class="prg-supbadge">⛓️ enchaîné' +
+          (rp > 0 ? ' · ' + rp + ' s de récup avant' : ' sans repos') + '</div>';
+      })() : '') +
       '<div class="prg-exo-hd" style="cursor:default">' +
       (X.v ? '<button data-prg-vid="' + e + '" style="flex:0 0 auto;position:relative;line-height:0;background:none;padding:0">' +
         progVignette(X, 48) + '<span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:19px">▶️</span></button>'
@@ -10403,8 +10422,11 @@ function bindProgRun() {
       // Repos automatique, sauf sur un enchaînement (superset) ou la dernière
       // série de l'exercice quand il n'y a pas de repos réglé.
       var repos = parseInt(W.exos[k[0]].repos, 10) || 0;
-      var enchaine = !!(S.exos[k[0]] && S.exos[k[0]].sup && k[1] === W.exos[k[0]].series.length - 1);
-      if (repos > 0 && !enchaine) sptDemarrer([{ t: "repos", d: repos, tour: 1, serie: 1 }], "repos");
+      // L'ENCHAÎNEMENT NE SUPPRIME PLUS LA RÉCUP. Avant, un exercice attaché
+      // au suivant voyait son repos ignoré : le coach réglait 20 secondes, la
+      // cliente n'en avait aucune. C'est le repos réglé qui fait foi — zéro
+      // seconde pour un vrai superset, c'est au coach de le décider.
+      if (repos > 0) sptDemarrer([{ t: "repos", d: repos, tour: 1, serie: 1 }], "repos");
     } else { progRunSave(W); }
     render();
   });

@@ -8608,7 +8608,12 @@ function progGet(all) {
     marches: p.marches || {},    // marches validées, par semaine de programme
     socle: p.socle || [],        // identifiants venus du programme fixe
     bonus: p.bonus || [],        // identifiants donnés en plus, client par client
-    plan: p.plan || null         // le socle recopié chez le client (voyage avec lui)
+    plan: p.plan || null,        // le socle recopié chez le client (voyage avec lui)
+    // 🏃 Formule nutrition : la cliente garde la séance express, ses marches
+    // et les minuteurs, sans le socle des trois mois. progGet reconstruit un
+    // objet propre — sans cette ligne, le drapeau était écrit puis perdu à la
+    // première relecture.
+    expressSeul: !!p.expressSeul
   };
 }
 function progSetClient(p) { saveDay(PROG_SLOT, p); }
@@ -9325,6 +9330,12 @@ function progCartesHTML(all) {
   try { court = progLen(lsGetStr("amcoach_start_" + CLIENT)) <= 14; } catch (e) { }
   if (court) sexe = null;
 
+  // 🏃 FORMULE SANS PROGRAMME (nutrition + marche + express). Le socle des
+  // trois mois et la séance du jour disparaissent ; la séance express, les
+  // marches, les minuteurs et l'historique restent. C'est l'offre à 150.
+  var sansProg = !!P.expressSeul;
+  if (sansProg) sexe = null;
+
   // ═══ ⚡ LA SÉANCE EXPRESS, EN PREMIER ═══
   // Ordre voulu par Akli : l'express en tête (c'est le jour où on n'a envie de
   // rien qu'on ouvre l'appli), puis la séance du jour du programme, puis les
@@ -9340,7 +9351,7 @@ function progCartesHTML(all) {
 
   // Sexe inconnu = pas de socle possible. On le DIT au lieu de laisser un vide
   // que personne ne sait interpréter.
-  if (!sexe && !court) {
+  if (!sexe && !court && !sansProg) {
     h += '<div class="spt-card"><div class="spt-lab">🗓️ Mon programme</div>' +
       '<div class="spt-txt">Ton programme des trois mois arrive — ton coach doit encore choisir ' +
       'la version homme ou femme. En attendant, la séance express et les minuteurs sont à toi.</div></div>';
@@ -9390,6 +9401,27 @@ function progCartesHTML(all) {
           '<button class="p3-mar-b plus" id="p3-marche-plus">+</button></div>'
         : '') +
       '</div>';
+  }
+
+  // 🚶 Sans programme, les marches restent : c'est le socle de l'offre
+  // nutrition. On leur donne leur propre carte, avec les mêmes boutons.
+  if (sansProg) {
+    var objM = 3, minM = 60;
+    try {
+      var CM = P.plan || (prog3Get()[prog3Sexe(all)] || null);
+      var mm = CM && CM["m" + moisEnCours];
+      if (mm) { objM = mm.marches || 3; minM = mm.min || 60; }
+    } catch (e) { }
+    var faitM2 = prog3Marches(all, today90);
+    var pastM2 = "";
+    for (var pm = 0; pm < objM; pm++) pastM2 += (pm < faitM2 ? "🚶" : "·");
+    h += '<div class="spt-card"><div class="spt-lab">🚶 Mes marches</div>' +
+      '<div class="p3-marches">' +
+      '<div style="flex:1"><div class="p3-mar-t">' + faitM2 + '/' + objM + ' marches cette semaine</div>' +
+      '<div class="p3-mar-s">' + minM + ' min minimum, sans t\'arrêter</div></div>' +
+      '<div class="p3-mar-p">' + pastM2 + '</div>' +
+      '<button class="p3-mar-b" id="p3-marche-moins">\u2212</button>' +
+      '<button class="p3-mar-b plus" id="p3-marche-plus">+</button></div></div>';
   }
 
   // Le socle, mois par mois
@@ -11846,6 +11878,18 @@ function viewCoachDetail(){
 
   h+=cdSecClose();
   h+=cdSecOpen("prog","🏋️","Séances muscu","Exercices, séries, charges, repos");
+  // 🏃 Basculer entre la formule complète et la formule nutrition.
+  (function(){
+    var Pc=progGet(lsGet("amcoach_"+state.coachDetail,{}));
+    var seul=!!Pc.expressSeul;
+    h+='<button id="cd-expressseul" style="width:100%;padding:12px 0;border-radius:12px;border:1.5px solid '+
+      (seul?"var(--brand2)":"var(--line)")+';background:'+(seul?"#F3ECFF":"var(--card)")+';color:'+
+      (seul?"var(--brand2)":"var(--ink2)")+';font-weight:800;font-size:12.5px;margin-bottom:10px">'+
+      (seul?'🏃 Formule nutrition — lui rendre le programme 90 jours'
+           :'💪 Programme 90 jours actif — passer en formule nutrition')+'</button>'+
+      '<div style="font-size:11px;color:var(--mute);line-height:1.5;margin-bottom:12px">'+
+      'En formule nutrition, elle garde la séance express, ses marches et les minuteurs. Le socle des trois mois et la séance du jour disparaissent.</div>';
+  })();
   h+=progCoachListeHTML(c.slug,allData);
   h+=cdSecClose();
   h+=cdSecOpen("menus","🍽️","Menus &amp; challenge","Plans alimentaires, défis courts");
@@ -13676,6 +13720,11 @@ function viewCoachDash(){
       '<button class="nc-mod' + (state.ncProt ? " on" : "") + '" data-mod="prot">🍗 Protéines</button>'+
       '<button class="nc-mod' + (state.ncArgent ? " on" : "") + '" data-mod="argent">💰 Argent</button>'+
       '</div>'+
+      // 🏃 La formule sans programme : l'offre nutrition. La cliente garde la
+      // séance express, les marches et les minuteurs, sans les 90 jours.
+      '<div style="display:flex;gap:7px;margin-bottom:5px">'+
+      '<button class="nc-mod' + (state.ncProg !== false ? " on" : "") + '" data-mod="prog" style="flex:2">💪 Programme 90 jours</button>'+
+      '</div>'+
       '<div style="font-size:11px;color:var(--mute);margin-bottom:12px;line-height:1.5">Les menus démarrent à la date de départ ci-dessous. Tout reste modifiable ensuite dans sa fiche.</div>'+
       '<div class="card-label">DATE DE DÉPART</div>'+
       '<input id="nc-date" type="date" class="num-input" style="font-size:15px;font-weight:400;margin-bottom:12px" value="'+isoLocal()+'"/>'+
@@ -15237,7 +15286,8 @@ function bindCoach(){
   for(var nm=0;nm<ncMod.length;nm++)ncMod[nm].addEventListener("click",function(){
     ncBrouillon();
     var k=this.getAttribute("data-mod");
-    if(k==="menus")state.ncMenus=(state.ncMenus===false);   // ouvert par défaut
+    if(k==="prog")state.ncProg=(state.ncProg===false);      // ouvert par défaut
+    else if(k==="menus")state.ncMenus=(state.ncMenus===false);   // ouvert par défaut
     else if(k==="prot")state.ncProt=!state.ncProt;
     else state.ncArgent=!state.ncArgent;
     render();
@@ -15324,6 +15374,8 @@ function bindCoach(){
         allS[514]={theme:sx};
         var P0=allS[520]||{};
         P0.sexe=sx; P0.seances=P0.seances||[]; P0.journal=P0.journal||[];
+        // Décoché = formule nutrition : pas de socle des trois mois.
+        P0.expressSeul=(state.ncProg===false);
         P0.dernier=P0.dernier||{}; P0.marches=P0.marches||{};
         P0.socle=P0.socle||[]; P0.bonus=P0.bonus||[];
         allS[520]=P0;
@@ -15357,7 +15409,7 @@ function bindCoach(){
         }
         lsSet("amcoach_"+slug,allM);
       })();
-      state.ncSexe=null; state.ncMenus=undefined; state.ncProt=false; state.ncArgent=false;
+      state.ncSexe=null; state.ncMenus=undefined; state.ncProt=false; state.ncArgent=false; state.ncProg=undefined;
       state.showForm=false;
       render();
     });
@@ -15581,6 +15633,18 @@ function bindCoach(){
     if(!confirm("Arrêter le challenge en cours ?"))return;
     coachSaveSlot(state.coachDetail,515,{on:false});
     feedback("Challenge arrêté","undo");
+    render();
+  });
+
+  // 🏃 Formule nutrition / programme complet
+  var esB=document.getElementById("cd-expressseul");
+  if(esB)esB.addEventListener("click",function(){
+    var all=lsGet("amcoach_"+state.coachDetail,{});
+    var Pc=progGet(all);
+    Pc.expressSeul=!Pc.expressSeul;
+    all[520]=Pc; lsSet("amcoach_"+state.coachDetail,all);
+    try{coachSaveSlot(state.coachDetail,520,Pc);}catch(e){}
+    feedback(Pc.expressSeul?"🏃 Formule nutrition — programme masqué":"💪 Programme 90 jours rendu","ok");
     render();
   });
 

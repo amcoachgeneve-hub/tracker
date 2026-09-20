@@ -851,7 +851,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="13/09 · Récup respectée";
+var APP_VERSION="21/09 · Volume & réglages sûrs";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -8639,7 +8639,15 @@ function progVolume(exos) {
     for (var j = 0; j < exos[i].series.length; j++) {
       var s = exos[i].series[j];
       if (!s.ok) continue;
-      var rep = parseFloat(s.v) || 0, ch = parseFloat(s.c) || 0;
+      // UN POURCENTAGE N'EST PAS UN POIDS. Akli note « 60 % » quand il
+      // travaille en pourcentage du maxi : l'appli multipliait 60 répétitions
+      // par 60 « kilos » et annonçait 3 600 kg soulevés. Sans le maxi de la
+      // cliente, ce volume ne se calcule pas — on ne compte donc que les
+      // séries chargées en kilos.
+      if (s.u === "%") continue;
+      // Le poids réellement soulevé prime sur la cible du coach.
+      var rep = parseFloat(s.v) || 0;
+      var ch = parseFloat(s.kg != null && s.kg !== "" ? s.kg : s.c) || 0;
       if (exos[i].series[j].t === "reps" || !exos[i].series[j].t) v += rep * ch;
     }
   }
@@ -14345,10 +14353,57 @@ function openCalcReport(){
 }
 
 // ═══════════ COACH BILAN (slot 600) ═══════════
+// CE QUE LE COACH POSE CHEZ UNE CLIENTE DOIT ARRIVER. Avant, l'envoi partait
+// et on n'en parlait plus : un réseau capricieux en salle, et le challenge, le
+// menu ou le programme restaient sur le téléphone du coach sans qu'il le sache.
+// Les envois ratés sont maintenant gardés et rejoués au retour du réseau.
 function coachSaveSlot(slug,idx,data){
   var all=lsGet("amcoach_"+slug,{});all[idx]=data;lsSet("amcoach_"+slug,all);
-  sbFetch("tracking?on_conflict=client_slug,day_index",{method:"POST",prefer:"resolution=merge-duplicates",body:{client_slug:slug,day_index:idx,data:data}}).catch(function(){});
+  sbFetch("tracking?on_conflict=client_slug,day_index",
+    {method:"POST",prefer:"resolution=merge-duplicates",body:{client_slug:slug,day_index:idx,data:data}})
+    .then(function(r){
+      if(r&&r.ok)coachFileRetirer(slug,idx);
+      else{coachFileAjouter(slug,idx,data);coachPrevenir();}
+    })
+    .catch(function(){coachFileAjouter(slug,idx,data);coachPrevenir();});
 }
+function coachFileLire(){var f=lsGet("amcoach_afaire_coach",{});return (f&&typeof f==="object")?f:{};}
+function coachFileAjouter(slug,idx,data){
+  var f=coachFileLire(); f[slug+"|"+idx]={slug:slug,idx:idx,data:data};
+  lsSet("amcoach_afaire_coach",f);
+}
+function coachFileRetirer(slug,idx){
+  var f=coachFileLire(), k=slug+"|"+idx;
+  if(f[k]!==undefined){delete f[k];lsSet("amcoach_afaire_coach",f);}
+}
+var __coachPrevenuLe=0;
+function coachPrevenir(){
+  // Un seul avertissement par minute : dix réglages ratés ne font pas dix
+  // messages.
+  if(Date.now()-__coachPrevenuLe<60000)return;
+  __coachPrevenuLe=Date.now();
+  try{feedback("⚠️ Réglage gardé — il partira au retour du réseau","warn");}catch(e){}
+}
+// Rejoue tout ce qui attend. Appelée au retour du réseau et à l'ouverture.
+function coachFileRattraper(){
+  var f=coachFileLire(), cles=Object.keys(f);
+  if(!cles.length)return;
+  cles.forEach(function(k){
+    var e=f[k];
+    sbFetch("tracking?on_conflict=client_slug,day_index",
+      {method:"POST",prefer:"resolution=merge-duplicates",
+       body:{client_slug:e.slug,day_index:e.idx,data:e.data}})
+      .then(function(r){
+        if(r&&r.ok){
+          coachFileRetirer(e.slug,e.idx);
+          if(!Object.keys(coachFileLire()).length){
+            try{feedback("☁️ Réglages envoyés à tes clientes","ok");}catch(x){}
+          }
+        }
+      }).catch(function(){});
+  });
+}
+window.addEventListener("online",function(){try{coachFileRattraper();}catch(e){}});
 var BILAN_MESURES=[["brasD","Bras droit",1],["brasG","Bras gauche",1],["poitrine","Poitrine",0],["nombril","Nombril",0],["ventre","Ventre",1],["fessiers","Fessiers/Hanches",0],["jambeD","Jambe droite",1],["jambeG","Jambe gauche",1],["molletD","Mollet droit",1],["molletG","Mollet gauche",1]];
 // Le barème n'est pas une note : ce sont des questions ouvertes.
 var BILAN_SCORES=[["puissance","Puissance personnelle — action ou excuse ?"],["vitalite","Vitalité — énergie physique ou épuisement ?"],["temps","Le temps — maîtrise ou gaspillage ?"],["emotions","Gestion émotionnelle — conséquences mental/alimentation, fringales ?"]];
@@ -17776,6 +17831,7 @@ function bindMain(name,start){
 (function(){
   render(); // instant render with local data
   if(typeof IS_COACH!=="undefined"&&IS_COACH&&state.coachAuthed){
+    try{ coachFileRattraper(); }catch(e){}
     loadCoachDataFromCloud();
     // Deux appareils : on redescend d'abord les outils du coach (séances,
     // bibliothèque, pipeline, prospection…) si le nuage est plus récent.

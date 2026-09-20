@@ -121,6 +121,17 @@ input,textarea,select{outline:none}
 .cfg-msg{font-size:11.5px;color:#666;font-weight:700;margin-top:10px;min-height:14px}
 .sync-note{text-align:center;font-size:12px;font-weight:700;margin-top:10px;min-height:16px}
 
+/* 🥛🍎 Les collations dans la journée. */
+.col-card{display:flex;align-items:center;gap:12px;background:#FFFDF5;border:1.5px dashed #E6D08A;
+  border-radius:14px;padding:12px 14px;margin:0 14px 10px}
+.col-card.off{background:#FAFAFA;border-color:#DDD;opacity:.75}
+.col-ico{font-size:24px;line-height:1}
+.col-txt{flex:1;display:flex;flex-direction:column}
+.col-txt b{font-size:15px;color:#1A1A1A}
+.col-txt span{font-size:13.5px;color:#6B6B6B;margin-top:2px}
+.col-fac{font-size:11px;font-weight:800;color:#8A8A8A;text-transform:uppercase;letter-spacing:.5px;
+  text-align:right;max-width:92px;line-height:1.3}
+
 /* 🧭 Le protocole de la journée : trois lignes, lisibles d'un coup d'œil. */
 .proto-card{border-left:5px solid #0057A8}
 .proto-t{font-weight:900;font-size:15px;color:#0057A8;margin-bottom:13px;display:flex;align-items:center;gap:9px}
@@ -179,6 +190,31 @@ var MEALS=[
   {id:"diner", icon:"🌙", name:"Dîner"}
 ];
 
+// 🥛🍎 LES COLLATIONS. Elles sont facultatives, elles ne remplacent jamais un
+// repas, et leur contenu change selon la diète :
+//   · Diète 1 — protéine le matin, fruits l'après-midi
+//   · Diète 2 — pareil, fruits jusqu'à 17 h au plus tard
+//   · Diète 3 — plus de fruits, sauf fruits rouges les jours glucides bas
+//   · Reset 14 jours — fruits seulement les jours avec glucides
+//   · Mois 4 — protéine le matin, fruits l'après-midi
+function collations(menu, dayTag) {
+  var mat = { icon: "🥛", nom: "Collation du matin", txt: "Protéine", note: "Facultative" };
+  if (menu === "cyclage") {
+    return [mat, (dayTag === "GB")
+      ? { icon: "🍓", nom: "Collation de l'après-midi", txt: "Fruits rouges uniquement", note: "Facultative · jours glucides bas" }
+      : { icon: "🚫", nom: "Collation de l'après-midi", txt: "Pas de fruits aujourd'hui", note: "Jour sans glucides" }];
+  }
+  if (menu === "14jours") {
+    return [mat, (dayTag === "RA")
+      ? { icon: "🍎", nom: "Collation de l'après-midi", txt: "Fruits", note: "Facultative · jour avec glucides" }
+      : { icon: "🚫", nom: "Collation de l'après-midi", txt: "Pas de fruits aujourd'hui", note: "Jour sans glucides" }];
+  }
+  if (menu === "acceleration") {
+    return [mat, { icon: "🍎", nom: "Collation de l'après-midi", txt: "Fruits — avant 17 h", note: "Facultative" }];
+  }
+  return [mat, { icon: "🍎", nom: "Collation de l'après-midi", txt: "Fruits", note: "Facultative" }];
+}
+
 // Règle affichée par repas, selon le menu (et le jour pour cyclage)
 function mealRule(menu,mealId,dayTag){
   if(menu==="equilibre"){
@@ -187,9 +223,12 @@ function mealRule(menu,mealId,dayTag){
     return {txt:"GB + P + F",color:"#F59E0B"};
   }
   if(menu==="14jours"){
+    // Jour RA : rééquilibrage complet, blé et laitages autorisés, comme au
+    // mois 4. Jour SG : aucune source de glucides, midi et soir.
     if(mealId==="pdej") return {txt:"PROTÉINE",color:"#7B1FA2"};
+    if(dayTag==="SG")   return {txt:"P + F",color:B};
     if(mealId==="dej")  return {txt:"G + P + F",color:"#2E7D32"};
-    return {txt:"P + F",color:B};
+    return {txt:"GB + P + F",color:"#F59E0B"};
   }
   if(menu==="acceleration"){
     if(mealId==="pdej") return {txt:"PROTÉINE",color:"#7B1FA2"};
@@ -202,6 +241,20 @@ function mealRule(menu,mealId,dayTag){
   return {txt:"GB + P + F",color:"#F59E0B"};
 }
 
+// 📅 CALENDRIER DU RESET 14 JOURS (L→D), donné par Akli.
+// Semaine 1 : on alterne un jour avec glucides, un jour sans.
+// Semaine 2 : seuls le mardi et le vendredi portent des glucides.
+// Le dimanche de la 2e semaine : pesée et mensurations.
+var RESET14 = [
+  ["RA", "SG", "RA", "SG", "RA", "SG", "RA"],
+  ["SG", "RA", "SG", "SG", "RA", "SG", "SG"]
+];
+function reset14Tag(dayIdx) {
+  var w = Math.min(1, Math.floor(dayIdx / 7)), d = dayIdx % 7;
+  return RESET14[w][d];
+}
+function reset14Pesee(dayIdx) { return dayIdx === 13; }
+
 // Calendrier Cyclage — pattern fixe 4 semaines (L→D), depuis le calendrier d'Akli
 var CYCLAGE=[
   ["SG","GB","SG","GB","SG","GB","SG"],
@@ -209,6 +262,13 @@ var CYCLAGE=[
   ["SG","SG","SG","GB","SG","SG","SG"],
   ["GB","SG","SG","SG","SG","SG","SG"]
 ];
+// Le type d'un jour, quelle que soit la diète. Renvoie null quand la diète
+// traite tous les jours pareil.
+function jourTag(menu, dayIdx) {
+  if (menu === "cyclage") return cyclageTag(dayIdx);
+  if (menu === "14jours") return reset14Tag(dayIdx);
+  return null;
+}
 function cyclageTag(dayIdx){ // dayIdx 0-29 → semaine 0-3 bouclée
   var w=Math.floor(dayIdx/7)%4, d=dayIdx%7;
   return CYCLAGE[w][d];
@@ -493,20 +553,22 @@ function frMeilleur(saisie) {
       // Ce qui est entre parenthèses reste CHERCHABLE (« laitue » trouve la
       // salade) mais ne compte pas dans la longueur du nom : sans ça, « Noix
       // (1 poignée) » paraissait aussi vague que « Noix de St-Jacques ».
-      var ref = frMots(liste[i]);
+      // Les mots répétés dans le nom ne comptent qu'une fois.
+      var ref = frMots(liste[i]).filter(function (w, z, t) { return t.indexOf(w) === z; });
       var base = frMots(String(liste[i]).replace(/\(.*?\)/g, " "));
       if (!ref.length) continue;
-      var n = 0;
+      var n = 0, servis = {};
       for (var j = 0; j < ref.length; j++)
         for (var k = 0; k < mots.length; k++)
-          if (frMotEgal(mots[k], ref[j])) { n++; break; }
+          if (frMotEgal(mots[k], ref[j])) { n++; servis[mots[k]] = 1; break; }
       if (!n) continue;
+      var nServis = Object.keys(servis).length;   // mots de la saisie utilisés
       var lon = base.length || ref.length;
       // Une entrée COURTE qui colle entièrement bat une entrée longue dont on
       // n'a qu'un mot : « noix » désigne la noix (fibre), pas la noix de
       // Saint-Jacques. On départage sur la part du nom couverte, puis sur le
       // nombre de mots du nom — le plus court est le plus précis.
-      var cand = { cat: cat, nom: liste[i], score: n, part: Math.min(1, n / lon), taille: lon, rang: l };
+      var cand = { cat: cat, nom: liste[i], score: n, mots: nServis, part: Math.min(1, n / lon), taille: lon, rang: l };
       if (!best || cand.score > best.score ||
         (cand.score === best.score && cand.part > best.part) ||
         (cand.score === best.score && cand.part === best.part && cand.taille < best.taille) ||
@@ -515,12 +577,50 @@ function frMeilleur(saisie) {
   }
   return best;
 }
+// PLUSIEURS ALIMENTS SUR UNE SEULE LIGNE. Akli écrit « poulet riz poivrons »
+// d'une traite, sans virgules : l'appli n'y voyait qu'un seul ingrédient
+// appelé « poulet riz poivrons », donc une protéine, et réclamait ensuite les
+// légumes qui étaient pourtant là. On relit la ligne mot à mot et on y
+// reconnaît chaque aliment.
+// La lecture se fait de gauche à droite en essayant d'abord les groupes de
+// trois mots, puis deux, puis un : « patate douce » et « blanc de poulet »
+// restent entiers, alors que « poulet riz » se sépare en deux.
+function frDecouper(ligne) {
+  var mots = frMots(ligne);
+  if (mots.length < 2) return [ligne];
+  var trouves = [], i = 0;
+  while (i < mots.length) {
+    var pris = null;
+    for (var n = Math.min(3, mots.length - i); n >= 1; n--) {
+      var bout = mots.slice(i, i + n).join(" ");
+      var B = frMeilleur(bout);
+      // On n'accepte le groupe que s'il couvre vraiment un aliment connu :
+      // sans ça, « riz » attraperait la protéine de pois / riz en poudre.
+      // B.mots compte les mots de la saisie réellement utilisés : c'est lui
+      // qui dit si le groupe entier a été reconnu, pas le score côté liste.
+      // Seule condition : le groupe entier a servi. Exiger en plus une forte
+      // couverture du nom écartait « oeufs », qui pointe sur l'entrée « Œuf,
+      // blanc d'œuf » et n'en couvre qu'un tiers.
+      if (B && B.mots >= n) { pris = { txt: bout, n: n }; break; }
+    }
+    if (pris) { trouves.push(pris.txt); i += pris.n; }
+    else i++;   // mot non reconnu (une quantité, un pluriel exotique) : on passe
+  }
+  // Un seul aliment reconnu : on garde la ligne telle que la cliente l'a
+  // écrite, c'est elle qui s'affichera dans la recette.
+  return trouves.length >= 2 ? trouves : [ligne];
+}
 function frTrier(txt) {
   var brut = String(txt || "").split(/[\n,;]+/).map(function (s) { return s.trim(); }).filter(function (s) { return s.length > 1; });
+  var items = [];
+  for (var k = 0; k < brut.length; k++) {
+    var bouts = frDecouper(brut[k]);
+    for (var q = 0; q < bouts.length; q++) items.push(bouts[q]);
+  }
   var res = { P: [], G: [], F: [], A: [], inconnus: [], interdits: [] };
   var vus = {};
-  for (var i = 0; i < brut.length; i++) {
-    var m = brut[i];
+  for (var i = 0; i < items.length; i++) {
+    var m = items[i];
     var cle = frNorm(m);
     if (!cle || vus[cle]) continue;
     vus[cle] = 1;
@@ -532,7 +632,7 @@ function frTrier(txt) {
 
 // La règle du repas, telle qu'elle s'affiche déjà dans le menu du jour.
 function frRegle(mealId) {
-  var dayTag = MENU === "cyclage" ? cyclageTag(state.selDay) : null;
+  var dayTag = jourTag(MENU, state.selDay);
   var r = mealRule(MENU, mealId, dayTag);
   var parts = r.txt.split("+").map(function (s) { return s.trim(); });
   return { txt: r.txt, color: r.color, glucides: parts.indexOf("G") >= 0 || parts.indexOf("GB") >= 0, bas: parts.indexOf("GB") >= 0, tag: dayTag };
@@ -866,7 +966,8 @@ function viewTabs(){
 function viewCalendar(){
   var DAYN=["L","M","M","J","V","S","D"];
   var h='<div style="padding:0 14px;margin-bottom:16px">';
-  for(var w=0;w<4;w++){
+  var nbSem=Math.ceil(MENU_DAYS(MENU)/7);
+  for(var w=0;w<nbSem;w++){
     h+='<div style="display:flex;align-items:center;justify-content:space-between;margin:10px 0 6px">'+
       '<span style="font-weight:900;font-size:11px;color:#AAA;letter-spacing:1px;text-transform:uppercase">Semaine '+(w+1)+'</span>'+
       (cfgMenu.recettes?'<button class="week-courses" data-week="'+w+'" style="font-size:11px;font-weight:800;color:'+R+';padding:4px 10px;border:1.5px solid '+R+';border-radius:20px;background:#fff">🛒 Liste de courses</button>':'')+'</div>';
@@ -875,13 +976,16 @@ function viewCalendar(){
     h+='</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px">';
     for(var d=0;d<7;d++){
       var i=w*7+d;
+      if(i>=MENU_DAYS(MENU)){h+='<span></span>';continue;}
       var cls="day-cell"+(state.selDay===i?" sel":"");
       var tag="";
-      if(MENU==="cyclage"){
-        var t=cyclageTag(i);
+      var t=jourTag(MENU,i);
+      if(t){
         cls+=t==="SG"?" sg":" gb";
         tag='<span class="dc-tag" style="color:'+(t==="SG"?"#2E7D32":"#B45309")+'">'+t+'</span>';
       }
+      // ⚖️ Le dernier dimanche du Reset : pesée et mensurations.
+      if(MENU==="14jours"&&reset14Pesee(i))tag+='<span class="dc-tag" style="color:#0057A8">⚖️</span>';
       var hasRecipe=cfgMenu.recettes&&(state.recipes[keyOf(MENU,i,"dej")]||state.recipes[keyOf(MENU,i,"pdej")]||state.recipes[keyOf(MENU,i,"diner")]);
       var phIdx=PHASE_ORDER.indexOf(MENU);
       var isToday=CLIENT&&state.clientStart&&(FORCED?(dayGlobal()%MENU_DAYS(MENU))===i:(Math.floor(dayGlobal()/28)===phIdx&&(dayGlobal()%28)===i));
@@ -896,13 +1000,33 @@ function viewCalendar(){
 // ═══════════ REPAS DU JOUR ═══════════
 function viewDayMeals(){
   var day=state.selDay;
-  var dayTag=MENU==="cyclage"?cyclageTag(day):null;
+  var dayTag=jourTag(MENU,day);
   var h='<div style="padding:0 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px">'+
     '<div class="bar bar-r"></div><span style="font-weight:900;font-size:16px">Jour '+(day+1)+'</span>'+
     (dayTag?'<span class="meal-rule" style="background:'+(dayTag==="SG"?"#2E7D32":"#F59E0B")+'">'+
-      (dayTag==="SG"?"JOUR SANS GLUCIDES":"JOUR GLUCIDES BAS")+'</span>':'')+'</div>';
+      (dayTag==="SG"?"JOUR SANS GLUCIDES"
+        :(MENU==="14jours"?"JOUR AVEC GLUCIDES":"JOUR GLUCIDES BAS"))+'</span>':'')+'</div>';
+
+  // ⚖️ Le dimanche de fin de Reset : on pèse et on mesure.
+  if(MENU==="14jours"&&reset14Pesee(day)){
+    h+='<div style="margin:0 14px 12px;background:#E7F0FA;border:1.5px solid #0057A8;border-radius:12px;'+
+      'padding:12px 14px;font-size:14px;color:#0B3C74;font-weight:700;line-height:1.5">'+
+      '⚖️ Aujourd\'hui : pesée et mensurations. Note-les dans ton application, '+
+      'c\'est ce qui mesure vraiment tes 14 jours.</div>';
+  }
 
   if(!state.loaded)h+='<div class="meal-empty">Chargement…</div>';
+
+  // 🥛🍎 Les collations, à leur place dans la journée : celle du matin après
+  // le petit-déjeuner, celle de l'après-midi après le déjeuner.
+  var COL=collations(MENU,dayTag);
+  function colCard(c){
+    var off=(c.icon==="🚫");
+    return '<div class="col-card'+(off?" off":"")+'">'+
+      '<span class="col-ico">'+c.icon+'</span>'+
+      '<div class="col-txt"><b>'+c.nom+'</b><span>'+c.txt+'</span></div>'+
+      '<span class="col-fac">'+c.note+'</span></div>';
+  }
 
   for(var i=0;i<MEALS.length;i++){
     var meal=MEALS[i];
@@ -946,6 +1070,9 @@ function viewDayMeals(){
         '</div>';
     }
     h+='</div>';
+    // La collation suit le repas auquel elle se rattache.
+    if(meal.id==="pdej")h+=colCard(COL[0]);
+    if(meal.id==="dej") h+=colCard(COL[1]);
   }
   return h;
 }
@@ -985,9 +1112,9 @@ var PROTOCOLES={
     ["🌙","Soir","Glucides + protéines + fibres","Un tiers de chaque. On mange normalement."]
   ],
   "14jours":[
-    ["🌅","Matin","Protéines","Rien d'autre."],
-    ["🍽️","Midi","Glucides bas + protéines + fibres","Portion mesurée."],
-    ["🌙","Soir","Protéines + fibres","Pas de glucides."]
+    ["🌅","Matin","Protéines","Tous les jours, sans exception."],
+    ["🍽️","Midi","Selon le jour du calendrier","Jour avec glucides : 1/3 de chaque. Jour sans : protéines + fibres."],
+    ["🌙","Soir","Selon le jour du calendrier","Jour avec glucides : glucides bas + protéines + fibres. Jour sans : protéines + fibres."]
   ]
 };
 function protocoleHTML(){

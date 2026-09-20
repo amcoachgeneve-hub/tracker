@@ -121,6 +121,15 @@ input,textarea,select{outline:none}
 .cfg-msg{font-size:11.5px;color:#666;font-weight:700;margin-top:10px;min-height:14px}
 .sync-note{text-align:center;font-size:12px;font-weight:700;margin-top:10px;min-height:16px}
 
+/* 🥛🍎 Les collations dans le protocole. */
+.proto-col{margin-top:14px;padding-top:12px;border-top:1px solid #EFEFEF}
+.proto-col-t{font-size:11.5px;font-weight:900;color:#0057A8;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.proto-col-l{display:flex;align-items:center;gap:10px;font-size:14.5px;margin-top:7px}
+.proto-col-l span{font-size:20px;line-height:1}
+.proto-col-l b{min-width:84px;font-size:13px;color:#1A1A1A}
+.proto-col-l i{font-style:normal;color:#6B6B6B;flex:1}
+.proto-col-n{font-size:11.5px;color:#8A8A8A;margin-top:9px;line-height:1.5}
+
 /* 🥛🍎 Les collations dans la journée. */
 .col-card{display:flex;align-items:center;gap:12px;background:#FFFDF5;border:1.5px dashed #E6D08A;
   border-radius:14px;padding:12px 14px;margin:0 14px 10px}
@@ -1090,30 +1099,42 @@ var ASSIETTES={
 // le midi glucides protéines fibres, le soir glucides bas protéines fibres,
 // et ça change au mois 2 et au mois 3. » C'est la règle qu'on applique tous
 // les jours ; elle doit se lire avant les listes d'aliments.
+// Les deux collations sont FACULTATIVES : elles ne remplacent jamais un repas,
+// et elles ne sont pas obligatoires. Leur contenu change selon la phase.
 var PROTOCOLES={
   equilibre:[
     ["🌅","Matin","Protéines","Rien d'autre. On lance la machine sur du solide."],
+    ["🥛","Collation du matin","Protéines","Facultative. Jamais à la place du petit-déjeuner."],
     ["🍽️","Midi","Glucides + protéines + fibres","Un tiers de chaque dans l'assiette."],
+    ["🍎","Collation de l'après-midi","Fruits","Facultative."],
     ["🌙","Soir","Glucides bas + protéines + fibres","Les glucides passent en petite portion."]
   ],
   acceleration:[
     ["🌅","Matin","Protéines","Inchangé : c'est la base de la journée."],
+    ["🥛","Collation du matin","Protéines","Facultative."],
     ["🍽️","Midi","Glucides + protéines + fibres","Le seul repas qui porte les glucides."],
+    ["🍎","Collation de l'après-midi","Fruits — avant 17 h","Facultative. Passé 17 h, plus de fruits."],
     ["🌙","Soir","Protéines + fibres","Plus de glucides le soir. C'est ce qui accélère."]
   ],
   cyclage:[
     ["🌅","Matin","Protéines","Inchangé, tous les jours."],
+    ["🥛","Collation du matin","Protéines","Facultative."],
     ["🍽️","Midi","Selon le jour du calendrier","Jour GB : glucides bas + protéines + fibres. Jour SG : protéines + fibres."],
+    ["🍓","Collation de l'après-midi","Fruits rouges — jours GB uniquement","Facultative. Les jours sans glucides : pas de fruits."],
     ["🌙","Soir","Protéines + fibres","Jamais de glucides le soir sur cette phase."]
   ],
   retour:[
     ["🌅","Matin","Protéines (+ glucides possibles)","Le blé revient, les laitages aussi."],
+    ["🥛","Collation du matin","Protéines","Facultative."],
     ["🍽️","Midi","Glucides + protéines + fibres","Un tiers de chaque."],
+    ["🍎","Collation de l'après-midi","Fruits","Facultative."],
     ["🌙","Soir","Glucides + protéines + fibres","Un tiers de chaque. On mange normalement."]
   ],
   "14jours":[
     ["🌅","Matin","Protéines","Tous les jours, sans exception."],
+    ["🥛","Collation du matin","Protéines","Facultative."],
     ["🍽️","Midi","Selon le jour du calendrier","Jour avec glucides : 1/3 de chaque. Jour sans : protéines + fibres."],
+    ["🍎","Collation de l'après-midi","Fruits — jours avec glucides uniquement","Facultative. Les jours sans glucides : pas de fruits."],
     ["🌙","Soir","Selon le jour du calendrier","Jour avec glucides : glucides bas + protéines + fibres. Jour sans : protéines + fibres."]
   ]
 };
@@ -1128,6 +1149,17 @@ function protocoleHTML(){
       '<div class="proto-r">'+esc(L[i][2])+'</div>'+
       '<div class="proto-d">'+esc(L[i][3])+'</div></div></div>';
   }
+  // 🥛🍎 LES COLLATIONS DANS LE PROTOCOLE. Akli les cherchait ici — c'est la
+  // page qui décrit la journée, elles y ont leur place autant que dans le
+  // calendrier. Sur les diètes où elles dépendent du jour, on le dit.
+  var C=collations(MENU,null);
+  h+='<div class="proto-col"><div class="proto-col-t">Les collations — facultatives</div>';
+  h+='<div class="proto-col-l"><span>🥛</span><b>Matin</b><i>'+esc(C[0].txt)+'</i></div>';
+  var apres = (MENU==="cyclage") ? "Fruits rouges les jours glucides bas · rien les jours sans"
+            : (MENU==="14jours") ? "Fruits les jours avec glucides · rien les jours sans"
+            : esc(C[1].txt);
+  h+='<div class="proto-col-l"><span>🍎</span><b>Après-midi</b><i>'+apres+'</i></div>';
+  h+='<div class="proto-col-n">Une collation ne remplace jamais un repas. Si tu n\'as pas faim, tu la sautes.</div></div>';
   return h+'<div class="proto-note">Ce protocole change à chaque phase. Les assiettes ci-dessous montrent à quoi il ressemble dans le plat.</div></div>';
 }
 // Les MÊMES photos servent à plusieurs phases, mais elles ne veulent pas dire

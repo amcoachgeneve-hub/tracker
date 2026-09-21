@@ -683,6 +683,24 @@ input,textarea{outline:none}
 .dict-no{background:#FFF6E5;border:1px solid #F0C67A;border-radius:11px;padding:11px 12px;
   margin-top:10px;font-size:12.5px;color:#7A5A15;line-height:1.55;font-weight:600}
 
+/* 🎬 Le modèle de vidéos du Reset, dans la fiche client. */
+.v14{border-left:4px solid #1FA2FF;padding:14px 15px}
+.v14-t{font-weight:900;font-size:14px;margin-bottom:4px}
+.v14-s{font-size:12px;color:var(--mute);line-height:1.55;margin-bottom:11px}
+.v14-onglets{display:flex;gap:7px;margin-bottom:10px}
+.v14-o{flex:1;padding:11px 0;border-radius:11px;border:2px solid var(--line);background:var(--card);
+  font-weight:900;font-size:13px;color:var(--mute);min-height:44px}
+.v14-o.on.h{border-color:#1FA2FF;background:#1FA2FF;color:#fff}
+.v14-o.on.f{border-color:#EC4899;background:#EC4899;color:#fff}
+.v14-av{font-size:11.5px;font-weight:700;color:var(--warn-d);background:#FFF6E5;border-radius:9px;padding:8px 10px;margin-bottom:8px}
+.v14-j{display:grid;grid-template-columns:78px auto 1fr 12px;align-items:center;gap:8px;padding:10px 2px;
+  border-bottom:1px solid var(--soft2);cursor:pointer;min-height:44px}
+.v14-j b{font-size:13px}
+.v14-j .ok{font-size:11px;font-weight:800;color:var(--ok-d)}
+.v14-j .vide{font-size:11px;font-weight:700;color:#BBB}
+.v14-m{font-size:11px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.v14-c{color:var(--mute);font-weight:900}
+
 /* 🔷 Reset 14 jours — les 7 jours en tête de l'onglet Sport. */
 .r14{background:linear-gradient(160deg,#0B2A4A,#0A1A33);border:2px solid #1FA2FF;border-radius:20px;
   padding:16px 14px 12px;margin-bottom:16px;box-shadow:0 8px 26px rgba(31,162,255,.25)}
@@ -877,7 +895,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="21/09 · Sport Reset épuré";
+var APP_VERSION="21/09 · Reset 14 complet";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -1449,7 +1467,8 @@ var COACH_CLES={
   "amcoach_clients":906,      // liste des clients (secours : la table clients fait foi)
   "amcoach_archives":907,     // clients mis en pause
   "amcoach_depenses":908,     // dépenses du mois
-  "amcoach_abos":909          // abonnements
+  "amcoach_abos":909,         // abonnements
+  "amcoach_videos14":920      // vidéos du Reset 14 jours, homme et femme
 };
 var __coachEnv={};
 function coachCloudPousser(cle){
@@ -2598,7 +2617,7 @@ var TON_EXTRA={
       famille:"👨‍👩‍👧 T'as zappé les tiens cette semaine. L'équilibre ça compte aussi, arrête de tout sacrifier.",
       identite:"🧱 Pas une brique posée. DEUX MINUTES. Elle se construit pas toute seule ta forteresse.",
       onething:"⚡ Tes missions, t'as rien fait. Une seule, cinq minutes. Prépare-la ce soir et exécute.",
-      travail:"💼 Le boulot bouffe tout. Cadre ta journée, sinon tu tiendras pas 90 jours."
+      travail:"💼 Le boulot bouffe tout. Cadre ta journée, sinon tu tiendras pas jusqu'au bout."
     },
     phrases:["Le poids bouge lentement, l'habitude va vite ⚡","Ce que tu fais aujourd'hui, tu le vois dans trois semaines 🌱","Un jour parfait sert à rien. Trente jours corrects, tout 📆","C'est pas droit, mais ça descend quand même 📉","La constance bat la force, toujours 🏆","Le plus dur est fait, t'as commencé 🚀"]
   },
@@ -3010,12 +3029,15 @@ function supMoment(allData,today90,ton){
   var jour=today90+1;
   // Règle de base : UN cap par jour maximum.
   if(momentDuJour(vus))return null;
+  // Les deux grands caps se calent sur la durée : jours 45 et 85 sur 90,
+  // jours 7 et 13 sur un Reset de 14.
+  var DUR=dureeClient(), MI=Math.round(DUR/2), FIN=(DUR>=90?85:DUR-1);
   // 1. Fin de programme : le plus fort, il passe devant tout
-  if(jour>=85&&!vus.final)return {cle:"final",txt:momentTexte("final",ton,jour)};
+  if(jour>=FIN&&!vus.final)return {cle:"final",txt:momentTexte("final",ton,jour)};
   // 2. Mi-parcours — passé la fenêtre, il est retiré au lieu d'être gardé en
   //    réserve : un mi-parcours annoncé au jour 60 ne veut plus rien dire.
-  if(jour>=45&&jour<=47&&!vus.moitie)return {cle:"moitie",txt:momentTexte("moitie",ton,jour)};
-  if(jour>47&&!vus.moitie)vus=momentRetirer(["moitie"]);
+  if(jour>=MI&&jour<=MI+2&&!vus.moitie)return {cle:"moitie",txt:momentTexte("moitie",ton,jour)};
+  if(jour>MI+2&&!vus.moitie)vus=momentRetirer(["moitie"]);
   // 3. Série en cours — SEUL LE PALIER LE PLUS HAUT ATTEINT se célèbre.
   //    Les paliers inférieurs sont retirés en silence : ils sont derrière, et
   //    les annoncer après coup revient à féliciter pour 14 jours quelqu'un
@@ -3383,7 +3405,7 @@ function supAnnonce(){
     return '<div style="background:'+solid("var(--card)")+';width:100%;max-width:430px;border-radius:22px 22px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));max-height:88vh;overflow-y:auto">'+
       '<div style="display:inline-block;background:'+solid("var(--brand)")+';color:#fff;font-size:10.5px;font-weight:900;letter-spacing:1.2px;text-transform:uppercase;border-radius:100px;padding:4px 11px;margin-bottom:9px">Nouveau</div>'+
       '<div style="font-weight:900;font-size:19px;color:'+solid("var(--ink)")+';line-height:1.25">Choisis ton accompagnateur</div>'+
-      '<div style="font-size:12.5px;color:'+solid("var(--mute)")+';line-height:1.5;margin-top:5px">Il te parlera pendant tes 90 jours. À toi de voir si tu préfères qu\'on te secoue ou qu\'on te ménage.</div>'+
+      '<div style="font-size:12.5px;color:'+solid("var(--mute)")+';line-height:1.5;margin-top:5px">Il te parlera pendant tes '+dureeClient()+' jours. À toi de voir si tu préfères qu\'on te secoue ou qu\'on te ménage.</div>'+
       '<div style="display:flex;gap:6px;margin:14px 0 8px">'+
       '<button type="button" class="sa-g" data-g="h" style="flex:1;padding:9px 4px;border-radius:10px;border:2px solid '+(genre==="h"?solid("var(--brand)"):solid("var(--line)"))+';background:'+(genre==="h"?solid("var(--soft)"):"#fff")+';font-weight:800;font-size:12px;color:'+(genre==="h"?solid("var(--ink)"):solid("var(--mute)"))+'">👨 Homme</button>'+
       '<button type="button" class="sa-g" data-g="f" style="flex:1;padding:9px 4px;border-radius:10px;border:2px solid '+(genre==="f"?solid("var(--brand)"):solid("var(--line)"))+';background:'+(genre==="f"?solid("var(--soft)"):"#fff")+';font-weight:800;font-size:12px;color:'+(genre==="f"?solid("var(--ink)"):solid("var(--mute)"))+'">👩 Femme</button></div>'+
@@ -3828,7 +3850,7 @@ function generateDiplome(name,startDate,allData){
   '<div class="subtitle">« Nouvelle version de toi-même »</div>'+
   '<div class="decerne">Décerné à</div>'+
   '<div class="name">'+esc(name)+'</div>'+
-  '<div class="txt">Pour avoir accompli avec courage et discipline le programme complet de transformation physique de <strong>90 jours</strong> — nutrition, sport, sommeil et mental.</div>'+
+  '<div class="txt">Pour avoir accompli avec courage et discipline le programme complet de transformation physique de <strong>'+dureeClient()+' jours</strong> — nutrition, sport, sommeil et mental.</div>'+
   '<div class="stats">'+
   '<div class="st"><div class="sv">90</div><div class="sl">Jours</div></div>'+
   (dp!=null?'<div class="st"><div class="sv">'+(dp>0?"+":"")+dp+' kg</div><div class="sl">Évolution</div></div>':'')+
@@ -4372,13 +4394,13 @@ function viewOnboarding(){
       return o2;
     })()+'</div>'+
     '<div class="dark-label">Choisis ton superviseur</div>'+
-    '<div style="font-size:11px;color:rgba(255,255,255,.45);margin:-6px 0 9px;line-height:1.45">Il t\'accompagne pendant 90 jours. Tu peux en changer quand tu veux.</div>'+
+    '<div style="font-size:11px;color:rgba(255,255,255,.45);margin:-6px 0 9px;line-height:1.45">Il t\'accompagne pendant '+dureeClient()+' jours. Tu peux en changer quand tu veux.</div>'+
     '<div id="ob-tons">'+tonsHtml+'</div>'+
     '<div id="ob-genre" style="display:flex;gap:7px;margin-bottom:10px">'+
     '<button type="button" class="ob-g sel" data-g="h">👨 Un homme</button>'+
     '<button type="button" class="ob-g" data-g="f">👩 Une femme</button></div>'+
     '<div id="ob-carte"></div>'+
-    '<button id="ob-go" class="btn-primary" disabled>Démarrer mes 90 jours →</button>'+
+    '<button id="ob-go" class="btn-primary" disabled>Démarrer mes '+dureeClient()+' jours →</button>'+
     '</div></div>';
 }
 function bindOnboarding(){
@@ -4430,7 +4452,7 @@ function bindOnboarding(){
     lsSetStr("amcoach_start_"+CLIENT,d.value);
     saveDay(503,{ton:choisi,genre:genre,prenom:prenom,cap:cap});
     ensureClientInCloud(n.value.trim(),d.value);
-    alert("Bravo ! C'est "+prenom+" qui va te superviser pendant 90 jours.\n\nSi tu en as marre de "+prenom+", tu peux changer de superviseur quand tu veux.");
+    alert("Bravo ! C'est "+prenom+" qui va te superviser pendant "+dureeClient()+" jours.\n\nSi tu en as marre de "+prenom+", tu peux changer de superviseur quand tu veux.");
     render();
   });
 }
@@ -4459,6 +4481,57 @@ function viewDream(name){
 }
 
 // ═══════════ NAV ═══════════
+// 🎬 Le modèle de vidéos du Reset : { h: {0..6: {v, m}}, f: {0..6: {v, m}} }
+function vid14Lire(){
+  var V=lsGet("amcoach_videos14",{})||{};
+  return { h: V.h||{}, f: V.f||{} };
+}
+function vid14Sexe(all){
+  try{ var sx=prog3Sexe(all); if(sx==="h"||sx==="f")return sx; }catch(e){}
+  var t=(all&&all[514]&&all[514].theme)||"";
+  return t==="h"?"h":"f";
+}
+function vid14Amorcer(){
+  var V=lsGet("amcoach_videos14",{})||{}, change=false;
+  var L=lsGet("amcoach_clients",[]);
+  ["h","f"].forEach(function(sx){
+    if(V[sx]&&Object.keys(V[sx]).length)return;
+    for(var i=0;i<L.length;i++){
+      var all=lsGet("amcoach_"+L[i].slug,{});
+      var dur=90; try{dur=progLen(L[i].start_date,all)||90;}catch(e){}
+      if(dur>14||vid14Sexe(all)!==sx)continue;
+      var t=all[507]||{};
+      if(Object.keys(t).length){ V[sx]=JSON.parse(JSON.stringify(t)); change=true; break; }
+    }
+  });
+  if(change)lsSet("amcoach_videos14",V);
+}
+// Pose le jeu de vidéos correspondant à son sexe chez une cliente.
+function vid14AppliquerA(slug){
+  var all=lsGet("amcoach_"+slug,{}), V=vid14Lire(), jeu=V[vid14Sexe(all)]||{};
+  if(!Object.keys(jeu).length)return false;
+  coachSaveSlot(slug,507,JSON.parse(JSON.stringify(jeu)));
+  return true;
+}
+// Après une modification du modèle : toutes les clientes Reset de ce sexe
+// reçoivent la nouvelle version. Renvoie le nombre de clientes mises à jour.
+function vid14Diffuser(sexe){
+  var L=lsGet("amcoach_clients",[]), nb=0;
+  for(var i=0;i<L.length;i++){
+    var c=L[i], all=lsGet("amcoach_"+c.slug,{});
+    var dur=90; try{ dur=progLen(c.start_date,all)||90; }catch(e){}
+    if(dur>14)continue;
+    if(vid14Sexe(all)!==sexe)continue;
+    if(vid14AppliquerA(c.slug))nb++;
+  }
+  return nb;
+}
+
+// Durée du programme de la cliente ouverte sur ce téléphone.
+function dureeClient(){
+  try{ return (typeof CLIENT!=="undefined"&&CLIENT&&progLen(lsGetStr("amcoach_start_"+CLIENT)))||90; }
+  catch(e){ return 90; }
+}
 function progLen(start,data){
   // Durée du programme selon la date de fin d'accès (slot 504) : 14, 30 jours…
   // sinon 90. On peut passer les données d'une cliente : côté coach,
@@ -5584,13 +5657,15 @@ function viewCalendar(name,start){
       '<button id="goal-save" style="width:100%;padding:14px 0;border-radius:12px;background:'+R+';color:#fff;font-weight:900;font-size:14px">Enregistrer mon engagement ✓</button></div>';
   }
 
-  // DIPLÔME (fin de programme)
-  if(today90>=89){
+  // DIPLÔME (fin de programme) — au jour 14 pour un Reset, au jour 90 sinon.
+  if(today90>=progDays-1){
     h+='<button id="diplome-btn" class="card" style="width:calc(100% - 28px);margin-bottom:18px;background:linear-gradient(135deg,var(--gold),#E8C547);border:none;text-align:center;padding:18px;cursor:pointer">'+
       '<div style="font-size:26px;margin-bottom:4px">🎓</div>'+
       '<div style="font-weight:900;font-size:15px;color:#fff;letter-spacing:1px;text-transform:uppercase">Mon Diplôme AM Transfo</div>'+
-      '<div style="font-size:11px;color:rgba(255,255,255,.85);margin-top:3px;font-weight:700">90 jours accomplis — Nouvelle version de toi-même</div></button>';
-    if(BLOC<4){
+      '<div style="font-size:11px;color:rgba(255,255,255,.85);margin-top:3px;font-weight:700">'+progDays+' jours accomplis — Nouvelle version de toi-même</div></button>';
+    // Un Reset ne se prolonge pas par un bloc de 90 jours en un tap : c'est
+    // Akli qui propose la suite, au bilan du jour 14.
+    if(BLOC<4&&!shortProg){
       h+='<button id="next-bloc" class="card" style="width:calc(100% - 28px);margin-bottom:18px;background:'+K+';border:none;text-align:center;padding:16px;cursor:pointer">'+
         '<div style="font-weight:900;font-size:14px;color:#fff">🔄 Démarrer le Bloc '+(BLOC+1)+'/4 — 90 jours de plus</div>'+
         '<div style="font-size:11px;color:var(--mute);margin-top:3px">Nouveau départ, historique conservé</div></button>';
@@ -6273,7 +6348,7 @@ function bindBlocsJour(name,start){
       '<div class="brand"><div class="b" style="background:var(--brand)"></div><span class="bn">AM COACH GENÈVE</span><div class="b" style="background:var(--brand)"></div></div>'+
       '<div class="mid">'+lune+'<div class="lbl">La pensée du soir — Jour '+dayNum+'</div>'+
       '<div class="q">'+esc(pTxt)+'</div></div>'+
-      '<div class="bot"><div class="tag">TRANSFO\'PHYSIQUE · 90 JOURS</div><div class="sub2">@amcoachsportif</div></div>'+
+      '<div class="bot"><div class="tag">TRANSFO\'PHYSIQUE · '+dureeClient()+' JOURS</div><div class="sub2">@amcoachsportif</div></div>'+
       '</div>'+
       '<button id="pp-share" style="width:100%;max-width:380px;margin-top:16px;padding:16px 0;border-radius:16px;border:0;'+
       'background:linear-gradient(90deg,var(--b1),var(--b2));color:#fff;font-weight:900;font-size:16px;letter-spacing:.6px">'+
@@ -6666,11 +6741,13 @@ function viewStatsExo(name) {
 function viewStats(name){
   var allData=getAllData();
   var start=lsGetStr("amcoach_start_"+CLIENT);
-  var today90=start?getToday90(start):89;
-  var series=computeSeries(allData,90);
+  // Durée réelle du programme : 14 pour un Reset, 90 sinon.
+  var DUR=(start&&progLen(start))||90, DERN=DUR-1;
+  var today90=start?Math.min(getToday90(start),DERN):DERN;
+  var series=computeSeries(allData,DUR);
   var lastIdx=-1;
-  for(var i=89;i>=0;i--){if(series[i].score!=null){lastIdx=i;break;}}
-  if(lastIdx<0)lastIdx=Math.max(0,Math.min(89,today90));
+  for(var i=DERN;i>=0;i--){if(series[i]&&series[i].score!=null){lastIdx=i;break;}}
+  if(lastIdx<0)lastIdx=Math.max(0,Math.min(DERN,today90));
 
   function vals(key){return series.map(function(d){return d[key];});}
   var poidsV=vals("poids");
@@ -6678,9 +6755,9 @@ function viewStats(name){
   var cible=parseFloat(nCfg.pCible)||null;
   // Même horizon que l'accueil : la dernière pesée jusqu'à AUJOURD'HUI.
   // Sans ça, l'accueil affichait 80,7 et les stats 80,8 le même jour.
-  var idxPoids=Math.max(lastIdx,Math.min(89,today90));
-  var PJ=statProjection(poidsV,cible,idxPoids,Math.max(0,90-(today90+1)));
-  var rempli=0;for(var f=0;f<=Math.min(89,lastIdx);f++){if(allData[f]&&Object.keys(allData[f]).length>0)rempli++;}
+  var idxPoids=Math.max(lastIdx,Math.min(DERN,today90));
+  var PJ=statProjection(poidsV,cible,idxPoids,Math.max(0,DUR-(today90+1)));
+  var rempli=0;for(var f=0;f<=Math.min(DERN,lastIdx);f++){if(allData[f]&&Object.keys(allData[f]).length>0)rempli++;}
 
   // Titre de section : barre colorée + libellé, réutilisé partout dans la vue.
   function titreSection(txt,coul){
@@ -6737,7 +6814,7 @@ function viewStats(name){
       var sem=Math.ceil(PJ.retard/7);
       ico="⏳";titre=supVerdictTitre(allData,"lent");
       sous="Tu perds "+PJ.parSem+" kg par semaine. À ce rythme tu atteins "+PJ.cible+" kg le "+PJ.dateCible+
-        ", soit "+sem+" semaine"+(sem>1?"s":"")+" APRÈS la fin de tes 90 jours ("+PJ.dateFin+")."+
+        ", soit "+sem+" semaine"+(sem>1?"s":"")+" APRÈS la fin de tes "+DUR+" jours ("+PJ.dateFin+")."+
         " Il faudrait "+(Math.round((PJ.reste/(PJ.joursRestants/7))*100)/100)+" kg par semaine pour y être à temps. "+supVerdictSous(allData,"finLent");
       niv=3;
     }else if(PJ.recentMou){
@@ -6865,7 +6942,7 @@ function viewStats(name){
   // ═══ 5. RÉGULARITÉ ═══
   (function(){
     var avgScore=avgOf(series,"score");
-    var bs=bestStreak(allData,Math.min(89,lastIdx));
+    var bs=bestStreak(allData,Math.min(DERN,lastIdx));
     h+=titreSection("Ma régularité","var(--st-cy)")+
       '<div class="st-grid2">'+
       '<div class="st-kpi"><div class="st-kpi-n" style="color:var(--st-cy)">'+rempli+'</div><div class="st-kpi-l">Jours remplis</div></div>'+
@@ -6936,9 +7013,9 @@ function viewStats(name){
   // huit sont verrouillés au début. On montre ce qui est gagné, le reste se
   // déplie à la demande.
   (function(){
-    var bs=bestStreak(allData,89);
-    var res=qgRes(allData,89);
-    var wins=0;for(var w2=0;w2<90;w2++){var m2=allData[200+w2];if(m2&&m2.status==="done")wins++;}
+    var bs=bestStreak(allData,DERN);
+    var res=qgRes(allData,DERN);
+    var wins=0;for(var w2=0;w2<DUR;w2++){var m2=allData[200+w2];if(m2&&m2.status==="done")wins++;}
     var TROPHIES=[
       {icon:"🔥",name:"Semaine de Fer",cond:bs>=7,desc:"7 jours d'affilée"},
       {icon:"⚔️",name:"Régularité d'Acier",cond:bs>=21,desc:"21 jours d'affilée"},
@@ -11365,7 +11442,7 @@ function penseeCarteCanvas(txt, jour) {
   // Pied
   x.fillStyle = "#fff";
   x.font = "900 40px -apple-system,Helvetica,Arial,sans-serif";
-  x.fillText("TRANSFO'PHYSIQUE · 90 JOURS", W / 2, 1660);
+  x.fillText("TRANSFO'PHYSIQUE · " + dureeClient() + " JOURS", W / 2, 1660);
   x.fillStyle = "rgba(255,255,255,.45)";
   x.font = "800 28px -apple-system,Helvetica,Arial,sans-serif";
   x.fillText("@AMCOACHSPORTIF", W / 2, 1722);
@@ -11809,7 +11886,7 @@ function viewCoachDetail(){
     '<div class="hdr"><div style="display:flex;align-items:center;gap:12px">'+
     '<button id="cd-back" class="day-back">←</button>'+
     '<div style="flex:1"><div style="color:#fff;font-weight:900;font-size:16px">'+esc(c.name)+'</div>'+
-    '<div style="color:var(--mute);font-size:12px">Jour '+Math.min(t90+1,90)+'/90 · départ '+new Date(c.start_date).toLocaleDateString("fr-FR")+' · 🔥 '+streak+'j</div>'+
+    '<div style="color:var(--mute);font-size:12px">Jour '+Math.min(t90+1,progLen(c.start_date,lsGet("amcoach_"+c.slug,{}))||90)+'/'+(progLen(c.start_date,lsGet("amcoach_"+c.slug,{}))||90)+' · départ '+new Date(c.start_date).toLocaleDateString("fr-FR")+' · 🔥 '+streak+'j</div>'+
     (function(){var la=lastActLabel(allData);return '<div style="font-size:12px;font-weight:800;margin-top:3px;color:'+la.c+'">📱 Dernière activité : '+la.t+'</div>';})()+'</div></div></div>'+
     '<div style="padding:16px 14px 0">';
 
@@ -12236,9 +12313,40 @@ function viewCoachDetail(){
     '<button id="fin-config" style="flex:1;font-size:11px;font-weight:800;padding:9px 0;border:1.5px solid #0D2137;border-radius:10px;background:#fff;color:#0D2137">'+(finOn?"✏️ Modifier l\'objectif":"➕ Activer + définir l\'objectif")+'</button>'+
     (finOn?'<button id="fin-off" style="flex:1;font-size:11px;font-weight:800;padding:9px 0;border:1.5px solid var(--brand);border-radius:10px;background:#fff;color:var(--brand)">⛔ Désactiver</button>':'')+'</div></div>';
 
-  // 🏋️ ENTRAÎNEMENT BONUS (7 jours) — slot 507
+  // 🎬 RESET 14 JOURS : les vidéos viennent du modèle Homme / Femme.
+  var estReset14=false;
+  try{ estReset14=(progLen(c.start_date,allData)||90)<=14; }catch(e){}
+  if(estReset14){
+    try{ vid14Amorcer(); }catch(e){}
+    var V14=vid14Lire(), sxC=vid14Sexe(allData);
+    var sxV=state.v14Sexe||sxC, jeu=V14[sxV]||{};
+    var jN=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
+    h+='<div class="card v14">'+
+      '<div class="v14-t">🎬 Vidéos du Reset 14 jours</div>'+
+      '<div class="v14-s">Un jeu pour les hommes, un pour les femmes. Saisis-les une fois : '+
+      'chaque cliente Reset reçoit celui de son programme.</div>'+
+      '<div class="v14-onglets">'+
+      '<button class="v14-o'+(sxV==="h"?" on h":"")+'" data-v14s="h">👨 Homme</button>'+
+      '<button class="v14-o'+(sxV==="f"?" on f":"")+'" data-v14s="f">👩 Femme</button></div>';
+    if(sxV!==sxC){
+      h+='<div class="v14-av">Tu modifies le programme '+(sxV==="h"?"Homme":"Femme")+
+        ' — '+esc(c.name)+' suit le programme '+(sxC==="h"?"Homme":"Femme")+'.</div>';
+    }
+    for(var dv=0;dv<7;dv++){
+      var ev=jeu[dv]||{};
+      h+='<div class="v14-j" data-v14d="'+dv+'">'+
+        '<b>'+jN[dv]+'</b>'+
+        '<span class="'+(ev.v?"ok":"vide")+'">'+(ev.v?"▶️ vidéo":"sans vidéo")+'</span>'+
+        '<span class="v14-m">🚶 '+esc(ev.m||"20 min à 1 h")+'</span>'+
+        '<span class="v14-c">›</span></div>';
+    }
+    h+='</div>';
+  }
+
+  // 🏋️ ENTRAÎNEMENT BONUS (7 jours) — slot 507 (clientes 90 jours)
   var tr7=allData[507]||{};
   var dayNames=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
+  if(!estReset14){
   h+='<div class="card" style="border-left:4px solid var(--violet);padding:13px 15px">'+
     '<div style="font-weight:800;font-size:13px;margin-bottom:4px">🏋️ Entraînement bonus — planning 7 jours</div>'+
     '<div style="font-size:11px;color:var(--mute);margin-bottom:10px">10 min muscu (vidéo) + marche 30 min à 1h30. Touche un jour pour définir sa vidéo et sa consigne.</div>';
@@ -12249,6 +12357,7 @@ function viewCoachDetail(){
       '<span style="font-size:11px;color:'+(e7.v||e7.m?"var(--ok)":"#CCC")+';font-weight:700">'+(e7.v?"▶️ vidéo":"")+(e7.v&&e7.m?" · ":"")+(e7.m?"🚶 marche":"")+((!e7.v&&!e7.m)?"— vide":"")+'</span></div>';
   }
   h+='</div>';
+  }
 
   // 📋 BILANS + 🧮 CALCULATEUR
   h+='<button id="cd-bilan" class="big-btn" style="padding:14px 0;font-size:14px;background:var(--brand2);margin-bottom:8px">📋 Bilans du client</button>'+
@@ -13909,7 +14018,7 @@ function viewCoachDash(){
         '<div class="ring-wrap">'+svgRing(score/100,scol,56)+
         '<div class="ring-txt" style="font-size:13px">'+score+'%</div></div>'+
         '<div style="flex:1"><div style="font-weight:900;font-size:18px">'+esc(c.name)+'</div>'+
-        '<div style="font-size:12px;color:var(--mute);margin-top:2px">Jour '+Math.min(t90+1,90)+'/90 · départ '+new Date(c.start_date).toLocaleDateString("fr-FR")+'</div>'+
+        '<div style="font-size:12px;color:var(--mute);margin-top:2px">Jour '+Math.min(t90+1,progLen(c.start_date,lsGet("amcoach_"+c.slug,{}))||90)+'/'+(progLen(c.start_date,lsGet("amcoach_"+c.slug,{}))||90)+' · départ '+new Date(c.start_date).toLocaleDateString("fr-FR")+'</div>'+
         (function(){var la=lastActLabel(lsGet("amcoach_"+c.slug,{}));return '<div style="font-size:11px;font-weight:800;margin-top:3px;color:'+la.c+'">📱 Dernière activité : '+la.t+'</div>';})()+'</div></div>'+
         // 📊 Indicateurs 7 derniers jours : briques identité · missions du jour · journal
         (function(){
@@ -15597,6 +15706,14 @@ function bindCoach(){
         }
         lsSet("amcoach_"+slug,allM);
       })();
+      // 🎬 Création d'un Reset 14 jours : les vidéos de son programme arrivent
+      // avec le lien.
+      try{
+        if(endDate){
+          var jR=Math.round((new Date(endDate+"T12:00:00")-new Date(startDate+"T12:00:00"))/86400000);
+          if(jR<=14)vid14AppliquerA(slug);
+        }
+      }catch(e){}
       state.ncSexe=null; state.ncMenus=undefined; state.ncProt=false; state.ncArgent=false; state.ncProg=undefined;
       state.showForm=false;
       render();
@@ -15710,6 +15827,7 @@ function bindCoach(){
       var mc=lsGet("amcoach_"+slug,{})[517]||{};
       if(mc.on){ mc.reset=true; mc.phaseForcee=null; mc.debut=nd; coachSaveSlot(slug,517,mc); }
 
+      try{ vid14AppliquerA(slug); }catch(e){}
       feedback("⚡ Reset 14 jours — du "+isoVersFr(nd)+" au "+isoVersFr(isoLocal(end)),"win");
       render();
     },{aide:"Le Reset repart d'un nouveau jour 1. L'accès se fermera 14 jours plus tard."});
@@ -16508,6 +16626,31 @@ function bindCoach(){
       else{prompt("Copie ce lien :",url);}
     });
   }
+  // 🎬 Modèle de vidéos du Reset : choix du programme puis saisie d'un jour
+  var v14o=document.querySelectorAll(".v14-o");
+  for(var vo=0;vo<v14o.length;vo++)v14o[vo].addEventListener("click",function(){
+    state.v14Sexe=this.getAttribute("data-v14s"); render();
+  });
+  var v14j=document.querySelectorAll(".v14-j");
+  for(var vj=0;vj<v14j.length;vj++)v14j[vj].addEventListener("click",function(){
+    var d=parseInt(this.getAttribute("data-v14d"),10);
+    var allC=lsGet("amcoach_"+state.coachDetail,{});
+    var sx=state.v14Sexe||vid14Sexe(allC);
+    var V=vid14Lire(), cur=(V[sx]||{})[d]||{};
+    var jN=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
+    var prog=(sx==="h"?"Homme":"Femme");
+    var v=prompt("🎬 "+jN[d]+" — programme "+prog+"\nLien de la vidéo (vide pour retirer) :",cur.v||"");
+    if(v===null)return;
+    var m=prompt("🚶 "+jN[d]+" — consigne de marche :",cur.m||"20 min à 1 h");
+    if(m===null)return;
+    V[sx]=V[sx]||{};
+    if(v.trim()||m.trim())V[sx][d]={v:v.trim(),m:m.trim()}; else delete V[sx][d];
+    lsSet("amcoach_videos14",V);
+    var nb=vid14Diffuser(sx);
+    feedback("🎬 "+jN[d]+" "+prog+" enregistré · "+nb+" cliente"+(nb>1?"s":"")+" mise"+(nb>1?"s":"")+" à jour","ok");
+    render();
+  });
+
   // 🏋️ Planning entraînement 7 jours (slot 507)
   var tr7days=document.querySelectorAll(".tr7-day");
   for(var t7=0;t7<tr7days.length;t7++){

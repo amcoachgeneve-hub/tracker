@@ -877,7 +877,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="20/09 · Reset 14 en tête";
+var APP_VERSION="21/09 · Sport Reset épuré";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -7876,7 +7876,23 @@ function viewSport(name, start) {
       '<div class="spt-txt" style="margin-top:6px">C\'est enregistré. La prochaine fois, tu verras ces charges à battre en face de chaque série.' +
       (B.sport ? '<br>✅ Ton habitude Sport du jour est cochée.' : '') + '</div></div>';
   }
-  h += progCartesHTML(getAllData());
+  if (is14) {
+    // Uniquement la carte « Séance express » : le reste des cartes (marches,
+    // programme) ne concerne pas le Reset.
+    var cartes14 = progCartesHTML(getAllData());
+    var ix = cartes14.indexOf('<div class="spt-card"><div class="spt-lab">⚡ Séance express</div>');
+    if (ix >= 0) {
+      var fin = cartes14.indexOf('</button></div>', ix);
+      h += cartes14.slice(ix, fin + '</button></div>'.length);
+    }
+  } else {
+    h += progCartesHTML(getAllData());
+  }
+
+  // Reset 14 jours : rien en dessous de la séance express, sauf le minuteur
+  // quand il tourne.
+  var reset14Minuteur = is14 && !!(typeof SPT !== "undefined" && SPT.run);
+  if (is14 && !reset14Minuteur) return h + '</div>';
 
   // ─── Le minuteur à intervalles ───
   h += '<div id="spt-zone" class="spt-card spt-timer">' +
@@ -7912,6 +7928,7 @@ function viewSport(name, start) {
       '<div class="spt-flab">' + lbl + '</div>' +
       '<input id="' + id + '" class="spt-inp" type="number" inputmode="numeric" min="' + min + '" max="' + max + '" value="' + val + '"/></div>';
   }
+  if (reset14Minuteur) return h + '</div>';
   h += '<details class="spt-tiroir"><summary><span class="spt-sum-t">⚙️ Régler ma séance à intervalles</span><span class="spt-sum-c">⌄</span></summary><div class="spt-corps">' +
     '<div class="spt-card" style="border:none;box-shadow:none;padding:0;margin:0">' +
     '<div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:13px">' + pres + '</div>' +

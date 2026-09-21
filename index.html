@@ -683,6 +683,32 @@ input,textarea{outline:none}
 .dict-no{background:#FFF6E5;border:1px solid #F0C67A;border-radius:11px;padding:11px 12px;
   margin-top:10px;font-size:12.5px;color:#7A5A15;line-height:1.55;font-weight:600}
 
+/* 🔷 Reset 14 jours — les 7 jours en tête de l'onglet Sport. */
+.r14{background:linear-gradient(160deg,#0B2A4A,#0A1A33);border:2px solid #1FA2FF;border-radius:20px;
+  padding:16px 14px 12px;margin-bottom:16px;box-shadow:0 8px 26px rgba(31,162,255,.25)}
+.r14-t{color:#4FC3FF;font-weight:900;font-size:13px;letter-spacing:1.6px;text-transform:uppercase;margin-bottom:12px}
+.r14-consigne{display:flex;align-items:center;gap:8px;background:rgba(31,162,255,.12);border-radius:14px;padding:13px 11px}
+.r14-c-l{flex:1;display:flex;flex-direction:column;align-items:center;text-align:center}
+.r14-big{font-size:28px;font-weight:900;color:#fff;line-height:1.1}
+.r14-c-d{font-size:13px;color:#BFE6FF;line-height:1.45;margin-top:4px}
+.r14-c-d b{color:#4FC3FF}
+.r14-c-plus{font-size:24px;font-weight:900;color:#4FC3FF}
+.r14-expl{font-size:14px;color:#D6EEFF;line-height:1.6;margin:12px 2px 0}
+.r14-suite{font-size:13px;color:#8FD3FF;margin:9px 2px 0}
+.r14-suite b{color:#fff}
+.r14-j{background:rgba(255,255,255,.05);border:1.5px solid rgba(79,195,255,.25);border-radius:14px;
+  padding:11px 13px;margin-top:10px}
+.r14-j.auj{border:2px solid #4FC3FF;background:rgba(79,195,255,.12)}
+.r14-j-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.r14-j-h b{color:#fff;font-size:15.5px}
+.r14-j-a{font-size:10.5px;font-weight:900;letter-spacing:1.3px;color:#0A1A33;background:#4FC3FF;border-radius:6px;padding:3px 7px}
+.r14-j-l{font-size:13.5px;color:#BFE6FF;line-height:1.55}
+.r14-j-l b{color:#4FC3FF}
+.r14-video{display:block;text-align:center;margin-top:9px;padding:10px 0;border-radius:10px;background:#1FA2FF;
+  color:#fff;font-weight:900;font-size:13px;text-decoration:none}
+.r14-go{display:flex;gap:8px;margin-top:11px}
+.r14-bip{flex:1;padding:12px 0;border-radius:11px;border:0;background:#1FA2FF;color:#fff;font-weight:900;font-size:13.5px;min-height:44px}
+
 /* 🔁 Le réglage d'un circuit, en tête de chaîne. */
 .prg-circuit{background:var(--soft2);border:1px solid var(--line);border-radius:12px;padding:11px 12px;margin-bottom:10px}
 .prg-circuit-t{font-weight:900;font-size:12.5px;color:var(--brand2);margin-bottom:8px}
@@ -851,7 +877,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="20/09 · Bascule Reset 14";
+var APP_VERSION="20/09 · Reset 14 en tête";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -7359,6 +7385,55 @@ function openRapport(name,start,period,dataOverride){
   if(win){win.document.write(html);win.document.close();}
 }
 
+// ═══════════ 🔷 RESET 14 JOURS — LES 7 JOURS, EN TÊTE DE L'ONGLET ═══════════
+// Akli : « on voit rien ». Le bloc était au fond de l'onglet, dans un tiroir,
+// en gris sur fond sombre. Il passe en tête, en bleu vif, avec la consigne
+// écrite en toutes lettres et le minuteur à un tap.
+function reset14JoursHTML(start){
+  var allData=getAllData();
+  var today90=getToday90(start);
+  var week2=today90>=7;
+  var reps=week2?10:5;
+  var tr7=allData[507]||{};
+  var dayNames=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
+  var wdToday=(new Date().getDay()+6)%7;
+
+  var h='<div class="r14">';
+  h+='<div class="r14-t">🔷 Semaine '+(week2?2:1)+' · Tes 7 jours</div>';
+
+  // La consigne de la semaine, en grand : c'est la seule chose à retenir.
+  h+='<div class="r14-consigne">'+
+    '<div class="r14-c-l"><span class="r14-big">'+reps+' rép</span>'+
+    '<span class="r14-c-d">toutes les <b>30 secondes</b><br>pendant <b>5 à 10 minutes</b></span></div>'+
+    '<div class="r14-c-plus">+</div>'+
+    '<div class="r14-c-l"><span class="r14-big">🚶</span>'+
+    '<span class="r14-c-d"><b>20 min à 1 h</b><br>de marche <b>non-stop</b></span></div>'+
+    '</div>';
+  h+='<div class="r14-expl">Au bip, tu fais tes '+reps+' répétitions. Tu récupères jusqu\'au bip suivant, '+
+    '30 secondes plus tard. Tu recommences pendant 5 à 10 minutes. Ensuite, ta marche.</div>';
+  if(!week2)h+='<div class="r14-suite">📈 Semaine 2 : on passe à <b>10 rép</b> toutes les 30 s.</div>';
+
+  // Les 7 jours
+  for(var d7=0;d7<7;d7++){
+    var e7=tr7[d7]||{}, isToday=(d7===wdToday);
+    h+='<div class="r14-j'+(isToday?' auj':'')+'">'+
+      '<div class="r14-j-h"><b>'+dayNames[d7]+'</b>'+
+      (isToday?'<span class="r14-j-a">AUJOURD\'HUI</span>':'')+'</div>'+
+      '<div class="r14-j-l">💪 <b>'+reps+' rép toutes les 30 s</b> · 5 à 10 min</div>'+
+      '<div class="r14-j-l">🚶 <b>'+esc(e7.m||"20 min à 1 h")+'</b> de marche non-stop</div>';
+    if(e7.v){
+      h+='<a class="r14-video" href="'+esc(e7.v)+'" target="_blank" rel="noopener">▶ Voir la vidéo du jour</a>';
+    }
+    if(isToday){
+      h+='<div class="r14-go">'+
+        '<button class="r14-bip" data-bip="300">🔔 Minuteur 5 min</button>'+
+        '<button class="r14-bip" data-bip="600">🔔 Minuteur 10 min</button></div>';
+    }
+    h+='</div>';
+  }
+  return h+'</div>';
+}
+
 // ═══════════ ENTRAÎNEMENTS (mode 14 jours) ═══════════
 function training14HTML(name,start){
   var allData=getAllData();
@@ -7395,7 +7470,8 @@ function training14HTML(name,start){
     }).join("")+'</div>'+
     '<div style="font-size:11px;color:var(--mute);margin-top:9px;line-height:1.6">Au bip toutes les 30 s : tu fais tes répétitions, puis tu récupères jusqu\'au bip suivant. Simple. Répétable. Automatique.</div></div>';
 
-  // 7 jours d'entraînement
+  // Les 7 jours sont désormais en tête de l'onglet (reset14JoursHTML).
+  if(true)return h;
   h+='<div style="display:flex;align-items:center;gap:8px;margin:4px 0 10px"><div class="bar bar-r"></div><span style="font-weight:900;font-size:14px;text-transform:uppercase;letter-spacing:1px">Tes 7 jours</span></div>';
   for(var d7=0;d7<7;d7++){
     var e7=tr7[d7]||{};
@@ -7788,6 +7864,7 @@ function viewSport(name, start) {
     '<h1>' + (sexeH === "f" ? "Femme" : sexeH === "h" ? "Homme" : esc(name)) + '</h1>' +
     '<p>Ta progression, ta discipline,<br>tes résultats.</p></div></div>' +
     '<div style="padding:14px 13px 20px">';
+  if (is14) h += reset14JoursHTML(start);
 
   // Le bilan de la séance qu'on vient de finir, affiché une seule fois.
   if (state.progBilan) {
@@ -8109,6 +8186,19 @@ function bindSport() {
   var tb = document.getElementById("bonus-tiroir");
   if (tb) tb.addEventListener("toggle", function () { state.bonusOpen = this.open; });
 
+
+  // 🔔 Le minuteur au bip du Reset : un bip toutes les 30 s, 5 ou 10 minutes.
+  var r14b = document.querySelectorAll(".r14-bip");
+  for (var rb = 0; rb < r14b.length; rb++) r14b[rb].addEventListener("click", function () {
+    var total = parseInt(this.getAttribute("data-bip"), 10) || 300;
+    try { sptDemarrer(sptPlanBips(total, 30), "bips"); } catch (e) { }
+    try { buzz("tap"); } catch (e) { }
+    render();
+    setTimeout(function () {
+      var z = document.querySelector(".spt-ring, .spt-timer, #spt-go");
+      if (z) z.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 120);
+  });
 
   var xpb = document.getElementById("spt-express");
   if (xpb) xpb.addEventListener("click", function () {

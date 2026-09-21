@@ -851,7 +851,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="21/09 · Volume & réglages sûrs";
+var APP_VERSION="20/09 · Bascule Reset 14";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -3408,6 +3408,15 @@ function pickDate(titre,valeurISO,cb,options){
     boutons='<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">'+
       '<button type="button" class="pd-r" data-o="0" style="flex:1;min-width:88px;padding:9px 4px;border-radius:10px;border:1.5px solid '+solid("var(--line)")+';background:#fff;font-weight:800;font-size:12px;color:'+solid("var(--ink)")+'">Aujourd\'hui</button>'+
       '<button type="button" class="pd-r" data-o="1" style="flex:1;min-width:88px;padding:9px 4px;border-radius:10px;border:1.5px solid '+solid("var(--line)")+';background:#fff;font-weight:800;font-size:12px;color:'+solid("var(--ink)")+'">Demain</button>'+
+      (function(){
+        var sup="";
+        (options.extra||[]).forEach(function(x){
+          sup+='<button type="button" class="pd-x" data-iso="'+x.iso+'" style="flex:1 0 100%;padding:11px 4px;border-radius:10px;'+
+            'border:1.5px solid '+solid("var(--brand)")+';background:'+solid("var(--card)")+';color:'+solid("var(--brand-d)")+
+            ';font-weight:800;font-size:12.5px">'+esc(x.label)+'</button>';
+        });
+        return sup;
+      })()+
       '<button type="button" class="pd-r" data-o="lundi" style="flex:1;min-width:88px;padding:9px 4px;border-radius:10px;border:1.5px solid '+solid("var(--line)")+';background:#fff;font-weight:800;font-size:12px;color:'+solid("var(--ink)")+'">Lundi prochain</button></div>';
   }
   ov.innerHTML='<div style="background:'+solid("var(--card)")+';width:100%;max-width:430px;border-radius:22px 22px 0 0;padding:20px 18px calc(22px + env(safe-area-inset-bottom))">'+
@@ -3427,6 +3436,10 @@ function pickDate(titre,valeurISO,cb,options){
     fermer(inp.value);
   });
   ov.addEventListener("click",function(e){if(e.target===ov)fermer(null);});
+  var xs=ov.querySelectorAll(".pd-x");
+  for(var xi=0;xi<xs.length;xi++)xs[xi].addEventListener("click",function(){
+    inp.value=this.getAttribute("data-iso"); buzz("tap"); fermer(inp.value);
+  });
   var rs=ov.querySelectorAll(".pd-r");
   for(var i=0;i<rs.length;i++){
     rs[i].addEventListener("click",function(){
@@ -4420,9 +4433,11 @@ function viewDream(name){
 }
 
 // ═══════════ NAV ═══════════
-function progLen(start){
-  // Durée du programme selon la date de fin d'accès (slot 504) : 14, 30 jours... sinon 90
-  var acc=getAllData()[504]||{};
+function progLen(start,data){
+  // Durée du programme selon la date de fin d'accès (slot 504) : 14, 30 jours…
+  // sinon 90. On peut passer les données d'une cliente : côté coach,
+  // getAllData() rendrait celles du coach et annoncerait 90 pour tout le monde.
+  var acc=(data||getAllData())[504]||{};
   var pd=90;
   if(acc.end&&start){var d=Math.floor((new Date(acc.end)-new Date(start))/86400000)+1;if(d>0&&d<90)pd=d;}
   return pd;
@@ -11853,7 +11868,7 @@ function viewCoachDetail(){
   (function(){
     var b6=allData[600]||{}, cl6=[];
     for(var k6 in b6){if(b6.hasOwnProperty(k6)&&b6[k6]&&b6[k6].poids)cl6.push(k6);}
-    var t6=getToday90(c.start_date), dur6=progLen(c.start_date)||90;
+    var t6=getToday90(c.start_date), dur6=progLen(c.start_date,allData)||90;
     var objFixe=false;
     for(var k7 in b6){if(b6.hasOwnProperty(k7)&&b6[k7]&&b6[k7].poidsCible)objFixe=true;}
     if(!objFixe||cl6.length>=2)return;
@@ -11904,7 +11919,7 @@ function viewCoachDetail(){
   // 🍽️ MENUS — aiguillage vers menu.html (3 phases de 28 j ou Reset 14 j)
   (function(){
     var mc=allData[517]||{};
-    var dur=progLen(c.start_date)||90;
+    var dur=progLen(c.start_date,allData)||90;
     var essai14=dur<=14;
     h+='<div class="card" style="padding:14px 15px'+(mc.on?';border-left:4px solid var(--ok)':'')+'">'+
       '<div style="font-weight:800;font-size:13px;margin-bottom:7px">🍽️ Menus '+(mc.on?'<span style="color:var(--ok-d);font-size:11px">— ACTIVÉ</span>':'')+'</div>';
@@ -11916,8 +11931,19 @@ function viewCoachDetail(){
           ? '⏳ Démarre dans '+menuAvantDebut(allData)+' jour'+(menuAvantDebut(allData)>1?'s':'')+' — la cliente voit déjà ses menus pour se préparer'
           : 'Jour '+(P.jour+1)+'/'+P.total+' · démarré le '+(mc.debut?new Date(mc.debut+"T12:00:00").toLocaleDateString("fr-FR"):"—"))+
         (P.forcee?'<br><span style="color:var(--warn-d);font-weight:700">Phase forcée manuellement</span>':'')+
+        // ⚠️ DEUX COMPTEURS QUI NE DISENT PAS LA MÊME CHOSE. Le programme
+        // compte depuis le jour 1 de la cliente, les menus depuis le jour où
+        // on les a activés. Tant que l'écart n'est pas affiché, le coach
+        // croit à un bug quand sa phase 3 ne s'ouvre pas.
+        (function(){
+          var jProg=getToday90(c.start_date)+1, jMenu=menuJour(allData)+1;
+          if(menuAvantDebut(allData)>0||Math.abs(jProg-jMenu)<2)return '';
+          return '<br><span style="color:var(--warn-d);font-weight:700">⚠️ Jour '+jProg+
+            ' du programme, jour '+jMenu+' des menus — '+(jProg-jMenu)+' jours d\'écart</span>';
+        })()+
         '</div>'+
         '<a href="'+menuURL(P.p.cle)+'" style="display:block;text-align:center;text-decoration:none;padding:11px 0;border-radius:11px;border:1.5px solid var(--ok);background:var(--card);color:var(--ok-d);font-weight:800;font-size:12.5px;margin-bottom:6px">👁️ Voir ce menu</a>'+
+        '<button id="mn-debut" style="width:100%;padding:11px 0;border-radius:11px;border:1.5px solid var(--line);background:var(--card);color:var(--mute);font-weight:800;font-size:12px;margin-bottom:7px">📅 Changer la date de départ des menus</button>'+
         '<button id="mn-phase" style="width:100%;padding:11px 0;border-radius:11px;border:1.5px solid var(--line);background:var(--card);color:var(--mute);font-weight:800;font-size:12px;margin-bottom:6px">🔀 Forcer une phase</button>'+
         '<button id="mn-off" style="width:100%;padding:11px 0;border-radius:11px;border:1.5px solid var(--line);background:var(--card);color:var(--mute);font-weight:800;font-size:12px">⛔ Désactiver</button>';
     }else{
@@ -12203,7 +12229,7 @@ function coachAnalytics(){
   var auj=new Date();
   for(var i=0;i<cl.length;i++){
     var c=cl[i], d=lsGet("amcoach_"+c.slug,{});
-    var dur=progLen(c.start_date)||90;
+    var dur=progLen(c.start_date,lsGet("amcoach_"+c.slug,{}))||90;
     var t90=getToday90(c.start_date);
     // Dernier jour renseigné + nombre de jours remplis
     var last=-1,remplis=0;
@@ -12397,7 +12423,7 @@ function coachPouls(){
   var out={vert:[],orange:[],rouge:[],fini:[],tous:[]};
   for(var i=0;i<cl.length;i++){
     var c=cl[i], d=lsGet("amcoach_"+c.slug,{});
-    var dur=progLen(c.start_date)||90;
+    var dur=progLen(c.start_date,lsGet("amcoach_"+c.slug,{}))||90;
     var t90=getToday90(c.start_date);
     var remplis=0,last=-1;
     for(var k=0;k<dur&&k<=t90;k++){
@@ -15531,17 +15557,55 @@ function bindCoach(){
     var acc=lsGet("amcoach_"+state.coachDetail,{})[504]||{};
     acc.off=!acc.off;saveAcc(acc);
   });
-  // ⚡ Reset 14 jours : fin d'accès à J+13 (jour 1 → jour 14 inclus)
+  // ⚡ BASCULER EN RESET 14 JOURS. Le Reset REPART d'une nouvelle date : on
+  // demande donc le jour de départ, on pose la fin d'accès à J+13, et on cale
+  // les menus dessus. Un programme en cours déclenche une confirmation, parce
+  // que cette bascule raccourcit l'accès d'une cliente qui travaille.
   var r14on=document.getElementById("reset14-on");
   if(r14on)r14on.addEventListener("click",function(){
     var slug=state.coachDetail;
-    var start=lsGetStr("amcoach_start_"+slug);
-    if(!start){var cls2=lsGet("amcoach_clients",[]);for(var x2=0;x2<cls2.length;x2++){if(cls2[x2].slug===slug){start=cls2[x2].start_date;break;}}}
+    var cc=coachClient(slug);
+    var start=lsGetStr("amcoach_start_"+slug)||(cc&&cc.start_date)||"";
     if(!start){alert("Date de départ introuvable.");return;}
-    var end=new Date(start);end.setDate(end.getDate()+13);
-    var acc=lsGet("amcoach_"+slug,{})[504]||{};
-    acc.end=isoLocal(end);
-    saveAcc(acc);
+
+    // Où en est la cliente sur son programme actuel ?
+    var jour=0;
+    try{jour=getToday90(start)+1;}catch(e){}
+    var duree=progLen(start)||90;
+    var enCours=(jour>=1&&jour<=duree&&duree>14);
+    if(enCours){
+      var msg="⚠️ "+((cc&&cc.name)||slug)+" est au jour "+jour+" sur "+duree+".\n\n"+
+        "Passer en Reset 14 jours va :\n"+
+        "· repartir d'un nouveau jour 1\n"+
+        "· fermer son accès 14 jours après ce départ\n"+
+        "· basculer ses menus sur le Reset\n\n"+
+        "Ses données déjà remplies sont conservées.\n\nContinuer ?";
+      if(!confirm(msg))return;
+    }
+
+    pickDate("Départ du Reset 14 jours",isoLocal(),function(nd){
+      if(!nd)return;
+      // 1) Nouvelle date de départ, chez la cliente comme dans la base
+      var cls=lsGet("amcoach_clients",[]), cName=slug;
+      for(var ci=0;ci<cls.length;ci++){if(cls[ci].slug===slug){cls[ci].start_date=nd;cName=cls[ci].name;break;}}
+      lsSet("amcoach_clients",cls);
+      try{localStorage.setItem("amcoach_start_"+slug,nd);}catch(e){}
+      sbFetch("clients?on_conflict=slug",{method:"POST",prefer:"resolution=merge-duplicates",
+        body:{slug:slug,name:cName,start_date:nd}}).catch(function(){});
+
+      // 2) Fin d'accès : le 14e jour inclus
+      var end=new Date(nd+"T12:00:00"); end.setDate(end.getDate()+13);
+      var acc=lsGet("amcoach_"+slug,{})[504]||{};
+      acc.end=isoLocal(end); acc.off=false;
+      saveAcc(acc);
+
+      // 3) Les menus suivent : Reset, calé sur le même jour 1
+      var mc=lsGet("amcoach_"+slug,{})[517]||{};
+      if(mc.on){ mc.reset=true; mc.phaseForcee=null; mc.debut=nd; coachSaveSlot(slug,517,mc); }
+
+      feedback("⚡ Reset 14 jours — du "+isoVersFr(nd)+" au "+isoVersFr(isoLocal(end)),"win");
+      render();
+    },{aide:"Le Reset repart d'un nouveau jour 1. L'accès se fermera 14 jours plus tard."});
   });
   var r14off=document.getElementById("reset14-off");
   if(r14off)r14off.addEventListener("click",function(){
@@ -15620,6 +15684,28 @@ function bindCoach(){
       render();
     },{aide:"À partir de quand la cliente voit ses menus."});
   });
+  // 📅 Recaler le départ des menus. Le raccourci « Aligner sur le programme »
+  // pose la date du jour 1 de la cliente : les deux compteurs avancent alors
+  // ensemble, et les phases s'ouvrent au bon moment.
+  var mnDeb=document.getElementById("mn-debut");
+  if(mnDeb)mnDeb.addEventListener("click",function(){
+    var mc0=lsGet("amcoach_"+state.coachDetail,{})[517]||{};
+    var cc0=null, LCL=lsGet("amcoach_clients",[]);
+    for(var i=0;i<LCL.length;i++)if(LCL[i].slug===state.coachDetail)cc0=LCL[i];
+    var depProg=cc0&&cc0.start_date?String(cc0.start_date).slice(0,10):isoLocal();
+    pickDate("Départ des menus",mc0.debut||isoLocal(),function(r){
+      if(!r)return;
+      var mc=lsGet("amcoach_"+state.coachDetail,{})[517]||{};
+      mc.debut=r; mc.on=true;
+      coachSaveSlot(state.coachDetail,517,mc);
+      feedback("📅 Menus recalés au "+new Date(r+"T12:00:00").toLocaleDateString("fr-FR"),"ok");
+      render();
+    },{aide:"« Aligner sur le programme » pose le jour 1 de la cliente ("+
+        new Date(depProg+"T12:00:00").toLocaleDateString("fr-FR")+
+        ") : les menus suivent alors exactement son avancement.",
+      extra:[{label:"📐 Aligner sur le programme",iso:depProg}]});
+  });
+
   var mnPh=document.getElementById("mn-phase");
   if(mnPh)mnPh.addEventListener("click",function(){
     var slug=state.coachDetail;

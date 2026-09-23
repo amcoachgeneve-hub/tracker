@@ -7078,6 +7078,42 @@ function viewStats(name){
     h+='<div style="height:14px"></div>';
   })();
 
+  // 🌙 MON CYCLE — clientes uniquement. Elle note ses règles dans l'onglet
+  // Sport ; c'est ici qu'elle voit ce que ça raconte sur trois mois.
+  (function(){
+    var sexe=null; try{sexe=prog3Sexe(allData);}catch(e){}
+    if(sexe!=="f")return;
+    var c=cycGet(allData);
+    if(!c.on)return;
+    var E=cycEtat(c), ST=cycStats(c), moyR=cycReglesMoy(c);
+    h+=titreSection("🌙 Mon cycle","#B4436C");
+    h+='<div class="card" style="padding:15px 16px;margin-bottom:12px">';
+    if(E)h+='<div style="font-size:15px;font-weight:900;margin-bottom:3px">Jour '+E.jour+' · '+E.def.nom+'</div>'+
+      '<div style="font-size:12.5px;color:var(--mute);font-weight:700;margin-bottom:10px">Énergie '+E.def.energie.toLowerCase()+' · prochaines règles vers le '+cycDateFR(E.prochaines)+'</div>';
+    h+='<div style="display:flex;gap:8px;flex-wrap:wrap">'+
+      '<div style="flex:1 1 30%;text-align:center;background:var(--soft2);border-radius:12px;padding:11px 6px">'+
+      '<div style="font-size:21px;font-weight:900;color:#B4436C">'+(ST?ST.moy:c.duree)+'</div>'+
+      '<div style="font-size:10.5px;font-weight:800;color:var(--mute);text-transform:uppercase">jours de cycle</div></div>'+
+      '<div style="flex:1 1 30%;text-align:center;background:var(--soft2);border-radius:12px;padding:11px 6px">'+
+      '<div style="font-size:21px;font-weight:900;color:#B4436C">'+(moyR||"—")+'</div>'+
+      '<div style="font-size:10.5px;font-weight:800;color:var(--mute);text-transform:uppercase">jours de règles</div></div>'+
+      '<div style="flex:1 1 30%;text-align:center;background:var(--soft2);border-radius:12px;padding:11px 6px">'+
+      '<div style="font-size:21px;font-weight:900;color:#B4436C">'+(ST?ST.n:0)+'</div>'+
+      '<div style="font-size:10.5px;font-weight:800;color:var(--mute);text-transform:uppercase">cycles mesurés</div></div></div>';
+    if(ST&&ST.n>=2)h+='<div class="st-note" style="margin-top:11px">Tes cycles vont de <b>'+ST.min+'</b> à <b>'+ST.max+' jours</b> : '+ST.verdict+'. '+
+      (ST.amplitude>7?'Un tel écart suit souvent une perte de poids rapide, un stress fort ou des nuits courtes. Parle-s\'en avec ton coach.':'La prévision de l\'appli s\'appuie dessus.')+'</div>';
+    else h+='<div class="st-note" style="margin-top:11px">Note le début et la fin de tes règles chaque mois. Au bout de trois cycles, l\'appli connaît ton rythme et prévoit tes dates.</div>';
+    var R=cycReglesDurees(c);
+    if(R.length){
+      var l='';
+      for(var ri=Math.max(0,R.length-6);ri<R.length;ri++)
+        l+='<div style="display:flex;justify-content:space-between;font-size:12.5px;padding:6px 0;border-top:1px solid var(--line)">'+
+          '<span style="font-weight:700">'+cycDateFR(R[ri].j1)+'</span><span style="color:var(--mute);font-weight:800">'+R[ri].n+' jours de règles</span></div>';
+      h+='<div style="margin-top:10px">'+l+'</div>';
+    }
+    h+='</div>';
+  })();
+
   return h+'</div>';
 }
 
@@ -12328,6 +12364,30 @@ function viewCoachDetail(){
         ? 'Enregistré. Il commande la couleur de son appli ET son programme (photo, séances, marches).'
         : '⚠️ Rien d\'enregistré : c\'est le rose qui s\'applique par défaut. Touche un des deux boutons pour fixer son programme.')+'</div>'+
       '</div>';
+  })();
+
+  // 🌙 SON CYCLE — seulement pour les clientes qui l'ont renseigné. Akli
+  // programme ses séances dessus : une grosse séance en fin lutéale ne
+  // passe pas, et une stagnation du poids avant les règles n'est pas un
+  // décrochage.
+  (function(){
+    var sexe=null; try{sexe=prog3Sexe(allData);}catch(e){}
+    if(sexe!=="f")return;
+    var c=cycGet(allData);
+    if(!c.on)return;
+    var E=cycEtat(c), ST=cycStats(c), moyR=cycReglesMoy(c);
+    h+='<div class="card" style="border-left:4px solid #B4436C;padding:13px 15px">'+
+      '<div style="font-weight:800;font-size:13px;margin-bottom:4px">🌙 Son cycle</div>';
+    if(E)h+='<div style="font-size:12.5px;font-weight:800;color:var(--ink2);margin-bottom:6px">'+E.def.icone+' Jour '+E.jour+' · '+E.def.nom+' · énergie '+E.def.energie.toLowerCase()+'</div>'+
+      '<div style="font-size:11.5px;color:var(--mute);line-height:1.6;margin-bottom:6px">Séance conseillée : '+esc(E.def.sport)+'</div>';
+    h+='<div style="font-size:11.5px;color:var(--ink2);line-height:1.7">'+
+      'Cycle moyen : <b>'+(ST?ST.moy:c.duree)+' jours</b>'+(ST&&ST.n>=2?' (de '+ST.min+' à '+ST.max+' · '+ST.verdict+')':'')+'<br>'+
+      'Règles : <b>'+(moyR?moyR+' jours en moyenne':'fin jamais notée')+'</b>'+((E&&E.reglesEnCours)?' · en cours depuis le '+cycDateFR(c.j1):'')+'<br>'+
+      'Prochaines estimées : <b>'+(E?cycDateFR(E.prochaines):'—')+'</b>'+
+      ((ST&&ST.n>=2&&ST.amplitude>=3)?' (fenêtre du '+cycDateFR(cycPlus(c.j1,ST.min))+' au '+cycDateFR(cycPlus(c.j1,ST.max))+')':'')+'</div>';
+    if(E&&E.retard)h+='<div style="font-size:11.5px;color:var(--warn-d);font-weight:800;margin-top:7px;line-height:1.5">⏳ Retard de '+(E.jour-E.duree)+' jour(s) sur son cycle habituel. Fréquent en perte de poids rapide ou sous stress.</div>';
+    if(ST&&ST.amplitude>7)h+='<div style="font-size:11.5px;color:var(--warn-d);font-weight:800;margin-top:7px;line-height:1.5">⚠️ Cycles irréguliers (écart de '+ST.amplitude+' jours). À aborder au bilan avant de durcir le déficit.</div>';
+    h+='<div style="font-size:10.5px;color:var(--mute);margin-top:8px;line-height:1.5">Donnée saisie par elle, en lecture seule ici.</div></div>';
   })();
 
   // 🎭 TON DE L'APPLI — choisi par le client au départ, ajustable ici

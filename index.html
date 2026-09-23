@@ -5493,15 +5493,21 @@ function viewCalendar(name,start){
           '<span style="font-size:16px;line-height:1">'+TT.emoji+'</span>'+
           '<span style="font-size:12.5px;font-weight:900;color:var(--ink)">'+esc(S.prenom)+'</span>'+
           '<span style="flex:1;text-align:right;font-size:10px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:var(--ok-d)">🎉 cap franchi</span></div>'+
-          '<div style="font-size:13.5px;font-weight:800;color:var(--ink);line-height:1.5">'+etat+'</div></div>';
+          '<div style="font-size:16px;font-weight:800;color:var(--ink);line-height:1.55">'+etat+'</div></div>';
       if(!__msg.alerte)
-        return '<div style="font-size:13.5px;font-weight:800;color:'+pctColor+';margin-top:14px">'+etat+'</div>';
+        // Le mot du superviseur est le guide de la journée : il se lit sans
+        // effort, signé, comme un message reçu — pas comme une légende.
+        return '<div style="background:var(--soft2);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-top:14px;text-align:left">'+
+          '<div style="display:flex;align-items:center;gap:7px;margin-bottom:7px">'+
+          '<span style="font-size:18px;line-height:1">'+TT.emoji+'</span>'+
+          '<span style="font-size:13.5px;font-weight:900;color:var(--ink)">'+esc(S.prenom)+'</span></div>'+
+          '<div style="font-size:16px;font-weight:800;color:var(--ink);line-height:1.55">'+etat+'</div></div>';
       return '<div style="background:rgba(255,152,0,.12);border:1px solid rgba(255,152,0,.4);border-radius:14px;padding:12px 14px;margin-top:14px;text-align:left">'+
         '<div style="display:flex;align-items:center;gap:7px;margin-bottom:6px">'+
         '<span style="font-size:16px;line-height:1">'+TT.emoji+'</span>'+
         '<span style="font-size:12.5px;font-weight:900;color:var(--ink)">'+esc(S.prenom)+'</span>'+
         '<span style="flex:1;text-align:right;font-size:10px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:var(--warn-d)">⚠️ à regarder</span></div>'+
-        '<div style="font-size:13px;font-weight:700;color:var(--ink);line-height:1.55">'+etat+'</div></div>';
+        '<div style="font-size:15.5px;font-weight:700;color:var(--ink);line-height:1.6">'+etat+'</div></div>';
     })()+
     // 🎭 Signature du superviseur : les clients déjà lancés n'ont jamais vu
     // l'écran de choix (il n'apparaît qu'au tout premier démarrage). Le bouton
@@ -14030,7 +14036,7 @@ function viewCoachDash(){
           var jourSem=(new Date().getDay()+6)%7;   // 0 = lundi … 6 = dimanche
           var from=Math.max(0,t90-jourSem), nd=Math.min(t90,89)-from+1;
           if(nd<1)return "";
-          var briq=0,miss=0,nut=0,som=0,spo=0;
+          var briq=0,miss=0,mind=0,nut=0,som=0,spo=0;
           // 🦾 Les séances du programme réellement faites cette semaine, et
           // 🏃 les marches validées : ce que le client a coché dans l'onglet
           // Sport, pas l'habitude « sport » du calendrier.
@@ -14050,6 +14056,7 @@ function viewCoachDash(){
             var qz=cd[400+z]||{};
             if(qz.p)briq++;if(qz.e)briq++;
             if(missionWon(cd,z))miss++;
+            if(mindsetFull(cd,z))mind++;
             var dz=cd[z];
             if(dz&&dz.habits){if(dz.habits.nutrition)nut++;if(dz.habits.sommeil)som++;if(dz.habits.sport)spo++;}
           }
@@ -14100,7 +14107,8 @@ function viewCoachDash(){
             (nd<7?' (lundi → '+__J[jourSem]+')':' (semaine complète)')+'</div>'+
             '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px">'+
             chip("🧱",briq,nd*2,"Briques identité posées (2/jour) — cette semaine (depuis lundi)")+
-            chip("⚡",miss,nd,"Missions du jour gagnées — cette semaine (depuis lundi)")+
+            chip("⚡",mind,nd,"Les 3 questions du journal remplies — cette semaine (même éclair que le calendrier)")+
+            (miss>0?chip("🎯",miss,nd,"Missions du jour gagnées — cette semaine"):"")+
             chip("🏋️",spo,nd,"Sport coché dans le calendrier — cette semaine")+
             chip("🦾",pgSea,2,"Séances du programme transfo terminées — cette semaine")+
             (pgMarObj?chip((prog3Sexe(cd)==="f"?"🏃‍♀️":"🏃‍♂️"),pgMar,pgMarObj,"Marches validées — cette semaine"):"")+

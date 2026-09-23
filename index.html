@@ -820,6 +820,21 @@ input,textarea{outline:none}
 .cyc-e{font-size:16px;line-height:1.3}
 .cyc-alerte{background:#FDEEF3;border:1.5px solid #B4436C55;border-radius:13px;padding:11px 12px;
   font-size:12.5px;color:#8C2F51;font-weight:700;line-height:1.6;margin-top:5px}
+.sup-carte{background:linear-gradient(135deg,#FCE7F3 0%,#FBCFE8 100%);border:2px solid #EC4899;
+  border-radius:16px;padding:15px 16px;margin-top:14px;text-align:left;box-shadow:0 4px 12px rgba(236,72,153,.15)}
+.sup-carte .sup-tete{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.sup-carte .sup-nom{font-size:14px;font-weight:900;color:#1E293B}
+.sup-carte .sup-msg{font-size:16px;font-weight:600;color:#1E293B;line-height:1.55}
+.sup-badge{margin-left:auto;background:#DB2777;color:#fff;border-radius:9999px;padding:4px 12px;
+  font-size:10px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;white-space:nowrap}
+.th-h .sup-carte{background:linear-gradient(135deg,#E8E0FF 0%,#D6E4FF 100%);border-color:#7B6CF6;
+  box-shadow:0 4px 12px rgba(123,108,246,.15)}
+.th-h .sup-badge{background:#6C5CE7}
+.cyc-stats{background:#FFF6FA;border:1px solid #B4436C33;border-radius:13px;padding:11px 13px;margin-top:11px}
+.cyc-stats b{color:var(--ink)}
+.cyc-stats div{font-size:12.5px;color:var(--ink2);line-height:1.6}
+.cyc-btn-2{width:100%;padding:12px 0;border-radius:13px;margin-top:9px;border:1.5px solid #B4436C;
+  background:#fff;color:#B4436C;font-weight:900;font-size:13.5px;cursor:pointer}
 .cyc-prochaines{font-size:12px;color:var(--mute);font-weight:700;text-align:center;margin-top:8px;line-height:1.6}
 .cyc-btn{width:100%;padding:13px 0;border-radius:13px;border:0;margin-top:11px;
   background:linear-gradient(90deg,#B4436C,#8A3FFF);color:#fff;font-weight:900;font-size:13.5px}
@@ -5488,26 +5503,23 @@ function viewCalendar(name,start){
       if(__msg.moment)
         // Un cap franchi mérite d'être vu : encadré, signé, pas une ligne
         // de plus dans le flux.
-        return '<div style="background:rgba(93,242,160,.13);border:1px solid rgba(93,242,160,.34);border-radius:14px;padding:13px 15px;margin-top:14px;text-align:left">'+
-          '<div style="display:flex;align-items:center;gap:7px;margin-bottom:5px">'+
-          '<span style="font-size:16px;line-height:1">'+TT.emoji+'</span>'+
-          '<span style="font-size:12.5px;font-weight:900;color:var(--ink)">'+esc(S.prenom)+'</span>'+
-          '<span style="flex:1;text-align:right;font-size:10px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:var(--ok-d)">🎉 cap franchi</span></div>'+
-          '<div style="font-size:16px;font-weight:800;color:var(--ink);line-height:1.55">'+etat+'</div></div>';
+        return '<div class="sup-carte">'+
+          '<div class="sup-tete"><span style="font-size:19px;line-height:1">'+TT.emoji+'</span>'+
+          '<span class="sup-nom">'+esc(S.prenom)+'</span>'+
+          '<span class="sup-badge">🎉 cap franchi</span></div>'+
+          '<div class="sup-msg">'+etat+'</div></div>';
       if(!__msg.alerte)
         // Le mot du superviseur est le guide de la journée : il se lit sans
         // effort, signé, comme un message reçu — pas comme une légende.
-        return '<div style="background:var(--soft2);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-top:14px;text-align:left">'+
-          '<div style="display:flex;align-items:center;gap:7px;margin-bottom:7px">'+
-          '<span style="font-size:18px;line-height:1">'+TT.emoji+'</span>'+
-          '<span style="font-size:13.5px;font-weight:900;color:var(--ink)">'+esc(S.prenom)+'</span></div>'+
-          '<div style="font-size:16px;font-weight:800;color:var(--ink);line-height:1.55">'+etat+'</div></div>';
-      return '<div style="background:rgba(255,152,0,.12);border:1px solid rgba(255,152,0,.4);border-radius:14px;padding:12px 14px;margin-top:14px;text-align:left">'+
-        '<div style="display:flex;align-items:center;gap:7px;margin-bottom:6px">'+
-        '<span style="font-size:16px;line-height:1">'+TT.emoji+'</span>'+
-        '<span style="font-size:12.5px;font-weight:900;color:var(--ink)">'+esc(S.prenom)+'</span>'+
-        '<span style="flex:1;text-align:right;font-size:10px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:var(--warn-d)">⚠️ à regarder</span></div>'+
-        '<div style="font-size:15.5px;font-weight:700;color:var(--ink);line-height:1.6">'+etat+'</div></div>';
+        return '<div class="sup-carte">'+
+          '<div class="sup-tete"><span style="font-size:19px;line-height:1">'+TT.emoji+'</span>'+
+          '<span class="sup-nom">'+esc(S.prenom)+'</span></div>'+
+          '<div class="sup-msg">'+etat+'</div></div>';
+      return '<div class="sup-carte">'+
+        '<div class="sup-tete"><span style="font-size:19px;line-height:1">'+TT.emoji+'</span>'+
+        '<span class="sup-nom">'+esc(S.prenom)+'</span>'+
+        '<span class="sup-badge">⚠️ à regarder</span></div>'+
+        '<div class="sup-msg">'+etat+'</div></div>';
     })()+
     // 🎭 Signature du superviseur : les clients déjà lancés n'ont jamais vu
     // l'écran de choix (il n'apparaît qu'au tout premier démarrage). Le bouton
@@ -9978,9 +9990,57 @@ var CYC_ORDRE = ["fol1", "fol2", "ovu", "lut1", "lut2"];
 
 function cycGet(all) {
   var c = (all || getAllData())[CYC_SLOT] || {};
-  return { j1: c.j1 || "", duree: parseInt(c.duree, 10) || 28, hist: c.hist || [], on: !!c.j1 };
+  // finH : { "date du J1" : "date du dernier jour des règles" }. C'est ce
+  // registre qui permet de dire combien de temps SES règles durent, au lieu
+  // des 5 jours de manuel scolaire qu'on supposait avant.
+  return { j1: c.j1 || "", duree: parseInt(c.duree, 10) || 28, hist: c.hist || [], finH: c.finH || {}, on: !!c.j1 };
 }
-function cycSet(c) { saveDay(CYC_SLOT, { j1: c.j1, duree: c.duree, hist: c.hist || [] }); }
+function cycSet(c) { saveDay(CYC_SLOT, { j1: c.j1, duree: c.duree, hist: c.hist || [], finH: c.finH || {} }); }
+
+// ─── Durée des RÈGLES elles-mêmes (pas du cycle) ───
+function cycReglesDurees(c) {
+  var H = c.finH || {}, out = [];
+  for (var k in H) {
+    if (!H.hasOwnProperty(k) || !H[k]) continue;
+    var n = cycJours(k, H[k]) + 1;
+    if (n >= 1 && n <= 12) out.push({ j1: k, n: n });
+  }
+  out.sort(function (a, b) { return a.j1 < b.j1 ? -1 : 1; });
+  return out;
+}
+function cycReglesMoy(c) {
+  var a = cycReglesDurees(c).slice(-4);
+  if (!a.length) return null;
+  var s = 0;
+  for (var i = 0; i < a.length; i++) s += a[i].n;
+  return Math.round(s / a.length);
+}
+// Vrai tant que les règles sont en cours : J1 posé, aucune fin enregistrée.
+function cycReglesEnCours(c, jour) {
+  if (!c.j1) return false;
+  if ((c.finH || {})[c.j1]) return false;
+  return jour <= 12;
+}
+
+// ─── Régularité : ce que ses cycles font vraiment, pas la moyenne seule ───
+function cycStats(c) {
+  var d = (c.hist || []).concat([c.j1]).filter(function (x) { return !!x; });
+  d.sort();
+  var e = [];
+  for (var i = 1; i < d.length; i++) {
+    var n = cycJours(d[i - 1], d[i]);
+    if (n > 18 && n < 45) e.push(n);
+  }
+  if (!e.length) return null;
+  var mn = Math.min.apply(null, e), mx = Math.max.apply(null, e), s = 0;
+  for (var j = 0; j < e.length; j++) s += e[j];
+  var moy = Math.round(s / e.length), amp = mx - mn;
+  return {
+    n: e.length, moy: moy, min: mn, max: mx, amplitude: amp,
+    verdict: e.length < 2 ? "pas encore assez de cycles pour juger"
+      : amp <= 3 ? "cycles réguliers" : amp <= 7 ? "cycles légèrement variables" : "cycles irréguliers"
+  };
+}
 
 // Nombre de jours entre deux dates ISO (aaaa-mm-jj), sans piège d'heure d'été :
 // on compare les midis, jamais les minuits.
@@ -10031,8 +10091,9 @@ function cycEtat(c, aujourdhui) {
   // lutéale dure 14 jours quelle que soit la longueur du cycle, c'est
   // la phase folliculaire qui s'allonge ou se raccourcit.
   var ovu = Math.max(1, duree - 14);
+  var regl = cycReglesMoy(c) || 5;
   var ph;
-  if (jour <= 5) ph = "fol1";
+  if (jour <= regl) ph = "fol1";
   else if (jour < ovu - 1) ph = "fol2";
   else if (jour <= ovu + 1) ph = "ovu";
   else if (jour <= duree - 7) ph = "lut1";
@@ -10043,7 +10104,10 @@ function cycEtat(c, aujourdhui) {
     jour: jour, duree: duree, phase: ph, def: CYC_PHASES[ph],
     ovulation: ovu, retard: retard, reste: reste,
     proches: reste <= 2 || retard,
-    prochaines: fin
+    prochaines: fin,
+    reglesDuree: regl,
+    reglesEnCours: cycReglesEnCours(c, jour),
+    reglesFin: (c.finH || {})[c.j1] || ""
   };
 }
 
@@ -10122,9 +10186,45 @@ function cycCarteHTML(all) {
   else
     h += '<div class="cyc-prochaines">Prochaines règles estimées le <b>' + cycDateFR(E.prochaines) + '</b> · ovulation vers le jour ' + E.ovulation + '</div>';
 
-  h += '<button id="cyc-top" class="cyc-btn">🩸 Mes règles ont commencé aujourd\'hui</button>' +
-    cycReglagesHTML(c, false) + '</div>';
+  // 📅 La fenêtre de prévision : quand ses cycles varient, une date unique
+  // ment. On annonce la date probable ET la fourchette réelle.
+  var ST = cycStats(c);
+  if (ST && ST.n >= 2 && ST.amplitude >= 3)
+    h += '<div class="cyc-prochaines">Fenêtre probable : du <b>' + cycDateFR(cycPlus(c.j1, ST.min)) +
+      '</b> au <b>' + cycDateFR(cycPlus(c.j1, ST.max)) + '</b> · ' + ST.verdict + '</div>';
+
+  // 🩸 Les règles en cours : on note leur fin, la durée se calcule toute seule.
+  if (E.reglesEnCours)
+    h += '<div class="cyc-alerte">🩸 Jour ' + E.jour + ' de tes règles. Note le dernier jour dès qu\'elles s\'arrêtent.</div>' +
+      '<button id="cyc-fin" class="cyc-btn">🩸 Mes règles sont terminées aujourd\'hui</button>';
+  else if (E.reglesFin)
+    h += '<div class="cyc-prochaines">Dernières règles : ' + cycDateFR(c.j1) + ' → ' + cycDateFR(E.reglesFin) +
+      ' (' + (cycJours(c.j1, E.reglesFin) + 1) + ' jours)</div>';
+
+  h += '<button id="cyc-top" class="' + (E.reglesEnCours ? 'cyc-btn-2' : 'cyc-btn') + '">🩸 Mes règles ont commencé aujourd\'hui</button>' +
+    cycStatsHTML(c) + cycReglagesHTML(c, false) + '</div>';
   return h;
+}
+
+// 📊 CE QUE SES CYCLES DISENT VRAIMENT. Trois mois de saisie valent mieux
+// qu'un modèle à 28 jours : durée moyenne, amplitude, durée des règles.
+function cycStatsHTML(c) {
+  var ST = cycStats(c), R = cycReglesDurees(c), moyR = cycReglesMoy(c);
+  if (!ST && !R.length) return "";
+  var h = '<div class="cyc-stats"><div style="font-size:11px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:#B4436C;margin-bottom:7px">📊 Mes cycles</div>';
+  if (ST) {
+    h += '<div>Durée moyenne : <b>' + ST.moy + ' jours</b>' + (ST.n >= 2 ? ' (de ' + ST.min + ' à ' + ST.max + ' jours sur ' + ST.n + ' cycles)' : ' (1 cycle mesuré)') + '</div>';
+    if (ST.n >= 2) h += '<div>Régularité : <b>' + ST.verdict + '</b>' +
+      (ST.amplitude > 7 ? ' — un écart de plus d\'une semaine arrive en période de perte de poids, de stress ou de sommeil court. Parles-en à ton coach.' : '') + '</div>';
+  }
+  if (moyR) {
+    h += '<div>Tes règles durent <b>' + moyR + ' jour' + (moyR > 1 ? 's' : '') + '</b> en moyenne' + (R.length > 1 ? ' sur ' + R.length + ' cycles notés' : '') + '</div>';
+    var der = R.slice(-3).map(function (x) { return cycDateFR(x.j1) + ' · ' + x.n + ' j'; }).join(' &nbsp;·&nbsp; ');
+    h += '<div style="color:var(--mute);margin-top:4px">' + der + '</div>';
+  } else {
+    h += '<div style="color:var(--mute);margin-top:4px">Note la fin de tes règles chaque mois : l\'appli saura combien elles durent chez toi et ajustera tes séances.</div>';
+  }
+  return h + '</div>';
 }
 
 function cycReglagesHTML(c, ouvert) {
@@ -10166,6 +10266,20 @@ function bindCycle() {
     if (!obs) return;
     c.duree = obs; cycSet(c);
     feedback("Durée mise à jour : " + obs + " jours", "ok");
+    render();
+  });
+
+  var fin = document.getElementById("cyc-fin");
+  if (fin) fin.addEventListener("click", function () {
+    var c = cycGet(), today = isoLocal();
+    if (!c.j1) return;
+    var n = cycJours(c.j1, today) + 1;
+    if (n < 1) { feedback("Date impossible", "err"); return; }
+    if (n > 12) { feedback("Plus de 12 jours : corrige d'abord ton J1", "err"); return; }
+    c.finH = c.finH || {};
+    c.finH[c.j1] = today;
+    cycSet(c);
+    feedback("🩸 Règles notées : " + n + " jour" + (n > 1 ? "s" : ""), "ok");
     render();
   });
 

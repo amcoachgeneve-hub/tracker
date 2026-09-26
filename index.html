@@ -1605,6 +1605,74 @@ function waSend(text){
   window.open("https://wa.me/"+WA_COACH+"?text="+encodeURIComponent(text),"_blank");
 }
 
+
+// ═══════════ 🔔 RAPPEL DU SOIR (notifications push) ═══════════
+// Le téléphone reçoit une notification à 20h si la journée n'est pas remplie,
+// même application fermée. L'envoi est fait par une tâche planifiée côté
+// serveur : le coach n'a rien à déclencher.
+//
+// PIÈGE iOS : Safari refuse les notifications depuis un onglet. Tant que
+// l'app n'est pas ajoutée à l'écran d'accueil, on ne propose rien — une
+// demande qui ne peut pas aboutir use la patience pour rien.
+var VAPID_PUBLIC="BCt3MtQrgEWvE1zLl65ekGVzCnz1kQ9UM1bTMUp5TKe0KFfrlLeqfwk4DBHMR-mkJMjdbOEQYxWeOsColyQ5Rs0";
+
+function pushDispo(){
+  if(!("Notification" in window)||!("serviceWorker" in navigator)||!("PushManager" in window))return false;
+  var iOS=/iPad|iPhone|iPod/.test(navigator.userAgent||"");
+  var installee=window.navigator.standalone===true||
+    (window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches);
+  return iOS?installee:true;
+}
+function pushEtat(){
+  if(!pushDispo())return "indispo";
+  if(Notification.permission==="granted")return "ok";
+  if(Notification.permission==="denied")return "refus";
+  return lsGetStr("amcoach_push_plustard_"+CLIENT)===isoLocal()?"plustard":"aproposer";
+}
+function b64Vers8(base64){
+  var p="=".repeat((4-base64.length%4)%4);
+  var b=(base64+p).replace(/-/g,"+").replace(/_/g,"/");
+  var brut=atob(b),arr=new Uint8Array(brut.length);
+  for(var i=0;i<brut.length;i++)arr[i]=brut.charCodeAt(i);
+  return arr;
+}
+function pushActiver(){
+  if(!pushDispo()){feedback("Ajoute d'abord l'app à ton écran d'accueil","err");return;}
+  Notification.requestPermission().then(function(rep){
+    if(rep!=="granted"){feedback("Rappels non activés","undo");render();return;}
+    navigator.serviceWorker.ready.then(function(reg){
+      return reg.pushManager.getSubscription().then(function(dej){
+        return dej||reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64Vers8(VAPID_PUBLIC)});
+      });
+    }).then(function(sub){
+      var j=sub.toJSON();
+      return fetch(SB_URL+"/rest/v1/push_subs?on_conflict=endpoint",{
+        method:"POST",
+        headers:{"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY,"Content-Type":"application/json","Prefer":"resolution=merge-duplicates"},
+        body:JSON.stringify({client_slug:CLIENT,endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth,ua:(navigator.userAgent||"").slice(0,200),actif:true})
+      });
+    }).then(function(){
+      feedback("🔔 Rappel activé pour 20h","win");
+      render();
+    }).catch(function(){feedback("Activation impossible sur ce téléphone","err");});
+  });
+}
+function pushBanniereHTML(){
+  var e=pushEtat();
+  if(e!=="aproposer")return "";
+  return '<div style="background:var(--soft2);border:1px solid var(--line);border-left:3px solid var(--brand);border-radius:14px;padding:13px 15px;margin-bottom:12px">'+
+    '<div style="font-size:14px;font-weight:900;margin-bottom:3px">🔔 Le rappel du soir</div>'+
+    '<div style="font-size:12.5px;color:var(--ink2);line-height:1.55;margin-bottom:10px">Une notification à 20h les jours où ta journée n\'est pas remplie. Rien d\'autre, jamais de publicité.</div>'+
+    '<div style="display:flex;gap:8px">'+
+    '<button id="push-non" style="flex:1;padding:10px 0;border-radius:11px;border:1px solid var(--line);background:var(--card);color:var(--mute);font-weight:800;font-size:12.5px">Plus tard</button>'+
+    '<button id="push-oui" style="flex:1.4;padding:10px 0;border-radius:11px;border:0;background:var(--brand);color:#fff;font-weight:900;font-size:12.5px">Activer</button></div></div>';
+}
+document.addEventListener("click",function(ev){
+  var t=ev.target;if(!t||!t.closest)return;
+  if(t.closest("#push-oui"))pushActiver();
+  else if(t.closest("#push-non")){lsSet("amcoach_push_plustard_"+CLIENT,isoLocal());render();}
+});
+
 // ═══════════ SUPABASE SYNC ═══════════
 function sbFetch(path,opts){
   opts=opts||{};
@@ -2616,6 +2684,7 @@ function donneesHTML(){
     '<b>Où</b><br>Sur ton téléphone, et sur un serveur en Europe pour que rien ne se perde si tu changes d\'appareil.<br><br>'+
     '<b>Qui y accède</b><br>Toi et ton coach, personne d\'autre. Aucune publicité, aucune revente, aucun traceur dans cette application. Ton lien personnel ne se partage pas : il ouvre ton suivi.<br><br>'+
     '<b>Combien de temps</b><br>Pendant l\'accompagnement, puis trois ans. Tu peux tout effacer avant, quand tu veux.<br><br>'+
+    '<b>Les rappels du soir</b><br>'+(pushEtat()==="ok"?'Activés sur ce téléphone. Pour les couper : réglages du téléphone, notifications, DISCIPLINE 90.':pushEtat()==="refus"?'Refusés sur ce téléphone. Tu peux les réactiver dans les réglages de ton téléphone.':pushEtat()==="indispo"?'Disponibles une fois l\'app ajoutée à ton écran d\'accueil.':'Pas encore activés.')+'<br><br>'+
     '<button id="rgpd-export" style="width:100%;padding:12px 0;border-radius:12px;border:0;background:var(--brand);color:#fff;font-weight:900;font-size:13px;margin-bottom:8px">⬇️ Télécharger toutes mes données</button>'+
     '<button id="rgpd-suppr" style="width:100%;padding:12px 0;border-radius:12px;border:1.5px solid var(--bad);background:var(--card);color:var(--bad);font-weight:900;font-size:13px">🗑️ Effacer mes données de ce téléphone</button>'+
     '<div style="font-size:11px;color:var(--mute);margin-top:8px;line-height:1.5">Pour une suppression définitive côté serveur, écris à ton coach : il la fait et te le confirme.</div>'+
@@ -6099,6 +6168,9 @@ function viewCalendar(name,start){
       '<span class="cal-sum-n">'+nRegl+' rappel'+(nRegl>1?'s':'')+'</span>'+
       '<span class="cal-sum-c">⌄</span></summary><div class="cal-corps">'+hRegl+'</div></details>';
   }
+
+  // Le rappel du soir : proposé une fois, repoussable, jamais insistant.
+  h+=pushBanniereHTML();
 
   // Pied de page de l'accueil : le mode d'emploi rappelable, puis la version.
   h+='<button id="tuto-revoir" style="display:block;margin:8px auto 0;padding:10px 18px;border-radius:12px;background:var(--soft2);font-size:12px;font-weight:800;color:var(--mute)">🎓 Revoir le mode d\'emploi</button>'+

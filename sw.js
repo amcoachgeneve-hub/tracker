@@ -78,3 +78,35 @@ self.addEventListener("fetch", function (e) {
     });
   }));
 });
+
+/* ═══════════ RAPPEL DU SOIR ═══════════
+   Une Edge Function Supabase envoie le push chaque soir à 20h, heure de
+   Genève, aux clientes qui n'ont rien coché. Le téléphone le reçoit même
+   application fermée. Sur iPhone, cela suppose que l'app a été ajoutée à
+   l'écran d'accueil : Safari refuse les notifications depuis un onglet. */
+
+self.addEventListener("push", function (e) {
+  var d = { titre: "DISCIPLINE 90", corps: "Ta journée n'est pas remplie.", url: "/" };
+  try { if (e.data) d = Object.assign(d, e.data.json()); } catch (err) { }
+  e.waitUntil(self.registration.showNotification(d.titre, {
+    body: d.corps,
+    icon: "/icone-192.png",
+    badge: "/icone-192.png",
+    tag: "rappel-soir",
+    renotify: true,
+    data: { url: d.url }
+  }));
+});
+
+self.addEventListener("notificationclick", function (e) {
+  e.notification.close();
+  var cible = (e.notification.data && e.notification.data.url) || "/";
+  e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (cs) {
+    // Si l'appli est déjà ouverte quelque part, on la ramène au premier plan
+    // au lieu d'ouvrir un deuxième exemplaire.
+    for (var i = 0; i < cs.length; i++) {
+      if (cs[i].url.indexOf(self.location.origin) === 0 && "focus" in cs[i]) return cs[i].focus();
+    }
+    if (self.clients.openWindow) return self.clients.openWindow(cible);
+  }));
+});

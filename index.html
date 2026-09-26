@@ -1646,11 +1646,15 @@ function pushActiver(){
       });
     }).then(function(sub){
       var j=sub.toJSON();
-      return fetch(SB_URL+"/rest/v1/push_subs?on_conflict=endpoint",{
+      // On passe par une fonction SQL plutôt que par la table : l'écriture
+      // directe en upsert exigeait un droit de LECTURE sur la table, ce qui
+      // aurait exposé les abonnements de tout le monde. Ici l'app écrit, elle
+      // ne lit rien.
+      return fetch(SB_URL+"/rest/v1/rpc/push_enregistrer",{
         method:"POST",
-        headers:{"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY,"Content-Type":"application/json","Prefer":"resolution=merge-duplicates"},
-        body:JSON.stringify({client_slug:CLIENT,endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth,ua:(navigator.userAgent||"").slice(0,200),actif:true})
-      });
+        headers:{"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY,"Content-Type":"application/json"},
+        body:JSON.stringify({p_slug:CLIENT,p_endpoint:j.endpoint,p_p256dh:j.keys.p256dh,p_auth:j.keys.auth,p_ua:(navigator.userAgent||"").slice(0,200)})
+      }).then(function(r){ if(!r.ok) throw new Error("enregistrement refusé"); return r; });
     }).then(function(){
       feedback("🔔 Rappel activé pour 21h","win");
       render();

@@ -1607,7 +1607,7 @@ function waSend(text){
 
 
 // ═══════════ 🔔 RAPPEL DU SOIR (notifications push) ═══════════
-// Le téléphone reçoit une notification à 20h si la journée n'est pas remplie,
+// Le téléphone reçoit une notification à 21h si la journée n'est pas remplie,
 // même application fermée. L'envoi est fait par une tâche planifiée côté
 // serveur : le coach n'a rien à déclencher.
 //
@@ -1652,7 +1652,7 @@ function pushActiver(){
         body:JSON.stringify({client_slug:CLIENT,endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth,ua:(navigator.userAgent||"").slice(0,200),actif:true})
       });
     }).then(function(){
-      feedback("🔔 Rappel activé pour 20h","win");
+      feedback("🔔 Rappel activé pour 21h","win");
       render();
     }).catch(function(){feedback("Activation impossible sur ce téléphone","err");});
   });
@@ -1662,7 +1662,7 @@ function pushBanniereHTML(){
   if(e!=="aproposer")return "";
   return '<div style="background:var(--soft2);border:1px solid var(--line);border-left:3px solid var(--brand);border-radius:14px;padding:13px 15px;margin-bottom:12px">'+
     '<div style="font-size:14px;font-weight:900;margin-bottom:3px">🔔 Le rappel du soir</div>'+
-    '<div style="font-size:12.5px;color:var(--ink2);line-height:1.55;margin-bottom:10px">Une notification à 20h les jours où ta journée n\'est pas remplie. Rien d\'autre, jamais de publicité.</div>'+
+    '<div style="font-size:12.5px;color:var(--ink2);line-height:1.55;margin-bottom:10px">Une notification à 21h les jours où ta journée n\'est pas remplie. Rien d\'autre, jamais de publicité.</div>'+
     '<div style="display:flex;gap:8px">'+
     '<button id="push-non" style="flex:1;padding:10px 0;border-radius:11px;border:1px solid var(--line);background:var(--card);color:var(--mute);font-weight:800;font-size:12.5px">Plus tard</button>'+
     '<button id="push-oui" style="flex:1.4;padding:10px 0;border-radius:11px;border:0;background:var(--brand);color:#fff;font-weight:900;font-size:12.5px">Activer</button></div></div>';

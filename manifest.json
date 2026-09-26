@@ -1,0 +1,17 @@
+{
+  "name": "DISCIPLINE 90",
+  "short_name": "DISCIPLINE 90",
+  "description": "Le suivi quotidien des clients AM Coach Genève. La discipline devient automatique.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F7F9FC",
+  "theme_color": "#12B5EA",
+  "lang": "fr",
+  "icons": [
+    { "src": "/icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

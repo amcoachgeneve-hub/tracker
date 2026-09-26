@@ -9,6 +9,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-title" content="DISCIPLINE 90"/>
 <meta name="theme-color" content="#12B5EA"/>
+<link rel="manifest" href="/manifest.json"/>
+<link rel="apple-touch-icon" href="/icone-180.png"/>
 <script>
 /* ═══════════ THÈME AVANT LE PREMIER AFFICHAGE ═══════════
    La palette par défaut du CSS est le corail. Le bleu n'arrivait qu'une fois
@@ -820,6 +822,13 @@ input,textarea{outline:none}
 .cyc-e{font-size:16px;line-height:1.3}
 .cyc-alerte{background:#FDEEF3;border:1.5px solid #B4436C55;border-radius:13px;padding:11px 12px;
   font-size:12.5px;color:#8C2F51;font-weight:700;line-height:1.6;margin-top:5px}
+.sup-av{width:46px;height:46px;flex:0 0 auto;display:block}
+.sup-av-bg{fill:#F7B6D0;stroke:#DB2777;stroke-width:2}
+.sup-av-tr{stroke:#9D174D;stroke-width:5;stroke-linecap:round;fill:none}
+.sup-av-oe{fill:#9D174D}
+.th-h .sup-av-bg{fill:#C9C0F9;stroke:#7B6CF6}
+.th-h .sup-av-tr{stroke:#3C3489}
+.th-h .sup-av-oe{fill:#3C3489}
 .sup-carte{background:linear-gradient(135deg,#FCE7F3 0%,#FBCFE8 100%);border:2px solid #EC4899;
   border-radius:16px;padding:15px 16px;margin-top:14px;text-align:left;box-shadow:0 4px 12px rgba(236,72,153,.15)}
 .sup-carte .sup-tete{display:flex;align-items:center;gap:8px;margin-bottom:8px}
@@ -2528,6 +2537,35 @@ var TONS={
 };
 var TON_ORDRE=["normal","marseillais","italien","drole","sarcastique","vulgaire","jeune","commentateur"];
 // Le superviseur = un ton + un genre + un prénom tiré à l'inscription.
+// 🙂 L'AVATAR DU SUPERVISEUR. Trois expressions, un seul dessin : seuls les
+// yeux, les sourcils et la bouche changent. Les couleurs suivent le thème,
+// pas le superviseur — six teintes différentes sur un écran déjà coloré,
+// c'est du bruit. Chaque ton garde un détail qui le rend reconnaissable.
+var SUP_DETAIL = {
+  marseillais: '<path class="sup-av-tr" d="M30 30 Q48 18 66 30"/>',
+  italien: '<path class="sup-av-tr" style="stroke-width:4" d="M28 66 Q48 82 68 66"/>',
+  sarcastique: '<path class="sup-av-tr" style="stroke-width:3" d="M26 42 h44"/>',
+  vulgaire: '<path class="sup-av-tr" style="stroke-width:4" d="M30 72 Q48 84 66 72"/>',
+  jeune: '<path class="sup-av-tr" style="stroke-width:4" d="M24 34 Q34 22 44 32"/><path class="sup-av-tr" style="stroke-width:4" d="M52 32 Q62 22 72 34"/>',
+  commentateur: '<circle class="sup-av-tr" style="stroke-width:3" cx="34" cy="46" r="10"/><circle class="sup-av-tr" style="stroke-width:3" cx="62" cy="46" r="10"/><path class="sup-av-tr" style="stroke-width:3" d="M44 46 h8"/>'
+};
+function supAvatar(etat, ton) {
+  var v = '';
+  if (etat === "moment") {
+    v = '<path class="sup-av-tr" d="M30 44 Q36 36 42 44"/><path class="sup-av-tr" d="M54 44 Q60 36 66 44"/>' +
+      '<path class="sup-av-tr" d="M32 58 Q48 76 64 58"/>';
+  } else if (etat === "alerte") {
+    v = '<path class="sup-av-tr" style="stroke-width:4" d="M26 34 L40 40"/><path class="sup-av-tr" style="stroke-width:4" d="M70 34 L56 40"/>' +
+      '<circle class="sup-av-oe" cx="38" cy="50" r="5"/><circle class="sup-av-oe" cx="58" cy="50" r="5"/>' +
+      '<path class="sup-av-tr" d="M34 70 Q48 62 62 70"/>';
+  } else {
+    v = '<circle class="sup-av-oe" cx="38" cy="46" r="5"/><circle class="sup-av-oe" cx="58" cy="46" r="5"/>' +
+      '<path class="sup-av-tr" d="M34 62 Q48 72 62 62"/>';
+  }
+  return '<svg class="sup-av" viewBox="0 0 96 96" aria-hidden="true">' +
+    '<circle class="sup-av-bg" cx="48" cy="48" r="44"/>' + (SUP_DETAIL[ton] || '') + v + '</svg>';
+}
+
 function supGet(allData){
   var t=allData&&allData[503];
   if(t&&typeof t==="object"){
@@ -4268,8 +4306,30 @@ function scrollTopIfRouteChanged(){
     if(document.body)document.body.scrollTop=0;
   }catch(e){}
 }
+// 🩹 render() reconstruit tout le HTML. Sans garde-fou, une cliente qui tape
+// son bilan et coche une habitude perd son texte et revient en haut de page.
+// On mémorise le champ actif, le curseur, le texte tapé et le scroll, on
+// rend, puis on remet tout en place.
+function renderGarde() {
+  var el = document.activeElement, F = null;
+  if (el && (el.tagName === "TEXTAREA" || el.tagName === "INPUT") && el.id)
+    F = { id: el.id, val: el.value, s: el.selectionStart, e: el.selectionEnd };
+  return { champ: F, y: window.scrollY || window.pageYOffset || 0 };
+}
+function renderRestaure(G) {
+  if (!G || !G.champ) return;
+  var el = document.getElementById(G.champ.id);
+  if (!el) return;
+  if (el.value !== G.champ.val) el.value = G.champ.val;
+  try { el.focus({ preventScroll: true }); } catch (e) { try { el.focus(); } catch (e2) {} }
+  try { el.setSelectionRange(G.champ.s, G.champ.e); } catch (e) {}
+  if (Math.abs((window.scrollY || 0) - G.y) > 4) window.scrollTo(0, G.y);
+}
+
 function render(){
+  var __G = renderGarde();
   renderView();
+  renderRestaure(__G);
   scrollTopIfRouteChanged();
   // Le geste de retour s'installe une seule fois, ici : bindNav ne tourne que
   // sur les vues client, et le coach a autant besoin du geste que le client.
@@ -5504,7 +5564,7 @@ function viewCalendar(name,start){
         // Un cap franchi mérite d'être vu : encadré, signé, pas une ligne
         // de plus dans le flux.
         return '<div class="sup-carte">'+
-          '<div class="sup-tete"><span style="font-size:19px;line-height:1">'+TT.emoji+'</span>'+
+          '<div class="sup-tete">'+supAvatar("moment",S.ton)+
           '<span class="sup-nom">'+esc(S.prenom)+'</span>'+
           '<span class="sup-badge">🎉 cap franchi</span></div>'+
           '<div class="sup-msg">'+etat+'</div></div>';
@@ -5512,11 +5572,11 @@ function viewCalendar(name,start){
         // Le mot du superviseur est le guide de la journée : il se lit sans
         // effort, signé, comme un message reçu — pas comme une légende.
         return '<div class="sup-carte">'+
-          '<div class="sup-tete"><span style="font-size:19px;line-height:1">'+TT.emoji+'</span>'+
+          '<div class="sup-tete">'+supAvatar("normal",S.ton)+
           '<span class="sup-nom">'+esc(S.prenom)+'</span></div>'+
           '<div class="sup-msg">'+etat+'</div></div>';
       return '<div class="sup-carte">'+
-        '<div class="sup-tete"><span style="font-size:19px;line-height:1">'+TT.emoji+'</span>'+
+        '<div class="sup-tete">'+supAvatar("alerte",S.ton)+
         '<span class="sup-nom">'+esc(S.prenom)+'</span>'+
         '<span class="sup-badge">⚠️ à regarder</span></div>'+
         '<div class="sup-msg">'+etat+'</div></div>';
@@ -5985,6 +6045,18 @@ function viewCalendar(name,start){
   }
 
   // Pied de page de l'accueil : le mode d'emploi rappelable, puis la version.
+  h+='<details class="cal-tiroir" style="margin-top:12px">'+
+    '<summary><span class="cal-sum-t">🔒 Mes données</span><span class="cal-sum-c">⌄</span></summary>'+
+    '<div class="cal-corps" style="font-size:12.5px;color:var(--ink2);line-height:1.65">'+
+    '<b>Ce qui est enregistré</b><br>Ton poids, tes habitudes cochées, ton sommeil, tes questions du soir, tes protéines, et pour les clientes qui l\'utilisent, leur cycle. Rien d\'autre.<br><br>'+
+    '<b>Où</b><br>Sur ton téléphone, et sur un serveur en Europe pour que rien ne se perde si tu changes d\'appareil.<br><br>'+
+    '<b>Qui y accède</b><br>Toi et ton coach, personne d\'autre. Aucune publicité, aucune revente, aucun traceur dans cette application. Ton lien personnel ne se partage pas : il ouvre ton suivi.<br><br>'+
+    '<b>Combien de temps</b><br>Pendant l\'accompagnement, puis trois ans. Tu peux tout effacer avant, quand tu veux.<br><br>'+
+    '<button id="rgpd-export" style="width:100%;padding:12px 0;border-radius:12px;border:0;background:var(--brand);color:#fff;font-weight:900;font-size:13px;margin-bottom:8px">⬇️ Télécharger toutes mes données</button>'+
+    '<button id="rgpd-suppr" style="width:100%;padding:12px 0;border-radius:12px;border:1.5px solid var(--bad);background:var(--card);color:var(--bad);font-weight:900;font-size:13px">🗑️ Effacer mes données de ce téléphone</button>'+
+    '<div style="font-size:11px;color:var(--mute);margin-top:8px;line-height:1.5">Pour une suppression définitive côté serveur, écris à ton coach : il la fait et te le confirme.</div>'+
+    '</div></details>';
+
   h+='<button id="tuto-revoir" style="display:block;margin:8px auto 0;padding:10px 18px;border-radius:12px;background:var(--soft2);font-size:12px;font-weight:800;color:var(--mute)">🎓 Revoir le mode d\'emploi</button>'+
     '<div style="text-align:center;font-size:10px;color:var(--mute);opacity:.55;padding:14px 0 4px">v'+APP_VERSION+'</div>';
   return h+'</div>';
@@ -7111,6 +7183,7 @@ function viewStats(name){
           '<span style="font-weight:700">'+cycDateFR(R[ri].j1)+'</span><span style="color:var(--mute);font-weight:800">'+R[ri].n+' jours de règles</span></div>';
       h+='<div style="margin-top:10px">'+l+'</div>';
     }
+    h+=cycDiagHTML(c);
     h+='</div>';
   })();
 
@@ -10072,7 +10145,7 @@ function cycStats(c) {
   for (var j = 0; j < e.length; j++) s += e[j];
   var moy = Math.round(s / e.length), amp = mx - mn;
   return {
-    n: e.length, moy: moy, min: mn, max: mx, amplitude: amp,
+    n: e.length, liste: e, moy: moy, min: mn, max: mx, amplitude: amp,
     verdict: e.length < 2 ? "pas encore assez de cycles pour juger"
       : amp <= 3 ? "cycles réguliers" : amp <= 7 ? "cycles légèrement variables" : "cycles irréguliers"
   };
@@ -10242,6 +10315,90 @@ function cycCarteHTML(all) {
   return h;
 }
 
+// 🩺 LE VERDICT — trois cycles mesurés minimum, sinon on se tait. On pose
+// des CONSTATS chiffrés, jamais un diagnostic : le mot « spanioménorrhée »
+// appartient au médecin, pas à une appli de coaching. Chaque signalement
+// renvoie vers un professionnel de santé.
+function cycDiagnostic(c) {
+  var ST = cycStats(c), moyR = cycReglesMoy(c), R = cycReglesDurees(c);
+  var depuis = c.j1 ? cycJours(c.j1, isoLocal()) : null;
+  var D = { niveau: "info", titre: "", lignes: [], sante: false, assez: !!(ST && ST.n >= 3) };
+
+  // Absence prolongée : le seul cas qui parle sans attendre trois cycles.
+  if (depuis != null && depuis >= 90) {
+    D.niveau = "alerte"; D.sante = true;
+    D.titre = "Aucune règle notée depuis " + depuis + " jours";
+    D.lignes.push("Une absence de règles de plus de 3 mois mérite un avis médical, surtout en période de perte de poids ou d'entraînement soutenu.");
+    return D;
+  }
+
+  if (!D.assez) {
+    var reste = 3 - ((ST && ST.n) || 0);
+    D.titre = "Encore " + reste + " cycle" + (reste > 1 ? "s" : "") + " à mesurer";
+    D.lignes.push("Note le début et la fin de tes règles à chaque fois. À partir de trois cycles complets, l'appli pourra dire si ton rythme est régulier.");
+    return D;
+  }
+
+  var moy = ST.moy, amp = ST.amplitude, L = ST.liste || [], longs = 0, courts = 0;
+  for (var q = 0; q < L.length; q++) { if (L[q] > 35) longs++; if (L[q] < 21) courts++; }
+  // Une moyenne lisse tout : deux cycles à 38 jours et un à 27 donnent 34, ce
+  // qui aurait l'air normal. On regarde donc combien de cycles sortent des
+  // bornes, pas seulement leur moyenne.
+  if (longs >= 2 && moy <= 35) {
+    D.niveau = "alerte"; D.sante = true;
+    D.titre = longs + " de tes " + L.length + " cycles dépassent 35 jours";
+    D.lignes.push("Des cycles longs qui reviennent méritent un avis médical, même si la moyenne (" + moy + " jours) reste dans la fourchette. Déficit calorique marqué, stress et syndrome des ovaires polykystiques sont les pistes habituelles.");
+  } else if (moy > 35) {
+    D.niveau = "alerte"; D.sante = true;
+    D.titre = "Cycles longs — " + moy + " jours en moyenne";
+    D.lignes.push("Au-delà de 35 jours de façon répétée, on parle de cycle long. C'est fréquent en déficit calorique marqué, sous stress ou avec un syndrome des ovaires polykystiques. Un médecin ou une sage-femme pourra le confirmer.");
+  } else if (moy < 21 || courts >= 2) {
+    D.niveau = "alerte"; D.sante = true;
+    D.titre = courts >= 2 && moy >= 21 ? courts + " de tes " + L.length + " cycles font moins de 21 jours"
+      : "Cycles courts — " + moy + " jours en moyenne";
+    D.lignes.push("En dessous de 21 jours de façon répétée, un avis médical est utile.");
+  } else {
+    D.titre = "Cycles dans la fourchette normale — " + moy + " jours";
+    D.lignes.push("Entre 21 et 35 jours, ton rythme est celui attendu.");
+  }
+
+  if (amp > 8) {
+    if (D.niveau !== "alerte") D.niveau = "attention";
+    D.lignes.push("Écart de " + amp + " jours entre ton cycle le plus court (" + ST.min + ") et le plus long (" + ST.max + ") : ton rythme est irrégulier. Sommeil court, stress et perte de poids rapide sont les causes les plus courantes.");
+  } else if (amp <= 3) {
+    D.lignes.push("Tes cycles varient de " + amp + " jour" + (amp > 1 ? "s" : "") + " seulement : rythme régulier, les prévisions sont fiables.");
+  }
+
+  if (moyR != null) {
+    if (moyR > 7) {
+      D.niveau = "alerte"; D.sante = true;
+      D.lignes.push("Tes règles durent " + moyR + " jours en moyenne. Au-delà de 7 jours, un avis médical est recommandé (le fer se vérifie par une prise de sang).");
+    } else if (moyR < 2) {
+      if (D.niveau !== "alerte") D.niveau = "attention";
+      D.lignes.push("Tes règles durent moins de 2 jours en moyenne : à signaler lors d'un contrôle.");
+    } else {
+      D.lignes.push("Tes règles durent " + moyR + " jours : c'est la durée attendue.");
+    }
+  } else {
+    D.lignes.push("Note la fin de tes règles pour compléter l'analyse : leur durée compte autant que celle du cycle.");
+  }
+
+  if (D.sante) D.lignes.push("L'appli constate, elle ne diagnostique pas. Montre ces chiffres à un médecin ou une sage-femme.");
+  return D;
+}
+
+function cycDiagHTML(c, compact) {
+  var D = cycDiagnostic(c);
+  if (!D.titre) return "";
+  var col = D.niveau === "alerte" ? "#B4436C" : D.niveau === "attention" ? "var(--warn-d)" : "var(--ok-d)";
+  var ico = D.niveau === "alerte" ? "🩺" : D.niveau === "attention" ? "⚠️" : "✅";
+  var h = '<div style="border:1.5px solid ' + col + '55;border-left:4px solid ' + col + ';border-radius:12px;padding:11px 13px;margin-top:11px;background:var(--soft2)">' +
+    '<div style="font-size:13px;font-weight:900;color:' + col + ';margin-bottom:5px">' + ico + ' ' + D.titre + '</div>';
+  for (var i = 0; i < D.lignes.length; i++)
+    h += '<div style="font-size:12px;color:var(--ink2);line-height:1.6;margin-top:3px">' + D.lignes[i] + '</div>';
+  return h + '</div>';
+}
+
 // 📊 CE QUE SES CYCLES DISENT VRAIMENT. Trois mois de saisie valent mieux
 // qu'un modèle à 28 jours : durée moyenne, amplitude, durée des règles.
 function cycStatsHTML(c) {
@@ -10260,7 +10417,7 @@ function cycStatsHTML(c) {
   } else {
     h += '<div style="color:var(--mute);margin-top:4px">Note la fin de tes règles chaque mois : l\'appli saura combien elles durent chez toi et ajustera tes séances.</div>';
   }
-  return h + '</div>';
+  return h + cycDiagHTML(c) + '</div>';
 }
 
 function cycReglagesHTML(c, ouvert) {
@@ -12387,7 +12544,8 @@ function viewCoachDetail(){
       ((ST&&ST.n>=2&&ST.amplitude>=3)?' (fenêtre du '+cycDateFR(cycPlus(c.j1,ST.min))+' au '+cycDateFR(cycPlus(c.j1,ST.max))+')':'')+'</div>';
     if(E&&E.retard)h+='<div style="font-size:11.5px;color:var(--warn-d);font-weight:800;margin-top:7px;line-height:1.5">⏳ Retard de '+(E.jour-E.duree)+' jour(s) sur son cycle habituel. Fréquent en perte de poids rapide ou sous stress.</div>';
     if(ST&&ST.amplitude>7)h+='<div style="font-size:11.5px;color:var(--warn-d);font-weight:800;margin-top:7px;line-height:1.5">⚠️ Cycles irréguliers (écart de '+ST.amplitude+' jours). À aborder au bilan avant de durcir le déficit.</div>';
-    h+='<div style="font-size:10.5px;color:var(--mute);margin-top:8px;line-height:1.5">Donnée saisie par elle, en lecture seule ici.</div></div>';
+    h+=cycDiagHTML(c);
+    h+='<div style="font-size:10.5px;color:var(--mute);margin-top:8px;line-height:1.5">Donnée saisie par elle, en lecture seule ici. Un cycle long ou absent chez une cliente en déficit se traite d\'abord par le déficit.</div></div>';
   })();
 
   // 🎭 TON DE L'APPLI — choisi par le client au départ, ajustable ici
@@ -14007,7 +14165,14 @@ function viewCoachDash(){
         var pct=tj&&tj.tot?Math.round(tj.tot/nut.prot*100):0;
         chip='<span style="font-size:10.5px;font-weight:800;color:'+gaugeCol(pct)+'">🍗 '+pct+'%</span>';
       }
-      lignes+='<button class="pouls-go" data-s="'+o.slug+'" style="width:100%;display:flex;align-items:center;gap:10px;text-align:left;background:none;border:0;border-top:1px solid var(--line);padding:11px 0">'+
+      // Un client au rouge ou à l'orange reçoit un bouton de relance : le
+      // message part prérempli, avec son prénom et ce qui cloche. Une relance
+      // envoyée le soir rattrape plus de monde que n'importe quel écran.
+      var waBtn=(o.etat==="rouge"||o.etat==="orange")
+        ? '<button class="pouls-wa" data-n="'+esc(o.nom)+'" data-m="'+esc(o.motif)+'" data-j="'+o.jour+'" title="Relancer sur WhatsApp" style="flex:0 0 auto;background:none;border:0;padding:11px 2px 11px 8px;font-size:16px;cursor:pointer">💬</button>'
+        : '';
+      lignes+='<div style="display:flex;align-items:center;border-top:1px solid var(--line)">'+
+        '<button class="pouls-go" data-s="'+o.slug+'" style="flex:1;min-width:0;display:flex;align-items:center;gap:10px;text-align:left;background:none;border:0;padding:11px 0">'+
         '<span style="font-size:13px;line-height:1">'+C.p+'</span>'+
         '<span style="flex:1;min-width:0">'+
         '<span style="display:block;font-weight:800;font-size:13.5px;color:var(--ink)">'+esc(o.nom)+
@@ -14016,7 +14181,7 @@ function viewCoachDash(){
         '<span style="color:'+C.c+'">'+esc(o.motif)+'</span>'+chip+'</span></span>'+
         '<span style="text-align:right;white-space:nowrap">'+
         '<span style="display:block;font-weight:900;font-size:14px;color:'+gaugeCol(o.assidu)+'">'+o.assidu+'%</span>'+
-        '<span style="display:block;font-size:10px;color:var(--mute);font-weight:700">J'+o.jour+'/'+o.duree+'</span></span></button>';
+        '<span style="display:block;font-size:10px;color:var(--mute);font-weight:700">J'+o.jour+'/'+o.duree+'</span></span></button>'+waBtn+'</div>';
     }
     var resume='';
     ["rouge","orange","vert","fini"].forEach(function(k){
@@ -15656,6 +15821,14 @@ function bindCoach(){
     cp.addEventListener("keydown",function(e){if(e.key==="Enter")tryLogin();});
     return;
   }
+  // 💬 Relancer un client depuis le pouls, message déjà écrit
+  var pwa=document.querySelectorAll(".pouls-wa");
+  for(var pw=0;pw<pwa.length;pw++)pwa[pw].addEventListener("click",function(ev){
+    ev.stopPropagation();
+    var n=this.getAttribute("data-n")||"", m=(this.getAttribute("data-m")||"").toLowerCase(), j=this.getAttribute("data-j")||"";
+    waSend("Salut "+n+" 👋 Je regarde ton suivi : "+m+" (jour "+j+"). Rien de grave, on repart ce soir : une seule journée remplie et la machine se relance. Tu bloques sur quoi ?");
+  });
+
   // 🚦 Ouvrir une fiche depuis le pouls
   var pgo=document.querySelectorAll(".pouls-go");
   for(var pi2=0;pi2<pgo.length;pi2++){
@@ -18098,6 +18271,37 @@ function bindMain(name,start){
     state.selDay=Math.max(0,Math.min(getToday90(st),(progLen(st)||90)-1));
     render();
   });
+  // 🔒 Export : un fichier JSON lisible, tout ce que l'app détient sur elle.
+  var exp=document.getElementById("rgpd-export");
+  if(exp)exp.addEventListener("click",function(){
+    var paquet={client:CLIENT,nom:lsGetStr("amcoach_name_"+CLIENT),depart:lsGetStr("amcoach_start_"+CLIENT),
+      exporte:isoLocal(),version:APP_VERSION,donnees:getAllData()};
+    var txt=JSON.stringify(paquet,null,2);
+    try{
+      var b=new Blob([txt],{type:"application/json"}),u=URL.createObjectURL(b),a=document.createElement("a");
+      a.href=u;a.download="mes-donnees-discipline90-"+isoLocal()+".json";document.body.appendChild(a);a.click();
+      setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(u);},400);
+    }catch(e){window.open("data:application/json;charset=utf-8,"+encodeURIComponent(txt),"_blank");}
+    feedback("⬇️ Fichier généré","ok");
+  });
+
+  // 🗑️ Effacement local, deux confirmations : c'est irréversible sur l'appareil.
+  var supr=document.getElementById("rgpd-suppr");
+  if(supr)supr.addEventListener("click",function(){
+    if(!confirm("Effacer toutes tes données de ce téléphone ?\n\nTon suivi disparaît de cet appareil. Télécharge-les d'abord si tu veux les garder."))return;
+    if(!confirm("Dernière confirmation : cette action est définitive sur ce téléphone."))return;
+    try{
+      var aSup=[];
+      for(var i=0;i<localStorage.length;i++){
+        var k=localStorage.key(i);
+        if(k&&k.indexOf("amcoach_")===0&&k.indexOf(CLIENT)>=0)aSup.push(k);
+      }
+      for(var j=0;j<aSup.length;j++)localStorage.removeItem(aSup[j]);
+    }catch(e){}
+    alert("C'est fait. Tes données ont été effacées de ce téléphone.");
+    location.href=location.pathname;
+  });
+
   var revoir=document.getElementById("tuto-revoir");
   if(revoir)revoir.addEventListener("click",function(){state.tuto=0;render();});
   if(state.view==="calendar"&&!document.querySelector("#sa-ok")){

@@ -1661,6 +1661,28 @@ function pushActiver(){
     }).catch(function(){feedback("Activation impossible sur ce téléphone","err");});
   });
 }
+// 🔁 RATTRAPAGE AUTOMATIQUE. L'autorisation du téléphone et l'enregistrement
+// en base sont deux choses différentes : un téléphone peut avoir dit oui et
+// n'être inscrit nulle part (refus serveur, changement d'appareil, cache
+// vidé). À chaque ouverture, si l'autorisation est là, on réinscrit sans
+// rien demander. L'opération est idempotente, la refaire ne coûte rien.
+function pushRattraper(){
+  if(!pushDispo()||Notification.permission!=="granted")return;
+  navigator.serviceWorker.ready.then(function(reg){
+    return reg.pushManager.getSubscription().then(function(dej){
+      return dej||reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64Vers8(VAPID_PUBLIC)});
+    });
+  }).then(function(sub){
+    var j=sub.toJSON();
+    return fetch(SB_URL+"/rest/v1/rpc/push_enregistrer",{
+      method:"POST",
+      headers:{"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY,"Content-Type":"application/json"},
+      body:JSON.stringify({p_slug:CLIENT,p_endpoint:j.endpoint,p_p256dh:j.keys.p256dh,p_auth:j.keys.auth,p_ua:(navigator.userAgent||"").slice(0,200)})
+    });
+  }).catch(function(){});
+}
+if("serviceWorker" in navigator)setTimeout(pushRattraper,2500);
+
 function pushBanniereHTML(){
   var e=pushEtat();
   if(e!=="aproposer")return "";

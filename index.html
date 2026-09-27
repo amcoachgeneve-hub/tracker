@@ -186,6 +186,11 @@
   margin-bottom:10px;overflow:hidden;box-shadow:0 3px 12px rgba(16,24,40,.05)}
 .prg-exo.lie{margin-top:-4px;border-top-left-radius:4px;border-top-right-radius:4px}
 .prg-supbadge{font-size:10.5px;font-weight:900;letter-spacing:.5px;color:#7C4DEF;padding:6px 13px 0}
+.prg-selbar{display:flex;gap:7px;align-items:center;justify-content:flex-end;flex-wrap:wrap;
+  background:var(--soft2);border:1px solid var(--line);border-radius:12px;padding:8px 9px;margin-bottom:9px}
+.prg-case{flex:0 0 auto;width:24px;height:24px;border-radius:7px;border:2px solid var(--line);background:var(--card);
+  display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;margin-right:2px}
+.prg-case.on{background:var(--brand);border-color:var(--brand)}
 .prg-exo-hd{display:flex;align-items:center;gap:10px;padding:13px;cursor:pointer}
 .prg-vig{flex:0 0 46px;height:46px;border-radius:11px;object-fit:cover;background:var(--soft2)}
 .prg-exo-n{font-weight:900;font-size:14.5px;color:var(--ink)}
@@ -1447,6 +1452,7 @@ var state={
   partage:false,   // écran de la carte à partager
   partMasque:true, // le poids est masqué par défaut sur la carte
   cdProg:null,     // constructeur de séance type ouvert côté coach {id,...}
+  prgSel:null,     // mode sélection dans le constructeur : tableau des index cochés, null = mode normal
   cdAssign:null,   // séance en cours d'attribution (son id)
   cdAssignSel:null,
   progRun:null,    // séance en cours d'exécution côté client (son id)
@@ -9188,9 +9194,25 @@ function viewProgBuilder() {
       '<div class="spt-txt">Ajoute des exercices depuis ta bibliothèque, puis règle les séries de chacun.</div></div>';
   }
 
+  // ☑️ SÉLECTION MULTIPLE. Retirer les exercices un par un, avec une
+  // confirmation à chaque fois, fait perdre une minute sur une séance à
+  // remanier. Ici on coche, on supprime tout d'un coup.
+  var SEL = state.prgSel;
+  if (S.exos.length) {
+    if (!SEL) {
+      h += '<div style="display:flex;justify-content:flex-end;margin-bottom:8px">' +
+        '<button id="prg-selon" class="prg-mini">☑️ Sélectionner</button></div>';
+    } else {
+      h += '<div class="prg-selbar">' +
+        '<button id="prg-seltous" class="prg-mini">' + (SEL.length === S.exos.length ? '☐ Tout décocher' : '☑️ Tout cocher') + '</button>' +
+        '<button id="prg-seloff" class="prg-mini">Annuler</button>' +
+        '<button id="prg-seldel" class="prg-mini bad"' + (SEL.length ? '' : ' disabled style="opacity:.45"') + '>🗑 Retirer' + (SEL.length ? ' (' + SEL.length + ')' : '') + '</button></div>';
+    }
+  }
+
   for (var e = 0; e < S.exos.length; e++) {
     var X = S.exos[e], M = progMuscle(X.m), lie = (e > 0 && S.exos[e - 1].sup);
-    var ouvert = (state.cdProg.open === e);
+    var ouvert = (!state.prgSel && state.cdProg.open === e);
     h += '<div class="prg-exo' + (lie ? ' lie' : '') + (X.sup ? ' sup' : '') + '" style="border-left-color:' + M[2] + '">' +
       (lie ? (function () {
         // Le badge annonce le repos que le coach a posé sur l'exercice
@@ -9222,7 +9244,9 @@ function viewProgBuilder() {
           '<div class="prg-circuit-a">La récup de chaque exercice reste celle que tu as réglée dans sa fiche. Celle-ci s\'ajoute à la fin du tour.</div>' +
           '</div>';
       })() : '') +
-      '<div class="prg-exo-hd" data-prg-open="' + e + '">' + progVignette(X, 44) +
+      '<div class="prg-exo-hd" ' + (SEL ? 'data-prg-check="' + e + '"' : 'data-prg-open="' + e + '"') + '>' +
+      (SEL ? '<span class="prg-case' + (SEL.indexOf(e) >= 0 ? ' on' : '') + '">' + (SEL.indexOf(e) >= 0 ? '✓' : '') + '</span>' : '') +
+      progVignette(X, 44) +
       '<div style="flex:1;min-width:0">' +
       '<div class="prg-exo-n">' + esc(X.n) + '</div>' +
       '<div class="prg-exo-m"><span style="color:' + M[2] + '">●</span> ' + M[1] + (X.mat ? ' · ' + esc(X.mat) : '') + '</div></div>' +
@@ -9631,6 +9655,40 @@ function bindProgBuilder() {
     var rt = Math.max(0, Math.min(600, (parseInt(dernier.repos, 10) || 0) + d));
     progCircuitTours(S, e, (S.exos[e].series || []).length || 1, rt);
   });
+  // ☑️ Les commandes de la sélection multiple
+  var selOn = document.getElementById("prg-selon");
+  if (selOn) selOn.addEventListener("click", function () { state.prgSel = []; state.cdProg.open = -1; render(); });
+  var selOff = document.getElementById("prg-seloff");
+  if (selOff) selOff.addEventListener("click", function () { state.prgSel = null; render(); });
+  var selTous = document.getElementById("prg-seltous");
+  if (selTous) selTous.addEventListener("click", function () {
+    if (state.prgSel && state.prgSel.length === S.exos.length) state.prgSel = [];
+    else { state.prgSel = []; for (var q = 0; q < S.exos.length; q++) state.prgSel.push(q); }
+    render();
+  });
+  paire("data-prg-check", function (e) {
+    var L = state.prgSel || [], p = L.indexOf(e);
+    if (p >= 0) L.splice(p, 1); else L.push(e);
+    state.prgSel = L; render();
+  });
+  var selDel = document.getElementById("prg-seldel");
+  if (selDel) selDel.addEventListener("click", function () {
+    var L = (state.prgSel || []).slice().sort(function (a, b) { return b - a; });
+    if (!L.length) return;
+    var noms = [];
+    for (var q = 0; q < L.length && q < 6; q++) noms.push("• " + S.exos[L[q]].n);
+    if (L.length > 6) noms.push("• … et " + (L.length - 6) + " autre" + (L.length - 6 > 1 ? "s" : ""));
+    if (!confirm("Retirer " + L.length + " exercice" + (L.length > 1 ? "s" : "") + " de la séance ?\n\n" + noms.join("\n"))) return;
+    // On supprime du dernier vers le premier : sinon chaque suppression
+    // décale les index de ceux qui restent à traiter.
+    for (var d = 0; d < L.length; d++) S.exos.splice(L[d], 1);
+    // Un enchaînement qui pointait vers un exercice supprimé n'a plus de
+    // suite : le dernier de la liste ne peut pas être « enchaîné au suivant ».
+    if (S.exos.length && S.exos[S.exos.length - 1].sup) S.exos[S.exos.length - 1].sup = false;
+    state.prgSel = null; state.cdProg.open = -1;
+    sauver();
+  });
+
   paire("data-prg-delexo", function (e) {
     if (!confirm("Retirer « " + S.exos[e].n + " » de la séance ?")) return;
     S.exos.splice(e, 1); state.cdProg.open = -1; sauver();

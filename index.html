@@ -928,7 +928,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="27/09 · Sélection multiple";
+var APP_VERSION="27/09 · Renvoi aux clientes";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -9297,6 +9297,13 @@ function viewProgBuilder() {
   // 🎤 DICTER LA SÉANCE. Cinq minutes de saisie deviennent vingt secondes de
   // parole : on appuie sur le micro du clavier et on dit la séance.
   h += '<button id="prg-dict" class="big-btn gray" style="margin-top:8px;padding:13px 0;font-size:13.5px">🎤 Dicter la séance</button>';
+
+  // 🔄 Renvoi manuel : la propagation part à l'enregistrement, donc une séance
+  // modifiée AVANT cette mise à jour garde son ancienne copie chez la cliente.
+  // Ce bouton la repousse sans avoir à faire semblant de modifier la séance.
+  if (qui.length)
+    h += '<button id="prg-push" class="big-btn gray" style="margin-top:8px;padding:13px 0;font-size:13.5px">🔄 Renvoyer cette séance à ' +
+      (qui.length === 1 ? esc(qui[0].name || qui[0].slug) : 'mes ' + qui.length + ' clients') + '</button>';
   if (state.dictOn) {
     var apercu = "";
     if (state.dictTxt) {
@@ -9498,8 +9505,26 @@ function bindProgBuilder() {
     if (pos >= 0) l[pos] = S; else l.push(S);
     idx = (pos >= 0 ? pos : l.length - 1);
     seaSet(l);
+    var maj = [];
+    try { maj = seaPropager(S); } catch (e) { }
+    if (maj.length) {
+      // On le dit : Akli doit savoir que sa correction est partie chez elles,
+      // sans avoir à ré-attribuer la séance une par une.
+      try {
+        feedback("🔄 Mise à jour chez " + (maj.length === 1 ? maj[0] : maj.length + " clients"), "ok");
+      } catch (e) { }
+    }
     if (rerender !== false) render();
   }
+  var push = document.getElementById("prg-push");
+  if (push) push.addEventListener("click", function () {
+    var maj = [];
+    try { maj = seaPropager(S); } catch (e) { }
+    feedback(maj.length ? "🔄 Renvoyée à " + (maj.length === 1 ? maj[0] : maj.length + " clients")
+                        : "Aucun client n'a cette séance", maj.length ? "win" : "undo");
+    render();
+  });
+
   var att = document.getElementById("prg-att");
   if (att) att.addEventListener("click", function () { state.cdAssign = S.id; state.cdAssignSel = null; render(); });
   function paire(attr, cb) {
@@ -11367,6 +11392,33 @@ function seaAttribuer(id, slugs) {
     }
     progSetCoach(slug, P);
   }
+}
+
+// 🔄 PROPAGER UNE MODIFICATION. Une attribution dépose une COPIE chez la
+// cliente, pour qu'une séance commencée ne bouge pas sous ses pieds. Effet de
+// bord signalé par Akli le 27/09 : il corrigeait « Séance maison 1 » et la
+// version de Fayza gardait ses 18 exercices. On répercute donc à chaque
+// enregistrement, sur toutes les clientes à qui la séance est attribuée.
+// Ce qui leur appartient — le journal des séances faites, les charges
+// soulevées — vit ailleurs (slot journal) et n'est pas touché ici.
+function seaPropager(S) {
+  var cl = lsGet("amcoach_clients", []), touches = [];
+  for (var i = 0; i < cl.length; i++) {
+    var slug = cl[i].slug;
+    if (!slug || slug.indexOf("__") === 0) continue;
+    var all = lsGet("amcoach_" + slug, {});
+    var P = progGet(all), pos = -1;
+    for (var j = 0; j < P.seances.length; j++) if (P.seances[j].id === S.id) pos = j;
+    if (pos < 0) continue;
+    var copie = JSON.parse(JSON.stringify(S));
+    seaRafraichir(copie);
+    P.seances[pos] = copie;
+    all[PROG_SLOT] = P;
+    lsSet("amcoach_" + slug, all);
+    try { progSetCoach(slug, P); } catch (e) { }
+    touches.push(cl[i].name || slug);
+  }
+  return touches;
 }
 
 // Le bloc en haut du dashboard

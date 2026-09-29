@@ -932,7 +932,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="29/09 · Exercices Reset 14";
+var APP_VERSION="29/09 · Reset 14 au tableau de bord";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -1456,6 +1456,7 @@ var state={
   partage:false,   // écran de la carte à partager
   partMasque:true, // le poids est masqué par défaut sur la carte
   cdProg:null,     // constructeur de séance type ouvert côté coach {id,...}
+  v14Ouvert:false, // le modèle Reset 14 jours déplié sur le tableau de bord
   prgSel:null,     // mode sélection dans le constructeur : tableau des index cochés, null = mode normal
   cdAssign:null,   // séance en cours d'attribution (son id)
   cdAssignSel:null,
@@ -11431,6 +11432,32 @@ function seaPropager(S) {
   return touches;
 }
 
+// 🔷 LE MODÈLE DU RESET 14 JOURS. Un jeu Homme, un jeu Femme, sept jours
+// chacun. La semaine 2 reprend les mêmes jours : seul le nombre de
+// répétitions change (5 puis 10), l'app s'en charge toute seule.
+function v14BlocHTML() {
+  if (!state.v14Ouvert) return "";
+  try { vid14Amorcer(); } catch (e) { }
+  var V14 = vid14Lire(), sxV = state.v14Sexe || "f", jeu = V14[sxV] || {};
+  var jN = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+  var h = '<div class="card v14" style="margin-top:10px">' +
+    '<div class="v14-t">🔷 Reset 14 jours</div>' +
+    '<div class="v14-s">Touche un jour : lien de la vidéo, consigne de marche, exercices. ' +
+    'La semaine 2 reprend les mêmes jours, seules les répétitions passent de 5 à 10.</div>' +
+    '<div class="v14-onglets">' +
+    '<button class="v14-o' + (sxV === "h" ? " on h" : "") + '" data-v14s="h">👨 Homme</button>' +
+    '<button class="v14-o' + (sxV === "f" ? " on f" : "") + '" data-v14s="f">👩 Femme</button></div>';
+  for (var dv = 0; dv < 7; dv++) {
+    var ev = jeu[dv] || {};
+    h += '<div class="v14-j" data-v14d="' + dv + '">' +
+      '<b>' + jN[dv] + '</b>' +
+      '<span class="' + (ev.v ? "ok" : "vide") + '">' + (ev.v ? "▶️ vidéo" : "sans vidéo") + '</span>' +
+      '<span class="v14-m">💪 ' + ((ev.e && ev.e.length) ? ev.e.length + " exo" : "aucun exo") + ' · 🚶 ' + esc(ev.m || "20 min à 1 h") + '</span>' +
+      '<span class="v14-c">›</span></div>';
+  }
+  return h + '</div>';
+}
+
 // Le bloc en haut du dashboard
 function seaDashHTML() {
   var l = seaGet(), attribuees = 0;
@@ -11457,6 +11484,10 @@ function seaDashHTML() {
   }
   h += '<button id="sea-new" class="big-btn" style="margin:4px 0 0;padding:13px 0;font-size:13.5px">＋ Nouvelle séance type</button>' +
     '<button id="sea-prog3" class="prg-mini" style="width:100%;margin-top:9px;padding:13px 0">🗓️ Programme fixe des 3 mois (H / F)</button>' +
+    // 🔷 Le Reset 14 jours se règle ici, pas dans une fiche : sans cliente
+    // Reset active, il n'y avait aucun chemin pour y entrer.
+    '<button id="sea-v14" class="prg-mini" style="width:100%;margin-top:8px;padding:13px 0">🔷 Reset 14 jours — vidéos et exercices (H / F)</button>' +
+    v14BlocHTML() +
     '<button id="sea-resync" class="prg-mini" style="width:100%;margin-top:8px;padding:13px 0">🔄 Remettre toutes les séances à jour</button>' +
     '<button id="sea-restore" class="prg-mini" style="width:100%;margin-top:8px;padding:13px 0;border-color:var(--brand);color:var(--brand-d)">☁️ Récupérer mes clients depuis le serveur</button>' +
     '<div style="font-size:11.5px;color:var(--mute);line-height:1.55;margin-top:7px">Si ton tableau de bord paraît vide : tes données sont sur le serveur, ce bouton les redescend.</div>' +
@@ -11584,6 +11615,13 @@ function bindProgDash() {
       feedback(msg, r.orphelins.length ? "warn" : "ok");
     });
   });
+  var v14b = document.getElementById("sea-v14");
+  if (v14b) v14b.addEventListener("click", function () {
+    state.v14Ouvert = !state.v14Ouvert;
+    if (!state.v14Sexe) state.v14Sexe = "f";
+    render();
+  });
+
   var p3 = document.getElementById("sea-prog3");
   if (p3) p3.addEventListener("click", function () { state.prog3 = "h"; render(); });
   chaque("data-sea-edit", function (id) { state.cdProg = { id: id, open: 0 }; render(); });
@@ -17253,8 +17291,8 @@ function bindCoach(){
   var v14j=document.querySelectorAll(".v14-j");
   for(var vj=0;vj<v14j.length;vj++)v14j[vj].addEventListener("click",function(){
     var d=parseInt(this.getAttribute("data-v14d"),10);
-    var allC=lsGet("amcoach_"+state.coachDetail,{});
-    var sx=state.v14Sexe||vid14Sexe(allC);
+    var allC=state.coachDetail?lsGet("amcoach_"+state.coachDetail,{}):null;
+    var sx=state.v14Sexe||(allC?vid14Sexe(allC):"f");
     var V=vid14Lire(), cur=(V[sx]||{})[d]||{};
     var jN=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
     var prog=(sx==="h"?"Homme":"Femme");

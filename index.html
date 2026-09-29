@@ -709,6 +709,10 @@ input,textarea{outline:none}
 .v14-c{color:var(--mute);font-weight:900}
 
 /* 🔷 Reset 14 jours — les 7 jours en tête de l'onglet Sport. */
+.r14-exos{background:rgba(255,255,255,.55);border-radius:10px;padding:9px 11px;margin:7px 0}
+.r14-exos-t{font-size:10px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:var(--mute);margin-bottom:5px}
+.r14-exo{display:flex;gap:8px;align-items:flex-start;font-size:13px;font-weight:700;color:var(--ink);padding:3px 0}
+.r14-exo span{flex:0 0 auto;width:18px;height:18px;border-radius:50%;background:var(--brand);color:#fff;font-size:10px;font-weight:900;display:flex;align-items:center;justify-content:center;margin-top:1px}
 .r14{background:linear-gradient(160deg,#0B2A4A,#0A1A33);border:2px solid #1FA2FF;border-radius:20px;
   padding:16px 14px 12px;margin-bottom:16px;box-shadow:0 8px 26px rgba(31,162,255,.25)}
 .r14-t{color:#4FC3FF;font-weight:900;font-size:13px;letter-spacing:1.6px;text-transform:uppercase;margin-bottom:12px}
@@ -928,7 +932,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="27/09 · Renvoi aux clientes";
+var APP_VERSION="29/09 · Exercices Reset 14";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -7773,8 +7777,14 @@ function reset14JoursHTML(start){
     h+='<div class="r14-j'+(isToday?' auj':'')+'">'+
       '<div class="r14-j-h"><b>'+dayNames[d7]+'</b>'+
       (isToday?'<span class="r14-j-a">AUJOURD\'HUI</span>':'')+'</div>'+
-      '<div class="r14-j-l">💪 <b>'+reps+' rép toutes les 30 s</b> · 5 à 10 min</div>'+
-      '<div class="r14-j-l">🚶 <b>'+esc(e7.m||"20 min à 1 h")+'</b> de marche non-stop</div>';
+      '<div class="r14-j-l">💪 <b>'+reps+' rép toutes les 30 s</b> · 5 à 10 min</div>';
+    if(e7.e&&e7.e.length){
+      h+='<div class="r14-exos"><div class="r14-exos-t">Les exercices du jour</div>';
+      for(var xe=0;xe<e7.e.length;xe++)
+        h+='<div class="r14-exo"><span>'+(xe+1)+'</span>'+esc(e7.e[xe])+'</div>';
+      h+='</div>';
+    }
+    h+='<div class="r14-j-l">🚶 <b>'+esc(e7.m||"20 min à 1 h")+'</b> de marche non-stop</div>';
     if(e7.v){
       h+='<a class="r14-video" href="'+esc(e7.v)+'" target="_blank" rel="noopener">▶ Voir la vidéo du jour</a>';
     }
@@ -12929,7 +12939,7 @@ function viewCoachDetail(){
       h+='<div class="v14-j" data-v14d="'+dv+'">'+
         '<b>'+jN[dv]+'</b>'+
         '<span class="'+(ev.v?"ok":"vide")+'">'+(ev.v?"▶️ vidéo":"sans vidéo")+'</span>'+
-        '<span class="v14-m">🚶 '+esc(ev.m||"20 min à 1 h")+'</span>'+
+        '<span class="v14-m">💪 '+((ev.e&&ev.e.length)?ev.e.length+" exo":"aucun exo")+' · 🚶 '+esc(ev.m||"20 min à 1 h")+'</span>'+
         '<span class="v14-c">›</span></div>';
     }
     h+='</div>';
@@ -17252,8 +17262,14 @@ function bindCoach(){
     if(v===null)return;
     var m=prompt("🚶 "+jN[d]+" — consigne de marche :",cur.m||"20 min à 1 h");
     if(m===null)return;
+    // 💪 Les exercices du jour, un par ligne. Le Reset 14 jours n'a pas de
+    // constructeur de séance : la consigne est courte et fixe, elle se tape
+    // directement. Exemple : « Squat canapé · 10 rép ».
+    var e=prompt("💪 "+jN[d]+" — exercices du jour, UN PAR LIGNE\n(ex : Squat canapé · 10 rép)",(cur.e||[]).join("\n"));
+    if(e===null)return;
+    var lignes=e.split("\n").map(function(x){return x.trim();}).filter(function(x){return !!x;});
     V[sx]=V[sx]||{};
-    if(v.trim()||m.trim())V[sx][d]={v:v.trim(),m:m.trim()}; else delete V[sx][d];
+    if(v.trim()||m.trim()||lignes.length)V[sx][d]={v:v.trim(),m:m.trim(),e:lignes}; else delete V[sx][d];
     lsSet("amcoach_videos14",V);
     var nb=vid14Diffuser(sx);
     feedback("🎬 "+jN[d]+" "+prog+" enregistré · "+nb+" cliente"+(nb>1?"s":"")+" mise"+(nb>1?"s":"")+" à jour","ok");

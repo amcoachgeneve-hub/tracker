@@ -941,7 +941,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="29/09 · Reset sans Dream";
+var APP_VERSION="30/09 · Miniatures Reset 14";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -7811,6 +7811,9 @@ function reset14JoursHTML(start){
         var X7=e7.e[xe];
         // Anciennes saisies : la ligne était une simple chaîne de texte.
         if(typeof X7==="string")X7={t:X7,n:X7.split("·")[0].trim()};
+        // Pas d'image propre à l'exercice : on prend la miniature de la vidéo
+        // du jour, comme dans les séances du 90 jours.
+        if(!X7.g&&!X7.v&&e7.v)X7={t:X7.t,n:X7.n,m:X7.m,mat:X7.mat,g:"",v:e7.v};
         h+='<div class="r14-exo">'+progVignette(X7,40)+
           '<div class="r14-exo-tx"><b>'+esc(X7.n||X7.t||"")+'</b>'+
           (X7.t&&X7.t!==X7.n?'<span>'+esc(X7.t.replace(X7.n,"").replace(/^[\s·-]+/,""))+'</span>':'')+
@@ -7818,7 +7821,8 @@ function reset14JoursHTML(start){
       }
       h+='</div>';
     }
-    h+='<div class="r14-j-l">🚶 <b>'+esc(e7.m||"20 min à 1 h")+'</b> de marche non-stop</div>';
+    var mTxt=e7.m||"20 min à 1 h";
+    h+='<div class="r14-j-l">🚶 <b>'+esc(mTxt)+'</b>'+(/marche/i.test(mTxt)?' non-stop':' de marche non-stop')+'</div>';
     if(e7.v){
       h+='<a class="r14-video" href="'+esc(e7.v)+'" target="_blank" rel="noopener">▶ Voir la vidéo du jour</a>';
     }

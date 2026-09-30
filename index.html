@@ -10,6 +10,11 @@
 <meta name="apple-mobile-web-app-title" content="DISCIPLINE 90"/>
 <meta name="theme-color" content="#12B5EA"/>
 <link rel="manifest" href="/manifest.json"/>
+<link rel="preconnect" href="https://www.youtube-nocookie.com" crossorigin/>
+<link rel="preconnect" href="https://www.google.com" crossorigin/>
+<link rel="preconnect" href="https://i.ytimg.com"/>
+<link rel="preconnect" href="https://rr1---sn-25glene6.googlevideo.com" crossorigin/>
+<link rel="dns-prefetch" href="https://googlevideo.com"/>
 <link rel="apple-touch-icon" href="/icone-180.png"/>
 <script>
 /* ═══════════ THÈME AVANT LE PREMIER AFFICHAGE ═══════════
@@ -719,7 +724,11 @@ input,textarea{outline:none}
 .r14-exo{padding:6px 0}
 .r14-play{position:relative;width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#000;cursor:pointer}
 .r14-play img{width:100%;height:100%;object-fit:cover;display:block}
-.r14-play iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.r14-play iframe{position:absolute;inset:0;width:100%;height:100%;border:0;opacity:0;transition:opacity .18s ease}
+.r14-play iframe.vu{opacity:1}
+.r14-play img{transition:opacity .18s ease}
+.r14-spin{display:block;width:22px;height:22px;border-radius:50%;border:3px solid rgba(255,255,255,.35);border-top-color:#fff;animation:r14turn .7s linear infinite}
+@keyframes r14turn{to{transform:rotate(360deg)}}
 .r14-pl{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:56px;height:56px;border-radius:50%;
   background:rgba(0,0,0,.6);border:2px solid #fff;color:#fff;font-size:22px;display:flex;align-items:center;justify-content:center;padding-left:4px}
 .r14-pic{display:flex;justify-content:center;padding:6px 0}
@@ -947,7 +956,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="30/09 - Appui long et Reset epure";
+var APP_VERSION="30/09 - Lecture video plus rapide";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -8630,8 +8639,24 @@ function bindSport() {
     ev.preventDefault();
     var id = this.getAttribute("data-r14yt");
     if (!id || this.querySelector("iframe")) return;
-    this.innerHTML = '<iframe src="https://www.youtube-nocookie.com/embed/' + id +
-      '?autoplay=1&playsinline=1&rel=0&modestbranding=1" allow="accelerometer;autoplay;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe>';
+    // La miniature reste affichée SOUS le lecteur le temps qu'il s'initialise :
+    // plus d'écran noir, l'image ne disparaît qu'une fois la vidéo prête.
+    var badge = this.querySelector(".r14-pl");
+    if (badge) badge.innerHTML = '<span class="r14-spin"></span>';
+    var f = document.createElement("iframe");
+    f.setAttribute("allow", "accelerometer;autoplay;encrypted-media;gyroscope;picture-in-picture");
+    f.setAttribute("allowfullscreen", "");
+    f.className = "r14-if";
+    f.src = "https://www.youtube-nocookie.com/embed/" + id +
+      "?autoplay=1&playsinline=1&rel=0&modestbranding=1&iv_load_policy=3";
+    var boite = this;
+    f.addEventListener("load", function () {
+      f.classList.add("vu");
+      if (badge) badge.style.display = "none";
+      var im = boite.querySelector("img");
+      if (im) im.style.opacity = "0";
+    });
+    this.appendChild(f);
   });
 
   var r14b = document.querySelectorAll(".r14-bip");

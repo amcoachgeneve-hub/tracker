@@ -716,9 +716,15 @@ input,textarea{outline:none}
 /* 🔷 Reset 14 jours — les 7 jours en tête de l'onglet Sport. */
 .r14-exos{background:rgba(255,255,255,.55);border-radius:10px;padding:9px 11px;margin:7px 0}
 .r14-exos-t{font-size:10px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:var(--mute);margin-bottom:5px}
-.r14-exo{display:flex;gap:10px;align-items:center;padding:5px 0}
-.r14-exo .prg-vig{border-radius:9px;object-fit:cover;flex:0 0 auto}
-.r14-exo-tx{display:flex;flex-direction:column;min-width:0}
+.r14-exo{padding:6px 0}
+.r14-play{position:relative;width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#000;cursor:pointer}
+.r14-play img{width:100%;height:100%;object-fit:cover;display:block}
+.r14-play iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.r14-pl{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:56px;height:56px;border-radius:50%;
+  background:rgba(0,0,0,.6);border:2px solid #fff;color:#fff;font-size:22px;display:flex;align-items:center;justify-content:center;padding-left:4px}
+.r14-pic{display:flex;justify-content:center;padding:6px 0}
+.r14-video.ghost{background:none;border:1px solid rgba(255,255,255,.25);color:#cfe6ff;font-size:12.5px;padding:9px 0}
+.r14-exo-tx{display:flex;flex-direction:column;min-width:0;margin-top:7px}
 .r14-exo-tx b{font-size:13.5px;font-weight:800;color:var(--ink);line-height:1.3}
 .r14-exo-tx span{font-size:11.5px;color:var(--mute);font-weight:700}
 .r14-start{width:100%;font-size:14px;padding:14px 0}
@@ -941,7 +947,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="30/09 · Thème suit le programme";
+var APP_VERSION="30/09 - Video dans l appli";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -7814,7 +7820,12 @@ function reset14JoursHTML(start){
         // Pas d'image propre à l'exercice : on prend la miniature de la vidéo
         // du jour, comme dans les séances du 90 jours.
         if(!X7.g&&!X7.v&&e7.v)X7={t:X7.t,n:X7.n,m:X7.m,mat:X7.mat,g:"",v:e7.v};
-        h+='<div class="r14-exo">'+progVignette(X7,40)+
+        var img7=progImg(X7), id7=ytId(X7.v||"");
+        h+='<div class="r14-exo">'+
+          (img7
+            ? '<div class="r14-play"'+(id7?' data-r14yt="'+esc(id7)+'"':'')+'>'+
+              '<img src="'+esc(img7)+'" alt="" loading="lazy"/>'+(id7?'<span class="r14-pl">▶</span>':'')+'</div>'
+            : '<div class="r14-pic">'+progPicto(X7,64)+'</div>')+
           '<div class="r14-exo-tx"><b>'+esc(X7.n||X7.t||"")+'</b>'+
           (X7.t&&X7.t!==X7.n?'<span>'+esc(X7.t.replace(X7.n,"").replace(/^[\s·-]+/,""))+'</span>':'')+
           (X7.mat?'<span>'+esc(X7.mat)+'</span>':'')+'</div></div>';
@@ -7824,7 +7835,13 @@ function reset14JoursHTML(start){
     var mTxt=e7.m||"20 min à 1 h";
     h+='<div class="r14-j-l">🚶 <b>'+esc(mTxt)+'</b>'+(/marche/i.test(mTxt)?' non-stop':' de marche non-stop')+'</div>';
     if(e7.v){
-      h+='<a class="r14-video" href="'+esc(e7.v)+'" target="_blank" rel="noopener">▶ Voir la vidéo du jour</a>';
+      // La vidéo se regarde DANS l'appli : partir sur YouTube, c'est perdre
+      // la cliente dans les suggestions. Le lien reste en secours discret.
+      var idJ=ytId(e7.v);
+      if(idJ&&!(e7.e&&e7.e.length))
+        h+='<div class="r14-play" data-r14yt="'+esc(idJ)+'">'+
+          '<img src="https://img.youtube.com/vi/'+esc(idJ)+'/mqdefault.jpg" alt="" loading="lazy"/><span class="r14-pl">▶</span></div>';
+      h+='<a class="r14-video ghost" href="'+esc(e7.v)+'" target="_blank" rel="noopener">Ouvrir sur YouTube</a>';
     }
     if(isToday){
       // Une seule durée proposée : 5 minutes la première semaine, 10 la
@@ -17379,6 +17396,16 @@ function bindCoach(){
     var nb=vid14Diffuser(sx);
     feedback("🎬 "+jN[d]+" "+prog+" enregistré · "+nb+" cliente"+(nb>1?"s":"")+" mise"+(nb>1?"s":"")+" à jour","ok");
     render();
+  });
+
+  // Lecture sur place : la miniature laisse la place au lecteur YouTube,
+  // en mode confidentialité renforcée, sans quitter l'application.
+  var r14p=document.querySelectorAll(".r14-play[data-r14yt]");
+  for(var rp=0;rp<r14p.length;rp++)r14p[rp].addEventListener("click",function(){
+    var id=this.getAttribute("data-r14yt");
+    if(!id||this.querySelector("iframe"))return;
+    this.innerHTML='<iframe src="https://www.youtube-nocookie.com/embed/'+id+
+      '?autoplay=1&playsinline=1&rel=0&modestbranding=1" allow="accelerometer;autoplay;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe>';
   });
 
   // 🏋️ Planning entraînement 7 jours (slot 507)

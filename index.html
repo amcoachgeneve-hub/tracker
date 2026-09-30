@@ -947,7 +947,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="30/09 - Video dans l appli";
+var APP_VERSION="30/09 - Lecture et minuteur partout";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -7843,11 +7843,12 @@ function reset14JoursHTML(start){
           '<img src="https://img.youtube.com/vi/'+esc(idJ)+'/mqdefault.jpg" alt="" loading="lazy"/><span class="r14-pl">▶</span></div>';
       h+='<a class="r14-video ghost" href="'+esc(e7.v)+'" target="_blank" rel="noopener">Ouvrir sur YouTube</a>';
     }
-    if(isToday){
+    {
       // Une seule durée proposée : 5 minutes la première semaine, 10 la
-      // seconde. Deux boutons laissaient le choix de rester au palier facile.
+      // seconde. Le bouton est présent sur TOUS les jours : une cliente qui
+      // veut refaire la séance de lundi le jeudi doit pouvoir la lancer.
       h+='<div class="r14-go">'+
-        '<button class="r14-bip r14-start" data-bip="'+(week2?600:300)+'">▶️ Démarrer mes '+(week2?10:5)+' minutes de séance du jour</button></div>';
+        '<button class="r14-bip r14-start" data-bip="'+(week2?600:300)+'">▶️ Démarrer mes '+(week2?10:5)+' minutes '+(isToday?'de séance du jour':'sur cette séance')+'</button></div>';
     }
     h+='</div>';
   }
@@ -8625,6 +8626,18 @@ function bindSport() {
 
 
   // 🔔 Le minuteur au bip du Reset : un bip toutes les 30 s, 5 ou 10 minutes.
+  // ▶️ Lecture sur place : la miniature laisse la place au lecteur YouTube,
+  // en mode confidentialité renforcée. La cliente ne quitte pas l'appli et ne
+  // tombe pas dans les suggestions.
+  var r14p = document.querySelectorAll(".r14-play[data-r14yt]");
+  for (var rp = 0; rp < r14p.length; rp++) r14p[rp].addEventListener("click", function (ev) {
+    ev.preventDefault();
+    var id = this.getAttribute("data-r14yt");
+    if (!id || this.querySelector("iframe")) return;
+    this.innerHTML = '<iframe src="https://www.youtube-nocookie.com/embed/' + id +
+      '?autoplay=1&playsinline=1&rel=0&modestbranding=1" allow="accelerometer;autoplay;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe>';
+  });
+
   var r14b = document.querySelectorAll(".r14-bip");
   for (var rb = 0; rb < r14b.length; rb++) r14b[rb].addEventListener("click", function () {
     var total = parseInt(this.getAttribute("data-bip"), 10) || 300;
@@ -17396,16 +17409,6 @@ function bindCoach(){
     var nb=vid14Diffuser(sx);
     feedback("🎬 "+jN[d]+" "+prog+" enregistré · "+nb+" cliente"+(nb>1?"s":"")+" mise"+(nb>1?"s":"")+" à jour","ok");
     render();
-  });
-
-  // Lecture sur place : la miniature laisse la place au lecteur YouTube,
-  // en mode confidentialité renforcée, sans quitter l'application.
-  var r14p=document.querySelectorAll(".r14-play[data-r14yt]");
-  for(var rp=0;rp<r14p.length;rp++)r14p[rp].addEventListener("click",function(){
-    var id=this.getAttribute("data-r14yt");
-    if(!id||this.querySelector("iframe"))return;
-    this.innerHTML='<iframe src="https://www.youtube-nocookie.com/embed/'+id+
-      '?autoplay=1&playsinline=1&rel=0&modestbranding=1" allow="accelerometer;autoplay;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe>';
   });
 
   // 🏋️ Planning entraînement 7 jours (slot 507)

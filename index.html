@@ -941,7 +941,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="30/09 · Miniatures Reset 14";
+var APP_VERSION="30/09 · Thème suit le programme";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -11356,8 +11356,17 @@ function bindProgFiche(slug) {
     // Le socle correspondant part immédiatement chez lui : sans ça, le client
     // voyait ses mois vides jusqu'à la prochaine modification du programme.
     if (P.sexe) prog3Sync(P.sexe);
+    // 🎨 La couleur de l'appli suit le programme. Poser « Homme » et laisser
+    // l'écran en rose n'avait aucun sens : le thème se règle encore à la main
+    // plus bas dans la fiche si Akli veut autre chose.
+    if (P.sexe) {
+      var aC = lsGet("amcoach_" + slug, {});
+      aC[514] = { theme: P.sexe };
+      lsSet("amcoach_" + slug, aC);
+      try { coachSaveSlot(slug, 514, { theme: P.sexe }); } catch (e) { }
+    }
     render();
-    if (P.sexe) feedback("Socle " + (P.sexe === "f" ? "femmes" : "hommes") + " envoyé", "ok");
+    if (P.sexe) feedback("Socle " + (P.sexe === "f" ? "femmes" : "hommes") + " envoyé · thème " + (P.sexe === "f" ? "rose" : "bleu"), "ok");
   });
   var pk = document.getElementById("prg-pick");
   if (pk) pk.addEventListener("click", function () {

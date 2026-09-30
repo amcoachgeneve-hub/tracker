@@ -947,7 +947,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="30/09 - Lecture et minuteur partout";
+var APP_VERSION="30/09 - Appui long et Reset epure";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -4497,8 +4497,10 @@ function renderGarde() {
 // au même endroit : enregistrer une vidéo du Reset ne doit pas renvoyer en
 // haut du tableau de bord, ce qui donnait l'impression d'être éjecté.
 function renderEcran() {
+  // Déplier le Reset 14 ne change pas d'écran : le garder dans la signature
+  // renvoyait Akli en haut de la liste des clients à chaque ouverture.
   return [state.tab, state.coachDetail || "", state.cdProg ? state.cdProg.id : "",
-    state.cdAssign || "", state.prog3 || "", state.v14Ouvert ? "v14" : ""].join("|");
+    state.cdAssign || "", state.prog3 || ""].join("|");
 }
 function renderRestaure(G) {
   if (!G) return;
@@ -8298,14 +8300,8 @@ function viewSport(name, start) {
       (B.sport ? '<br>✅ Ton habitude Sport du jour est cochée.' : '') + '</div></div>';
   }
   if (is14) {
-    // Uniquement la carte « Séance express » : le reste des cartes (marches,
-    // programme) ne concerne pas le Reset.
-    var cartes14 = progCartesHTML(getAllData());
-    var ix = cartes14.indexOf('<div class="spt-card"><div class="spt-lab">⚡ Séance express</div>');
-    if (ix >= 0) {
-      var fin = cartes14.indexOf('</button></div>', ix);
-      h += cartes14.slice(ix, fin + '</button></div>'.length);
-    }
+    // Rien du 90 jours ici : la séance express, les marches et le socle
+    // appartiennent au programme long. Le Reset tient dans ses 7 jours.
   } else {
     h += progCartesHTML(getAllData());
   }
@@ -14743,7 +14739,7 @@ function viewCoachDash(){
       var score=Math.round(filled/Math.max(t90+1,1)*100);
       var scol=score>80?"var(--ok)":score>50?"var(--warn)":R;
       h+='<div class="card" style="padding:18px 16px;margin-bottom:12px">'+
-        '<div class="cd-open" data-detail="'+esc(c.slug)+'" style="display:flex;align-items:center;gap:14px;margin-bottom:14px;cursor:pointer">'+
+        '<div class="cd-open cd-long" data-detail="'+esc(c.slug)+'" data-nom="'+esc(c.name)+'" style="display:flex;align-items:center;gap:14px;margin-bottom:14px;cursor:pointer">'+
         '<div class="ring-wrap">'+svgRing(score/100,scol,56)+
         '<div class="ring-txt" style="font-size:13px">'+score+'%</div></div>'+
         '<div style="flex:1"><div style="font-weight:900;font-size:18px">'+esc(c.name)+'</div>'+
@@ -14840,8 +14836,10 @@ function viewCoachDash(){
             protChip+finChip+
             '</div>';
         })()+
-        '<button class="copy-link big-btn" data-slug="'+esc(c.slug)+'" style="padding:12px 0;font-size:13px;background:'+K+';box-shadow:none;margin-bottom:8px">📋 Copier lien TRACKER</button>'+
-        '<button class="copy-menu big-btn" data-slug="'+esc(c.slug)+'" style="padding:12px 0;font-size:13px;background:var(--ok-d);box-shadow:none;margin-bottom:0">🍽️ Copier lien MENU</button></div>';
+        '<div style="display:flex;gap:8px">'+
+        '<button class="copy-link big-btn" data-slug="'+esc(c.slug)+'" style="flex:1;padding:11px 0;font-size:12px;background:'+K+';box-shadow:none;margin:0">📋 Lien tracker</button>'+
+        '<button class="copy-menu big-btn" data-slug="'+esc(c.slug)+'" style="flex:1;padding:11px 0;font-size:12px;background:var(--ok-d);box-shadow:none;margin:0">🍽️ Lien menu</button></div>'+
+        '<div style="text-align:center;font-size:10.5px;color:var(--mute);margin-top:8px">Appui long sur le nom pour mettre en pause</div></div>';
     }
   }
   // 📦 LES CLIENTS EN PAUSE, tout en bas, dans un tiroir replié.
@@ -16212,6 +16210,37 @@ function bindCoach(){
     var n=this.getAttribute("data-n")||"", m=(this.getAttribute("data-m")||"").toLowerCase(), j=this.getAttribute("data-j")||"";
     waSend("Salut "+n+" 👋 Je regarde ton suivi : "+m+" (jour "+j+"). Rien de grave, on repart ce soir : une seule journée remplie et la machine se relance. Tu bloques sur quoi ?");
   });
+
+  // ⏳ APPUI LONG sur un client : mise en pause directe, sans ouvrir sa fiche.
+  // Akli range souvent des clients de côté ; trois écrans pour ça, c'était
+  // trois de trop.
+  var cdl=document.querySelectorAll(".cd-long");
+  for(var cl2=0;cl2<cdl.length;cl2++)(function(el){
+    var minuteur=null, parti=false;
+    function debut(){
+      parti=false;
+      minuteur=setTimeout(function(){
+        parti=true;
+        try{if(navigator.vibrate)navigator.vibrate(30);}catch(e){}
+        var nom=el.getAttribute("data-nom")||"ce client", slug=el.getAttribute("data-detail");
+        if(confirm("Mettre "+nom+" en pause ?\n\nIl passe dans le tiroir du bas. Rien n'est supprimé, tu peux le réactiver quand tu veux.")){
+          archBascule(slug);
+          feedback("📦 "+nom+" en pause","ok");
+          render();
+        }
+      },550);
+    }
+    function fin(){ if(minuteur)clearTimeout(minuteur); minuteur=null; }
+    el.addEventListener("touchstart",debut,{passive:true});
+    el.addEventListener("touchend",fin);
+    el.addEventListener("touchmove",fin,{passive:true});
+    el.addEventListener("touchcancel",fin);
+    el.addEventListener("mousedown",debut);
+    el.addEventListener("mouseup",fin);
+    el.addEventListener("mouseleave",fin);
+    // L'ouverture de la fiche ne doit pas partir après un appui long
+    el.addEventListener("click",function(ev){ if(parti){ev.preventDefault();ev.stopPropagation();parti=false;} },true);
+  })(cdl[cl2]);
 
   // 🚦 Ouvrir une fiche depuis le pouls
   var pgo=document.querySelectorAll(".pouls-go");

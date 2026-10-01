@@ -293,18 +293,21 @@
 /* Le tiroir des séances types du tableau de bord : replié par défaut dès
    qu'il y en a, pour ne pas noyer le reste quand la bibliothèque grossit. */
 .coach-actions{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin:4px 0 14px}
-.coach-actions button{position:relative;border:0;border-radius:16px;padding:17px 12px;font-weight:800;font-size:13px;
-  color:#fff;display:flex;flex-direction:column;align-items:center;gap:7px;line-height:1.2;text-align:center;
-  box-shadow:0 6px 18px rgba(0,0,0,.12);transition:transform .15s}
+.coach-actions button{position:relative;overflow:hidden;border:0;border-radius:16px;padding:16px 12px;font-weight:800;
+  font-size:11.5px;letter-spacing:.2px;color:#fff;display:flex;align-items:center;gap:9px;line-height:1.15;text-align:left;
+  min-height:78px;box-shadow:0 6px 18px rgba(0,0,0,.12);transition:transform .15s}
 .coach-actions button:active{transform:scale(.97)}
-.coach-actions .icon{font-size:21px;line-height:1}
+.coach-actions .icon{flex:0 0 auto;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.18);
+  display:flex;align-items:center;justify-content:center;font-size:17px;line-height:1}
+.coach-actions .lib{flex:1;min-width:0;text-transform:uppercase}
 .act-new{background:linear-gradient(135deg,#00c6ff,#7b2ff7)}
 .act-annul{background:linear-gradient(135deg,#7a8699,#5b6675)}
 .act-calc{background:linear-gradient(135deg,#7b2ff7,#9b59b6)}
 .act-stats{background:#1a2332}
 .act-com{background:#0d5c63}
-.act-badge{position:absolute;top:-7px;right:-5px;background:#e74c3c;color:#fff;font-size:11px;font-weight:900;
-  padding:3px 9px;border-radius:11px;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.act-badge{flex:0 0 auto;background:#e74c3c;color:#fff;border-radius:9px;padding:6px 7px;text-align:center;
+  font-size:15px;font-weight:900;line-height:1;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.act-badge small{display:block;font-size:7.5px;font-weight:800;letter-spacing:.4px;margin-top:2px;text-transform:uppercase}
 .cli-row{display:flex;align-items:center;border-top:1px solid var(--line)}
 .cli-main{flex:1;min-width:0;display:flex;align-items:center;gap:11px;text-align:left;background:none;border:0;padding:12px 0}
 .cli-av{flex:0 0 auto;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;
@@ -312,10 +315,11 @@
 .cli-mid{flex:1;min-width:0}
 .cli-nom{display:block;font-weight:800;font-size:14.5px;color:var(--ink)}
 .cli-sous{display:flex;gap:8px;align-items:center;font-size:11px;font-weight:700;margin-top:2px}
-.cli-droite{text-align:right;white-space:nowrap;min-width:72px}
-.cli-pct{display:block;font-weight:900;font-size:15px}
-.cli-jour{display:block;font-size:10px;color:var(--mute);font-weight:700}
-.cli-bar{display:block;height:5px;background:var(--soft2);border-radius:3px;margin-top:5px;overflow:hidden}
+.cli-droite{flex:0 0 42%;max-width:190px;text-align:right;white-space:nowrap}
+.cli-haut{display:flex;align-items:baseline;justify-content:flex-end;gap:7px}
+.cli-pct{font-weight:900;font-size:16px}
+.cli-jour{font-size:10px;color:var(--mute);font-weight:700}
+.cli-bar{display:block;height:8px;background:var(--soft2);border-radius:5px;margin-top:6px;overflow:hidden}
 .cli-bar span{display:block;height:100%;border-radius:3px}
 .out-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:10px 0 16px}
 .out-b{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
@@ -993,7 +997,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="01/10 - Nouveau design coach";
+var APP_VERSION="01/10 - Design maquette";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -14710,11 +14714,11 @@ function viewCoachDash(){
       var K=pipeKPI(), n=K.relances.length+K.bloques.length;
       return '<div class="coach-actions">'+
         '<button id="form-toggle" class="'+(state.showForm?"act-annul":"act-new")+'">'+
-        '<span class="icon">'+(state.showForm?"▲":"＋")+'</span>'+(state.showForm?"Annuler":"Nouveau client")+'</button>'+
-        '<button id="calc-open" class="act-calc"><span class="icon">🧮</span>Calculateur</button>'+
-        '<button id="stats-open" class="act-stats"><span class="icon">📊</span>Statistiques</button>'+
-        '<button id="kpi-open" class="act-com"><span class="icon">🤝</span>Mon commercial'+
-        (n?'<span class="act-badge">'+n+'</span>':'')+'</button></div>'+
+        '<span class="icon">'+(state.showForm?"▲":"＋")+'</span><span class="lib">'+(state.showForm?"Annuler":"Nouveau client")+'</span></button>'+
+        '<button id="calc-open" class="act-calc"><span class="icon">🧮</span><span class="lib">Calculateur bilan</span></button>'+
+        '<button id="stats-open" class="act-stats"><span class="icon">📊</span><span class="lib">Mes statistiques</span></button>'+
+        '<button id="kpi-open" class="act-com"><span class="icon">🤝</span><span class="lib">Mon commercial</span>'+
+        (n?'<span class="act-badge">'+n+'<small>à faire</small></span>':'')+'</button></div>'+
         '<button id="blv-open" class="prg-mini sea-b" style="margin:0 0 14px">📋 Mes bilans <small>tous les gens vus en rendez-vous</small></button>';
     })()+
     // Le formulaire s'ouvre SOUS son bouton. Il vivait en bas de page, après
@@ -14728,8 +14732,10 @@ function viewCoachDash(){
   (function(){
     var P=coachPouls();
     if(!P.tous.length)return;
-    var COUL={rouge:{p:"🔴",c:"var(--bad)"},orange:{p:"🟠",c:"var(--warn-d)"},
-              vert:{p:"🟢",c:"var(--ok-d)"},fini:{p:"⚫",c:"var(--mute)"}};
+    // Pastille pastel + texte foncé : lisible, et la couleur dit l'état sans
+    // hurler comme un gros rond plein.
+    var COUL={rouge:{p:"❗",c:"var(--bad)",pastel:"#F8D2D2"},orange:{p:"⚠️",c:"var(--warn-d)",pastel:"#FBE4C4"},
+              vert:{p:"✅",c:"var(--ok-d)",pastel:"#C7EAD7"},fini:{p:"⚫",c:"var(--mute)",pastel:"#E4E7EC"}};
     var lignes='';
     for(var i=0;i<P.tous.length;i++){
       var o=P.tous[i], C=COUL[o.etat], d=lsGet("amcoach_"+o.slug,{});
@@ -14748,14 +14754,15 @@ function viewCoachDash(){
         : '';
       lignes+='<div class="cli-row">'+
         '<button class="pouls-go cli-main" data-s="'+o.slug+'">'+
-        '<span class="cli-av" style="background:'+C.c+'">'+esc((o.nom||"?").slice(0,2).toUpperCase())+'</span>'+
+        '<span class="cli-av" style="background:'+C.pastel+';color:'+C.c+'">'+esc((o.nom||"?").slice(0,2).toUpperCase())+'</span>'+
         '<span class="cli-mid">'+
         '<span class="cli-nom">'+esc(o.nom)+
         (o.horsStats?' <span style="font-size:9.5px;color:var(--mute);font-weight:700">· hors stats</span>':'')+'</span>'+
         '<span class="cli-sous"><span style="color:'+C.c+'">'+C.p+' '+esc(o.motif)+'</span>'+chip+'</span></span>'+
         '<span class="cli-droite">'+
+        '<span class="cli-haut">'+
         '<span class="cli-pct" style="color:'+gaugeCol(o.assidu)+'">'+o.assidu+'%</span>'+
-        '<span class="cli-jour">J'+o.jour+'/'+o.duree+'</span>'+
+        '<span class="cli-jour">J'+o.jour+'/'+o.duree+'</span></span>'+
         '<span class="cli-bar"><span style="width:'+Math.max(2,Math.min(100,o.assidu))+'%;background:'+gaugeCol(o.assidu)+'"></span></span>'+
         '</span></button>'+waBtn+'</div>';
     }

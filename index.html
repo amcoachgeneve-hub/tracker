@@ -293,20 +293,20 @@
 /* Le tiroir des séances types du tableau de bord : replié par défaut dès
    qu'il y en a, pour ne pas noyer le reste quand la bibliothèque grossit. */
 .coach-actions{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin:4px 0 14px}
-.coach-actions button{position:relative;overflow:hidden;border:0;border-radius:16px;padding:16px 12px;font-weight:800;
-  font-size:11.5px;letter-spacing:.2px;color:#fff;display:flex;align-items:center;gap:9px;line-height:1.15;text-align:left;
-  min-height:78px;box-shadow:0 6px 18px rgba(0,0,0,.12);transition:transform .15s}
+.coach-actions button{position:relative;border:0;border-radius:16px;padding:18px 14px;font-weight:800;font-size:13.5px;
+  color:#fff;display:flex;flex-direction:column;align-items:center;gap:8px;line-height:1.2;text-align:center;
+  box-shadow:0 6px 18px rgba(0,0,0,.12);transition:transform .15s}
 .coach-actions button:active{transform:scale(.97)}
-.coach-actions .icon{flex:0 0 auto;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.18);
-  display:flex;align-items:center;justify-content:center;font-size:17px;line-height:1}
-.coach-actions .lib{flex:1;min-width:0;text-transform:uppercase}
+.coach-actions .icon{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.2);
+  display:flex;align-items:center;justify-content:center;font-size:22px;line-height:1}
+.coach-actions .lib{text-transform:uppercase;letter-spacing:.3px}
 .act-new{background:linear-gradient(135deg,#00c6ff,#7b2ff7)}
 .act-annul{background:linear-gradient(135deg,#7a8699,#5b6675)}
 .act-calc{background:linear-gradient(135deg,#7b2ff7,#9b59b6)}
 .act-stats{background:#1a2332}
 .act-com{background:#0d5c63}
-.act-badge{flex:0 0 auto;background:#e74c3c;color:#fff;border-radius:9px;padding:6px 7px;text-align:center;
-  font-size:15px;font-weight:900;line-height:1;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.act-badge{position:absolute;top:-6px;right:-6px;background:#e74c3c;color:#fff;border-radius:10px;
+  padding:4px 8px;text-align:center;font-size:12px;font-weight:900;line-height:1;box-shadow:0 2px 8px rgba(0,0,0,.25)}
 .act-badge small{display:block;font-size:7.5px;font-weight:800;letter-spacing:.4px;margin-top:2px;text-transform:uppercase}
 .cli-row{display:flex;align-items:center;border-top:1px solid var(--line)}
 .cli-main{flex:1;min-width:0;display:flex;align-items:center;gap:11px;text-align:left;background:none;border:0;padding:12px 0}
@@ -997,7 +997,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="01/10 - Design maquette";
+var APP_VERSION="01/10 - Actions en colonne";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];

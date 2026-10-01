@@ -292,6 +292,18 @@
 
 /* Le tiroir des séances types du tableau de bord : replié par défaut dès
    qu'il y en a, pour ne pas noyer le reste quand la bibliothèque grossit. */
+.out-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:10px 0 16px}
+.out-b{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+  min-height:74px;border:0;border-radius:14px;color:#fff;font-size:12.5px;font-weight:800;letter-spacing:.3px;padding:10px 6px}
+.out-b .out-i{font-size:20px;line-height:1}
+.out-bg{position:absolute;top:-7px;right:-4px;background:var(--warn-d);color:#fff;border-radius:100px;
+  padding:3px 9px;font-size:10.5px;font-weight:900;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.fiche-tabs{display:flex;gap:5px;position:sticky;top:0;z-index:40;background:var(--bg);
+  padding:8px 0 10px;margin-bottom:4px;border-bottom:1px solid var(--line)}
+.fiche-tab{flex:1;min-width:0;padding:9px 2px;border-radius:11px;border:1px solid var(--line);background:var(--card);
+  color:var(--mute);font-size:10.5px;font-weight:800;line-height:1.25;display:flex;flex-direction:column;align-items:center;gap:3px}
+.fiche-tab span{font-size:15px;line-height:1}
+.fiche-tab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 .sea-sec{font-size:10.5px;font-weight:900;letter-spacing:1.4px;text-transform:uppercase;color:var(--mute);
   margin:16px 0 7px;padding-top:12px;border-top:1px solid var(--line)}
 .sea-b{width:100%;text-align:left;padding:13px 14px;margin-top:8px;line-height:1.35}
@@ -956,7 +968,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="30/09 - Tiroirs qui restent ouverts";
+var APP_VERSION="01/10 - Dashboard range, fiche en onglets";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -1481,6 +1493,7 @@ var state={
   partMasque:true, // le poids est masqué par défaut sur la carte
   cdProg:null,     // constructeur de séance type ouvert côté coach {id,...}
   v14Ouvert:false, // le modèle Reset 14 jours déplié sur le tableau de bord
+  cdTab:"apercu", // onglet actif de la fiche client
   prgSel:null,     // mode sélection dans le constructeur : tableau des index cochés, null = mode normal
   cdAssign:null,   // séance en cours d'attribution (son id)
   cdAssignSel:null,
@@ -4563,6 +4576,7 @@ function renderView(){
   var name=lsGetStr("amcoach_name_"+CLIENT);
   var start=lsGetStr("amcoach_start_"+CLIENT);
   if(!name||!start){root.innerHTML=viewOnboarding();bindOnboarding();return;}
+  h+=GMK("reglages");
   // 🔑 Contrôle d'accès (slot 504)
   var lastAct=getAllData()[505];
   var todayIso=isoLocal();
@@ -6491,7 +6505,7 @@ function viewDay(name,start){
         '<button id="bilan-save" class="big-btn">'+(state.blEdit!=null?'Mettre à jour ✓':'Enregistrer ✓')+'</button>';
     }
   }
-  return h+'</div></div>';
+  return ficheOnglets(h)+'</div></div>';
 }
 
 function bindBlocsJour(name,start){
@@ -11576,6 +11590,54 @@ function v14BlocHTML() {
   return h + '</div>';
 }
 
+function ncFormHTML(){
+  var h='';
+  if(state.showForm){
+    h+='<div class="card" style="padding:18px 16px;margin-bottom:16px">'+
+      '<div style="font-weight:900;font-size:14px;margin-bottom:16px">Nouveau client</div>'+
+      '<div class="card-label">PRÉNOM</div>'+
+      // Nom pré-rempli quand on arrive depuis un prospect qui vient de signer
+      '<input id="nc-name" class="num-input" style="font-size:15px;font-weight:400;margin-bottom:12px" placeholder="ex: Sarah"'+
+      (state.prefillNom?' value="'+esc(state.prefillNom)+'"':'')+'/>'+
+      '<div class="card-label">LIEN (identifiant)</div>'+
+      '<input id="nc-slug" class="num-input" style="font-size:15px;font-weight:400;margin-bottom:4px" placeholder="ex: sarah"/>'+
+      '<div id="nc-preview" style="font-size:11px;color:var(--mute);margin-bottom:12px"></div>'+
+      // 👨👩 LE SEXE SE POSE À LA CRÉATION. C'est lui qui commande la photo,
+      // le programme des trois mois, la couleur de l'appli et la carte du
+      // cycle. Le laisser vide obligeait à y revenir plus tard, et un homme
+      // ouvrait « programme femme » entre-temps.
+      '<div class="card-label">PROGRAMME</div>'+
+      '<div style="display:flex;gap:8px;margin-bottom:12px">'+
+      '<button id="nc-h" class="nc-sx' + (state.ncSexe === "h" ? " on" : "") + '" data-sx="h">👨 Homme</button>'+
+      '<button id="nc-f" class="nc-sx' + (state.ncSexe === "f" ? " on" : "") + '" data-sx="f">👩 Femme</button>'+
+      '</div>'+
+      // 🧩 LES MODULES SE CHOISISSENT ICI. Akli : « sinon je vais oublier de
+      // mettre le menu ». Les activer plus tard oblige à rouvrir la fiche, et
+      // un oubli ne se voit pas — la cliente n'a simplement pas l'onglet.
+      '<div class="card-label">MODULES À OUVRIR</div>'+
+      '<div style="display:flex;gap:7px;margin-bottom:5px">'+
+      '<button class="nc-mod' + (state.ncMenus !== false ? " on" : "") + '" data-mod="menus">🍽️ Menus</button>'+
+      '<button class="nc-mod' + (state.ncProt ? " on" : "") + '" data-mod="prot">🍗 Protéines</button>'+
+      '<button class="nc-mod' + (state.ncArgent ? " on" : "") + '" data-mod="argent">💰 Argent</button>'+
+      '</div>'+
+      // 🏃 La formule sans programme : l'offre nutrition. La cliente garde la
+      // séance express, les marches et les minuteurs, sans les 90 jours.
+      '<div style="display:flex;gap:7px;margin-bottom:5px">'+
+      '<button class="nc-mod' + (state.ncProg !== false ? " on" : "") + '" data-mod="prog" style="flex:2">💪 Programme 90 jours</button>'+
+      '</div>'+
+      '<div style="font-size:11px;color:var(--mute);margin-bottom:12px;line-height:1.5">Les menus démarrent à la date de départ ci-dessous. Tout reste modifiable ensuite dans sa fiche.</div>'+
+      '<div class="card-label">DATE DE DÉPART</div>'+
+      '<input id="nc-date" type="date" class="num-input" style="font-size:15px;font-weight:400;margin-bottom:12px" value="'+isoLocal()+'"/>'+
+      '<div class="card-label">DATE DE FIN D\'ACCÈS (OPTIONNEL — vide = illimité)</div>'+
+      '<input id="nc-end" type="date" class="num-input" style="font-size:15px;font-weight:400;margin-bottom:16px"/>'+
+      '<button id="nc-create" class="big-btn" style="padding:14px 0;font-size:14px;margin-bottom:0'+
+      (state.ncSexe?'':';opacity:.45')+'"'+(state.ncSexe?'':' disabled')+'>Créer le lien →</button>'+
+      (state.ncSexe?'':'<div style="font-size:11px;color:var(--warn-d);font-weight:800;margin-top:8px;text-align:center">Choisis Homme ou Femme pour continuer</div>')+
+      '</div>';
+  }
+  return h;
+}
+
 // Le bloc en haut du dashboard
 function seaDashHTML() {
   var l = seaGet(), attribuees = 0;
@@ -12603,6 +12665,40 @@ function cdSecOpen(id,emoji,titre,resume){
 }
 function cdSecClose(){return '</div></details>';}
 
+
+// ═══════════ 🗂️ LA FICHE CLIENT EN 4 ONGLETS ═══════════
+// Elle tenait sur onze captures d'écran : scores, courbes, réglages, modules,
+// menus, cycle… tout empilé au même niveau. On ne supprime rien, on range :
+// ce qui se lit chaque jour, ce qui s'attribue chaque semaine, ce qui s'analyse
+// le dimanche, ce qui se règle une fois. Les sections restent TOUTES dans la
+// page — seules les inactives sont masquées — pour qu'aucun bouton ne perde
+// son branchement.
+var FICHE_ONGLETS=[["apercu","👁️","Vue d'ensemble"],["programme","💪","Programme"],
+  ["analyse","📈","Analyse"],["reglages","⚙️","Réglages"]];
+function GMK(g){ return '<!--G:'+g+'-->'; }
+function ficheOnglets(h){
+  var morceaux=h.split(/<!--G:([a-z]+)-->/), entete=morceaux[0];
+  var par={apercu:"",programme:"",analyse:"",reglages:""};
+  for(var i=1;i<morceaux.length;i+=2){
+    var g=morceaux[i], contenu=morceaux[i+1]||"";
+    if(par[g]===undefined)g="reglages";
+    par[g]+=contenu;
+  }
+  var actif=state.cdTab||"apercu";
+  if(!par[actif])actif="apercu";
+  var barre='<div class="fiche-tabs">';
+  for(var t=0;t<FICHE_ONGLETS.length;t++){
+    var o=FICHE_ONGLETS[t];
+    barre+='<button class="fiche-tab'+(o[0]===actif?' on':'')+'" data-cdtab="'+o[0]+'">'+
+      '<span>'+o[1]+'</span>'+o[2]+'</button>';
+  }
+  barre+='</div>';
+  var corps='';
+  for(var k in par) if(par.hasOwnProperty(k))
+    corps+='<div class="fiche-g"'+(k===actif?'':' style="display:none"')+' data-g="'+k+'">'+par[k]+'</div>';
+  return entete+barre+corps;
+}
+
 function viewCoachDetail(){
   var clients=lsGet("amcoach_clients",[]);
   if(state.coachDetail)coachLoadClient(state.coachDetail); // rafraîchit au premier affichage
@@ -12679,6 +12775,7 @@ function viewCoachDetail(){
     h+=cdSecClose();
   }
 
+  h+=GMK("analyse");
   // 📅 Calendrier 90 jours (couleurs client)
   h+=cdSecOpen("calclient","📅","Son calendrier","Les 90 jours, jour par jour")+'<div class="card" style="border:none;box-shadow:none;padding:0;margin:0">';
   (function(){
@@ -12715,6 +12812,7 @@ function viewCoachDetail(){
     '<br><span style="opacity:.85">⚡ les 3 questions du mindset ont été remplies</span></div></div>'+cdSecClose();
 
   h+=cdSecOpen("reglages","⚙️","Réglages du client","Départ, accès, mise en pause");
+  h+=GMK("reglages");
   // 📦 Mettre en pause : le client sort du tableau de bord, son suivi reste.
   // Placé dans les réglages et non dans l'affichage : c'est une décision de
   // suivi, on la cherche là où on règle le départ et l'accès.
@@ -12724,6 +12822,7 @@ function viewCoachDetail(){
       ';background:'+(ar?"#F3ECFF":"var(--card)")+';color:'+(ar?"var(--brand2)":"var(--ink2)")+';font-weight:800;font-size:12.5px;margin-bottom:10px">'+
       (ar?'📦 En pause — la remettre dans le tableau de bord':'📦 Mettre en pause — la retirer du tableau de bord')+'</button>';
   })();
+  h+=GMK("reglages");
   // 🚀 Date de départ (modifiable)
   h+='<div class="card" style="border-left:4px solid '+B+';padding:13px 15px;display:flex;align-items:center;justify-content:space-between">'+
     '<span style="font-weight:800;font-size:13px">🚀 Départ : <strong>'+new Date(c.start_date).toLocaleDateString("fr-FR")+'</strong></span>'+
@@ -12743,6 +12842,7 @@ function viewCoachDetail(){
 
   h+=cdSecClose();
   h+=cdSecOpen("modules","🎁","Modules &amp; suivi","Reset 14 j, protéines, bilan final, verrou");
+  h+=GMK("reglages");
   // ⚡ RESET 14 JOURS
   h+='<div class="card" style="border-left:4px solid var(--warn-d);padding:13px 15px">'+
     '<div style="font-weight:800;font-size:13px;margin-bottom:10px">⚡ Reset 14 jours</div>'+
@@ -12752,6 +12852,7 @@ function viewCoachDetail(){
     '<button class="copy-menu14 big-btn" data-slug="'+esc(c.slug)+'" style="width:100%;padding:11px 0;font-size:12px;background:var(--warn-d);box-shadow:none">🍽️ Copier lien MENU 14 jours</button>'+
     '<div style="font-size:11px;color:var(--mute);margin-top:8px;line-height:1.5">"Activer" fixe la fin d\'accès à J+14 : app et menu se bloquent ensuite automatiquement. "Passer au 90 jours" débloque tout (accès illimité) — renvoie alors le lien tracker habituel.</div></div>';
 
+  h+=GMK("programme");
   // 🍗 SUIVI NUTRITION / PROTÉINES (slot 510) — bonus optionnel activé par le coach
   var nut=allData[510]||{};
   var nutOn=!!nut.on;
@@ -12786,6 +12887,7 @@ function viewCoachDetail(){
     '<button id="nut-config" style="flex:1;font-size:11px;font-weight:800;padding:9px 0;border:1.5px solid var(--ok-d);border-radius:10px;background:#fff;color:var(--ok-d)">'+(nutOn?"✏️ Modifier le plan":"➕ Activer + définir le plan")+'</button>'+
     (nutOn?'<button id="nut-off" style="flex:1;font-size:11px;font-weight:800;padding:9px 0;border:1.5px solid var(--brand);border-radius:10px;background:#fff;color:var(--brand)">⛔ Désactiver</button>':'')+'</div></div>';
 
+  h+=GMK("analyse");
   // ⏳ Bilan final à faire ?
   (function(){
     var b6=allData[600]||{}, cl6=[];
@@ -12801,6 +12903,7 @@ function viewCoachDetail(){
       '. Tant que le bilan final n\'est pas saisi, '+esc(c.name)+' ne compte pas dans tes résultats.</div></div>';
   })();
 
+  h+=GMK("reglages");
   // 🔒 VERROU DE SILENCE
   (function(){
     var ac=allData[504]||{};
@@ -12823,6 +12926,7 @@ function viewCoachDetail(){
 
   h+=cdSecClose();
   h+=cdSecOpen("prog","🏋️","Séances muscu","Exercices, séries, charges, repos");
+  h+=GMK("reglages");
   // 🏃 Basculer entre la formule complète et la formule nutrition.
   (function(){
     var Pc=progGet(lsGet("amcoach_"+state.coachDetail,{}));
@@ -12838,6 +12942,7 @@ function viewCoachDetail(){
   h+=progCoachListeHTML(c.slug,allData);
   h+=cdSecClose();
   h+=cdSecOpen("menus","🍽️","Menus &amp; challenge","Plans alimentaires, défis courts");
+  h+=GMK("programme");
   // 🍽️ MENUS — aiguillage vers menu.html (3 phases de 28 j ou Reset 14 j)
   (function(){
     var mc=allData[517]||{};
@@ -12876,6 +12981,7 @@ function viewCoachDetail(){
     h+='</div>';
   })();
 
+  h+=GMK("programme");
   // 🎯 CHALLENGE — déclenché par le coach
   (function(){
     var ch=chCfg(allData);
@@ -12907,6 +13013,7 @@ function viewCoachDetail(){
 
   h+=cdSecClose();
   h+=cdSecOpen("affichage","🎨","Affichage &amp; statistiques","Thème, superviseur, prise en compte");
+  h+=GMK("reglages");
   // 📊 Compter ou non dans les statistiques
   (function(){
     var hs=!!c.horsStats;
@@ -12914,9 +13021,11 @@ function viewCoachDetail(){
       (hs?'🚫 Exclu de mes statistiques — le remettre':'📊 Compté dans mes statistiques — l\'exclure')+'</button>';
   })();
 
+  h+=GMK("reglages");
   // 🔄 Actualiser depuis le cloud
   h+='<button id="cd-refresh" style="width:100%;padding:12px 0;border-radius:12px;border:1.5px solid var(--line);background:var(--card);color:var(--brand2);font-weight:800;font-size:12.5px;margin-bottom:11px">🔄 Actualiser les données de '+esc(c.name)+'</button>';
 
+  h+=GMK("reglages");
   // 🎨 THÈME VISUEL — par défaut selon le sexe, réglable ici
   (function(){
     var th=clientTheme(allData);
@@ -12948,6 +13057,7 @@ function viewCoachDetail(){
       '</div>';
   })();
 
+  h+=GMK("analyse");
   // 🌙 SON CYCLE — seulement pour les clientes qui l'ont renseigné. Akli
   // programme ses séances dessus : une grosse séance en fin lutéale ne
   // passe pas, et une stagnation du poids avant les règles n'est pas un
@@ -12973,6 +13083,7 @@ function viewCoachDetail(){
     h+='<div style="font-size:10.5px;color:var(--mute);margin-top:8px;line-height:1.5">Donnée saisie par elle, en lecture seule ici. Un cycle long ou absent chez une cliente en déficit se traite d\'abord par le déficit.</div></div>';
   })();
 
+  h+=GMK("reglages");
   // 🎭 TON DE L'APPLI — choisi par le client au départ, ajustable ici
   (function(){
     var SUP=supGet(allData), tk=SUP.ton;
@@ -13018,6 +13129,7 @@ function viewCoachDetail(){
 
   h+=cdSecClose();
   h+=cdSecOpen("bonus","💰","Bonus &amp; documents","Finance, entraînement, bilans, rapport");
+  h+=GMK("programme");
   // 💰 QUÊTE FINANCE (slot 512) — bonus optionnel, pensé pour les renouvellements
   var fin=allData[512]||{};
   var finOn=!!fin.on;
@@ -13076,6 +13188,7 @@ function viewCoachDetail(){
     '<button id="fin-config" style="flex:1;font-size:11px;font-weight:800;padding:9px 0;border:1.5px solid #0D2137;border-radius:10px;background:#fff;color:#0D2137">'+(finOn?"✏️ Modifier l\'objectif":"➕ Activer + définir l\'objectif")+'</button>'+
     (finOn?'<button id="fin-off" style="flex:1;font-size:11px;font-weight:800;padding:9px 0;border:1.5px solid var(--brand);border-radius:10px;background:#fff;color:var(--brand)">⛔ Désactiver</button>':'')+'</div></div>';
 
+  h+=GMK("programme");
   // 🎬 RESET 14 JOURS : les vidéos viennent du modèle Homme / Femme.
   var estReset14=false;
   try{ estReset14=(progLen(c.start_date,allData)||90)<=14; }catch(e){}
@@ -13106,6 +13219,7 @@ function viewCoachDetail(){
     h+='</div>';
   }
 
+  h+=GMK("programme");
   // 🏋️ ENTRAÎNEMENT BONUS (7 jours) — slot 507 (clientes 90 jours)
   var tr7=allData[507]||{};
   var dayNames=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
@@ -13122,10 +13236,12 @@ function viewCoachDetail(){
   h+='</div>';
   }
 
+  h+=GMK("analyse");
   // 📋 BILANS + 🧮 CALCULATEUR
   h+='<button id="cd-bilan" class="big-btn" style="padding:14px 0;font-size:14px;background:var(--brand2);margin-bottom:8px">📋 Bilans du client</button>'+
     '<button id="cd-calc" class="big-btn" style="padding:14px 0;font-size:14px;background:var(--violet);margin-bottom:14px">🧮 Calculateur bilan</button>';
 
+  h+=GMK("reglages");
   // 🎂 Anniversaire
   var __BD=bdayLire(allData);
   var bday=__BD.bday, bd3={year:__BD.year};
@@ -14564,13 +14680,27 @@ function viewCoachDash(){
     seaDashHTML()+
     '<button id="form-toggle" class="big-btn'+(state.showForm?" gray":"")+'" style="padding:16px 0;font-size:14px">'+
     (state.showForm?"▲ Annuler":"+ Nouveau client")+'</button>'+
-    '<button id="calc-open" class="big-btn" style="padding:14px 0;font-size:14px;background:var(--brand2);margin-bottom:10px">🧮 Calculateur bilan</button>'+
-    '<button id="stats-open" class="big-btn" style="padding:14px 0;font-size:14px;background:var(--ink);margin-bottom:10px">📊 Mes statistiques</button>'+
-    // 📈 Le commercial : la pastille montre ce qui refroidit, sans ouvrir.
-    (function(){var K=pipeKPI();var n=K.relances.length+K.bloques.length;
-      return '<button id="blv-open" class="big-btn" style="padding:14px 0;font-size:14px;background:#5B4B8A;margin-bottom:10px">📋 Mes bilans</button>'+
-        '<button id="kpi-open" class="big-btn" style="padding:14px 0;font-size:14px;background:#2E4560;margin-bottom:16px;position:relative">📈 Mon commercial'+
-        (n?'<span style="position:absolute;top:8px;right:12px;background:var(--warn-d);color:#fff;border-radius:100px;padding:2px 9px;font-size:11px;font-weight:900">'+n+' à faire</span>':'')+'</button>';
+    // Le formulaire s'ouvre SOUS son bouton. Il vivait en bas de page, après
+    // le pouls et les raccourcis : Akli tapait « Nouveau client » et ne voyait
+    // rien bouger.
+    ncFormHTML()+
+    // 🧰 LES OUTILS, en grille de quatre. Cinq pavés dégradés empilés mettaient
+    // tout au même niveau : plus rien n'était prioritaire. Un seul bouton
+    // proéminent, « Nouveau client », le reste en petit. La pastille du
+    // commercial passe au-dessus du titre, elle chevauchait le texte.
+    (function(){
+      var K=pipeKPI(), n=K.relances.length+K.bloques.length;
+      function out(id,ico,txt,fond,badge){
+        return '<button id="'+id+'" class="out-b" style="background:'+fond+'">'+
+          (badge?'<span class="out-bg">'+badge+'</span>':'')+
+          '<span class="out-i">'+ico+'</span>'+txt+'</button>';
+      }
+      return '<div class="out-grid">'+
+        out("calc-open","🧮","Calculateur","var(--brand2)")+
+        out("stats-open","📊","Statistiques","var(--ink)")+
+        out("blv-open","📋","Mes bilans","#5B4B8A")+
+        out("kpi-open","📈","Commercial","#2E4560",n?n+" à faire":"")+
+        '</div>';
     })();
 
   // 🚦 TABLEAU DE BORD UNIQUE — un seul bloc au lieu de trois.
@@ -14712,49 +14842,6 @@ function viewCoachDash(){
   })();
 
 
-  if(state.showForm){
-    h+='<div class="card" style="padding:18px 16px;margin-bottom:16px">'+
-      '<div style="font-weight:900;font-size:14px;margin-bottom:16px">Nouveau client</div>'+
-      '<div class="card-label">PRÉNOM</div>'+
-      // Nom pré-rempli quand on arrive depuis un prospect qui vient de signer
-      '<input id="nc-name" class="num-input" style="font-size:15px;font-weight:400;margin-bottom:12px" placeholder="ex: Sarah"'+
-      (state.prefillNom?' value="'+esc(state.prefillNom)+'"':'')+'/>'+
-      '<div class="card-label">LIEN (identifiant)</div>'+
-      '<input id="nc-slug" class="num-input" style="font-size:15px;font-weight:400;margin-bottom:4px" placeholder="ex: sarah"/>'+
-      '<div id="nc-preview" style="font-size:11px;color:var(--mute);margin-bottom:12px"></div>'+
-      // 👨👩 LE SEXE SE POSE À LA CRÉATION. C'est lui qui commande la photo,
-      // le programme des trois mois, la couleur de l'appli et la carte du
-      // cycle. Le laisser vide obligeait à y revenir plus tard, et un homme
-      // ouvrait « programme femme » entre-temps.
-      '<div class="card-label">PROGRAMME</div>'+
-      '<div style="display:flex;gap:8px;margin-bottom:12px">'+
-      '<button id="nc-h" class="nc-sx' + (state.ncSexe === "h" ? " on" : "") + '" data-sx="h">👨 Homme</button>'+
-      '<button id="nc-f" class="nc-sx' + (state.ncSexe === "f" ? " on" : "") + '" data-sx="f">👩 Femme</button>'+
-      '</div>'+
-      // 🧩 LES MODULES SE CHOISISSENT ICI. Akli : « sinon je vais oublier de
-      // mettre le menu ». Les activer plus tard oblige à rouvrir la fiche, et
-      // un oubli ne se voit pas — la cliente n'a simplement pas l'onglet.
-      '<div class="card-label">MODULES À OUVRIR</div>'+
-      '<div style="display:flex;gap:7px;margin-bottom:5px">'+
-      '<button class="nc-mod' + (state.ncMenus !== false ? " on" : "") + '" data-mod="menus">🍽️ Menus</button>'+
-      '<button class="nc-mod' + (state.ncProt ? " on" : "") + '" data-mod="prot">🍗 Protéines</button>'+
-      '<button class="nc-mod' + (state.ncArgent ? " on" : "") + '" data-mod="argent">💰 Argent</button>'+
-      '</div>'+
-      // 🏃 La formule sans programme : l'offre nutrition. La cliente garde la
-      // séance express, les marches et les minuteurs, sans les 90 jours.
-      '<div style="display:flex;gap:7px;margin-bottom:5px">'+
-      '<button class="nc-mod' + (state.ncProg !== false ? " on" : "") + '" data-mod="prog" style="flex:2">💪 Programme 90 jours</button>'+
-      '</div>'+
-      '<div style="font-size:11px;color:var(--mute);margin-bottom:12px;line-height:1.5">Les menus démarrent à la date de départ ci-dessous. Tout reste modifiable ensuite dans sa fiche.</div>'+
-      '<div class="card-label">DATE DE DÉPART</div>'+
-      '<input id="nc-date" type="date" class="num-input" style="font-size:15px;font-weight:400;margin-bottom:12px" value="'+isoLocal()+'"/>'+
-      '<div class="card-label">DATE DE FIN D\'ACCÈS (OPTIONNEL — vide = illimité)</div>'+
-      '<input id="nc-end" type="date" class="num-input" style="font-size:15px;font-weight:400;margin-bottom:16px"/>'+
-      '<button id="nc-create" class="big-btn" style="padding:14px 0;font-size:14px;margin-bottom:0'+
-      (state.ncSexe?'':';opacity:.45')+'"'+(state.ncSexe?'':' disabled')+'>Créer le lien →</button>'+
-      (state.ncSexe?'':'<div style="font-size:11px;color:var(--warn-d);font-weight:800;margin-top:8px;text-align:center">Choisis Homme ou Femme pour continuer</div>')+
-      '</div>';
-  }
   h+='<input id="client-search" class="num-input" placeholder="\ud83d\udd0d Rechercher un client..." value="'+esc(state.searchQ||"")+'" style="font-size:15px;font-weight:400;margin-bottom:14px"/>';
   var q=(state.searchQ||"").toLowerCase();
   // Les clients en pause sortent aussi des grandes cartes détaillées : elles
@@ -16254,6 +16341,14 @@ function bindCoach(){
     ev.stopPropagation();
     var n=this.getAttribute("data-n")||"", m=(this.getAttribute("data-m")||"").toLowerCase(), j=this.getAttribute("data-j")||"";
     waSend("Salut "+n+" 👋 Je regarde ton suivi : "+m+" (jour "+j+"). Rien de grave, on repart ce soir : une seule journée remplie et la machine se relance. Tu bloques sur quoi ?");
+  });
+
+  // 🗂️ Les onglets de la fiche client
+  var fts=document.querySelectorAll(".fiche-tab");
+  for(var ft=0;ft<fts.length;ft++)fts[ft].addEventListener("click",function(){
+    state.cdTab=this.getAttribute("data-cdtab");
+    render();
+    window.scrollTo(0,0);
   });
 
   // ⏳ APPUI LONG sur un client : mise en pause directe, sans ouvrir sa fiche.

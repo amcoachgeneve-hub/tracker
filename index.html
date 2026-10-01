@@ -997,7 +997,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="01/10 - Vue ensemble courte";
+var APP_VERSION="01/10 - Reparation automatique";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -19218,6 +19218,76 @@ function bindMain(name,start){
       ptr.style.opacity=0;
     }
   },{passive:true});
+})();
+</script>
+<script>
+/* ═══════════ 🩺 CHIEN DE GARDE ═══════════
+   Un écran blanc chez une cliente, c'est une cliente perdue : elle ne va pas
+   vider le cache de Safari, elle va paniquer et écrire au coach. L'appli se
+   répare donc toute seule. Deux filets :
+   1. Si rien n'est affiché 4 secondes après l'ouverture, on vide les caches,
+      on retire le service worker et on recharge — une seule fois, repérée par
+      un drapeau, pour ne jamais tourner en boucle.
+   2. La même réparation part si une erreur casse le démarrage.
+   Aucune donnée n'est touchée : on ne nettoie que la copie des fichiers. */
+(function(){
+  var DRAPEAU="amcoach_reparation", ok=false;
+
+  function vuAffiche(){
+    var b=document.body;
+    return !!(b && b.children.length>1 && b.innerText && b.innerText.replace(/\s/g,"").length>40);
+  }
+
+  function reparer(motif){
+    var deja=0; try{deja=parseInt(sessionStorage.getItem(DRAPEAU)||"0",10);}catch(e){}
+    if(deja>=1){ secours(motif); return; }
+    try{sessionStorage.setItem(DRAPEAU,"1");}catch(e){}
+    var fini=false;
+    function recharger(){ if(fini)return; fini=true; location.reload(); }
+    try{
+      if(navigator.serviceWorker&&navigator.serviceWorker.controller)
+        navigator.serviceWorker.controller.postMessage({d90:"purge"});
+    }catch(e){}
+    var taches=[];
+    try{ if(window.caches&&caches.keys)taches.push(caches.keys().then(function(ks){
+      return Promise.all(ks.map(function(k){return caches.delete(k);}));
+    })); }catch(e){}
+    try{ if(navigator.serviceWorker&&navigator.serviceWorker.getRegistrations)
+      taches.push(navigator.serviceWorker.getRegistrations().then(function(rs){
+        return Promise.all(rs.map(function(r){return r.unregister();}));
+      })); }catch(e){}
+    Promise.all(taches).then(recharger).catch(recharger);
+    setTimeout(recharger,2500);
+  }
+
+  // Dernier recours : un message clair plutôt qu'un écran blanc muet.
+  function secours(motif){
+    try{
+      document.body.innerHTML='<div style="font-family:-apple-system,Helvetica,sans-serif;max-width:420px;'+
+        'margin:60px auto;padding:26px 22px;text-align:center;color:#1A1A1A">'+
+        '<div style="font-size:40px;margin-bottom:12px">🔧</div>'+
+        '<div style="font-size:19px;font-weight:900;margin-bottom:10px">L\'appli n\'a pas réussi à s\'ouvrir</div>'+
+        '<div style="font-size:14px;line-height:1.6;color:#555;margin-bottom:20px">Tes données sont en sécurité sur le serveur, rien n\'est perdu. '+
+        'Vérifie ta connexion et réessaie.</div>'+
+        '<button onclick="sessionStorage.removeItem(\''+DRAPEAU+'\');location.reload()" '+
+        'style="width:100%;padding:15px 0;border:0;border-radius:13px;background:#12B5EA;color:#fff;font-weight:900;font-size:15px">Réessayer</button>'+
+        '<div style="font-size:11px;color:#999;margin-top:14px">Si ça persiste, écris à ton coach.</div></div>';
+    }catch(e){}
+  }
+
+  window.addEventListener("error",function(ev){
+    if(ok||vuAffiche())return;
+    reparer("erreur");
+  });
+
+  setTimeout(function(){
+    if(vuAffiche()){
+      ok=true;
+      try{sessionStorage.removeItem(DRAPEAU);}catch(e){}
+      return;
+    }
+    reparer("ecran blanc");
+  },4000);
 })();
 </script>
 </body>

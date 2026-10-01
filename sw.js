@@ -12,7 +12,7 @@
    Ce qui n'est JAMAIS mis en cache : Supabase et tout le reste. Les données
    passent toujours par le réseau, sinon on afficherait un suivi périmé. */
 
-var CACHE = "d90-coquille-v1";
+var CACHE = "d90-coquille-v2";
 var COQUILLE = ["/", "/index.html", "/menu.html"];
 
 self.addEventListener("install", function (e) {
@@ -73,9 +73,29 @@ self.addEventListener("fetch", function (e) {
         return r;
       }).catch(function () { return null; });
 
-      // On rend la copie locale tout de suite ; le réseau travaille derrière.
-      return garde || reseau.then(function (r) { return r || fetch(e.request); });
+      // Avant de servir la copie locale, on vérifie qu'elle est entière : une
+      // page tronquée (coupure réseau pendant la mise en cache) donnait un
+      // écran blanc que plus rien ne réparait.
+      if (!garde) return reseau.then(function (r) { return r || fetch(e.request); });
+      return pourComparer.text().then(function (txt) {
+        var saine = txt && txt.length > 50000 && txt.indexOf("</html>") > 0;
+        if (saine) return new Response(txt, {
+          status: 200, headers: { "Content-Type": "text/html; charset=utf-8" }
+        });
+        c.delete(cle);
+        return reseau.then(function (r) { return r || fetch(e.request); });
+      }).catch(function () {
+        return reseau.then(function (r) { return r || fetch(e.request); });
+      });
     });
+  }));
+});
+
+// 🧹 La page peut demander un grand nettoyage quand elle se voit blanche.
+self.addEventListener("message", function (e) {
+  if (!e.data || e.data.d90 !== "purge") return;
+  e.waitUntil(caches.keys().then(function (ks) {
+    return Promise.all(ks.map(function (k) { return caches.delete(k); }));
   }));
 });
 

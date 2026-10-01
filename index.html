@@ -956,7 +956,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="30/09 - Lecture video plus rapide";
+var APP_VERSION="30/09 - Tiroirs qui restent ouverts";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -4500,7 +4500,26 @@ function renderGarde() {
   var el = document.activeElement, F = null;
   if (el && (el.tagName === "TEXTAREA" || el.tagName === "INPUT") && el.id)
     F = { id: el.id, val: el.value, s: el.selectionStart, e: el.selectionEnd };
-  return { champ: F, y: window.scrollY || window.pageYOffset || 0, ecran: renderEcran() };
+  return { champ: F, y: window.scrollY || window.pageYOffset || 0, ecran: renderEcran(), tiroirs: tiroirsOuverts() };
+}
+// 🗂️ Les tiroirs dépliés ne vivent que dans le DOM : un render les referme
+// tous. C'est ce qui éjectait Akli du Reset 14 — le tiroir des séances se
+// repliait sous ses doigts et il devait tout rouvrir. On note lesquels sont
+// ouverts, on les rouvre après.
+function tiroirsCle(d) {
+  if (d.id) return "#" + d.id;
+  var sm = d.querySelector("summary");
+  return (d.className || "") + "|" + ((sm && sm.textContent) || "").replace(/\s+/g, " ").trim().slice(0, 40);
+}
+function tiroirsOuverts() {
+  var o = {}, L = document.querySelectorAll("details[open]");
+  for (var i = 0; i < L.length; i++) o[tiroirsCle(L[i])] = 1;
+  return o;
+}
+function tiroirsRouvrir(o) {
+  if (!o) return;
+  var L = document.querySelectorAll("details");
+  for (var i = 0; i < L.length; i++) if (o[tiroirsCle(L[i])]) L[i].open = true;
 }
 // La signature de l'écran affiché. Tant qu'elle ne change pas, on est resté
 // au même endroit : enregistrer une vidéo du Reset ne doit pas renvoyer en
@@ -4514,6 +4533,7 @@ function renderEcran() {
 function renderRestaure(G) {
   if (!G) return;
   var memeEcran = (G.ecran === renderEcran());
+  if (memeEcran) tiroirsRouvrir(G.tiroirs);
   if (G.champ) {
     var el = document.getElementById(G.champ.id);
     if (el) {

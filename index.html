@@ -997,7 +997,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="01/10 - Reparation automatique";
+var APP_VERSION="01/10 - Correctif ecran blanc";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -4622,7 +4622,6 @@ function renderView(){
   var name=lsGetStr("amcoach_name_"+CLIENT);
   var start=lsGetStr("amcoach_start_"+CLIENT);
   if(!name||!start){root.innerHTML=viewOnboarding();bindOnboarding();return;}
-  h+=GMK("reglages");
   // 🔑 Contrôle d'accès (slot 504)
   var lastAct=getAllData()[505];
   var todayIso=isoLocal();

@@ -327,6 +327,9 @@
 .out-b .out-i{font-size:20px;line-height:1}
 .out-bg{position:absolute;top:-7px;right:-4px;background:var(--warn-d);color:#fff;border-radius:100px;
   padding:3px 9px;font-size:10.5px;font-weight:900;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.fiche-lien{display:flex;align-items:center;justify-content:space-between;width:100%;border:0;border-radius:14px;
+  padding:16px 18px;color:#fff;font-weight:800;font-size:14px;letter-spacing:.5px;text-transform:uppercase}
+.fiche-lien span{font-size:20px;line-height:1}
 .fiche-tabs{display:flex;gap:0;position:sticky;top:0;z-index:40;background:var(--bg);
   padding:6px 0 0;margin-bottom:10px;border-bottom:2px solid var(--line)}
 .fiche-tab{flex:1;min-width:0;padding:11px 4px;background:none;border:0;border-bottom:3px solid transparent;
@@ -997,7 +1000,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="01/10 - Onglets au bon endroit";
+var APP_VERSION="01/10 - Fiche client triee";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -12771,6 +12774,7 @@ function viewCoachDetail(){
 
   h+=GMK("apercu");
 
+
   // KPIs
   h+='<div class="kpi-row">'+
     '<div class="kpi-card"><div class="kpi-val" style="color:'+R+'">'+(avgScore!=null?avgScore+"%":"—")+'</div><div class="kpi-lbl">Score moyen</div></div>'+
@@ -12785,6 +12789,11 @@ function viewCoachDetail(){
       '<div style="font-weight:900;font-size:15px">'+goal.target+' kg — 🎁 '+esc(goal.reward||"—")+'</div></div>';
   }
 
+  // 🔗 Les deux liens qu'Akli envoie le plus souvent, à portée de pouce
+  h+='<div style="display:flex;flex-direction:column;gap:9px;margin:4px 0 14px">'+
+    '<button class="copy-link fiche-lien" data-slug="'+esc(c.slug)+'" style="background:#1a2332">🔗 Lien tracker<span>›</span></button>'+
+    '<button class="copy-menu fiche-lien" data-slug="'+esc(c.slug)+'" style="background:#0f9d58">🍽️ Lien menu<span>›</span></button></div>';
+
   // Alerte en cours
   if(alert){
     h+='<div class="card" style="background:#FFF8F0;border:2px solid #FFE0B2"><div style="font-weight:800;font-size:11px;color:var(--warn-d);text-transform:uppercase;margin-bottom:4px">⚠️ Alerte active</div>'+
@@ -12797,9 +12806,9 @@ function viewCoachDetail(){
     return '<div class="chart-card"><div class="chart-hdr"><div class="chart-dot" style="background:'+color+'"></div>'+
       '<span class="chart-title">'+title+'</span></div>'+svgLineChart(vals,color,{min:min,max:max})+'</div>';
   }
-  h+=GMK("analyse");
   // ÉCRAN TROP LONG : les courbes ne se regardent pas à chaque ouverture de
   // fiche, elles se consultent. Elles passent en tiroir, replié par défaut.
+  h+=GMK("analyse");
   h+=cdSecOpen("courbes","📈","Courbes","Score, poids, mental")+
     chart("Score global",R,"score",0,100)+
     chart("Poids (kg)","#555","poids",null,null)+
@@ -12809,7 +12818,8 @@ function viewCoachDetail(){
   // Bilans dimanche avec questions
   var bilans=series.filter(function(s){return s.bilan&&(s.bilan.victoire||s.bilan.ressenti||s.bilan.blocage||s.bilan.question);});
   if(bilans.length){
-    h+=cdSecOpen("bilansdim","📝","Bilans du dimanche",bilans.length+" semaine"+(bilans.length>1?"s":""));
+    h+=GMK("analyse");
+  h+=cdSecOpen("bilansdim","📝","Bilans du dimanche",bilans.length+" semaine"+(bilans.length>1?"s":""));
     for(var b=bilans.length-1;b>=0;b--){
       var bl=bilans[b];
       h+='<div class="card" style="border-left:4px solid '+R+'">'+
@@ -12823,8 +12833,8 @@ function viewCoachDetail(){
     h+=cdSecClose();
   }
 
-  h+=GMK("analyse");
   // 📅 Calendrier 90 jours (couleurs client)
+  h+=GMK("analyse");
   h+=cdSecOpen("calclient","📅","Son calendrier","Les 90 jours, jour par jour")+'<div class="card" style="border:none;box-shadow:none;padding:0;margin:0">';
   (function(){
     var wkO=(new Date(c.start_date).getDay()+6)%7;
@@ -12859,8 +12869,8 @@ function viewCoachDetail(){
   h+='<div style="font-size:11px;color:var(--mute);margin-top:6px;line-height:1.6">🟢 complet · 🟠 partiel · 🔴 manqué'+
     '<br><span style="opacity:.85">⚡ les 3 questions du mindset ont été remplies</span></div></div>'+cdSecClose();
 
-  h+=cdSecOpen("reglages","⚙️","Réglages du client","Départ, accès, mise en pause");
   h+=GMK("reglages");
+  h+=cdSecOpen("reglages","⚙️","Réglages du client","Départ, accès, mise en pause");
   // 📦 Mettre en pause : le client sort du tableau de bord, son suivi reste.
   // Placé dans les réglages et non dans l'affichage : c'est une décision de
   // suivi, on la cherche là où on règle le départ et l'accès.
@@ -12870,7 +12880,6 @@ function viewCoachDetail(){
       ';background:'+(ar?"#F3ECFF":"var(--card)")+';color:'+(ar?"var(--brand2)":"var(--ink2)")+';font-weight:800;font-size:12.5px;margin-bottom:10px">'+
       (ar?'📦 En pause — la remettre dans le tableau de bord':'📦 Mettre en pause — la retirer du tableau de bord')+'</button>';
   })();
-  h+=GMK("reglages");
   // 🚀 Date de départ (modifiable)
   h+='<div class="card" style="border-left:4px solid '+B+';padding:13px 15px;display:flex;align-items:center;justify-content:space-between">'+
     '<span style="font-weight:800;font-size:13px">🚀 Départ : <strong>'+new Date(c.start_date).toLocaleDateString("fr-FR")+'</strong></span>'+
@@ -12889,8 +12898,8 @@ function viewCoachDetail(){
     '<button id="acc-toggle" style="flex:1;font-size:11px;font-weight:800;padding:9px 0;border:1.5px solid '+(isOff?"var(--ok)":"var(--brand)")+';border-radius:10px;background:#fff;color:'+(isOff?"var(--ok)":"var(--brand)")+'">'+(isOff?"✅ Réactiver":"⛔ Couper")+'</button></div></div>';
 
   h+=cdSecClose();
-  h+=cdSecOpen("modules","🎁","Modules &amp; suivi","Reset 14 j, protéines, bilan final, verrou");
   h+=GMK("reglages");
+  h+=cdSecOpen("modules","🎁","Modules &amp; suivi","Reset 14 j, protéines, bilan final, verrou");
   // ⚡ RESET 14 JOURS
   h+='<div class="card" style="border-left:4px solid var(--warn-d);padding:13px 15px">'+
     '<div style="font-weight:800;font-size:13px;margin-bottom:10px">⚡ Reset 14 jours</div>'+
@@ -12900,7 +12909,6 @@ function viewCoachDetail(){
     '<button class="copy-menu14 big-btn" data-slug="'+esc(c.slug)+'" style="width:100%;padding:11px 0;font-size:12px;background:var(--warn-d);box-shadow:none">🍽️ Copier lien MENU 14 jours</button>'+
     '<div style="font-size:11px;color:var(--mute);margin-top:8px;line-height:1.5">"Activer" fixe la fin d\'accès à J+14 : app et menu se bloquent ensuite automatiquement. "Passer au 90 jours" débloque tout (accès illimité) — renvoie alors le lien tracker habituel.</div></div>';
 
-  h+=GMK("programme");
   // 🍗 SUIVI NUTRITION / PROTÉINES (slot 510) — bonus optionnel activé par le coach
   var nut=allData[510]||{};
   var nutOn=!!nut.on;
@@ -12935,7 +12943,6 @@ function viewCoachDetail(){
     '<button id="nut-config" style="flex:1;font-size:11px;font-weight:800;padding:9px 0;border:1.5px solid var(--ok-d);border-radius:10px;background:#fff;color:var(--ok-d)">'+(nutOn?"✏️ Modifier le plan":"➕ Activer + définir le plan")+'</button>'+
     (nutOn?'<button id="nut-off" style="flex:1;font-size:11px;font-weight:800;padding:9px 0;border:1.5px solid var(--brand);border-radius:10px;background:#fff;color:var(--brand)">⛔ Désactiver</button>':'')+'</div></div>';
 
-  h+=GMK("analyse");
   // ⏳ Bilan final à faire ?
   (function(){
     var b6=allData[600]||{}, cl6=[];
@@ -12951,7 +12958,6 @@ function viewCoachDetail(){
       '. Tant que le bilan final n\'est pas saisi, '+esc(c.name)+' ne compte pas dans tes résultats.</div></div>';
   })();
 
-  h+=GMK("reglages");
   // 🔒 VERROU DE SILENCE
   (function(){
     var ac=allData[504]||{};
@@ -12973,8 +12979,8 @@ function viewCoachDetail(){
   })();
 
   h+=cdSecClose();
+  h+=GMK("programme");
   h+=cdSecOpen("prog","🏋️","Séances muscu","Exercices, séries, charges, repos");
-  h+=GMK("reglages");
   // 🏃 Basculer entre la formule complète et la formule nutrition.
   (function(){
     var Pc=progGet(lsGet("amcoach_"+state.coachDetail,{}));
@@ -12989,8 +12995,8 @@ function viewCoachDetail(){
   })();
   h+=progCoachListeHTML(c.slug,allData);
   h+=cdSecClose();
-  h+=cdSecOpen("menus","🍽️","Menus &amp; challenge","Plans alimentaires, défis courts");
   h+=GMK("programme");
+  h+=cdSecOpen("menus","🍽️","Menus &amp; challenge","Plans alimentaires, défis courts");
   // 🍽️ MENUS — aiguillage vers menu.html (3 phases de 28 j ou Reset 14 j)
   (function(){
     var mc=allData[517]||{};
@@ -13029,7 +13035,6 @@ function viewCoachDetail(){
     h+='</div>';
   })();
 
-  h+=GMK("programme");
   // 🎯 CHALLENGE — déclenché par le coach
   (function(){
     var ch=chCfg(allData);
@@ -13060,8 +13065,8 @@ function viewCoachDetail(){
   })();
 
   h+=cdSecClose();
-  h+=cdSecOpen("affichage","🎨","Affichage &amp; statistiques","Thème, superviseur, prise en compte");
   h+=GMK("reglages");
+  h+=cdSecOpen("affichage","🎨","Affichage &amp; statistiques","Thème, superviseur, prise en compte");
   // 📊 Compter ou non dans les statistiques
   (function(){
     var hs=!!c.horsStats;
@@ -13069,11 +13074,9 @@ function viewCoachDetail(){
       (hs?'🚫 Exclu de mes statistiques — le remettre':'📊 Compté dans mes statistiques — l\'exclure')+'</button>';
   })();
 
-  h+=GMK("reglages");
   // 🔄 Actualiser depuis le cloud
   h+='<button id="cd-refresh" style="width:100%;padding:12px 0;border-radius:12px;border:1.5px solid var(--line);background:var(--card);color:var(--brand2);font-weight:800;font-size:12.5px;margin-bottom:11px">🔄 Actualiser les données de '+esc(c.name)+'</button>';
 
-  h+=GMK("reglages");
   // 🎨 THÈME VISUEL — par défaut selon le sexe, réglable ici
   (function(){
     var th=clientTheme(allData);
@@ -13105,7 +13108,9 @@ function viewCoachDetail(){
       '</div>';
   })();
 
+  h+=cdSecClose();
   h+=GMK("analyse");
+  h+=cdSecOpen("cycle","🌙","Son cycle","Phase, régularité, prévision");
   // 🌙 SON CYCLE — seulement pour les clientes qui l'ont renseigné. Akli
   // programme ses séances dessus : une grosse séance en fin lutéale ne
   // passe pas, et une stagnation du poids avant les règles n'est pas un
@@ -13131,7 +13136,9 @@ function viewCoachDetail(){
     h+='<div style="font-size:10.5px;color:var(--mute);margin-top:8px;line-height:1.5">Donnée saisie par elle, en lecture seule ici. Un cycle long ou absent chez une cliente en déficit se traite d\'abord par le déficit.</div></div>';
   })();
 
+  h+=cdSecClose();
   h+=GMK("reglages");
+  h+=cdSecOpen("ton","🎭","Son superviseur","Ton de l'appli et prénom");
   // 🎭 TON DE L'APPLI — choisi par le client au départ, ajustable ici
   (function(){
     var SUP=supGet(allData), tk=SUP.ton;
@@ -13151,6 +13158,9 @@ function viewCoachDetail(){
       '<div style="font-size:11px;color:var(--ink2);font-style:italic;margin-top:7px;line-height:1.5">Quand il décroche : « '+esc(TONS[tk].bas[0])+' »</div>'+
       '</div>';
   })();
+  h+=cdSecClose();
+  h+=GMK("analyse");
+  h+=cdSecOpen("rapport","📄","Rapport client","PDF et résumé WhatsApp");
   (function(){
     var nR=0;for(var rr=0;rr<90;rr++){if(allData[rr]&&Object.keys(allData[rr]).length>0)nR++;}
     h+='<div class="card" style="border-left:4px solid var(--gold);padding:13px 15px">'+
@@ -13176,8 +13186,8 @@ function viewCoachDetail(){
   })();
 
   h+=cdSecClose();
-  h+=cdSecOpen("bonus","💰","Bonus &amp; documents","Finance, entraînement, bilans, rapport");
   h+=GMK("programme");
+  h+=cdSecOpen("bonus","🎁","Bonus","Quête finance, entraînement 7 jours");
   // 💰 QUÊTE FINANCE (slot 512) — bonus optionnel, pensé pour les renouvellements
   var fin=allData[512]||{};
   var finOn=!!fin.on;
@@ -13236,7 +13246,6 @@ function viewCoachDetail(){
     '<button id="fin-config" style="flex:1;font-size:11px;font-weight:800;padding:9px 0;border:1.5px solid #0D2137;border-radius:10px;background:#fff;color:#0D2137">'+(finOn?"✏️ Modifier l\'objectif":"➕ Activer + définir l\'objectif")+'</button>'+
     (finOn?'<button id="fin-off" style="flex:1;font-size:11px;font-weight:800;padding:9px 0;border:1.5px solid var(--brand);border-radius:10px;background:#fff;color:var(--brand)">⛔ Désactiver</button>':'')+'</div></div>';
 
-  h+=GMK("programme");
   // 🎬 RESET 14 JOURS : les vidéos viennent du modèle Homme / Femme.
   var estReset14=false;
   try{ estReset14=(progLen(c.start_date,allData)||90)<=14; }catch(e){}
@@ -13267,7 +13276,6 @@ function viewCoachDetail(){
     h+='</div>';
   }
 
-  h+=GMK("programme");
   // 🏋️ ENTRAÎNEMENT BONUS (7 jours) — slot 507 (clientes 90 jours)
   var tr7=allData[507]||{};
   var dayNames=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
@@ -13284,12 +13292,16 @@ function viewCoachDetail(){
   h+='</div>';
   }
 
+  h+=cdSecClose();
   h+=GMK("analyse");
+  h+=cdSecOpen("bilansrdv","📋","Ses bilans","Rendez-vous et calculateur");
   // 📋 BILANS + 🧮 CALCULATEUR
   h+='<button id="cd-bilan" class="big-btn" style="padding:14px 0;font-size:14px;background:var(--brand2);margin-bottom:8px">📋 Bilans du client</button>'+
     '<button id="cd-calc" class="big-btn" style="padding:14px 0;font-size:14px;background:var(--violet);margin-bottom:14px">🧮 Calculateur bilan</button>';
 
+  h+=cdSecClose();
   h+=GMK("reglages");
+  h+=cdSecOpen("perso","🎂","Infos personnelles","Anniversaire");
   // 🎂 Anniversaire
   var __BD=bdayLire(allData);
   var bday=__BD.bday, bd3={year:__BD.year};
@@ -13330,9 +13342,15 @@ function viewCoachDetail(){
         '&details='+encodeURIComponent(det)+'" target="_blank" rel="noopener" style="flex:1;text-align:center;padding:9px 0;border-radius:11px;border:1.5px solid var(--line);color:var(--mute);font-size:12px;font-weight:800;text-decoration:none">Google</a></div>';
     })():'')+'</div>';
 
+  h+=cdSecClose();
+  // Le mindset se lit chaque jour : il remonte en Vue d'ensemble, à nu,
+  // sans tiroir à ouvrir.
+  h+=GMK("apercu");
   // Mindset récent (14 derniers jours avec réponses, plus récent en premier)
   var msEntries=[];
-  for(var mi3=t90;mi3>=0&&msEntries.length<14;mi3--){
+  // Trois jours suffisent sur la vue d'ensemble : c'est ce qu'Akli relit au
+  // quotidien. L'historique complet reste dans le calendrier (onglet Analyse).
+  for(var mi3=t90;mi3>=0&&msEntries.length<3;mi3--){
     var dmd=allData[mi3];
     if(dmd&&dmd.mindset&&(dmd.mindset.fier||dmd.mindset.positif||dmd.mindset.negatif)){
       msEntries.push({day:mi3+1,m:dmd.mindset});
@@ -13351,6 +13369,8 @@ function viewCoachDetail(){
     }
   }
 
+  h+=GMK("reglages");
+  h+=cdSecOpen("danger","⚠️","Zone sensible","Suppression du client");
   // Zone danger : suppression
   h+='<div style="margin-top:24px;padding-top:16px;border-top:1.5px solid #EEE">'+
     '<button id="cd-delete" style="width:100%;padding:13px 0;border-radius:12px;background:#fff;border:2px solid var(--bad);color:'+R+';font-weight:800;font-size:13px">🗑️ Supprimer ce client</button>'+

@@ -997,7 +997,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="01/10 - Correctif ecran blanc";
+var APP_VERSION="01/10 - Onglets au bon endroit";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -6550,7 +6550,7 @@ function viewDay(name,start){
         '<button id="bilan-save" class="big-btn">'+(state.blEdit!=null?'Mettre à jour ✓':'Enregistrer ✓')+'</button>';
     }
   }
-  return ficheOnglets(h)+'</div></div>';
+  return h+'</div></div>';
 }
 
 function bindBlocsJour(name,start){
@@ -13357,7 +13357,7 @@ function viewCoachDetail(){
     '<div style="font-size:11px;color:var(--mute);text-align:center;margin-top:6px">Supprime définitivement toutes ses données</div></div>';
 
   h+=cdSecClose();
-  return h+'</div></div>';
+  return ficheOnglets(h)+'</div></div>';
 }
 
 // ═══════════ COACH DASH ═══════════

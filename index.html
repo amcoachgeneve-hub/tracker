@@ -327,6 +327,7 @@
 .out-b .out-i{font-size:20px;line-height:1}
 .out-bg{position:absolute;top:-7px;right:-4px;background:var(--warn-d);color:#fff;border-radius:100px;
   padding:3px 9px;font-size:10.5px;font-weight:900;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.spt-express{border-style:dashed}
 .fiche-lien{display:flex;align-items:center;justify-content:space-between;width:100%;border:0;border-radius:14px;
   padding:16px 18px;color:#fff;font-weight:800;font-size:14px;letter-spacing:.5px;text-transform:uppercase}
 .fiche-lien span{font-size:20px;line-height:1}
@@ -1000,7 +1001,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="01/10 - Fiche client triee";
+var APP_VERSION="01/10 - Onglet Sport reorganise";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -8403,6 +8404,12 @@ function viewSport(name, start) {
   if (is14 && !reset14Minuteur) return h + '</div>';
 
   // ─── Le minuteur à intervalles ───
+  // Rangé dans un tiroir : il occupait un écran entier au-dessus de tout le
+  // reste. Il s'ouvre tout seul dès qu'une séance tourne.
+  var minuteurActif = !!(typeof SPT !== "undefined" && SPT.run);
+  h += '<details class="spt-tiroir" id="spt-tiroir-int"' + (minuteurActif || state.sptIntOpen ? ' open' : '') + '>' +
+    '<summary><span class="spt-sum-t">⏱️ Minuteur à intervalles</span><span class="spt-sum-c">⌄</span></summary>' +
+    '<div class="spt-corps">';
   h += '<div id="spt-zone" class="spt-card spt-timer">' +
     '<div class="spt-lab">⏱️ Intervalles — effort / repos</div>' +
     '<div style="display:flex;justify-content:center;margin:2px 0 6px">' +
@@ -8423,6 +8430,8 @@ function viewSport(name, start) {
     '<button id="spt-go" class="spt-go">▶ DÉMARRER</button>' +
     '<button id="spt-stop" class="spt-sq" aria-label="Arrêter">■</button>' +
     '</div></div>';
+
+  h += '</div></details>';
 
   // ─── Réglages ───
   var pres = '';
@@ -10079,19 +10088,6 @@ function progCartesHTML(all) {
   var sansProg = !!P.expressSeul;
   if (sansProg) sexe = null;
 
-  // ═══ ⚡ LA SÉANCE EXPRESS, EN PREMIER ═══
-  // Ordre voulu par Akli : l'express en tête (c'est le jour où on n'a envie de
-  // rien qu'on ouvre l'appli), puis la séance du jour du programme, puis les
-  // trois mois, puis les bonus.
-  var XP = null;
-  for (var xi = 0; xi < P.seances.length; xi++) if (P.seances[xi].id === EXPRESS_ID) XP = P.seances[xi];
-  h += '<div class="spt-card"><div class="spt-lab">⚡ Séance express</div>' +
-    '<div class="spt-txt" style="margin-bottom:12px">Pas envie, mais quand même envie. 20 minutes : ' +
-    'deux exercices sur le muscle de ton choix, puis 1 min fort / 1 min souple × 5.</div>' +
-    (XP ? '<button class="p3-sea" data-prg-run="' + EXPRESS_ID + '" style="border-color:var(--brand)66;margin-bottom:10px">' +
-      '<span class="p3-sea-n">' + esc(XP.nom) + '</span><span class="p3-sea-x">reprendre ›</span></button>' : '') +
-    '<button id="spt-express" class="spt-go">⚡ Générer une séance express</button></div>';
-
   // Sexe inconnu = pas de socle possible. On le DIT au lieu de laisser un vide
   // que personne ne sait interpréter.
   if (!sexe && !court && !sansProg) {
@@ -10166,6 +10162,19 @@ function progCartesHTML(all) {
       '<button class="p3-mar-b" id="p3-marche-moins">\u2212</button>' +
       '<button class="p3-mar-b plus" id="p3-marche-plus">+</button></div></div>';
   }
+
+  // ═══ ⚡ LA SÉANCE EXPRESS, EN SECOND ═══
+  // Ordre revu le 01/10 : la séance du jour d'abord — c'est elle qu'on vient
+  // faire — puis l'express comme plan B des jours sans envie, puis les trois
+  // mois et les bonus, repliés.
+  var XP = null;
+  for (var xi = 0; xi < P.seances.length; xi++) if (P.seances[xi].id === EXPRESS_ID) XP = P.seances[xi];
+  h += '<div class="spt-card spt-express"><div class="spt-lab">⚡ Séance express</div>' +
+    '<div class="spt-txt" style="margin-bottom:12px">Pas envie, mais quand même envie. 20 minutes : ' +
+    'deux exercices sur le muscle de ton choix, puis 1 min fort / 1 min souple × 5.</div>' +
+    (XP ? '<button class="p3-sea" data-prg-run="' + EXPRESS_ID + '" style="border-color:var(--brand)66;margin-bottom:10px">' +
+      '<span class="p3-sea-n">' + esc(XP.nom) + '</span><span class="p3-sea-x">reprendre ›</span></button>' : '') +
+    '<button id="spt-express" class="spt-go">⚡ Générer une séance express</button></div>';
 
   // Le socle, mois par mois
   if (sexe && C) {

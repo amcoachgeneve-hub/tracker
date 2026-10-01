@@ -997,7 +997,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="01/10 - Actions en colonne";
+var APP_VERSION="01/10 - Ecran accueil repare";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -1504,6 +1504,23 @@ function finSaveCfg(cfg){saveDay(512,cfg);}
 // ═══════════ ÉTAT GLOBAL ═══════════
 var params=new URLSearchParams(window.location.search);
 var CLIENT=params.get("client");
+// 🏠 FILET DE SÉCURITÉ POUR L'ÉCRAN D'ACCUEIL. Le manifeste imposait une
+// adresse de démarrage sans identifiant : une cliente qui ajoutait l'appli
+// depuis ?client=masta972 ouvrait ensuite une page qui ne la reconnaissait
+// plus. On retient donc le dernier identifiant ouvert sur ce téléphone, et on
+// le remet quand l'adresse arrive nue.
+try{
+  if(CLIENT&&!params.get("coach"))localStorage.setItem("amcoach_dernier_client",CLIENT);
+  else if(!CLIENT&&!params.get("coach")){
+    var __d=localStorage.getItem("amcoach_dernier_client");
+    if(__d){
+      CLIENT=__d;
+      var __u=new URL(location.href);
+      __u.searchParams.set("client",__d);
+      history.replaceState(null,"",__u.pathname+"?"+__u.searchParams.toString()+__u.hash);
+    }
+  }
+}catch(e){}
 var IS_QG=params.get("qg")==="1";
 var BLOC=CLIENT?parseInt(localStorage.getItem("amcoach_bloc_"+CLIENT)||"1"):1;
 if(BLOC>1&&CLIENT)CLIENT=CLIENT+"-b"+BLOC;

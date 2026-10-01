@@ -997,7 +997,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="01/10 - Ecran accueil repare";
+var APP_VERSION="01/10 - Vue ensemble courte";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -12770,6 +12770,8 @@ function viewCoachDetail(){
     (function(){var la=lastActLabel(allData);return '<div style="font-size:12px;font-weight:800;margin-top:3px;color:'+la.c+'">📱 Dernière activité : '+la.t+'</div>';})()+'</div></div></div>'+
     '<div style="padding:16px 14px 0">';
 
+  h+=GMK("apercu");
+
   // KPIs
   h+='<div class="kpi-row">'+
     '<div class="kpi-card"><div class="kpi-val" style="color:'+R+'">'+(avgScore!=null?avgScore+"%":"—")+'</div><div class="kpi-lbl">Score moyen</div></div>'+
@@ -12796,6 +12798,7 @@ function viewCoachDetail(){
     return '<div class="chart-card"><div class="chart-hdr"><div class="chart-dot" style="background:'+color+'"></div>'+
       '<span class="chart-title">'+title+'</span></div>'+svgLineChart(vals,color,{min:min,max:max})+'</div>';
   }
+  h+=GMK("analyse");
   // ÉCRAN TROP LONG : les courbes ne se regardent pas à chaque ouverture de
   // fiche, elles se consultent. Elles passent en tiroir, replié par défaut.
   h+=cdSecOpen("courbes","📈","Courbes","Score, poids, mental")+

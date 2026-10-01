@@ -327,6 +327,25 @@
 .out-b .out-i{font-size:20px;line-height:1}
 .out-bg{position:absolute;top:-7px;right:-4px;background:var(--warn-d);color:#fff;border-radius:100px;
   padding:3px 9px;font-size:10.5px;font-weight:900;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.ndj-row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ndj-row2 .card{margin-bottom:10px}
+.ndj-mini{padding:12px 12px 13px}
+.ndj-mini-t{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:900;margin-bottom:8px}
+.ndj-mini-t small{font-size:11px;color:var(--mute);font-weight:700}
+.ndj-ico{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;flex:0 0 auto}
+.ndj-mini .num-input{width:100%;box-sizing:border-box;font-size:18px}
+.hab-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.hab-grid .habit{flex-direction:column;justify-content:center;align-items:center;gap:6px;padding:11px 4px 9px;margin:0;min-height:92px;text-align:center}
+.hab-grid .habit-left{flex-direction:column;gap:5px;align-items:center}
+.hab-grid .habit-icon{font-size:22px;margin:0}
+.hab-grid .habit-name{font-size:10.5px;line-height:1.2;font-weight:800}
+.hab-grid .habit-check{width:20px;height:20px;font-size:12px}
+.hab-grid #perso-add{grid-column:span 2;min-height:92px}
+.hab-grid #perso-add .habit-name{font-size:10.5px}
+.ndj-tabs{display:flex;background:var(--soft2);border-radius:14px;padding:4px;margin:16px 0 4px}
+.ndj-tab{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px 4px;border-radius:11px;border:0;
+  background:none;font-size:12.5px;font-weight:800;color:var(--mute)}
+.ndj-tab.on{background:var(--card);color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.08)}
 .spt-express{border-style:dashed}
 .fiche-lien{display:flex;align-items:center;justify-content:space-between;width:100%;border:0;border-radius:14px;
   padding:16px 18px;color:#fff;font-weight:800;font-size:14px;letter-spacing:.5px;text-transform:uppercase}
@@ -1001,7 +1020,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="01/10 - Onglet Sport reorganise";
+var APP_VERSION="01/10 - Journee compacte";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -2798,6 +2817,18 @@ document.addEventListener("click",function(ev){
     alert("C'est fait. Tes données ont été effacées de ce téléphone.");
     location.href=location.pathname;
   }
+});
+
+// 🗂️ Onglets Mindset / Grade / Identité de l'écran du jour. Écoute posée une
+// seule fois sur le document, valable quel que soit l'écran. On bascule
+// l'affichage sur place : un render ferait perdre un mindset en cours d'écriture.
+document.addEventListener("click",function(ev){
+  var t=ev.target&&ev.target.closest?ev.target.closest(".ndj-tab"):null;
+  if(!t)return;
+  var k=t.getAttribute("data-ndj"); state.ndjTab=k;
+  var tabs=document.querySelectorAll(".ndj-tab"), panes=document.querySelectorAll(".ndj-pane");
+  for(var a=0;a<tabs.length;a++)tabs[a].classList.toggle("on",tabs[a].getAttribute("data-ndj")===k);
+  for(var b=0;b<panes.length;b++)panes[b].style.display=(panes[b].getAttribute("data-pane")===k?"":"none");
 });
 
 function donneesHTML(){
@@ -6384,18 +6415,15 @@ function viewDay(name,start){
     }
   }
 
-  // poids
-  h+='<div class="card" style="display:flex;align-items:center;gap:14px"><span style="font-size:24px">⚖️</span>'+
-    '<div style="flex:1"><div class="card-label">POIDS (KG)</div>'+
-    '<input id="in-poids" class="num-input" type="number" step="0.1" placeholder="ex: 78.5" value="'+esc(d.poids||"")+'"/></div></div>';
-
-  // 😴 SOMMEIL — la nuit du jour et la semaine dans UNE seule carte :
-  // c'est la meme information a deux echelles, les separer forcait
-  // l'aller-retour entre deux blocs pour comprendre ou on en est.
-  h+='<div class="card" style="border-left:4px solid var(--brand2)">'+
-    '<div style="display:flex;align-items:center;gap:14px"><span style="font-size:24px">⏱️</span>'+
-    '<div style="flex:1"><div class="card-label">HEURES DE SOMMEIL</div>'+
-    '<input id="in-sommeil" class="num-input" type="number" step="0.5" min="0" max="24" placeholder="ex: 7.5" value="'+esc(d.sommeilH||"")+'"/></div></div>'+
+  // ⚖️😴 POIDS ET SOMMEIL CÔTE À CÔTE : deux chiffres à taper, une seule
+  // ligne. La lecture du sommeil (cycles, semaine) passe juste dessous.
+  h+='<div class="ndj-row2">'+
+    '<div class="card ndj-mini"><div class="ndj-mini-t"><span class="ndj-ico" style="background:#DCEBFF">⚖️</span>Poids <small>kg</small></div>'+
+    '<input id="in-poids" class="num-input" type="number" step="0.1" placeholder="ex: 78.5" value="'+esc(d.poids||"")+'"/></div>'+
+    '<div class="card ndj-mini"><div class="ndj-mini-t"><span class="ndj-ico" style="background:#EDE4FF">😴</span>Sommeil <small>h</small></div>'+
+    '<input id="in-sommeil" class="num-input" type="number" step="0.5" min="0" max="24" placeholder="ex: 7.5" value="'+esc(d.sommeilH||"")+'"/></div>'+
+    '</div>'+
+    '<div class="card" style="border-left:4px solid var(--brand2);padding-top:10px">'+
     '<div id="cycle-viz">'+cycleVizHTML(d.sommeilH)+'</div>'+
     '<div id="sleep-week">'+sleepWeekHTML(allData,idx,today90)+'</div>'+
     '</div>';
@@ -6407,7 +6435,7 @@ function viewDay(name,start){
   // avant la réflexion — celle qui n'a que trente secondes peut boucler sa
   // journée sans faire défiler deux écrans.
   // habits
-  h+='<div style="margin-top:16px"><div class="card-label">HABITUDES DU JOUR</div>';
+  h+='<div style="margin-top:16px"><div class="card-label">HABITUDES DU JOUR</div><div class="hab-grid">';
   for(var hb=0;hb<HABITS.length;hb++){
     var hab=HABITS[hb];
     var checked=!!habits[hab.id];
@@ -6426,7 +6454,7 @@ function viewDay(name,start){
     h+='<div id="perso-add" class="habit" style="border:2px dashed #CCC;background:transparent;color:var(--mute)">'+
       '<div class="habit-left"><span class="habit-icon">➕</span><span class="habit-name" style="color:var(--mute);font-size:13px">Ajoute TON habitude perso<br><span style="font-size:11px;font-weight:600">lecture, méditation, étirements... à toi de choisir</span></span></div></div>';
   }
-  h+='</div>';
+  h+='</div></div>';
 
   // 🔁 AFFICHÉ À L'ENVERS, volontairement. MENTAL est stocké du meilleur (0)
   // au pire (4), ÉNERGIE du pire (0) au meilleur (4) : à l'écran, les deux
@@ -6453,6 +6481,21 @@ function viewDay(name,start){
   // 🧠 MINDSET DU JOUR — remonté juste après l'énergie physique :
   // en bas de page les clients ne le remplissaient pas.
   var ms=d.mindset||{};
+  // 🗂️ Sur la journée active, le mindset, le grade et l'identité se rangent
+  // derrière trois onglets : ils empilaient trois grands blocs l'un sous
+  // l'autre. Les blocs inactifs restent dans la page, simplement masqués,
+  // pour que les champs du mindset gardent leur sauvegarde automatique.
+  var dernierJourT=Math.max(0,Math.min(today90,(progLen(start)||90)-1));
+  var avecOnglets=(idx===dernierJourT);
+  var ongletNdj=state.ndjTab||"mindset";
+  if(avecOnglets){
+    var ON=[["mindset","🧠","Mindset"],["grade","🎖️","Grade"],["identite","🏰","Identité"]];
+    h+='<div class="ndj-tabs">';
+    for(var on=0;on<ON.length;on++)
+      h+='<button class="ndj-tab'+(ongletNdj===ON[on][0]?' on':'')+'" data-ndj="'+ON[on][0]+'"><span>'+ON[on][1]+'</span>'+ON[on][2]+'</button>';
+    h+='</div>';
+  }
+  h+='<div class="ndj-pane" data-pane="mindset"'+(avecOnglets&&ongletNdj!=="mindset"?' style="display:none"':'')+'>';
   h+='<div style="margin-top:16px"><div class="card-label">🧠 MINDSET DU JOUR — 3 questions, 3 minutes</div>'+
     '<details style="margin-bottom:10px"><summary style="cursor:pointer;list-style:none;font-size:12px;font-weight:800;color:var(--violet);padding:9px 13px;background:var(--soft2);border-radius:12px">💡 Pourquoi ces 3 questions ?</summary>'+
     '<div class="card" style="padding:13px 15px;margin-top:7px;border-left:4px solid var(--violet)"><div style="font-size:12px;color:var(--mute);line-height:1.75">Ton cerveau est programmé pour retenir le négatif — c\'est un réflexe de survie. Ces 3 questions le rééquilibrent chaque soir : la <strong>fierté</strong> ancre tes victoires, la <strong>gratitude</strong> entraîne ton cerveau à voir ce qui va bien, et nommer le <strong>négatif</strong> le sort de ta tête — un problème écrit pèse deux fois moins lourd qu\'un problème ruminé. En 90 jours, ce rituel de 3 minutes reprogramme ta façon de voir tes journées. Sois honnête, sois précis : c\'est ce qui revient chaque semaine qui révèle ce qu\'il faut corriger.</div></div></details>'+
@@ -6485,10 +6528,11 @@ function viewDay(name,start){
   // On borne au dernier jour du programme : sans ça, un client au-delà de la fin
   // (ou sur un programme court de 14 jours) ne les verrait JAMAIS, puisque
   // son today90 dépasserait tous les jours affichables dans le calendrier.
-  var dernierJour=Math.max(0,Math.min(today90,(progLen(start)||90)-1));
+  h+='</div>';
+  var dernierJour=dernierJourT;
   if(idx===dernierJour){
-    h+=blocMission(allData,dernierJour,start);
-    h+=blocForteresse(allData,dernierJour,start);
+    h+='<div class="ndj-pane" data-pane="grade"'+(ongletNdj!=="grade"?' style="display:none"':'')+'>'+blocMission(allData,dernierJour,start)+'</div>';
+    h+='<div class="ndj-pane" data-pane="identite"'+(ongletNdj!=="identite"?' style="display:none"':'')+'>'+blocForteresse(allData,dernierJour,start)+'</div>';
   }
 
   // 🧠 Rappel mindset — discret, dans la journée

@@ -1020,7 +1020,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="02/10 - Depart futur gere";
+var APP_VERSION="02/10 - Reset 14 protege";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -1263,7 +1263,29 @@ var MENU_PHASES=[
 ];
 var MENU_RESET={cle:"14jours",num:"Reset",nom:"Reset 14 jours",jours:14,
   desc:"14 jours pour relancer la perte de poids."};
-function menuCfg(data){return (data&&data[517])||{};}
+// 🍽️ Sur un Reset 14 jours, les menus sont inclus et ne s'éteignent pas.
+// Akli a décoché la case « menus » en pensant couper ceux du 90 jours : ça
+// coupait ceux du Reset. La lecture force donc menus actifs, en mode Reset,
+// calés sur le jour 1, quel que soit l'état de la case.
+function menuDepartDe(data){
+  try{
+    if(IS_COACH&&state&&state.coachDetail)return lsGetStr("amcoach_start_"+state.coachDetail)||"";
+    if(CLIENT)return lsGetStr("amcoach_start_"+CLIENT)||"";
+  }catch(e){}
+  return "";
+}
+function estReset14(data){
+  var st=menuDepartDe(data);
+  return !!st && !!(data&&data[504]&&data[504].end) && progLen(st,data)<=14;
+}
+function menuCfg(data){
+  var m=(data&&data[517])||{};
+  if(!estReset14(data))return m;
+  var r={}; for(var k in m)if(m.hasOwnProperty(k))r[k]=m[k];
+  r.on=true; r.reset=true; r.phaseForcee=null;
+  if(!r.debut)r.debut=menuDepartDe(data);
+  return r;
+}
 // L'onglet apparaît dès l'activation, même si le démarrage est dans plusieurs
 // jours : le client doit pouvoir lire ses menus et faire ses courses avant.
 function menuActif(data){return !!menuCfg(data).on;}
@@ -1527,6 +1549,18 @@ function finSaveCfg(cfg){saveDay(512,cfg);}
 // ═══════════ ÉTAT GLOBAL ═══════════
 var params=new URLSearchParams(window.location.search);
 var CLIENT=params.get("client");
+// 🍽️ Réparation des menus Reset éteints, posée après le chargement.
+setTimeout(function(){
+  try{
+    if(IS_COACH||!CLIENT)return;
+    var all=getAllData(), brut=all[517]||{};
+    if(estReset14(all)&&(!brut.on||!brut.reset)){
+      var r=menuCfg(all);
+      saveDay(517,{on:true,reset:true,phaseForcee:null,debut:r.debut,note:brut.note||""});
+    }
+  }catch(e){}
+},3000);
+
 // 🏠 FILET DE SÉCURITÉ POUR L'ÉCRAN D'ACCUEIL. Le manifeste imposait une
 // adresse de démarrage sans identifiant : une cliente qui ajoutait l'appli
 // depuis ?client=masta972 ouvrait ensuite une page qui ne la reconnaissait
@@ -6502,7 +6536,10 @@ function viewDay(name,start){
   // l'autre. Les blocs inactifs restent dans la page, simplement masqués,
   // pour que les champs du mindset gardent leur sauvegarde automatique.
   var dernierJourT=Math.max(0,Math.min(today90,(progLen(start)||90)-1));
-  var avecOnglets=(idx===dernierJourT);
+  // 🎖️🏰 Grade et identité se construisent sur 90 jours : sur un Reset de
+  // 14 jours, ils n'ont pas le temps de prendre sens. Mindset seul.
+  var court14=(progLen(start)||90)<=14;
+  var avecOnglets=(idx===dernierJourT)&&!court14;
   var ongletNdj=state.ndjTab||"mindset";
   if(avecOnglets){
     var ON=[["mindset","🧠","Mindset"],["grade","🎖️","Grade"],["identite","🏰","Identité"]];
@@ -6546,7 +6583,7 @@ function viewDay(name,start){
   // son today90 dépasserait tous les jours affichables dans le calendrier.
   h+='</div>';
   var dernierJour=dernierJourT;
-  if(idx===dernierJour){
+  if(idx===dernierJour&&!court14){
     h+='<div class="ndj-pane" data-pane="grade"'+(ongletNdj!=="grade"?' style="display:none"':'')+'>'+blocMission(allData,dernierJour,start)+'</div>';
     h+='<div class="ndj-pane" data-pane="identite"'+(ongletNdj!=="identite"?' style="display:none"':'')+'>'+blocForteresse(allData,dernierJour,start)+'</div>';
   }
@@ -16889,7 +16926,10 @@ function bindCoach(){
 
       // 3) Les menus suivent : Reset, calé sur le même jour 1
       var mc=lsGet("amcoach_"+slug,{})[517]||{};
-      if(mc.on){ mc.reset=true; mc.phaseForcee=null; mc.debut=nd; coachSaveSlot(slug,517,mc); }
+      // Les menus font partie du Reset : on les allume toujours. Avant, ils ne
+      // basculaient que s'ils étaient déjà actifs — une cliente aux menus
+      // éteints démarrait son Reset sans ses menus.
+      mc.on=true; mc.reset=true; mc.phaseForcee=null; mc.debut=nd; coachSaveSlot(slug,517,mc);
 
       try{ vid14AppliquerA(slug); }catch(e){}
       feedback("⚡ Reset 14 jours — du "+isoVersFr(nd)+" au "+isoVersFr(isoLocal(end)),"win");
@@ -16898,6 +16938,10 @@ function bindCoach(){
   });
   var r14off=document.getElementById("reset14-off");
   if(r14off)r14off.addEventListener("click",function(){
+    // Ce bouton change TOUT le programme du client, pas une option des
+    // menus : le 02/10 il a été pris pour « décocher les menus 90 jours » et
+    // Masta972 a perdu ses menus du Reset. On le dit avant d'agir.
+    if(!confirm("Passer ce client au programme 90 jours ?\n\nIl quitte le Reset 14 jours : ses menus du Reset disparaissent et il retrouve grade, identité et Dream Board.\n\nPour revenir en arrière : « ⚡ Activer 14 jours »."))return;
     var acc=lsGet("amcoach_"+state.coachDetail,{})[504]||{};
     acc.end=null;acc.off=false;saveAcc(acc);
   });

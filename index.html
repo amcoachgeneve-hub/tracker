@@ -1020,7 +1020,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="01/10 - Journee compacte";
+var APP_VERSION="02/10 - Depart futur gere";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -2088,6 +2088,22 @@ function getToday90(startDate){
   var b=Date.UTC(n.getFullYear(),n.getMonth(),n.getDate());
   var diff=Math.round((b-a)/86400000);
   return Math.max(0,Math.min(diff,89));
+}
+
+// ⏳ Jours restants avant la date de départ. 0 dès que le programme a
+// commencé. getToday90 plafonne à 0 pour un départ futur : sans ce test, un
+// client qui démarre le 5 décembre passait pour un client au jour 1.
+function joursAvantDepart(startDate){
+  if(!startDate)return 0;
+  var ds=String(startDate).slice(0,10).split("-");
+  var a=Date.UTC(+ds[0],(+ds[1]||1)-1,+ds[2]||1);
+  var n=new Date(), b=Date.UTC(n.getFullYear(),n.getMonth(),n.getDate());
+  var diff=Math.round((a-b)/86400000);
+  return diff>0?diff:0;
+}
+function dateCourteFR(startDate){
+  var ds=String(startDate||"").slice(0,10).split("-");
+  return ds.length===3?ds[2]+"/"+ds[1]:"";
 }
 
 var GOAL_PHRASES=[
@@ -7479,6 +7495,7 @@ function viewStats(name){
   (function(){
     var sexe=null; try{sexe=prog3Sexe(allData);}catch(e){}
     if(sexe!=="f")return;
+    if(progLen(lsGetStr("amcoach_start_"+CLIENT))<=14)return;
     var c=cycGet(allData);
     if(!c.on)return;
     var E=cycEtat(c), ST=cycStats(c), moyR=cycReglesMoy(c);
@@ -10693,6 +10710,10 @@ function cycLigneHTML(all) {
   var sexe = null;
   try { sexe = prog3Sexe(all); } catch (e) { }
   if (sexe !== "f") return "";
+  // 🔷 Reset 14 jours : pas de suivi du cycle. Il faut trois cycles pour lire
+  // une régularité ; sur deux semaines, la carte n'apporte rien et prend de
+  // la place sur l'écran qu'on ouvre chaque jour.
+  if (progLen(lsGetStr("amcoach_start_" + CLIENT)) <= 14) return "";
   var c = cycGet(all), E = c.on ? cycEtat(c) : null;
   var titre = E ? "Mon cycle — jour " + E.jour : "Remplir mon cycle";
   var sous = E ? E.def.nom + " · énergie " + E.def.energie.toLowerCase()
@@ -13163,7 +13184,10 @@ function viewCoachDetail(){
 
   h+=cdSecClose();
   h+=GMK("analyse");
-  h+=cdSecOpen("cycle","🌙","Son cycle","Phase, régularité, prévision");
+  // Sur un Reset 14 jours, pas de section cycle du tout : un titre sans
+  // contenu donnait l'impression d'une donnée manquante.
+  var sansCycle=progLen(lsGetStr("amcoach_start_"+state.coachDetail),allData)<=14;
+  if(!sansCycle)h+=cdSecOpen("cycle","🌙","Son cycle","Phase, régularité, prévision");
   // 🌙 SON CYCLE — seulement pour les clientes qui l'ont renseigné. Akli
   // programme ses séances dessus : une grosse séance en fin lutéale ne
   // passe pas, et une stagnation du poids avant les règles n'est pas un
@@ -13171,6 +13195,7 @@ function viewCoachDetail(){
   (function(){
     var sexe=null; try{sexe=prog3Sexe(allData);}catch(e){}
     if(sexe!=="f")return;
+    if(progLen(lsGetStr("amcoach_start_"+state.coachDetail),allData)<=14)return;
     var c=cycGet(allData);
     if(!c.on)return;
     var E=cycEtat(c), ST=cycStats(c), moyR=cycReglesMoy(c);
@@ -13189,7 +13214,7 @@ function viewCoachDetail(){
     h+='<div style="font-size:10.5px;color:var(--mute);margin-top:8px;line-height:1.5">Donnée saisie par elle, en lecture seule ici. Un cycle long ou absent chez une cliente en déficit se traite d\'abord par le déficit.</div></div>';
   })();
 
-  h+=cdSecClose();
+  if(!sansCycle)h+=cdSecClose();
   h+=GMK("reglages");
   h+=cdSecOpen("ton","🎭","Son superviseur","Ton de l'appli et prénom");
   // 🎭 TON DE L'APPLI — choisi par le client au départ, ajustable ici
@@ -13636,7 +13661,7 @@ function archBascule(slug){
 }
 function coachPouls(){
   var cl=lsGet("amcoach_clients",[]).filter(function(c){return !archEst(c.slug);});
-  var out={vert:[],orange:[],rouge:[],fini:[],tous:[]};
+  var out={vert:[],orange:[],rouge:[],attente:[],fini:[],tous:[]};
   for(var i=0;i<cl.length;i++){
     var c=cl[i], d=lsGet("amcoach_"+c.slug,{});
     var dur=progLen(c.start_date,lsGet("amcoach_"+c.slug,{}))||90;
@@ -13651,19 +13676,21 @@ function coachPouls(){
     var la=d[505]&&d[505].d;
     var sil=la?Math.floor((new Date(isoLocal())-new Date(la))/86400000):(last>=0?t90-last:jours);
     var fini=t90>=dur-1;
+    var avant=joursAvantDepart(c.start_date);
     var etat,motif;
-    if(fini){etat="fini";motif="Programme terminé";}
+    if(avant>0){etat="attente";motif="Démarre le "+dateCourteFR(c.start_date);}
+    else if(fini){etat="fini";motif="Programme terminé";}
     else if(sil>=7){etat="rouge";motif="Silence depuis "+sil+" jours";}
     else if(assidu<40&&jours>=5){etat="rouge";motif="Assiduité "+assidu+" %";}
     else if(sil>=3){etat="orange";motif="Rien depuis "+sil+" jours";}
     else if(assidu<70&&jours>=5){etat="orange";motif="Assiduité "+assidu+" %";}
     else {etat="vert";motif=sil<=1?"À jour":"Rien depuis "+sil+" j";}
-    var o={nom:c.name,slug:c.slug,jour:jours,duree:dur,assidu:assidu,silence:sil,
-           etat:etat,motif:motif,horsStats:!!c.horsStats};
+    var o={nom:c.name,slug:c.slug,jour:avant>0?0:jours,duree:dur,assidu:avant>0?0:assidu,silence:avant>0?0:sil,
+           etat:etat,motif:motif,horsStats:!!c.horsStats,avant:avant};
     out[etat].push(o); out.tous.push(o);
   }
   // Les plus urgents d'abord
-  var ordre={rouge:0,orange:1,vert:2,fini:3};
+  var ordre={rouge:0,orange:1,vert:2,attente:3,fini:4};
   out.tous.sort(function(a,b){
     if(ordre[a.etat]!==ordre[b.etat])return ordre[a.etat]-ordre[b.etat];
     return b.silence-a.silence;
@@ -14827,7 +14854,8 @@ function viewCoachDash(){
     // Pastille pastel + texte foncé : lisible, et la couleur dit l'état sans
     // hurler comme un gros rond plein.
     var COUL={rouge:{p:"❗",c:"var(--bad)",pastel:"#F8D2D2"},orange:{p:"⚠️",c:"var(--warn-d)",pastel:"#FBE4C4"},
-              vert:{p:"✅",c:"var(--ok-d)",pastel:"#C7EAD7"},fini:{p:"⚫",c:"var(--mute)",pastel:"#E4E7EC"}};
+              vert:{p:"✅",c:"var(--ok-d)",pastel:"#C7EAD7"},attente:{p:"⏳",c:"#3B6FD8",pastel:"#DCE7FB"},
+              fini:{p:"⚫",c:"var(--mute)",pastel:"#E4E7EC"}};
     var lignes='';
     for(var i=0;i<P.tous.length;i++){
       var o=P.tous[i], C=COUL[o.etat], d=lsGet("amcoach_"+o.slug,{});
@@ -14851,12 +14879,16 @@ function viewCoachDash(){
         '<span class="cli-nom">'+esc(o.nom)+
         (o.horsStats?' <span style="font-size:9.5px;color:var(--mute);font-weight:700">· hors stats</span>':'')+'</span>'+
         '<span class="cli-sous"><span style="color:'+C.c+'">'+C.p+' '+esc(o.motif)+'</span>'+chip+'</span></span>'+
-        '<span class="cli-droite">'+
-        '<span class="cli-haut">'+
-        '<span class="cli-pct" style="color:'+gaugeCol(o.assidu)+'">'+o.assidu+'%</span>'+
-        '<span class="cli-jour">J'+o.jour+'/'+o.duree+'</span></span>'+
-        '<span class="cli-bar"><span style="width:'+Math.max(2,Math.min(100,o.assidu))+'%;background:'+gaugeCol(o.assidu)+'"></span></span>'+
-        '</span></button>'+waBtn+'</div>';
+        (o.avant>0
+          ? '<span class="cli-droite"><span class="cli-haut"><span class="cli-pct" style="color:#3B6FD8">⏳</span>'+
+            '<span class="cli-jour">dans '+o.avant+' j</span></span></span>'
+          : '<span class="cli-droite">'+
+            '<span class="cli-haut">'+
+            '<span class="cli-pct" style="color:'+gaugeCol(o.assidu)+'">'+o.assidu+'%</span>'+
+            '<span class="cli-jour">J'+o.jour+'/'+o.duree+'</span></span>'+
+            '<span class="cli-bar"><span style="width:'+Math.max(2,Math.min(100,o.assidu))+'%;background:'+gaugeCol(o.assidu)+'"></span></span>'+
+            '</span>')+
+        '</button>'+waBtn+'</div>';
     }
     var resume='';
     ["rouge","orange","vert","fini"].forEach(function(k){
@@ -14995,7 +15027,9 @@ function viewCoachDash(){
         '<div class="ring-wrap">'+svgRing(score/100,scol,56)+
         '<div class="ring-txt" style="font-size:13px">'+score+'%</div></div>'+
         '<div style="flex:1"><div style="font-weight:900;font-size:18px">'+esc(c.name)+'</div>'+
-        '<div style="font-size:12px;color:var(--mute);margin-top:2px">Jour '+Math.min(t90+1,progLen(c.start_date,lsGet("amcoach_"+c.slug,{}))||90)+'/'+(progLen(c.start_date,lsGet("amcoach_"+c.slug,{}))||90)+' · départ '+new Date(c.start_date).toLocaleDateString("fr-FR")+'</div>'+
+        '<div style="font-size:12px;color:var(--mute);margin-top:2px">'+(joursAvantDepart(c.start_date)>0
+          ? '<b style="color:#3B6FD8">⏳ Démarre le '+dateCourteFR(c.start_date)+' · dans '+joursAvantDepart(c.start_date)+' j</b> · '
+          : '')+'Jour '+Math.min(t90+1,progLen(c.start_date,lsGet("amcoach_"+c.slug,{}))||90)+'/'+(progLen(c.start_date,lsGet("amcoach_"+c.slug,{}))||90)+' · départ '+new Date(c.start_date).toLocaleDateString("fr-FR")+'</div>'+
         (function(){var la=lastActLabel(lsGet("amcoach_"+c.slug,{}));return '<div style="font-size:11px;font-weight:800;margin-top:3px;color:'+la.c+'">📱 Dernière activité : '+la.t+'</div>';})()+'</div></div>'+
         // 📊 Indicateurs 7 derniers jours : briques identité · missions du jour · journal
         (function(){
@@ -15004,6 +15038,8 @@ function viewCoachDash(){
           // est à jour ». Une fenêtre glissante de 7 jours mélangeait la
           // semaine en cours et la précédente — impossible de dire, un jeudi,
           // qui avait tenu SA semaine.
+          // Pas encore commencé : aucune semaine à compter.
+          if(joursAvantDepart(c.start_date)>0)return "";
           var jourSem=(new Date().getDay()+6)%7;   // 0 = lundi … 6 = dimanche
           var from=Math.max(0,t90-jourSem), nd=Math.min(t90,89)-from+1;
           if(nd<1)return "";

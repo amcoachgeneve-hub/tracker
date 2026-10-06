@@ -346,6 +346,10 @@
 .ndj-tab{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px 4px;border-radius:11px;border:0;
   background:none;font-size:12.5px;font-weight:800;color:var(--mute)}
 .ndj-tab.on{background:var(--card);color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.pp-btn{position:absolute;right:16px;top:50%;transform:translateY(-50%);width:46px;height:46px;border-radius:50%;
+  border:2px solid var(--brand);background:var(--soft2);padding:0;overflow:hidden;display:flex;align-items:center;justify-content:center;z-index:3}
+.pp-btn img{width:100%;height:100%;object-fit:cover;display:block}
+.pp-btn span{font-size:19px}
 .spt-express{border-style:dashed}
 .fiche-lien{display:flex;align-items:center;justify-content:space-between;width:100%;border:0;border-radius:14px;
   padding:16px 18px;color:#fff;font-weight:800;font-size:14px;letter-spacing:.5px;text-transform:uppercase}
@@ -1020,7 +1024,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="05/10 - Partage du diplome";
+var APP_VERSION="06/10 - Programme 14 ou 90 visible";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -4224,100 +4228,210 @@ function svgMontagneDiplome(){
   '</svg>';
 }
 
+// 🎓 LE DIPLÔME — 90 jours (AM Transfo) ou 14 jours (Reset). Une toile fixe
+// 540×960, le format 9:16 d'une story, réduite à l'écran et exportée en
+// 1080×1920 pour le partage.
+
+// 📷 PHOTO DE PROFIL (slot 531). Recadrée en carré, réduite à 320 px et
+// compressée : ~25 Ko, assez léger pour voyager avec la synchro sans peser.
+function photoProfilRedim(file,cb){
+  try{
+    var r=new FileReader();
+    r.onload=function(){
+      var im=new Image();
+      im.onload=function(){
+        var c=Math.min(im.width,im.height), S=320, cv=document.createElement("canvas");
+        cv.width=S;cv.height=S;
+        var x=cv.getContext("2d");
+        x.drawImage(im,(im.width-c)/2,(im.height-c)/2,c,c,0,0,S,S);
+        try{cb(cv.toDataURL("image/jpeg",0.82));}catch(e){cb(null);}
+      };
+      im.onerror=function(){cb(null);};
+      im.src=r.result;
+    };
+    r.onerror=function(){cb(null);};
+    r.readAsDataURL(file);
+  }catch(e){cb(null);}
+}
+function photoProfilEnregistrer(u){ saveDay(531,{img:u,maj:isoLocal()}); }
+function photoProfil(){ var d=getAllData()[531]; return (d&&d.img)||""; }
+// Le diplôme se (re)dessine dans la fenêtre donnée : à l'ouverture, et après
+// l'ajout d'une photo depuis le diplôme lui-même.
+function diplomeRemplir(win){
+  var nm=lsGetStr("amcoach_name_"+CLIENT), st=lsGetStr("amcoach_start_"+CLIENT);
+  var html=generateDiplome(nm,st,getAllData());
+  win.document.open(); win.document.write(html); win.document.close();
+}
+
+function diplomeNumero(slug,startDate,n){
+  // Un numéro stable, tiré du client et de sa date : il ne change jamais d'un
+  // affichage à l'autre, ce qui le rend vérifiable.
+  var k=String(slug||"")+"|"+String(startDate||""), hsh=0;
+  for(var i=0;i<k.length;i++){hsh=((hsh<<5)-hsh+k.charCodeAt(i))|0;}
+  var num=("000"+(Math.abs(hsh)%10000)).slice(-4);
+  return "N° AM-"+(n<=14?"R14-":"")+String(startDate||"").slice(0,4)+"-"+num;
+}
+// 🏰 L'identité n'apparaît sur le diplôme QUE si elle a été atteinte : le
+// palier final de la forteresse (120 briques), au plus haut jamais touché.
+// Non atteinte, rien n'est écrit — un diplôme ne liste que des acquis.
+function diplomeIdentite(allData,n){
+  try{
+    if(n<=14)return null;
+    var cfg=qgConfig(allData); if(!cfg||!cfg.identity)return null;
+    var res=qgRes(allData,n-1), ech=qgEchelle(allData);
+    var lvMax=qgLevel(res.total,ech);
+    return lvMax&&lvMax.min>=120?cfg.identity:null;
+  }catch(e){return null;}
+}
+function sceauDoreSVG(){
+  return '<svg viewBox="0 0 120 120" width="88" height="88" xmlns="http://www.w3.org/2000/svg">'+
+    '<defs><path id="sc-c" d="M60,60 m-41,0 a41,41 0 1,1 82,0 a41,41 0 1,1 -82,0"/>'+
+    '<radialGradient id="sc-g" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#f6e08f"/><stop offset=".6" stop-color="#d4af37"/><stop offset="1" stop-color="#a8841f"/></radialGradient></defs>'+
+    '<circle cx="60" cy="60" r="57" fill="url(#sc-g)"/>'+
+    '<circle cx="60" cy="60" r="51" fill="none" stroke="#fff8dc" stroke-width="1.5" stroke-dasharray="2 3"/>'+
+    '<circle cx="60" cy="60" r="31" fill="none" stroke="#fff8dc" stroke-width="1.2"/>'+
+    // Le texte fait UN tour exact du cercle (2πr ≈ 257) : répété, il se
+    // chevauchait.
+    '<text font-family="Inter,Arial,sans-serif" font-size="9" font-weight="800" fill="#fff8dc">'+
+    '<textPath href="#sc-c" startOffset="0" textLength="252" lengthAdjust="spacing">AM COACH GENÈVE · VALIDÉ · TRANSFO PHYSIQUE ·</textPath></text>'+
+    '<text x="60" y="58" text-anchor="middle" font-family="Georgia,serif" font-size="20" font-weight="700" fill="#fff">✓</text>'+
+    '<text x="60" y="75" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="8" font-weight="800" letter-spacing="1.5" fill="#fff8dc">VALIDÉ</text>'+
+  '</svg>';
+}
+
 function generateDiplome(name,startDate,allData){
-  var d0=new Date(startDate), d1=new Date(d0); d1.setDate(d1.getDate()+89);
+  var n=progLen(startDate,allData)||90;
+  var reset=n<=14;
+  var d0=new Date(startDate), d1=new Date(d0); d1.setDate(d1.getDate()+n-1);
   var fmt=function(dt){return dt.toLocaleDateString("fr-FR");};
-  var series=computeSeries(allData,90);
+  var series=computeSeries(allData,n);
   var filled=series.filter(function(s){return s.score!=null;}).length;
-  var M=montagne90(allData,89);
-  // 🏔️ La montagne raconte les 90 jours entiers : poids de DÉPART à gauche,
-  // poids d'ARRIVÉE à droite (la dernière pesée), et l'écart au milieu. La
-  // cible n'est plus le chiffre de droite : on lisait « 81,5 → 74 kg », ce qui
-  // ressemblait à un résultat alors que c'était un objectif.
-  // Départ = pesée du J1, arrivée = dernière pesée jusqu'au J90. La config
-  // nutrition (pDepart) date souvent du mois 3 : elle affichait 81,5 kg au
-  // lieu des 84 kg réellement pesés le premier jour.
+  var M=montagne90(allData,n-1);
+
+  // Départ = pesée du J1, arrivée = dernière pesée jusqu'au dernier jour.
   var dep=null, arr=null;
-  for(var pj=0;pj<90;pj++){
+  for(var pj=0;pj<n;pj++){
     var pd=allData&&allData[pj];
     if(pd&&pd.poids!=null&&pd.poids!==""){var pv=parseFloat(String(pd.poids).replace(",","."));
       if(!isNaN(pv)){ if(dep==null)dep=pv; arr=pv; }}
   }
+  var delta=(dep!=null&&arr!=null)?Math.round((arr-dep)*10)/10:null;
+  var pctPoids=(delta!=null&&dep)?Math.round(delta/dep*1000)/10:null;
   var cibleD=M.cible;
   var pctD=(dep!=null&&arr!=null&&cibleD!=null&&Math.abs(dep-cibleD)>0.05)
     ?Math.max(0,Math.min(100,Math.round((dep-arr)/(dep-cibleD)*100))):null;
-  var delta=(dep!=null&&arr!=null)?Math.round((arr-dep)*10)/10:null;
   var fmtKg=function(v){return String(v).replace(".",",");};
+  var signe=function(v){return (v>0?"+":"")+fmtKg(v);};
+  var photo=(allData&&allData[531]&&allData[531].img)||"";
+  var identite=diplomeIdentite(allData,n);
+  var numero=diplomeNumero(CLIENT,startDate,n);
+
+  var T=reset
+    ? {titre:'DIPLÔME<br>RESET 14',sous:'« Le déclic est enclenché »',
+       txt:'Pour avoir relevé avec discipline le défi Reset de 14 jours — nutrition, marche, mouvement et mindset.',
+       msg:'« Félicitations. En 14 jours, tu as prouvé que tu pouvais changer tes habitudes. Le plus dur est fait : maintenant, on construit. Bravo. »'}
+    : {titre:'DIPLÔME AM<br>TRANSFO',sous:'« Nouvelle version de toi-même »',
+       txt:'Pour avoir accompli avec courage et discipline le programme complet de transformation physique de 90 jours — nutrition, sport, sommeil et mental.',
+       msg:'« Félicitations. Ce n\'est que le début — tu viens de te prouver que tu es capable de bien plus que tu ne le pensais. Je suis fier de toi. Bravo. »'};
 
   var html='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>'+
   '<title>Diplôme — '+esc(name)+'</title>'+
-  '<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Inter:wght@500;600;700&display=swap" rel="stylesheet"/>'+
+  '<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Inter:wght@500;600;700;800&family=Great+Vibes&display=swap" rel="stylesheet"/>'+
   '<style>'+
   '*{box-sizing:border-box;margin:0;padding:0}'+
   'html,body{height:100%;overflow:hidden}'+
   'body{background:#e9ecf2;font-family:Inter,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center}'+
   '#toile{width:540px;height:960px;transform-origin:center center;flex:0 0 auto}'+
   '.dip{width:540px;height:960px;background:#fdfbf7;border:2px solid #d4af37;border-radius:24px;padding:12px;box-shadow:0 20px 50px rgba(0,0,0,.14)}'+
-  '.inner{height:100%;border:1px solid #d4af37;border-radius:16px;padding:24px 30px 20px;text-align:center;display:flex;flex-direction:column}'+
-  '.brand{display:flex;align-items:center;justify-content:center;gap:14px;font-family:"Playfair Display",Georgia,serif;font-size:19px;font-weight:600;letter-spacing:3.5px;color:#1a2744}'+
-  '.brand i{width:2px;height:20px;background:#d4af37;display:inline-block}'+
-  '.sub{font-size:11px;letter-spacing:2.6px;color:#c99a1e;text-transform:uppercase;margin-top:6px;font-weight:700}'+
-  '.mont{margin:12px 0 2px;border-radius:16px;overflow:hidden;background:#fdfbf7}'+
-  '.mont svg{height:190px;width:100%;display:block}'+
-  '.parcours{display:flex;align-items:flex-end;justify-content:space-between;margin:6px 6px 0}'+
+  '.inner{height:100%;border:1px solid #d4af37;border-radius:16px;padding:20px 28px 16px;text-align:center;display:flex;flex-direction:column;justify-content:space-between}'+
+  '.brand{display:flex;align-items:center;justify-content:center;gap:14px;font-family:"Playfair Display",Georgia,serif;font-size:18px;font-weight:600;letter-spacing:3.5px;color:#1a2744}'+
+  '.brand i{width:2px;height:19px;background:#d4af37;display:inline-block}'+
+  '.sub{font-size:10.5px;letter-spacing:2.6px;color:#c99a1e;text-transform:uppercase;margin-top:5px;font-weight:700}'+
+  '.mont{position:relative;margin:11px 0 0;border-radius:16px;overflow:hidden;background:#fdfbf7}'+
+  '.mont svg{height:'+(photo?150:172)+'px;width:100%;display:block}'+
+  '.photo{width:96px;height:96px;border-radius:50%;border:3px solid #d4af37;box-shadow:0 6px 18px rgba(26,39,68,.25);margin:-50px auto 4px;position:relative;z-index:2;overflow:hidden;background:#fff}'+
+  '.photo img{width:100%;height:100%;object-fit:cover;display:block}'+
+  '.parcours{display:flex;align-items:flex-end;justify-content:space-between;margin:6px 4px 0}'+
   '.pt{text-align:left}.pt.r{text-align:right}'+
-  '.pt b{display:block;font-family:"Playfair Display",Georgia,serif;font-size:27px;color:#1a2744;font-weight:600;line-height:1.1}'+
-  '.pt span{font-size:10px;letter-spacing:1.8px;text-transform:uppercase;color:#6b7280;font-weight:700}'+
-  '.ecart{font-size:17px;font-weight:800;color:#0ea5e9;padding-bottom:3px}'+
-  '.cible{font-size:11.5px;color:#6b7280;margin:6px 0 0}'+
-  '.title{font-family:"Playfair Display",Georgia,serif;font-size:36px;color:#d4af37;margin:12px 0 2px;font-weight:700;line-height:1.08;letter-spacing:-.5px}'+
-  '.subtitle{font-family:"Playfair Display",Georgia,serif;font-size:17px;color:#1a2744;font-style:italic}'+
-  '.orne{display:flex;align-items:center;justify-content:center;gap:9px;margin:9px 0}'+
-  '.orne i{width:64px;height:1px;background:#d4af37;display:block}.orne b{width:7px;height:7px;background:#d4af37;transform:rotate(45deg);display:block}'+
-  '.decerne{font-size:11px;color:#4b5563;letter-spacing:2.6px;text-transform:uppercase;font-weight:700}'+
-  '.name{font-family:"Playfair Display",Georgia,serif;font-size:42px;color:#1a2744;font-weight:600;line-height:1.1;margin:2px 0 0}'+
-  '.trait{width:60%;height:1px;background:#d4af37;margin:7px auto 11px}'+
-  '.txt{font-family:Georgia,serif;font-size:14.5px;color:#2b3445;line-height:1.5;margin:0 auto 12px;max-width:430px}'+
-  '.stats{display:flex;justify-content:center;margin:0 auto 12px;width:100%;max-width:440px}'+
+  '.pt b{display:block;font-family:"Playfair Display",Georgia,serif;font-size:25px;color:#1a2744;font-weight:600;line-height:1.1}'+
+  '.pt span{font-size:9.5px;letter-spacing:1.8px;text-transform:uppercase;color:#6b7280;font-weight:700}'+
+  '.ecart{font-size:15px;font-weight:800;color:#0ea5e9;padding-bottom:3px;line-height:1.2}'+
+  '.ecart small{display:block;font-size:11px;color:#6b7280;font-weight:700}'+
+  '.cible{font-size:11px;color:#6b7280;margin:4px 0 0}'+
+  '.title{font-family:"Playfair Display",Georgia,serif;font-size:33px;color:#d4af37;margin:10px 0 2px;font-weight:700;line-height:1.06;letter-spacing:-.5px}'+
+  '.subtitle{font-family:"Playfair Display",Georgia,serif;font-size:16px;color:#1a2744;font-style:italic}'+
+  '.orne{display:flex;align-items:center;justify-content:center;gap:9px;margin:7px 0}'+
+  '.orne i{width:60px;height:1px;background:#d4af37;display:block}.orne b{width:7px;height:7px;background:#d4af37;transform:rotate(45deg);display:block}'+
+  '.decerne{font-size:10.5px;color:#4b5563;letter-spacing:2.6px;text-transform:uppercase;font-weight:700}'+
+  '.name{font-family:"Playfair Display",Georgia,serif;font-size:38px;color:#1a2744;font-weight:600;line-height:1.1;margin:1px 0 0}'+
+  '.ident{display:inline-block;margin:5px auto 0;padding:4px 12px;border-radius:20px;background:#fbf3d6;border:1px solid #d4af37;color:#8a6a12;font-size:11px;font-weight:800;letter-spacing:.4px}'+
+  '.trait{width:58%;height:1px;background:#d4af37;margin:7px auto 9px}'+
+  '.txt{font-family:Georgia,serif;font-size:13.5px;color:#2b3445;line-height:1.48;margin:0 auto 10px;max-width:430px}'+
+  '.stats{display:flex;justify-content:center;margin:0 auto 9px;width:100%;max-width:440px}'+
   '.st{flex:1;padding:2px 6px}.st+.st{border-left:1px solid #d4af37}'+
-  '.sv{font-family:Inter,-apple-system,sans-serif;font-size:31px;color:#0ea5e9;font-weight:800;line-height:1.1}'+
-  '.sl{font-size:10px;color:#4b5563;letter-spacing:1.8px;text-transform:uppercase;margin-top:4px;font-weight:700}'+
-  '.msg{font-family:"Playfair Display",Georgia,serif;font-size:15px;color:#1a2744;font-style:italic;line-height:1.5;max-width:440px;margin:0 auto 10px}'+
-  '.pied{margin-top:auto}'+
-  '.sig-name{font-family:"Playfair Display",Georgia,serif;font-size:24px;color:#1a2744;font-weight:600}'+
-  '.sig-role{font-size:10px;color:#4b5563;letter-spacing:2px;text-transform:uppercase;margin-top:2px;font-weight:700}'+
-  '.dates{font-size:11px;color:#9ca3af;margin-top:7px;letter-spacing:1.6px}'+
-  '@media print{body{background:#fff;padding:0}.dip{box-shadow:none}}'+
+  '.sv{font-size:29px;color:#0ea5e9;font-weight:800;line-height:1.1}'+
+  '.sl{font-size:9.5px;color:#4b5563;letter-spacing:1.8px;text-transform:uppercase;margin-top:3px;font-weight:700}'+
+  '.msg{font-family:"Playfair Display",Georgia,serif;font-size:14px;color:#1a2744;font-style:italic;line-height:1.45;max-width:440px;margin:0 auto 6px}'+
+  '.pied{display:flex;align-items:flex-end;justify-content:space-between;gap:8px}'+
+  '.qr{width:74px;text-align:center}.qr img,.qr svg{width:64px;height:64px;display:block;margin:0 auto}'+
+  '.qr span{display:block;font-size:7.5px;color:#9ca3af;letter-spacing:.8px;margin-top:3px;font-weight:700}'+
+  '.sig{flex:1;text-align:center}'+
+  '.sig-name{font-family:"Great Vibes","Snell Roundhand",cursive;font-size:38px;color:#1a2744;line-height:1}'+
+  '.sig-role{font-size:9px;color:#4b5563;letter-spacing:1.8px;text-transform:uppercase;margin-top:2px;font-weight:700}'+
+  '.dates{font-size:10px;color:#9ca3af;margin-top:5px;letter-spacing:1.4px}'+
+  '.num{font-size:9.5px;color:#b8892a;margin-top:3px;letter-spacing:1.6px;font-weight:800}'+
+  '.sceau{width:88px;height:88px}'+
   '</style></head><body><button onclick=\'window.close();setTimeout(function(){if(history.length>1)history.back();},250)\' style=\'position:fixed;top:12px;right:12px;z-index:99;padding:9px 16px;border-radius:20px;border:0;background:#111827;color:#fff;font-weight:800;font-size:13px\'>✕ Fermer</button>'+
   '<div id="toile"><div class="dip"><div class="inner">'+
   '<div class="brand"><i></i>AM COACH GENÈVE<i></i></div>'+
   '<div class="sub">Transfo Physique · Méthode AM</div>'+
-  // La montagne, sommet atteint : le programme est accompli.
-  '<div class="mont">'+svgMontagneDiplome()+
+  '<div class="mont">'+svgMontagneDiplome()+'</div>'+
+  (photo?'<div class="photo"><img src="'+photo+'" alt=""/></div>':'')+
   (dep!=null&&arr!=null
     ? '<div class="parcours">'+
       '<div class="pt"><span>Départ · J1</span><b>'+fmtKg(dep)+' kg</b></div>'+
-      '<div class="ecart">'+(delta>0?"+":"")+fmtKg(delta)+' kg en 90 jours</div>'+
-      '<div class="pt r"><span>Arrivée · J90</span><b>'+fmtKg(arr)+' kg</b></div></div>'
-    : '<div class="parcours"><div class="pt"><span>Jour 1</span></div><div class="ecart">90 jours</div><div class="pt r"><span>Jour 90</span></div></div>')+
-  '</div>'+
+      '<div class="ecart">'+signe(delta)+' kg en '+n+' jours<small>'+signe(pctPoids)+' % du poids de départ</small></div>'+
+      '<div class="pt r"><span>Arrivée · J'+n+'</span><b>'+fmtKg(arr)+' kg</b></div></div>'
+    : '')+
   (pctD!=null?'<div class="cible">Objectif fixé : '+fmtKg(cibleD)+' kg · '+pctD+' % du chemin parcouru</div>':'')+
-  '<div class="title">DIPLÔME AM<br>TRANSFO</div>'+
-  '<div class="subtitle">« Nouvelle version de toi-même »</div>'+
+  '<div class="title">'+T.titre+'</div>'+
+  '<div class="subtitle">'+T.sous+'</div>'+
   '<div class="orne"><i></i><b></b><i></i></div>'+
   '<div class="decerne">Décerné à</div>'+
   '<div class="name">'+esc(name)+'</div>'+
+  (identite?'<div><span class="ident">🏰 Identité atteinte · '+esc(identite)+'</span></div>':'')+
   '<div class="trait"></div>'+
-  '<div class="txt">Pour avoir accompli avec courage et discipline le programme complet de transformation physique de '+dureeClient()+' jours — nutrition, sport, sommeil et mental.</div>'+
+  '<div class="txt">'+T.txt+'</div>'+
   '<div class="stats">'+
-  '<div class="st"><div class="sv">'+dureeClient()+'</div><div class="sl">Jours</div></div>'+
-  (delta!=null?'<div class="st"><div class="sv">'+(delta>0?"+":"")+fmtKg(delta)+'</div><div class="sl">Kg</div></div>':'')+
+  '<div class="st"><div class="sv">'+n+'</div><div class="sl">Jours</div></div>'+
+  (delta!=null?'<div class="st"><div class="sv">'+signe(delta)+'</div><div class="sl">Kg</div></div>':'')+
   '<div class="st"><div class="sv">'+filled+'</div><div class="sl">Jours suivis</div></div>'+
   '</div>'+
-  '<div class="msg">« Félicitations. Ce n\'est que le début — tu viens de te prouver que tu es capable de bien plus que tu ne le pensais. Je suis fier de toi. Bravo. »</div>'+
-  '<div class="pied"><div class="sig-name">Akli</div><div class="sig-role">Coach &amp; Fondateur — AM Coach Genève</div>'+
-  '<div class="dates">'+fmt(d0)+' — '+fmt(d1)+'</div></div>'+
+  '<div class="msg">'+T.msg+'</div>'+
+  '<div class="pied">'+
+    '<div class="qr"><div id="qr"></div><span>AMCOACHGENEVE.CH</span></div>'+
+    '<div class="sig"><div class="sig-name">Akli</div><div class="sig-role">Coach &amp; Fondateur — AM Coach Genève</div>'+
+    '<div class="dates">'+fmt(d0)+' — '+fmt(d1)+'</div><div class="num">'+numero+'</div></div>'+
+    '<div class="sceau">'+sceauDoreSVG()+'</div>'+
+  '</div>'+
   '</div></div></div>'+docRetourHTML()+
+  // 🔳 QR discret vers le site : sur une story, c'est la porte d'entrée de
+  // ceux qui voient le diplôme sans connaître le coach.
+  '<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"><\/script>'+
+  '<script>try{var q=qrcode(0,"M");q.addData("https://amcoachgeneve.ch");q.make();'+
+  'document.getElementById("qr").innerHTML=q.createSvgTag({cellSize:2,margin:0,scalable:true});}'+
+  'catch(e){var z=document.querySelector(".qr");if(z)z.style.visibility="hidden";}<\/script>'+
+  // 📷 Pas encore de photo : on la propose ici, là où elle compte le plus.
+  (photo?'':
+  '<button id="dip-photo" style="position:fixed;left:12px;bottom:16px;z-index:99;border:0;border-radius:22px;padding:12px 14px;'+
+  'background:#fff;color:#1a2744;font:800 12.5px Inter,-apple-system,sans-serif;box-shadow:0 6px 16px rgba(0,0,0,.15)">📷 Ma photo</button>'+
+  '<input id="dip-photo-f" type="file" accept="image/*" style="display:none"/>'+
+  '<script>(function(){var b=document.getElementById("dip-photo"),f=document.getElementById("dip-photo-f");'+
+  'b.addEventListener("click",function(ev){ev.stopPropagation();f.click();});'+
+  'f.addEventListener("change",function(){var fi=f.files&&f.files[0];if(!fi||!window.opener)return;b.textContent="⏳";'+
+  'window.opener.photoProfilRedim(fi,function(u){if(!u){b.textContent="📷 Ma photo";return;}'+
+  'window.opener.photoProfilEnregistrer(u);window.opener.diplomeRemplir(window);});});})();<\/script>')+
+
   // 📐 Toile fixe 540×960, le format 9:16 d'une story : réduite à l'écran
   // pour tenir entière sur une page, une capture donne l'image à partager.
   // 📤 PARTAGE DIRECT. L'image 1080×1920 est fabriquée DÈS L'OUVERTURE : sur
@@ -5101,6 +5215,87 @@ function progLen(start,data){
   var pd=90;
   if(acc.end&&start){var d=Math.floor((new Date(acc.end)-new Date(start))/86400000)+1;if(d>0&&d<90)pd=d;}
   return pd;
+}
+// ═══════════ ⚡ 14 JOURS / 🏆 90 JOURS — VISIBLE PARTOUT CÔTÉ COACH ═══════════
+// Akli confondait les deux à l'inscription et ne le voyait qu'en ouvrant la
+// fiche. Le programme s'affiche maintenant en pastille pleine sur chaque
+// client ; un tap sur la pastille bascule, après confirmation.
+function progDureeClient(slug){
+  var c=null,cl=lsGet("amcoach_clients",[]);
+  for(var i=0;i<cl.length;i++)if(cl[i].slug===slug){c=cl[i];break;}
+  var st=lsGetStr("amcoach_start_"+slug)||(c&&c.start_date)||"";
+  return progLen(st,lsGet("amcoach_"+slug,{}))||90;
+}
+function progChipHTML(slug,grand){
+  var n=progDureeClient(slug), court=n<=14;
+  var bg=court?"#F76707":(n<90?"#7048E8":"#1F2A44");
+  var txt=court?"⚡ 14 J":(n<90?n+" J":"🏆 90 J");
+  return '<span class="prog-chip" data-s="'+esc(slug)+'" title="Toucher pour changer de programme" style="display:inline-block;vertical-align:middle;margin-left:6px;'+
+    'background:'+bg+';color:#fff;font-weight:900;font-size:'+(grand?"11.5px":"10px")+';letter-spacing:.3px;'+
+    'padding:'+(grand?"4px 9px":"2px 7px")+';border-radius:20px;border:1.5px solid rgba(255,255,255,.55);cursor:pointer;white-space:nowrap">'+txt+'</span>';
+}
+function progEcrireSlot(slug,idx,val){
+  var all=lsGet("amcoach_"+slug,{}); all[idx]=val; lsSet("amcoach_"+slug,all);
+  sbFetch("tracking?on_conflict=client_slug,day_index",{method:"POST",prefer:"resolution=merge-duplicates",
+    body:{client_slug:slug,day_index:idx,data:val}}).catch(function(){});
+}
+// Passe un client en Reset 14 jours à partir du jour nd (AAAA-MM-JJ).
+function progVers14(slug,nd){
+  var cls=lsGet("amcoach_clients",[]), cName=slug;
+  for(var ci=0;ci<cls.length;ci++){if(cls[ci].slug===slug){cls[ci].start_date=nd;cName=cls[ci].name;break;}}
+  lsSet("amcoach_clients",cls);
+  try{localStorage.setItem("amcoach_start_"+slug,nd);}catch(e){}
+  sbFetch("clients?on_conflict=slug",{method:"POST",prefer:"resolution=merge-duplicates",
+    body:{slug:slug,name:cName,start_date:nd}}).catch(function(){});
+  var end=new Date(nd+"T12:00:00"); end.setDate(end.getDate()+13);
+  var acc=lsGet("amcoach_"+slug,{})[504]||{};
+  acc.end=isoLocal(end); acc.off=false;
+  progEcrireSlot(slug,504,acc);
+  var mc=lsGet("amcoach_"+slug,{})[517]||{};
+  mc.on=true; mc.reset=true; mc.phaseForcee=null; mc.debut=nd;
+  progEcrireSlot(slug,517,mc);
+  try{ vid14AppliquerA(slug); }catch(e){}
+  return isoLocal(end);
+}
+// Repasse un client au programme 90 jours : accès illimité, menus en phases.
+// Avant, le drapeau « reset » des menus restait levé et le client gardait
+// les menus du Reset sur ses 90 jours.
+function progVers90(slug){
+  var acc=lsGet("amcoach_"+slug,{})[504]||{};
+  acc.end=null; acc.off=false;
+  progEcrireSlot(slug,504,acc);
+  var mc=lsGet("amcoach_"+slug,{})[517];
+  if(mc&&mc.reset){
+    mc.reset=false; mc.phaseForcee=null;
+    if(!mc.debut)mc.debut=lsGetStr("amcoach_start_"+slug)||"";
+    progEcrireSlot(slug,517,mc);
+  }
+}
+// Tap sur la pastille : une question, une confirmation, c'est corrigé.
+function progBasculerDepuisPastille(slug){
+  var cl=lsGet("amcoach_clients",[]), c=null;
+  for(var i=0;i<cl.length;i++)if(cl[i].slug===slug){c=cl[i];break;}
+  var nom=(c&&c.name)||slug;
+  var st=lsGetStr("amcoach_start_"+slug)||(c&&c.start_date)||isoLocal();
+  if(progDureeClient(slug)<=14){
+    if(!confirm("🏆 Passer "+nom+" au programme 90 JOURS ?\n\nIl quitte le Reset 14 jours :\n· accès illimité\n· menus en phases (fin des menus Reset)\n· grade, identité et Dream Board reviennent\n\nDate de départ conservée : "+isoVersFr(st)+"."))return;
+    progVers90(slug);
+    feedback("🏆 "+nom+" → programme 90 jours","win");
+    render();
+    return;
+  }
+  var t=0; try{t=getToday90(st);}catch(e){}
+  var msg="⚡ Passer "+nom+" en RESET 14 JOURS ?\n\n· l'accès se ferme 14 jours après le départ\n· menus du Reset + vidéos des 14 jours\n· pas de grade, identité, Dream Board ni cycle";
+  if(t>=1)msg+="\n\n⚠️ "+nom+" est déjà au jour "+(t+1)+" : tu vas choisir un nouveau jour 1.";
+  if(!confirm(msg))return;
+  // Erreur à l'inscription : le départ est récent, on le garde par défaut.
+  var defaut=(t<14)?st:isoLocal();
+  pickDate("Jour 1 du Reset 14 jours",defaut,function(nd){
+    if(!nd)return;
+    var fin=progVers14(slug,nd);
+    feedback("⚡ "+nom+" → Reset 14 jours, du "+isoVersFr(nd)+" au "+isoVersFr(fin),"win");
+    render();
+  },{aide:"Garde la date déjà prévue si tu corriges une erreur d'inscription."});
 }
 function navBar(){
   var start=lsGetStr("amcoach_start_"+CLIENT);
@@ -5982,7 +6177,11 @@ function viewCalendar(name,start){
   var goal=getGoal(allData,month);
   var curW=latestWeight(allData,today90);
 
-  var h='<div class="hdr"><div class="hdr-brand"><div class="bar bar-r"></div>'+
+  var ppImg=photoProfil();
+  var h='<div class="hdr" style="position:relative">'+
+    '<button id="pp-btn" class="pp-btn" title="Ma photo de profil">'+(ppImg?'<img src="'+ppImg+'" alt=""/>':'<span>📷</span>')+'</button>'+
+    '<input id="pp-file" type="file" accept="image/*" style="display:none"/>'+
+    '<div class="hdr-brand"><div class="bar bar-r"></div>'+
     '<span class="hdr-title">'+(progDays<90?'RESET '+progDays+' JOURS':'DISCIPLINE 90')+'</span><div class="bar bar-b"></div></div>'+
     '<div class="hdr-sub">'+esc(name)+' · '+progDays+' jours'+(BLOC>1?' · Bloc '+BLOC+'/4':'')+' <span id="sync-badge" style="font-size:11px"></span></div></div>'+
     '<div style="padding:16px 14px 0">';
@@ -6228,7 +6427,7 @@ function viewCalendar(name,start){
   if(today90>=progDays-1){
     h+='<button id="diplome-btn" class="card" style="width:calc(100% - 28px);margin-bottom:18px;background:linear-gradient(135deg,var(--gold),#E8C547);border:none;text-align:center;padding:18px;cursor:pointer">'+
       '<div style="font-size:26px;margin-bottom:4px">🎓</div>'+
-      '<div style="font-weight:900;font-size:15px;color:#fff;letter-spacing:1px;text-transform:uppercase">Mon Diplôme AM Transfo</div>'+
+      '<div style="font-weight:900;font-size:15px;color:#fff;letter-spacing:1px;text-transform:uppercase">'+(progDays<=14?'Mon Diplôme Reset 14':'Mon Diplôme AM Transfo')+'</div>'+
       '<div style="font-size:11px;color:rgba(255,255,255,.85);margin-top:3px;font-weight:700">'+progDays+' jours accomplis — Nouvelle version de toi-même</div></button>';
     // Un Reset ne se prolonge pas par un bloc de 90 jours en un tap : c'est
     // Akli qui propose la suite, au bilan du jour 14.
@@ -11881,11 +12080,24 @@ function ncFormHTML(){
       '<div class="card-label">LIEN (identifiant)</div>'+
       '<input id="nc-slug" class="num-input" style="font-size:15px;font-weight:400;margin-bottom:4px" placeholder="ex: sarah"/>'+
       '<div id="nc-preview" style="font-size:11px;color:var(--mute);margin-bottom:12px"></div>'+
+      // ⚡🏆 DURÉE : le choix le plus lourd de conséquences, posé en premier,
+      // en deux grosses cartes. Plus de date de fin à calculer à la main.
+      '<div class="card-label">QUEL PROGRAMME ?</div>'+
+      '<div style="display:flex;gap:8px;margin-bottom:6px">'+
+      '<button class="nc-duree" data-d="14" style="flex:1;padding:13px 6px;border-radius:14px;font-weight:900;font-size:14px;line-height:1.25;cursor:pointer;'+
+        (state.ncDuree===14?'background:#F76707;color:#fff;border:2.5px solid #F76707':'background:#fff;color:#F76707;border:2.5px dashed #F7A26B')+'">⚡ RESET<br>14 JOURS</button>'+
+      '<button class="nc-duree" data-d="90" style="flex:1;padding:13px 6px;border-radius:14px;font-weight:900;font-size:14px;line-height:1.25;cursor:pointer;'+
+        (state.ncDuree===90?'background:#1F2A44;color:#fff;border:2.5px solid #1F2A44':'background:#fff;color:#1F2A44;border:2.5px dashed #9AA5BD')+'">🏆 TRANSFO<br>90 JOURS</button>'+
+      '</div>'+
+      '<div style="font-size:11px;color:var(--mute);margin-bottom:12px;line-height:1.5">'+
+        (state.ncDuree===14?'Accès fermé automatiquement après 14 jours. Menus Reset et vidéos des 14 jours inclus.'
+        :state.ncDuree===90?'Grade, identité, Dream Board et menus en phases. Accès illimité.'
+        :'<b style="color:var(--warn-d)">Choisis 14 ou 90 jours.</b>')+'</div>'+
       // 👨👩 LE SEXE SE POSE À LA CRÉATION. C'est lui qui commande la photo,
       // le programme des trois mois, la couleur de l'appli et la carte du
       // cycle. Le laisser vide obligeait à y revenir plus tard, et un homme
       // ouvrait « programme femme » entre-temps.
-      '<div class="card-label">PROGRAMME</div>'+
+      '<div class="card-label">SEXE</div>'+
       '<div style="display:flex;gap:8px;margin-bottom:12px">'+
       '<button id="nc-h" class="nc-sx' + (state.ncSexe === "h" ? " on" : "") + '" data-sx="h">👨 Homme</button>'+
       '<button id="nc-f" class="nc-sx' + (state.ncSexe === "f" ? " on" : "") + '" data-sx="f">👩 Femme</button>'+
@@ -11902,16 +12114,24 @@ function ncFormHTML(){
       // 🏃 La formule sans programme : l'offre nutrition. La cliente garde la
       // séance express, les marches et les minuteurs, sans les 90 jours.
       '<div style="display:flex;gap:7px;margin-bottom:5px">'+
-      '<button class="nc-mod' + (state.ncProg !== false ? " on" : "") + '" data-mod="prog" style="flex:2">💪 Programme 90 jours</button>'+
+      '<button class="nc-mod' + (state.ncProg !== false ? " on" : "") + '" data-mod="prog" style="flex:2">💪 Séances muscu (socle)</button>'+
       '</div>'+
       '<div style="font-size:11px;color:var(--mute);margin-bottom:12px;line-height:1.5">Les menus démarrent à la date de départ ci-dessous. Tout reste modifiable ensuite dans sa fiche.</div>'+
       '<div class="card-label">DATE DE DÉPART</div>'+
       '<input id="nc-date" type="date" class="num-input" style="font-size:15px;font-weight:400;margin-bottom:12px" value="'+isoLocal()+'"/>'+
+      '<div id="nc-fin14" style="font-size:12px;font-weight:800;color:#F76707;margin:-4px 0 14px;'+(state.ncDuree===14?'':'display:none')+'"></div>'+
+      (state.ncDuree===14?'':
       '<div class="card-label">DATE DE FIN D\'ACCÈS (OPTIONNEL — vide = illimité)</div>'+
-      '<input id="nc-end" type="date" class="num-input" style="font-size:15px;font-weight:400;margin-bottom:16px"/>'+
-      '<button id="nc-create" class="big-btn" style="padding:14px 0;font-size:14px;margin-bottom:0'+
-      (state.ncSexe?'':';opacity:.45')+'"'+(state.ncSexe?'':' disabled')+'>Créer le lien →</button>'+
-      (state.ncSexe?'':'<div style="font-size:11px;color:var(--warn-d);font-weight:800;margin-top:8px;text-align:center">Choisis Homme ou Femme pour continuer</div>')+
+      '<input id="nc-end" type="date" class="num-input" style="font-size:15px;font-weight:400;margin-bottom:16px"/>')+
+      (function(){
+        var ok=!!(state.ncSexe&&state.ncDuree);
+        var bg=state.ncDuree===14?'background:#F76707;':state.ncDuree===90?'background:#1F2A44;':'';
+        var lib=state.ncDuree===14?'Créer · ⚡ RESET 14 JOURS →':state.ncDuree===90?'Créer · 🏆 TRANSFO 90 JOURS →':'Créer le lien →';
+        var manque=!state.ncDuree&&!state.ncSexe?'Choisis 14 ou 90 jours, puis Homme ou Femme'
+          :!state.ncDuree?'Choisis 14 ou 90 jours pour continuer':!state.ncSexe?'Choisis Homme ou Femme pour continuer':'';
+        return '<button id="nc-create" class="big-btn" style="padding:14px 0;font-size:14px;margin-bottom:0;'+bg+(ok?'':'opacity:.45')+'"'+(ok?'':' disabled')+'>'+lib+'</button>'+
+          (manque?'<div style="font-size:11px;color:var(--warn-d);font-weight:800;margin-top:8px;text-align:center">'+manque+'</div>':'');
+      })()+
       '</div>';
   }
   return h;
@@ -12998,7 +13218,7 @@ function viewCoachDetail(){
   var h='<div class="app" style="max-width:480px">'+
     '<div class="hdr"><div style="display:flex;align-items:center;gap:12px">'+
     '<button id="cd-back" class="day-back">←</button>'+
-    '<div style="flex:1"><div style="color:#fff;font-weight:900;font-size:16px">'+esc(c.name)+'</div>'+
+    '<div style="flex:1"><div style="color:#fff;font-weight:900;font-size:16px">'+esc(c.name)+progChipHTML(c.slug,true)+'</div>'+
     '<div style="color:var(--mute);font-size:12px">Jour '+Math.min(t90+1,progLen(c.start_date,lsGet("amcoach_"+c.slug,{}))||90)+'/'+(progLen(c.start_date,lsGet("amcoach_"+c.slug,{}))||90)+' · départ '+new Date(c.start_date).toLocaleDateString("fr-FR")+' · 🔥 '+streak+'j</div>'+
     (function(){var la=lastActLabel(allData);return '<div style="font-size:12px;font-weight:800;margin-top:3px;color:'+la.c+'">📱 Dernière activité : '+la.t+'</div>';})()+'</div></div></div>'+
     '<div style="padding:16px 14px 0">';
@@ -13133,10 +13353,12 @@ function viewCoachDetail(){
   h+=cdSecOpen("modules","🎁","Modules &amp; suivi","Reset 14 j, protéines, bilan final, verrou");
   // ⚡ RESET 14 JOURS
   h+='<div class="card" style="border-left:4px solid var(--warn-d);padding:13px 15px">'+
-    '<div style="font-weight:800;font-size:13px;margin-bottom:10px">⚡ Reset 14 jours</div>'+
+    '<div style="font-weight:800;font-size:13px;margin-bottom:10px">Programme actuel :'+progChipHTML(c.slug,true)+'</div>'+
     '<div style="display:flex;gap:8px;margin-bottom:8px">'+
-    '<button id="reset14-on" style="flex:1;font-size:11px;font-weight:800;padding:9px 0;border:1.5px solid var(--warn-d);border-radius:10px;background:#fff;color:var(--warn-d)">⚡ Activer 14 jours</button>'+
-    '<button id="reset14-off" style="flex:1;font-size:11px;font-weight:800;padding:9px 0;border:1.5px solid var(--ok);border-radius:10px;background:#fff;color:var(--ok-d)">🔓 Passer au 90 jours</button></div>'+
+    (progDureeClient(c.slug)<=14
+      ? '<button id="reset14-off" style="flex:1;font-size:12px;font-weight:800;padding:10px 0;border:1.5px solid #1F2A44;border-radius:10px;background:#fff;color:#1F2A44">🏆 Passer au programme 90 jours</button>'
+      : '<button id="reset14-on" style="flex:1;font-size:12px;font-weight:800;padding:10px 0;border:1.5px solid #F76707;border-radius:10px;background:#fff;color:#F76707">⚡ Passer en Reset 14 jours</button>')+
+    '</div>'+
     '<button class="copy-menu14 big-btn" data-slug="'+esc(c.slug)+'" style="width:100%;padding:11px 0;font-size:12px;background:var(--warn-d);box-shadow:none">🍽️ Copier lien MENU 14 jours</button>'+
     '<div style="font-size:11px;color:var(--mute);margin-top:8px;line-height:1.5">"Activer" fixe la fin d\'accès à J+14 : app et menu se bloquent ensuite automatiquement. "Passer au 90 jours" débloque tout (accès illimité) — renvoie alors le lien tracker habituel.</div></div>';
 
@@ -15000,7 +15222,7 @@ function viewCoachDash(){
     // Le formulaire s'ouvre SOUS son bouton. Il vivait en bas de page, après
     // le pouls et les raccourcis : Akli tapait « Nouveau client » et ne voyait
     // rien bouger.
-    ncFormHTML()+
+    ncFormHTML();
 
 
   // 🚦 TABLEAU DE BORD UNIQUE — un seul bloc au lieu de trois.
@@ -15033,7 +15255,7 @@ function viewCoachDash(){
         '<button class="pouls-go cli-main" data-s="'+o.slug+'">'+
         '<span class="cli-av" style="background:'+C.pastel+';color:'+C.c+'">'+esc((o.nom||"?").slice(0,2).toUpperCase())+'</span>'+
         '<span class="cli-mid">'+
-        '<span class="cli-nom">'+esc(o.nom)+
+        '<span class="cli-nom">'+esc(o.nom)+progChipHTML(o.slug)+
         (o.horsStats?' <span style="font-size:9.5px;color:var(--mute);font-weight:700">· hors stats</span>':'')+'</span>'+
         '<span class="cli-sous"><span style="color:'+C.c+'">'+C.p+' '+esc(o.motif)+'</span>'+chip+'</span></span>'+
         (o.avant>0
@@ -15183,7 +15405,7 @@ function viewCoachDash(){
         '<div class="cd-open cd-long" data-detail="'+esc(c.slug)+'" data-nom="'+esc(c.name)+'" style="display:flex;align-items:center;gap:14px;margin-bottom:14px;cursor:pointer">'+
         '<div class="ring-wrap">'+svgRing(score/100,scol,56)+
         '<div class="ring-txt" style="font-size:13px">'+score+'%</div></div>'+
-        '<div style="flex:1"><div style="font-weight:900;font-size:18px">'+esc(c.name)+'</div>'+
+        '<div style="flex:1"><div style="font-weight:900;font-size:18px">'+esc(c.name)+progChipHTML(c.slug,true)+'</div>'+
         '<div style="font-size:12px;color:var(--mute);margin-top:2px">'+(joursAvantDepart(c.start_date)>0
           ? '<b style="color:#3B6FD8">⏳ Démarre le '+dateCourteFR(c.start_date)+' · dans '+joursAvantDepart(c.start_date)+' j</b> · '
           : '')+'Jour '+Math.min(t90+1,progLen(c.start_date,lsGet("amcoach_"+c.slug,{}))||90)+'/'+(progLen(c.start_date,lsGet("amcoach_"+c.slug,{}))||90)+' · départ '+new Date(c.start_date).toLocaleDateString("fr-FR")+'</div>'+
@@ -16695,6 +16917,15 @@ function bindCoach(){
     el.addEventListener("click",function(ev){ if(parti){ev.preventDefault();ev.stopPropagation();parti=false;} },true);
   })(cdl[cl2]);
 
+  // ⚡🏆 Pastille programme : tap = bascule 14 / 90 (avec confirmation)
+  var pch=document.querySelectorAll(".prog-chip");
+  for(var pc2=0;pc2<pch.length;pc2++){
+    pch[pc2].addEventListener("click",function(e){
+      e.stopPropagation(); e.preventDefault();
+      progBasculerDepuisPastille(this.getAttribute("data-s"));
+    });
+    pch[pc2].addEventListener("touchstart",function(e){e.stopPropagation();},{passive:true});
+  }
   // 🚦 Ouvrir une fiche depuis le pouls
   var pgo=document.querySelectorAll(".pouls-go");
   for(var pi2=0;pi2<pgo.length;pi2++){
@@ -16811,6 +17042,24 @@ function bindCoach(){
     render();
   });
 
+  var ncDu=document.querySelectorAll(".nc-duree");
+  for(var nd2=0;nd2<ncDu.length;nd2++)ncDu[nd2].addEventListener("click",function(){
+    ncBrouillon();
+    state.ncDuree=+this.getAttribute("data-d");
+    render();
+  });
+  // Fin du Reset affichée en clair, recalculée quand la date de départ bouge
+  (function(){
+    var d1=document.getElementById("nc-date"), f=document.getElementById("nc-fin14");
+    if(!d1||!f)return;
+    function maj(){
+      if(!d1.value){f.textContent="";return;}
+      var e=new Date(d1.value+"T12:00:00"); e.setDate(e.getDate()+13);
+      f.textContent="⚡ Reset du "+isoVersFr(d1.value)+" au "+isoVersFr(isoLocal(e))+" (14 jours)";
+    }
+    d1.addEventListener("input",maj); d1.addEventListener("change",maj);
+    setTimeout(maj,0);
+  })();
   var ncSx=document.querySelectorAll(".nc-sx");
   for(var nx=0;nx<ncSx.length;nx++)ncSx[nx].addEventListener("click",function(){
     // On garde ce que le coach a déjà tapé : le formulaire se redessine.
@@ -16840,6 +17089,17 @@ function bindCoach(){
     document.getElementById("nc-create").addEventListener("click",function(){
       var name=ncName.value.trim(), slug=ncSlug.value.trim();
       if(!name||!slug)return;
+      if(state.ncDuree!==14&&state.ncDuree!==90){alert("Choisis d'abord : ⚡ Reset 14 jours ou 🏆 Transfo 90 jours.");return;}
+      // Garde-fou : un 90 jours avec une fin d'accès à 14 jours ou moins
+      // deviendrait un Reset sans le dire.
+      (function(){
+        var e0=document.getElementById("nc-end"), d0=document.getElementById("nc-date");
+        if(state.ncDuree===90&&e0&&e0.value&&d0&&d0.value){
+          var j0=Math.round((new Date(e0.value+"T12:00:00")-new Date(d0.value+"T12:00:00"))/86400000);
+          if(j0<=14){alert("Cette fin d'accès donne "+(j0+1)+" jours : c'est un Reset 14 jours.\n\nChoisis « ⚡ RESET 14 JOURS » ou vide la date de fin.");name="";}
+        }
+      })();
+      if(!name)return;
       // Un lien déjà utilisé peut porter des données restées dans le cloud :
       // on prévient AVANT de créer, sinon le nouveau client les hérite.
       var dejaLa=lsGet("amcoach_"+slug,null);
@@ -16869,7 +17129,12 @@ function bindCoach(){
       clients.unshift({name:name,slug:slug,start_date:startDate,created_at:new Date().toISOString()});
       lsSet("amcoach_clients",clients);
       sbFetch("clients?on_conflict=slug",{method:"POST",prefer:"resolution=merge-duplicates",body:{slug:slug,name:name,start_date:startDate}}).catch(function(){});
-      var endDate=document.getElementById("nc-end").value;
+      var endDate="";
+      if(state.ncDuree===14){
+        var __e14=new Date(startDate+"T12:00:00"); __e14.setDate(__e14.getDate()+13); endDate=isoLocal(__e14);
+      }else{
+        var __ne=document.getElementById("nc-end"); endDate=__ne?__ne.value:"";
+      }
       if(endDate){
         var accN={end:endDate,off:false};
         var allN=lsGet("amcoach_"+slug,{});allN[504]=accN;lsSet("amcoach_"+slug,allN);
@@ -16935,8 +17200,10 @@ function bindCoach(){
           if(jR<=14)vid14AppliquerA(slug);
         }
       }catch(e){}
-      state.ncSexe=null; state.ncMenus=undefined; state.ncProt=false; state.ncArgent=false; state.ncProg=undefined;
+      var __dureeCree=state.ncDuree;
+      state.ncSexe=null; state.ncDuree=null; state.ncMenus=undefined; state.ncProt=false; state.ncArgent=false; state.ncProg=undefined;
       state.showForm=false;
+      feedback(__dureeCree===14?"⚡ "+name+" créé en RESET 14 JOURS":"🏆 "+name+" créé en TRANSFO 90 JOURS","win");
       render();
     });
   }
@@ -17007,64 +17274,9 @@ function bindCoach(){
   // les menus dessus. Un programme en cours déclenche une confirmation, parce
   // que cette bascule raccourcit l'accès d'une cliente qui travaille.
   var r14on=document.getElementById("reset14-on");
-  if(r14on)r14on.addEventListener("click",function(){
-    var slug=state.coachDetail;
-    var cc=coachClient(slug);
-    var start=lsGetStr("amcoach_start_"+slug)||(cc&&cc.start_date)||"";
-    if(!start){alert("Date de départ introuvable.");return;}
-
-    // Où en est la cliente sur son programme actuel ?
-    var jour=0;
-    try{jour=getToday90(start)+1;}catch(e){}
-    var duree=progLen(start)||90;
-    var enCours=(jour>=1&&jour<=duree&&duree>14);
-    if(enCours){
-      var msg="⚠️ "+((cc&&cc.name)||slug)+" est au jour "+jour+" sur "+duree+".\n\n"+
-        "Passer en Reset 14 jours va :\n"+
-        "· repartir d'un nouveau jour 1\n"+
-        "· fermer son accès 14 jours après ce départ\n"+
-        "· basculer ses menus sur le Reset\n\n"+
-        "Ses données déjà remplies sont conservées.\n\nContinuer ?";
-      if(!confirm(msg))return;
-    }
-
-    pickDate("Départ du Reset 14 jours",isoLocal(),function(nd){
-      if(!nd)return;
-      // 1) Nouvelle date de départ, chez la cliente comme dans la base
-      var cls=lsGet("amcoach_clients",[]), cName=slug;
-      for(var ci=0;ci<cls.length;ci++){if(cls[ci].slug===slug){cls[ci].start_date=nd;cName=cls[ci].name;break;}}
-      lsSet("amcoach_clients",cls);
-      try{localStorage.setItem("amcoach_start_"+slug,nd);}catch(e){}
-      sbFetch("clients?on_conflict=slug",{method:"POST",prefer:"resolution=merge-duplicates",
-        body:{slug:slug,name:cName,start_date:nd}}).catch(function(){});
-
-      // 2) Fin d'accès : le 14e jour inclus
-      var end=new Date(nd+"T12:00:00"); end.setDate(end.getDate()+13);
-      var acc=lsGet("amcoach_"+slug,{})[504]||{};
-      acc.end=isoLocal(end); acc.off=false;
-      saveAcc(acc);
-
-      // 3) Les menus suivent : Reset, calé sur le même jour 1
-      var mc=lsGet("amcoach_"+slug,{})[517]||{};
-      // Les menus font partie du Reset : on les allume toujours. Avant, ils ne
-      // basculaient que s'ils étaient déjà actifs — une cliente aux menus
-      // éteints démarrait son Reset sans ses menus.
-      mc.on=true; mc.reset=true; mc.phaseForcee=null; mc.debut=nd; coachSaveSlot(slug,517,mc);
-
-      try{ vid14AppliquerA(slug); }catch(e){}
-      feedback("⚡ Reset 14 jours — du "+isoVersFr(nd)+" au "+isoVersFr(isoLocal(end)),"win");
-      render();
-    },{aide:"Le Reset repart d'un nouveau jour 1. L'accès se fermera 14 jours plus tard."});
-  });
+  if(r14on)r14on.addEventListener("click",function(){progBasculerDepuisPastille(state.coachDetail);});
   var r14off=document.getElementById("reset14-off");
-  if(r14off)r14off.addEventListener("click",function(){
-    // Ce bouton change TOUT le programme du client, pas une option des
-    // menus : le 02/10 il a été pris pour « décocher les menus 90 jours » et
-    // Masta972 a perdu ses menus du Reset. On le dit avant d'agir.
-    if(!confirm("Passer ce client au programme 90 jours ?\n\nIl quitte le Reset 14 jours : ses menus du Reset disparaissent et il retrouve grade, identité et Dream Board.\n\nPour revenir en arrière : « ⚡ Activer 14 jours »."))return;
-    var acc=lsGet("amcoach_"+state.coachDetail,{})[504]||{};
-    acc.end=null;acc.off=false;saveAcc(acc);
-  });
+  if(r14off)r14off.addEventListener("click",function(){progBasculerDepuisPastille(state.coachDetail);});
   // 🍗 Config nutrition/protéines (slot 510)
   var nutCfgBtn=document.getElementById("nut-config");
   if(nutCfgBtn)nutCfgBtn.addEventListener("click",function(){
@@ -19279,11 +19491,22 @@ function bindMain(name,start){
     sbFetch("clients?on_conflict=slug",{method:"POST",prefer:"resolution=merge-duplicates",body:{slug:eff,name:name,start_date:today}}).catch(function(){});
     window.location.reload();
   });
+  // 📷 Photo de profil depuis l'en-tête
+  var ppB=document.getElementById("pp-btn"), ppF=document.getElementById("pp-file");
+  if(ppB&&ppF){
+    ppB.addEventListener("click",function(){ppF.click();});
+    ppF.addEventListener("change",function(){
+      var fi=ppF.files&&ppF.files[0]; if(!fi)return;
+      photoProfilRedim(fi,function(u){
+        if(!u){feedback("Photo illisible","err");return;}
+        photoProfilEnregistrer(u); feedback("📷 Photo enregistrée","ok"); render();
+      });
+    });
+  }
   var dip=document.getElementById("diplome-btn");
   if(dip)dip.addEventListener("click",function(){
-    var html=generateDiplome(name,start,getAllData());
     var win=window.open("","_blank");
-    if(win){win.document.write(html);win.document.close();}
+    if(win)diplomeRemplir(win);
   });
   var bde=document.getElementById("bday-edit");
   if(bde)bde.addEventListener("click",function(){ouvrirAnniversaire();});

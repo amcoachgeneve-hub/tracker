@@ -1020,7 +1020,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="05/10 - Diplome format partage";
+var APP_VERSION="05/10 - Partage du diplome";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -4320,10 +4320,44 @@ function generateDiplome(name,startDate,allData){
   '</div></div></div>'+docRetourHTML()+
   // 📐 Toile fixe 540×960, le format 9:16 d'une story : réduite à l'écran
   // pour tenir entière sur une page, une capture donne l'image à partager.
-  '<div id="astuce" style="position:fixed;left:50%;bottom:14px;transform:translateX(-50%);background:rgba(17,24,39,.88);color:#fff;'+
-  'font:700 12px Inter,-apple-system,sans-serif;padding:9px 14px;border-radius:20px;white-space:nowrap;z-index:98">📸 Touche le diplôme pour une capture propre</div>'+
-  '<style>body.capture button,body.capture a,body.capture #astuce{display:none!important}</style>'+
-  '<script>document.getElementById("toile").addEventListener("click",function(){document.body.classList.toggle("capture");});<\/script>'+
+  // 📤 PARTAGE DIRECT. L'image 1080×1920 est fabriquée DÈS L'OUVERTURE : sur
+  // iPhone, la feuille de partage ne s'ouvre que si elle suit immédiatement
+  // le geste du doigt. Si on fabriquait l'image au moment du tap, le délai
+  // ferait refuser le partage. Story Instagram, WhatsApp, Messages, galerie :
+  // tout passe par la feuille de partage du téléphone.
+  '<button id="dip-share" style="position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:99;border:0;border-radius:24px;'+
+  'padding:13px 22px;background:linear-gradient(135deg,#d4af37,#b8892a);color:#fff;font:800 14px Inter,-apple-system,sans-serif;'+
+  'box-shadow:0 8px 22px rgba(184,137,42,.4);white-space:nowrap">⏳ Préparation de l\'image…</button>'+
+  '<div id="dip-voile" style="position:fixed;inset:0;background:#e9ecf2;z-index:97;display:none"></div>'+
+  '<style>body.capture button,body.capture a{display:none!important}</style>'+
+  '<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"><\/script>'+
+  '<script>(function(){'+
+  'var btn=document.getElementById("dip-share"),voile=document.getElementById("dip-voile"),toile=document.getElementById("toile"),blob=null;'+
+  'toile.addEventListener("click",function(){document.body.classList.toggle("capture");});'+
+  'function pret(){btn.textContent="📤 Partager mon diplôme";}'+
+  'function fabriquer(){'+
+    'if(!window.html2canvas){btn.textContent="📸 Fais une capture d\'écran";return;}'+
+    'var tr=toile.style.transform,mg=toile.style.margin;'+
+    'voile.style.display="block";toile.style.transform="none";toile.style.margin="0";toile.style.position="fixed";toile.style.left="0";toile.style.top="0";toile.style.zIndex="96";'+
+    'html2canvas(toile,{scale:2,backgroundColor:"#fdfbf7",useCORS:true,width:540,height:960,windowWidth:540,windowHeight:960}).then(function(cv){'+
+      'toile.style.transform=tr;toile.style.margin=mg;toile.style.position="";toile.style.left="";toile.style.top="";toile.style.zIndex="";voile.style.display="none";'+
+      'cv.toBlob(function(b){blob=b;pret();},"image/png");'+
+    '}).catch(function(){toile.style.transform=tr;toile.style.margin=mg;toile.style.position="";voile.style.display="none";btn.textContent="📸 Fais une capture d\'écran";});'+
+  '}'+
+  'btn.addEventListener("click",function(ev){ev.stopPropagation();'+
+    'if(!blob){return;}'+
+    'var nom="diplome-am-transfo.png";'+
+    'try{var f=new File([blob],nom,{type:"image/png"});'+
+      'if(navigator.canShare&&navigator.canShare({files:[f]})&&navigator.share){navigator.share({files:[f],title:"Mon diplôme AM Transfo"}).catch(function(){});return;}'+
+    '}catch(e){}'+
+    // Sans partage natif (ordinateur) : on télécharge l'image.
+    'var u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download=nom;document.body.appendChild(a);a.click();a.remove();'+
+    'setTimeout(function(){URL.revokeObjectURL(u);},4000);'+
+  '});'+
+  // On attend les polices et l'image de la montagne avant de photographier.
+  'function lancer(){setTimeout(fabriquer,350);}'+
+  'if(document.fonts&&document.fonts.ready)document.fonts.ready.then(lancer);else window.addEventListener("load",lancer);'+
+  '})();<\/script>'+
   '<script>(function(){function ajuste(){var t=document.getElementById("toile");if(!t)return;'+
   'var k=Math.min((window.innerWidth-16)/540,(window.innerHeight-16)/960,1.6);t.style.transform="scale("+k+")";'+
   't.style.margin=((960*k-960)/2)+"px "+((540*k-540)/2)+"px";}'+

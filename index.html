@@ -797,6 +797,21 @@ input,textarea{outline:none}
 .r14-play img{transition:opacity .18s ease}
 .r14-spin{display:block;width:22px;height:22px;border-radius:50%;border:3px solid rgba(255,255,255,.35);border-top-color:#fff;animation:r14turn .7s linear infinite}
 @keyframes r14turn{to{transform:rotate(360deg)}}
+/* 🏔️ Objectif atteint : le sentier monte, le drapeau passe du rouge au vert */
+@keyframes mgMonte{from{stroke-dashoffset:236.01}to{stroke-dashoffset:0}}
+.mg-monte{stroke-dasharray:236.01 238.01!important;animation:mgMonte 1.6s cubic-bezier(.3,.7,.3,1) both}
+@keyframes mgDrap{0%,30%{fill:#FF4B4B;transform:scale(1)}60%{fill:#5DF2A0;transform:scale(1.45)}100%{fill:#5DF2A0;transform:scale(1)}}
+.mg-drap{transform-box:fill-box;transform-origin:left center;animation:mgDrap 1.1s 1.4s both}
+@keyframes mgFlotte{0%,100%{transform:skewY(0)}50%{transform:skewY(-7deg)}}
+.mg-flotte{transform-box:fill-box;transform-origin:left center;animation:mgFlotte 2.4s ease-in-out infinite}
+@keyframes mgOnde{0%{transform:scale(.6);opacity:0}30%{opacity:.8}100%{transform:scale(2.4);opacity:0}}
+.mg-onde{transform-box:fill-box;transform-origin:center;animation:mgOnde 1.8s 2.2s ease-out infinite}
+@keyframes objfIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes objfConf{0%{transform:translateY(-20px) rotate(0);opacity:1}100%{transform:translateY(105vh) rotate(720deg);opacity:.9}}
+.objf-ov{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(8,14,32,.82);overflow:hidden}
+.objf-carte{position:relative;width:100%;max-width:360px;border-radius:26px;padding:22px 20px 20px;text-align:center;color:#fff;box-shadow:0 20px 60px rgba(0,0,0,.45)}
+.objf-tard{opacity:0;animation:objfIn .6s both}
+.objf-c{position:absolute;top:-20px;pointer-events:none;z-index:2;width:9px;height:14px;border-radius:2px;animation:objfConf 3.2s linear both}
 .r14-pl{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:56px;height:56px;border-radius:50%;
   background:rgba(0,0,0,.6);border:2px solid #fff;color:#fff;font-size:22px;display:flex;align-items:center;justify-content:center;padding-left:4px}
 .r14-pic{display:flex;justify-content:center;padding:6px 0}
@@ -1024,7 +1039,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="06/10 - Programme 14 ou 90 visible";
+var APP_VERSION="08/10 - Diplome nombril";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -4299,6 +4314,34 @@ function sceauDoreSVG(){
   '</svg>';
 }
 
+function nombrilVal(v){
+  if(v==null||v==="")return null;
+  var x=parseFloat(String(v).replace(",","."));
+  return (isNaN(x)||x<30||x>250)?null:x;
+}
+// Premier et dernier tour de taille au nombril noté sur le programme.
+function nombrilDepArr(allData,n){
+  var dep=null,arr=null,iDep=-1;
+  for(var j=0;j<n;j++){
+    var v=nombrilVal(allData&&allData[j]&&allData[j].nombril);
+    if(v==null)continue;
+    if(dep==null){dep=v;iDep=j;}else arr=v;
+  }
+  if(dep==null||arr==null){
+    // Repli : les bilans du coach, du plus ancien au plus récent
+    var bl=((allData&&allData[600])||{}).list||[], L=[];
+    for(var b=0;b<bl.length;b++){
+      var vb=nombrilVal(bl[b]&&bl[b].mesures&&bl[b].mesures.nombril);
+      if(vb==null)continue;
+      var dt=String(bl[b].date||""), m=dt.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+      L.push({v:vb,k:m?(m[3]+("0"+m[2]).slice(-2)+("0"+m[1]).slice(-2)):("0"+b)});
+    }
+    L.sort(function(a,c){return a.k<c.k?-1:a.k>c.k?1:0;});
+    if(dep==null&&L.length)dep=L[0].v;
+    if(arr==null&&L.length>1)arr=L[L.length-1].v;
+  }
+  return {dep:dep,arr:arr};
+}
 function generateDiplome(name,startDate,allData){
   var n=progLen(startDate,allData)||90;
   var reset=n<=14;
@@ -4316,10 +4359,10 @@ function generateDiplome(name,startDate,allData){
       if(!isNaN(pv)){ if(dep==null)dep=pv; arr=pv; }}
   }
   var delta=(dep!=null&&arr!=null)?Math.round((arr-dep)*10)/10:null;
-  var pctPoids=(delta!=null&&dep)?Math.round(delta/dep*1000)/10:null;
-  var cibleD=M.cible;
-  var pctD=(dep!=null&&arr!=null&&cibleD!=null&&Math.abs(dep-cibleD)>0.05)
-    ?Math.max(0,Math.min(100,Math.round((dep-arr)/(dep-cibleD)*100))):null;
+  // 📏 Tour de taille au nombril : noté par le client au J1 et au dernier
+  // jour. À défaut, les bilans du coach (premier et dernier) prennent le relais.
+  var nb=nombrilDepArr(allData,n);
+  var deltaN=(nb.dep!=null&&nb.arr!=null)?Math.round((nb.arr-nb.dep)*10)/10:null;
   var fmtKg=function(v){return String(v).replace(".",",");};
   var signe=function(v){return (v>0?"+":"")+fmtKg(v);};
   var photo=(allData&&allData[531]&&allData[531].img)||"";
@@ -4359,7 +4402,7 @@ function generateDiplome(name,startDate,allData){
   '.ecart small{display:block;font-size:11px;color:#6b7280;font-weight:700}'+
   '.cible{font-size:11px;color:#6b7280;margin:4px 0 0}'+
   '.title{font-family:"Playfair Display",Georgia,serif;font-size:33px;color:#d4af37;margin:10px 0 2px;font-weight:700;line-height:1.06;letter-spacing:-.5px}'+
-  '.subtitle{font-family:"Playfair Display",Georgia,serif;font-size:16px;color:#1a2744;font-style:italic}'+
+  '.subtitle{font-family:"Playfair Display",Georgia,serif;font-size:23px;color:#1a2744;font-style:italic;font-weight:700;line-height:1.2;margin-top:2px}'+
   '.orne{display:flex;align-items:center;justify-content:center;gap:9px;margin:7px 0}'+
   '.orne i{width:60px;height:1px;background:#d4af37;display:block}.orne b{width:7px;height:7px;background:#d4af37;transform:rotate(45deg);display:block}'+
   '.decerne{font-size:10.5px;color:#4b5563;letter-spacing:2.6px;text-transform:uppercase;font-weight:700}'+
@@ -4371,7 +4414,7 @@ function generateDiplome(name,startDate,allData){
   '.st{flex:1;padding:2px 6px}.st+.st{border-left:1px solid #d4af37}'+
   '.sv{font-size:29px;color:#0ea5e9;font-weight:800;line-height:1.1}'+
   '.sl{font-size:9.5px;color:#4b5563;letter-spacing:1.8px;text-transform:uppercase;margin-top:3px;font-weight:700}'+
-  '.msg{font-family:"Playfair Display",Georgia,serif;font-size:14px;color:#1a2744;font-style:italic;line-height:1.45;max-width:440px;margin:0 auto 6px}'+
+  '.msg{font-family:"Playfair Display",Georgia,serif;font-size:18px;color:#1a2744;font-style:italic;font-weight:700;line-height:1.38;max-width:460px;margin:0 auto 8px}'+
   '.pied{display:flex;align-items:flex-end;justify-content:space-between;gap:8px}'+
   '.qr{width:74px;text-align:center}.qr img,.qr svg{width:64px;height:64px;display:block;margin:0 auto}'+
   '.qr span{display:block;font-size:7.5px;color:#9ca3af;letter-spacing:.8px;margin-top:3px;font-weight:700}'+
@@ -4390,10 +4433,9 @@ function generateDiplome(name,startDate,allData){
   (dep!=null&&arr!=null
     ? '<div class="parcours">'+
       '<div class="pt"><span>Départ · J1</span><b>'+fmtKg(dep)+' kg</b></div>'+
-      '<div class="ecart">'+signe(delta)+' kg en '+n+' jours<small>'+signe(pctPoids)+' % du poids de départ</small></div>'+
+      '<div class="ecart">'+signe(delta)+' kg en '+n+' jours</div>'+
       '<div class="pt r"><span>Arrivée · J'+n+'</span><b>'+fmtKg(arr)+' kg</b></div></div>'
     : '')+
-  (pctD!=null?'<div class="cible">Objectif fixé : '+fmtKg(cibleD)+' kg · '+pctD+' % du chemin parcouru</div>':'')+
   '<div class="title">'+T.titre+'</div>'+
   '<div class="subtitle">'+T.sous+'</div>'+
   '<div class="orne"><i></i><b></b><i></i></div>'+
@@ -4405,7 +4447,7 @@ function generateDiplome(name,startDate,allData){
   '<div class="stats">'+
   '<div class="st"><div class="sv">'+n+'</div><div class="sl">Jours</div></div>'+
   (delta!=null?'<div class="st"><div class="sv">'+signe(delta)+'</div><div class="sl">Kg</div></div>':'')+
-  '<div class="st"><div class="sv">'+filled+'</div><div class="sl">Jours suivis</div></div>'+
+  (deltaN!=null&&deltaN!==0?'<div class="st"><div class="sv">'+signe(deltaN)+'</div><div class="sl">Cm tour de taille</div></div>':'')+
   '</div>'+
   '<div class="msg">'+T.msg+'</div>'+
   '<div class="pied">'+
@@ -4756,7 +4798,7 @@ function solid(c){
 var SENTIER_D="M42 132 Q56 126 78 118 Q88 112 52 104 Q46 97 95 88 Q104 81 66 72 Q62 65 94 56 Q98 49 78 42 Q79 34 85 26";
 var SENTIER_LEN=236.01;
 var DRAPEAU_ROUGE="#FF4B4B";
-function svgMontagne(pct,accent,w,hh){
+function svgMontagne(pct,accent,w,hh,anim){
   accent=accent||"#5DF2A0";
   var p=Math.max(0,Math.min(100,pct||0));
   var id="mg"+Math.random().toString(36).slice(2,8);
@@ -4794,7 +4836,7 @@ function svgMontagne(pct,accent,w,hh){
     '<path d="'+SENTIER_D+'" fill="none" stroke="#FFFFFF" stroke-opacity=".28" stroke-width="5.5" stroke-linecap="round"/>';
   // Sentier PARCOURU — vert vif. Rien n'est dessiné à 0 % (sinon le bout rond laisse un point).
   if(p>0){
-    s+='<path d="'+SENTIER_D+'" fill="none" stroke="url(#s'+id+')" stroke-width="6" stroke-linecap="round" filter="url(#g'+id+')" stroke-dasharray="'+fait+' '+reste+'" style="'+TR+'"/>';
+    s+='<path'+(anim?' class="mg-monte"':'')+' d="'+SENTIER_D+'" fill="none" stroke="url(#s'+id+')" stroke-width="6" stroke-linecap="round" filter="url(#g'+id+')" stroke-dasharray="'+fait+' '+reste+'" style="'+(anim?'':TR)+'"/>';
   }
   // Marcheur : point blanc cerclé de vert, posé exactement au bout du parcouru
   if(p>0&&p<100){
@@ -4803,11 +4845,42 @@ function svgMontagne(pct,accent,w,hh){
   }
   // Mât blanc, drapeau ROUGE tant que ce n'est pas gagné, VERT et illuminé au sommet
   s+='<line x1="85" y1="24" x2="85" y2="2" stroke="#FFFFFF" stroke-opacity=".85" stroke-width="2.6" stroke-linecap="round"/>'+
-     '<path d="M85 3 L106 9 L85 15 Z" fill="'+dc+'"'+(sommet?' filter="url(#g'+id+')"':'')+' style="transition:fill .5s"/>'+
+     // Au sommet, le drapeau flotte ; en mode « anim », il part ROUGE et
+     // passe au VERT quand le sentier arrive en haut.
+     (sommet?'<g class="mg-flotte">':'')+
+     '<path'+(anim&&sommet?' class="mg-drap"':'')+' d="M85 3 L106 9 L85 15 Z" fill="'+dc+'"'+(sommet?' filter="url(#g'+id+')"':'')+' style="transition:fill .5s"/>'+
+     (sommet?'</g>':'')+
      (sommet?'<circle cx="85" cy="24" r="10" fill="none" stroke="'+accent+'" stroke-width="2.4" opacity=".55"/>':'')+
+     (anim&&sommet?'<circle class="mg-onde" cx="85" cy="9" r="12" fill="none" stroke="'+accent+'" stroke-width="2.4"/>':'')+
      '<line x1="4" y1="140.5" x2="166" y2="140.5" stroke="#FFFFFF" stroke-opacity=".32" stroke-width="2.6" stroke-linecap="round"/>'+
      '</svg>';
   return s;
+}
+// 🏆 Fête de l'objectif du mois : vue une seule fois par objectif et par
+// téléphone. Le bouton la ferme et la marque comme vue.
+document.addEventListener("click",function(e){
+  var b=e.target&&e.target.closest&&e.target.closest("#objf-ok");
+  if(!b)return;
+  try{localStorage.setItem(b.getAttribute("data-k"),"1");}catch(x){}
+  var ov=document.getElementById("obj-fete"); if(ov)ov.parentNode.removeChild(ov);
+});
+function objFeteHTML(cle,titre,detail,reward,TH){
+  var conf='', cols=["#5DF2A0","#FFD43B","#FF6B9A","#4DABF7","#FFFFFF","#B197FC"];
+  for(var i=0;i<34;i++){
+    conf+='<span class="objf-c" style="left:'+((i*29)%100)+'%;background:'+cols[i%cols.length]+';animation-delay:'+(2.2+((i*37)%120)/100)+'s;transform:rotate('+(i*41%180)+'deg)"></span>';
+  }
+  return '<div id="obj-fete" class="objf-ov">'+
+    '<div class="objf-carte" style="background:linear-gradient(160deg,'+solid("var(--brand)")+','+solid("var(--brand2)")+')">'+
+    '<div style="font-size:11px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.8)">'+esc(titre)+'</div>'+
+    '<div style="width:210px;margin:10px auto 4px">'+svgMontagne(100,"#5DF2A0",null,null,true)+'</div>'+
+    '<div class="objf-tard" style="animation-delay:2.3s;font-weight:900;font-size:27px;line-height:1.1;letter-spacing:-.5px">🏆 OBJECTIF<br>ATTEINT !</div>'+
+    '<div class="objf-tard" style="animation-delay:2.6s;font-size:13px;font-weight:700;color:rgba(255,255,255,.85);margin-top:8px;line-height:1.5">'+detail+'</div>'+
+    '<div class="objf-tard" style="animation-delay:3s;margin-top:16px;border-radius:18px;padding:14px 14px 15px;background:'+TH.g+';border:1.5px solid '+TH.c+'88">'+
+      '<div style="font-size:30px;line-height:1">'+TH.e+'</div>'+
+      '<div style="font-size:13px;font-weight:800;margin-top:6px">Félicitations, tu as droit à ta récompense :</div>'+
+      '<div style="font-weight:900;font-size:22px;line-height:1.2;margin-top:4px;color:#fff">'+esc(reward||"ta récompense")+'</div></div>'+
+    '<button id="objf-ok" data-k="'+esc(cle)+'" class="objf-tard" style="animation-delay:3.4s;width:100%;margin-top:16px;padding:15px 0;border:0;border-radius:14px;background:#5DF2A0;color:#06331F;font-weight:900;font-size:15px;cursor:pointer">🎁 Je prends ma récompense</button>'+
+    '</div>'+conf+'</div>';
 }
 // 🎁 Univers visuel de la récompense, déduit de ce que le coach a écrit.
 function rewardTheme(txt){
@@ -6340,10 +6413,10 @@ function viewCalendar(name,start){
     var __ph=supPhrases(allData);
     var phrase=__ph[today90%__ph.length];
     h+='<div class="card" style="margin-bottom:18px;border-left:4px solid '+(reached?"var(--ok)":R)+';padding:16px 18px">';
-    if(reached){
-      h+='<div style="font-weight:900;font-size:16px;color:var(--ok-d)">🏆 OBJECTIF ATTEINT !</div>'+
-         '<div style="font-size:13px;color:#333;margin-top:6px;line-height:1.6">Tu as mérité ta récompense :<br><strong>'+esc(goal.reward||"—")+'</strong></div>';
-    }else{
+    // 🏔️ Objectif atteint : la montagne RESTE, sentier plein et drapeau vert.
+    // Akli : « le drapeau rouge passe au vert en animation ». La première
+    // fois, une fête plein écran le montre ; ensuite la carte le garde.
+    {
       // 🎯 Carte objectif — trois colonnes, anneau central, piste et récompense
       var pcG=0, depG=null, colG=solid("var(--brand)");
       (function(){
@@ -6357,6 +6430,7 @@ function viewCalendar(name,start){
           pcG=Math.max(0,Math.min(100,Math.round(ff/tt*100)));
           colG=gaugeCol(pcG);
         }
+        if(reached)pcG=100;
       })();
       var resteG=(curW!=null&&goal.target)?Math.max(0,Math.round((curW-goal.target)*10)/10):null;
       var perduG=(depG!=null&&curW!=null)?Math.max(0,Math.round((depG-curW)*10)/10):0;
@@ -6399,14 +6473,27 @@ function viewCalendar(name,start){
             '<div style="position:absolute;right:6px;bottom:44px;font-size:96px;opacity:.16;line-height:1;pointer-events:none">'+TH.e+'</div>'+
             '<div style="position:relative">'+
             '<div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.1);border:1.5px solid '+TH.c+'66;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:11px">'+TH.e+'</div>'+
-            '<div style="font-size:10.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:'+TH.c+'">Ta récompense du mois</div>'+
+            '<div style="font-size:10.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:'+TH.c+'">'+(reached?'✅ Récompense débloquée':'Ta récompense du mois')+'</div>'+
             '<div style="font-weight:900;font-size:24px;color:#fff;line-height:1.15;margin-top:3px">'+esc(goal.reward||"À définir")+'</div>'+
             '<div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-top:7px">'+
-            '<div style="font-size:11.5px;font-weight:700;color:rgba(255,255,255,.62);line-height:1.45">À DÉBLOQUER<br>QUAND TU ATTEINS '+goal.target+' KG</div>'+
+            (reached
+              ? '<div style="font-size:12px;font-weight:800;color:#5DF2A0;line-height:1.45">🎉 FÉLICITATIONS<br>TU AS DROIT À TA RÉCOMPENSE</div>'
+              : '<div style="font-size:11.5px;font-weight:700;color:rgba(255,255,255,.62);line-height:1.45">À DÉBLOQUER<br>QUAND TU ATTEINS '+goal.target+' KG</div>')+
             '<button id="goal-edit" style="flex:0 0 auto;border:0;background:rgba(255,255,255,.14);color:#fff;padding:9px 13px;border-radius:12px;font-weight:800;font-size:12.5px">✏️</button>'+
             '</div></div></div>';
         })()+
         '<div style="font-size:13px;color:var(--mute);margin-top:13px;text-align:center;line-height:1.5">'+phrase+'</div>';
+      // 🎉 Première fois : la fête plein écran (cliente seulement)
+      if(reached&&!IS_COACH){
+        var __kF="amcoach_objfete_"+(CLIENT||"")+"_"+(shortProg?"p":month)+"_"+goal.target;
+        var __vu=null; try{__vu=localStorage.getItem(__kF);}catch(x){__vu="1";}
+        if(!__vu){
+          h+=objFeteHTML(__kF,(shortProg?'Objectif '+progDays+' jours':'Objectif du mois '+month),
+            (depG!=null?depG+' kg → <b>'+curW+' kg</b>'+(perduG>0?' · −'+perduG+' kg':''):'Objectif '+goal.target+' kg atteint'),
+            goal.reward,rewardTheme(goal.reward));
+          try{if(navigator.vibrate)setTimeout(function(){navigator.vibrate([60,40,140]);},1500);}catch(x){}
+        }
+      }
     }
     h+='</div>';
   }else{
@@ -6784,6 +6871,28 @@ function viewDay(name,start){
     }
   }
 
+  // 📏 TOUR DE TAILLE AU NOMBRIL — au départ et au dernier jour. Les deux
+  // chiffres vont sur le diplôme, à côté du poids.
+  (function(){
+    var nP=progLen(start)||90, dernier=(idx===nP-1), finProche=(idx>=nP-2&&idx<=nP-1);
+    var premier=-1;
+    for(var q=0;q<Math.min(nP,7);q++){if(nombrilVal(allData[q]&&allData[q].nombril)!=null){premier=q;break;}}
+    var depart=(idx<=6&&(premier<0||premier===idx));
+    if(!depart&&!finProche)return;
+    var fort=dernier||idx===0;
+    h+='<div class="card" style="padding:15px 15px 14px;margin-bottom:12px;border:2.5px solid '+(fort?'#F76707':'var(--brand2)')+';background:'+(fort?'#FFF4E6':'#fff')+'">'+
+      (dernier
+        ? '<div style="display:inline-block;background:#F76707;color:#fff;font-weight:900;font-size:11px;letter-spacing:1.2px;padding:4px 10px;border-radius:20px;margin-bottom:8px">⚠️ IMPORTANT · DERNIER JOUR</div>'
+        : (idx<=6?'<div style="display:inline-block;background:var(--brand2);color:#fff;font-weight:900;font-size:11px;letter-spacing:1.2px;padding:4px 10px;border-radius:20px;margin-bottom:8px">📍 POINT DE DÉPART</div>':''))+
+      '<div style="font-weight:900;font-size:15px;color:var(--ink);margin-bottom:4px">📏 Ton tour de taille au nombril</div>'+
+      '<div style="font-size:12px;color:var(--ink2);line-height:1.5;margin-bottom:10px">'+
+        (dernier?'C\'est le dernier jour : mesure ton tour de taille au nombril. Ce chiffre s\'affiche sur ton diplôme, à côté de ton poids.'
+          :finProche?'Demain c\'est le dernier jour : prépare ton mètre ruban pour ta mesure finale.'
+          :'Mesure-le aujourd\'hui, en même temps que ton poids. On le compare au dernier jour sur ton diplôme.')+
+        '<br><small style="color:var(--mute)">Mètre ruban à hauteur du nombril, le matin, ventre relâché.</small></div>'+
+      '<div style="display:flex;align-items:center;gap:8px"><input id="in-nombril" class="num-input" type="number" step="0.5" min="30" max="250" placeholder="ex: 92" value="'+esc(d.nombril||"")+'" style="flex:1;margin:0"/>'+
+      '<span style="font-weight:900;color:var(--mute)">cm</span></div></div>';
+  })();
   // ⚖️😴 POIDS ET SOMMEIL CÔTE À CÔTE : deux chiffres à taper, une seule
   // ligne. La lecture du sommeil (cycles, semaine) passe juste dessous.
   h+='<div class="ndj-row2">'+
@@ -7272,6 +7381,8 @@ function bindDay(name,start){
   document.getElementById("day-back").addEventListener("click",function(){state.selDay=null;state.showBilan=false;render();});
 
   document.getElementById("in-poids").addEventListener("input",function(){persist({poids:this.value});});
+  var inNb=document.getElementById("in-nombril");
+  if(inNb)inNb.addEventListener("input",function(){persist({nombril:this.value});});
   document.getElementById("in-sommeil").addEventListener("input",function(){
     persist({sommeilH:this.value});
     var cv=document.getElementById("cycle-viz");

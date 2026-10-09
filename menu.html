@@ -214,9 +214,13 @@ var MENUS={
   cyclage:{num:"Phase 3",name:"Cyclage",desc:"Jours entiers SANS glucides (SG) et jours GLUCIDES BAS (GB) selon le calendrier."},
   // 🎁 Phase bonus : elle n'apparaît nulle part tant qu'elle n'est pas ouverte.
   retour:{num:"Phase 4",name:"Retour à la vie normale",desc:"Rééquilibrage complet : 1/3 glucides · 1/3 protéines · 1/3 fibres. Le blé et les produits laitiers reviennent — c'est la phase qui rend le résultat tenable.",bonus:true},
-  "14jours":{num:"Reset",name:"Reset 14 jours",desc:"Ton menu spécial Reset : 14 jours pour perdre du poids. Suis exactement les repas du jour — ton coach s'occupe du reste."}
+  "14jours":{num:"Reset",name:"Reset 14 jours",desc:"Ton menu spécial Reset : 14 jours pour perdre du poids. Suis exactement les repas du jour — ton coach s'occupe du reste."},
+  "6semaines":{num:"6 semaines",name:"Programme 6 semaines",desc:"Deux parties de 3 semaines. Jours ON avec glucides, jours OFF sans glucides : suis ton calendrier, ton coach s'occupe du reste."}
 };
-var MENU_DAYS=function(m){return m==="14jours"?14:28;};
+var MENU_DAYS=function(m){return m==="14jours"?14:(m==="6semaines"?42:28);};
+// 🔷 Les programmes courts (Reset 14 jours, 6 semaines) suivent le même
+// protocole ON / OFF : seul le calendrier change.
+function estCourt(m){return m==="14jours"||m==="6semaines";}
 
 var MEALS=[
   {id:"pdej",  icon:"🌅", name:"Petit-déjeuner"},
@@ -238,7 +242,7 @@ function collations(menu, dayTag) {
       ? { icon: "🍓", nom: "Collation de l'après-midi", txt: "Fruits rouges uniquement", note: "Facultative · jours glucides bas" }
       : { icon: "🚫", nom: "Collation de l'après-midi", txt: "Pas de fruits aujourd'hui", note: "Jour sans glucides" }];
   }
-  if (menu === "14jours") {
+  if (estCourt(menu)) {
     return [mat, (dayTag === "RA")
       ? { icon: "🍎", nom: "Collation de l'après-midi", txt: "Fruits", note: "Facultative · jour ON" }
       : { icon: "🥛", nom: "Collation de l'après-midi", txt: "Protéine", note: "Facultative · jour OFF" }];
@@ -256,7 +260,7 @@ function mealRule(menu,mealId,dayTag){
     if(mealId==="dej")  return {txt:"G + P + F",color:"#2E7D32"};
     return {txt:"GB + P + F",color:"#F59E0B"};
   }
-  if(menu==="14jours"){
+  if(estCourt(menu)){
     // Jour RA : rééquilibrage complet, blé et laitages autorisés, comme au
     // mois 4. Jour SG : aucune source de glucides, midi et soir.
     if(mealId==="pdej") return {txt:"PROTÉINE",color:"#7B1FA2"};
@@ -288,6 +292,26 @@ function reset14Tag(dayIdx) {
 }
 function reset14Pesee(dayIdx) { return dayIdx === 13; }
 
+// 📅 CALENDRIER DU PROGRAMME 6 SEMAINES, donné par Akli (jour 1 = lundi).
+// Partie 1 (semaines 1 à 3) : un jour ON, un jour OFF, en alternance.
+// Partie 2 : semaine 4 entièrement OFF. Ensuite un jour ON, quatre OFF :
+// lundi ON, mardi → vendredi OFF, samedi ON, dimanche → mercredi OFF,
+// jeudi ON, vendredi → dimanche matin OFF. Bilan le dimanche matin.
+var PROG6S = (function(){
+  var t = [], i;
+  for (i = 0; i < 21; i++) t.push(i % 2 === 0 ? "RA" : "SG");
+  for (i = 21; i < 28; i++) t.push("SG");
+  var ON2 = [28, 33, 38];
+  for (i = 28; i < 42; i++) t.push(ON2.indexOf(i) >= 0 ? "RA" : "SG");
+  return t;
+})();
+function prog6sTag(dayIdx) { return PROG6S[Math.max(0, Math.min(41, dayIdx))]; }
+function menuPesee(menu, dayIdx) {
+  if (menu === "14jours") return dayIdx === 13;
+  if (menu === "6semaines") return dayIdx === 41;
+  return false;
+}
+
 // Calendrier Cyclage — pattern fixe 4 semaines (L→D), depuis le calendrier d'Akli
 var CYCLAGE=[
   ["SG","GB","SG","GB","SG","GB","SG"],
@@ -300,6 +324,7 @@ var CYCLAGE=[
 function jourTag(menu, dayIdx) {
   if (menu === "cyclage") return cyclageTag(dayIdx);
   if (menu === "14jours") return reset14Tag(dayIdx);
+  if (menu === "6semaines") return prog6sTag(dayIdx);
   return null;
 }
 function cyclageTag(dayIdx){ // dayIdx 0-29 → semaine 0-3 bouclée
@@ -369,9 +394,11 @@ function checkAccess(cb){
       var a=rows[0].data||{};
       var today=new Date().toISOString().split("T")[0];
       if(a.off||(a.end&&today>a.end)){state.accessDenied=true;}
+      state.accEnd=a.end||"";
     }
+    state.accChecked=true;
     cb();
-  }).catch(function(){cb();});
+  }).catch(function(){state.accChecked=true;cb();});
 }
 function loadClient(cb){
   // 1. localStorage (partagé avec le tracker, même domaine)
@@ -401,6 +428,16 @@ function dayGlobal(){
   if(!state.clientStart)return 0;
   var diff=Math.floor((Date.now()-new Date(state.clientStart).getTime())/86400000);
   return Math.max(0,Math.min(diff,89));
+}
+// Le menu d'un client selon la durée de son accès : 14 jours, 6 semaines ou
+// les phases du 90 jours.
+function menuAuto(){
+  if(state.accEnd&&state.clientStart){
+    var n=Math.floor((new Date(state.accEnd)-new Date(state.clientStart))/86400000)+1;
+    if(n>0&&n<=14)return "14jours";
+    if(n>14&&n<=42)return "6semaines";
+  }
+  return PHASE_ORDER[currentPhaseIdx()];
 }
 function phaseUnlocked(pi){return dayGlobal()>=UNLOCK_AT[pi];}
 function currentPhaseIdx(){return Math.min(Math.floor(dayGlobal()/28),2);}
@@ -857,8 +894,9 @@ function render(){
     }
     if(!state.clientName||!state.clientStart){root.innerHTML=viewClientOnboard();bindClientOnboard();return;}
     if(!MENU){
-      // Menu auto = phase courante si non choisi
-      MENU=PHASE_ORDER[currentPhaseIdx()];
+      // On attend la durée de l'accès avant de choisir le menu
+      if(!state.accChecked){root.innerHTML='<div class="dark-screen"><div class="dark-sub">Chargement...</div></div>';return;}
+      MENU=menuAuto();
       loadRecipes(MENU,function(){render();});
     }
     var hh='<div class="app">'+viewClientHeader()+viewBanner()+viewPhaseNav()+viewTabs();
@@ -891,7 +929,7 @@ function viewHeader(){
   return '<div class="hdr"><div style="display:flex;align-items:center;gap:10px">'+back+
     '<div style="flex:1"><div class="hdr-brand"><div class="bar bar-r"></div>'+
     '<span class="hdr-title" style="font-size:14px">'+esc(m.name)+'</span><div class="bar bar-b"></div></div>'+
-    '<div class="hdr-sub">'+esc(m.num)+' · 4 semaines'+(IS_ADMIN?' · ADMIN':'')+'</div></div></div></div>';
+    '<div class="hdr-sub">'+esc(m.num)+' · '+(MENU==="6semaines"?'6 semaines':(MENU==="14jours"?'2 semaines':'4 semaines'))+(IS_ADMIN?' · ADMIN':'')+'</div></div></div></div>';
 }
 
 // ═══════════ CLIENT MODE ═══════════
@@ -921,7 +959,7 @@ function viewClientHeader(){
   var m=MENUS[MENU];
   return '<div class="hdr"><div class="hdr-brand"><div class="bar bar-r"></div>'+
     '<span class="hdr-title" style="font-size:14px">'+esc(m.name)+'</span><div class="bar bar-b"></div></div>'+
-    '<div class="hdr-sub">'+esc(state.clientName)+' · Jour '+(dayGlobal()+1)+'/'+(MENU==="14jours"?14:90)+'</div></div>';
+    '<div class="hdr-sub">'+esc(state.clientName)+' · Jour '+(Math.min(dayGlobal(),estCourt(MENU)?MENU_DAYS(MENU)-1:89)+1)+'/'+(estCourt(MENU)?MENU_DAYS(MENU):90)+'</div></div>';
 }
 
 function viewPhaseNav(){
@@ -960,7 +998,7 @@ function viewPicker(){
   var h='<div class="dark-screen">'+
     '<div class="dark-brand"><div class="bar bar-r"></div><span>AM Coach</span><div class="bar bar-b"></div></div>'+
     '<div class="dark-sub">Menus TransfoPhysique · sans blé · sans laitages</div>';
-  var keys=IS_ADMIN?["equilibre","acceleration","cyclage","14jours"]:["equilibre","acceleration","cyclage"];
+  var keys=IS_ADMIN?["equilibre","acceleration","cyclage","14jours","6semaines"]:["equilibre","acceleration","cyclage"];
   for(var i=0;i<keys.length;i++){
     var m=MENUS[keys[i]];
     h+='<button class="menu-pick" data-menu="'+keys[i]+'">'+
@@ -992,7 +1030,7 @@ function viewTabs(){
   return '<div class="tabs">'+
     '<button class="tab'+(state.tab==="aliments"?" active":"")+'" data-tab="aliments">🥗 Méthode nutrition</button>'+
     (cfgMenu.frigo?'<button class="tab'+(state.tab==="frigo"?" active":"")+'" data-tab="frigo">🧊 Mon frigo</button>':'')+
-    '<button class="tab'+(state.tab==="menu"?" active":"")+'" data-tab="menu">📅 Menu '+(MENU==="14jours"?"14":"30")+' jours</button></div>';
+    '<button class="tab'+(state.tab==="menu"?" active":"")+'" data-tab="menu">📅 Menu '+(MENU==="14jours"?"14 jours":(MENU==="6semaines"?"6 semaines":"30 jours"))+'</button></div>';
 }
 
 // ═══════════ CALENDRIER 30 JOURS ═══════════
@@ -1018,7 +1056,7 @@ function viewCalendar(){
         tag='<span class="dc-tag" style="color:'+(t==="SG"?"#2E7D32":"#B45309")+'">'+t+'</span>';
       }
       // ⚖️ Le dernier dimanche du Reset : pesée et mensurations.
-      if(MENU==="14jours"&&reset14Pesee(i))tag+='<span class="dc-tag" style="color:#0057A8">⚖️</span>';
+      if(menuPesee(MENU,i))tag+='<span class="dc-tag" style="color:#0057A8">⚖️</span>';
       var hasRecipe=cfgMenu.recettes&&(state.recipes[keyOf(MENU,i,"dej")]||state.recipes[keyOf(MENU,i,"pdej")]||state.recipes[keyOf(MENU,i,"diner")]);
       var phIdx=PHASE_ORDER.indexOf(MENU);
       var isToday=CLIENT&&state.clientStart&&(FORCED?(dayGlobal()%MENU_DAYS(MENU))===i:(Math.floor(dayGlobal()/28)===phIdx&&(dayGlobal()%28)===i));
@@ -1037,16 +1075,17 @@ function viewDayMeals(){
   var h='<div style="padding:0 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px">'+
     '<div class="bar bar-r"></div><span style="font-weight:900;font-size:16px">Jour '+(day+1)+'</span>'+
     (dayTag?'<span class="meal-rule" style="background:'+(dayTag==="SG"?"#2E7D32":"#F59E0B")+'">'+
-      (MENU==="14jours"
+      (estCourt(MENU)
         ?(dayTag==="SG"?"OFF · SANS GLUCIDES":"ON · AVEC GLUCIDES")
         :(dayTag==="SG"?"JOUR SANS GLUCIDES":"JOUR GLUCIDES BAS"))+'</span>':'')+'</div>';
 
   // ⚖️ Le dimanche de fin de Reset : on pèse et on mesure.
-  if(MENU==="14jours"&&reset14Pesee(day)){
+  if(menuPesee(MENU,day)){
     h+='<div style="margin:0 14px 12px;background:#E7F0FA;border:1.5px solid #0057A8;border-radius:12px;'+
       'padding:12px 14px;font-size:14px;color:#0B3C74;font-weight:700;line-height:1.5">'+
-      '⚖️ Aujourd\'hui : pesée et mensurations. Note-les dans ton application, '+
-      'c\'est ce qui mesure vraiment tes 14 jours.</div>';
+      (MENU==="6semaines"
+        ?'⚖️ Dimanche matin : bilan. Pesée et tour de taille au nombril, à noter dans ton application. Ensuite, retour à une alimentation normale.'
+        :'⚖️ Aujourd\'hui : pesée et mensurations. Note-les dans ton application, c\'est ce qui mesure vraiment tes 14 jours.')+'</div>';
   }
 
   if(!state.loaded)h+='<div class="meal-empty">Chargement…</div>';
@@ -1155,6 +1194,13 @@ var PROTOCOLES={
     ["🍎","Collation de l'après-midi","Fruits","Facultative."],
     ["🌙","Soir","Glucides + protéines + fibres","Un tiers de chaque. On mange normalement."]
   ],
+  "6semaines":[
+    ["🌅","Matin","Protéines","Tous les jours, sans exception."],
+    ["🥛","Collation du matin","Protéines","Facultative."],
+    ["🍽️","Midi","Selon le jour du calendrier","Jour avec glucides : 1/3 de chaque. Jour sans : protéines + fibres."],
+    ["🍎","Collation de l'après-midi","Fruits — jours avec glucides uniquement","Facultative. Les jours sans glucides : pas de fruits."],
+    ["🌙","Soir","Selon le jour du calendrier","Jour avec glucides : glucides bas + protéines + fibres. Jour sans : protéines + fibres."]
+  ],
   "14jours":[
     ["🌅","Matin","Protéines","Tous les jours, sans exception."],
     ["🥛","Collation du matin","Protéines","Facultative."],
@@ -1191,8 +1237,9 @@ function reset14ProtocoleHTML(){
     }
     return h+'</div>';
   }
+  var six=(MENU==="6semaines"), nbS=six?6:2;
   var h='<div class="card proto-card"><div class="proto-t">🧭 Le protocole de ta journée'+
-    '<span class="proto-ph">Reset</span></div>';
+    '<span class="proto-ph">'+(six?'6 semaines':'Reset')+'</span></div>';
   h+='<div class="rs-2">'+
     colonne("ON","Avec glucides · rééquilibrage","#2E7D32","#F1FAF3",RESET_ON)+
     colonne("OFF","Sans glucides","#C62828","#FFF4F4",RESET_OFF)+
@@ -1200,26 +1247,26 @@ function reset14ProtocoleHTML(){
 
   // Le calendrier de la séquence : 2 semaines, lundi → dimanche.
   var noms=["L","M","M","J","V","S","D"];
-  h+='<div class="rs-cal-t">📅 Ta séquence de 14 jours</div>';
-  for(var w=0;w<2;w++){
-    h+='<div class="rs-sem">Semaine '+(w+1)+'</div><div class="rs-cal">';
+  h+='<div class="rs-cal-t">📅 Ta séquence de '+(six?'6 semaines':'14 jours')+'</div>';
+  for(var w=0;w<nbS;w++){
+    h+='<div class="rs-sem">'+(six?(w<3?'Partie 1 · ':'Partie 2 · '):'')+'Semaine '+(w+1)+'</div><div class="rs-cal">';
     for(var d=0;d<7;d++){
-      var i=w*7+d, on=(reset14Tag(i)==="RA");
+      var i=w*7+d, on=(jourTag(MENU,i)==="RA");
       h+='<div class="rs-j'+(on?" on":" off")+(i===jour?" auj":"")+'">'+
         '<span class="rs-jn">'+noms[d]+'</span><b>'+(i+1)+'</b>'+
         '<span class="rs-jt">'+(on?"ON":"OFF")+'</span>'+
-        (reset14Pesee(i)?'<span class="rs-pe">⚖️</span>':'')+'</div>';
+        (menuPesee(MENU,i)?'<span class="rs-pe">⚖️</span>':'')+'</div>';
     }
     h+='</div>';
   }
   h+='<div class="rs-leg"><span><i style="background:#2E7D32"></i>ON — avec glucides</span>'+
     '<span><i style="background:#C62828"></i>OFF — sans glucides</span>'+
-    '<span>⚖️ pesée et mensurations</span></div>';
+    '<span>⚖️ '+(six?'bilan du dimanche matin':'pesée et mensurations')+'</span></div>';
   h+='<div class="proto-col-n">Les collations sont facultatives. Elles ne remplacent jamais un repas.</div>';
   return h+'</div>';
 }
 function protocoleHTML(){
-  if(MENU==="14jours")return reset14ProtocoleHTML();
+  if(estCourt(MENU))return reset14ProtocoleHTML();
   var L=PROTOCOLES[MENU]||PROTOCOLES.equilibre;
   var P=MENUS[MENU]||{};
   var h='<div class="card proto-card"><div class="proto-t">🧭 Le protocole de ta journée'+
@@ -1237,7 +1284,7 @@ function protocoleHTML(){
   h+='<div class="proto-col"><div class="proto-col-t">Les collations — facultatives</div>';
   h+='<div class="proto-col-l"><span>🥛</span><b>Matin</b><i>'+esc(C[0].txt)+'</i></div>';
   var apres = (MENU==="cyclage") ? "Fruits rouges les jours glucides bas · rien les jours sans"
-            : (MENU==="14jours") ? "Fruits les jours avec glucides · rien les jours sans"
+            : estCourt(MENU) ? "Fruits les jours avec glucides · rien les jours sans"
             : esc(C[1].txt);
   h+='<div class="proto-col-l"><span>🍎</span><b>Après-midi</b><i>'+apres+'</i></div>';
   h+='<div class="proto-col-n">Une collation ne remplace jamais un repas. Si tu n\'as pas faim, tu la sautes.</div></div>';
@@ -1264,7 +1311,7 @@ function assiettesDeLaPhase(){
   if(MENU==="retour")
     return assietteHTML("midi","Assiette du midi","1/3 glucides · 1/3 protéines · 1/3 fibres")+
            assietteHTML("midi","Assiette du soir","1/3 glucides · 1/3 protéines · 1/3 fibres");
-  if(MENU==="14jours")
+  if(estCourt(MENU))
     return assietteHTML("midi","Jour ON — midi et soir","1/3 glucides · 1/3 protéines · 1/3 fibres")+
            assietteHTML("sg","Jour OFF — midi et soir","1/2 protéines · 1/2 fibres");
   return assietteHTML("midi","Assiette du midi — rééquilibrage")+
@@ -1283,7 +1330,7 @@ function viewAliments(){
   // Le Reset n'est pas la diète TransfoPhysique : les jours ON, le blé et les
   // laitages sont autorisés, comme au mois 4. Les jours OFF, pas de glucides
   // du tout — la question du blé ne se pose donc pas.
-  if(MENU==="14jours"){
+  if(estCourt(MENU)){
     var hr='<div class="food-note" style="border-color:#2E7D32;background:#F0FAF2">'+
       '✅ Jours ON : le blé et les produits laitiers sont autorisés, comme dans un rééquilibrage classique.<br>'+
       '⛔ Jours OFF : aucun glucide, midi et soir.</div>';
@@ -1542,11 +1589,11 @@ function bindMain(){
   if(CLIENT&&!IS_ADMIN){
     render();
     loadClient(function(){
-      checkAccess(function(){render();});
-      if(state.clientStart&&!MENU){
-        MENU=PHASE_ORDER[currentPhaseIdx()];
-      }
-      if(MENU)loadRecipes(MENU,function(){render();});
+      checkAccess(function(){
+        if(state.clientStart&&!MENU)MENU=menuAuto();
+        if(MENU)loadRecipes(MENU,function(){render();});
+        render();
+      });
       render();
     });
     return;

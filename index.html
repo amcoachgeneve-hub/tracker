@@ -1039,7 +1039,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="08/10 - Diplome nombril";
+var APP_VERSION="10/10 - Programme 6 semaines";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -1282,6 +1282,13 @@ var MENU_PHASES=[
 ];
 var MENU_RESET={cle:"14jours",num:"Reset",nom:"Reset 14 jours",jours:14,
   desc:"14 jours pour relancer la perte de poids."};
+var MENU_6S={cle:"6semaines",num:"6 semaines",nom:"Programme 6 semaines",jours:42,
+  desc:"Deux parties de 3 semaines, jours ON et OFF selon ton calendrier."};
+// Le menu court qui va avec la durée du programme
+function menuCourtDef(data){
+  var n=90; try{n=progLen(menuDepartDe(data),data)||90;}catch(e){}
+  return prog6s(n)?MENU_6S:MENU_RESET;
+}
 // 🍽️ Sur un Reset 14 jours, les menus sont inclus et ne s'éteignent pas.
 // Akli a décoché la case « menus » en pensant couper ceux du 90 jours : ça
 // coupait ceux du Reset. La lecture force donc menus actifs, en mode Reset,
@@ -1295,7 +1302,7 @@ function menuDepartDe(data){
 }
 function estReset14(data){
   var st=menuDepartDe(data);
-  return !!st && !!(data&&data[504]&&data[504].end) && progLen(st,data)<=14;
+  return !!st && !!(data&&data[504]&&data[504].end) && progLen(st,data)<=42;
 }
 function menuCfg(data){
   var m=(data&&data[517])||{};
@@ -1328,7 +1335,7 @@ function menuJour(data){
 // Phase courante : soit forcée par le coach, soit déduite des jours écoulés
 function menuPhase(data){
   var m=menuCfg(data);
-  if(m.reset)return {p:MENU_RESET,idx:0,jour:Math.min(menuJour(data),MENU_RESET.jours-1),total:MENU_RESET.jours,liste:[MENU_RESET]};
+  if(m.reset){var MC=menuCourtDef(data);return {p:MC,idx:0,jour:Math.min(menuJour(data),MC.jours-1),total:MC.jours,liste:[MC]};}
   if(m.phaseForcee){
     for(var f=0;f<MENU_PHASES.length;f++){
       if(MENU_PHASES[f].cle===m.phaseForcee)
@@ -4284,14 +4291,14 @@ function diplomeNumero(slug,startDate,n){
   var k=String(slug||"")+"|"+String(startDate||""), hsh=0;
   for(var i=0;i<k.length;i++){hsh=((hsh<<5)-hsh+k.charCodeAt(i))|0;}
   var num=("000"+(Math.abs(hsh)%10000)).slice(-4);
-  return "N° AM-"+(n<=14?"R14-":"")+String(startDate||"").slice(0,4)+"-"+num;
+  return "N° AM-"+(n<=14?"R14-":(n<=42?"S6-":""))+String(startDate||"").slice(0,4)+"-"+num;
 }
 // 🏰 L'identité n'apparaît sur le diplôme QUE si elle a été atteinte : le
 // palier final de la forteresse (120 briques), au plus haut jamais touché.
 // Non atteinte, rien n'est écrit — un diplôme ne liste que des acquis.
 function diplomeIdentite(allData,n){
   try{
-    if(n<=14)return null;
+    if(n<=42)return null;
     var cfg=qgConfig(allData); if(!cfg||!cfg.identity)return null;
     var res=qgRes(allData,n-1), ech=qgEchelle(allData);
     var lvMax=qgLevel(res.total,ech);
@@ -4363,13 +4370,18 @@ function generateDiplome(name,startDate,allData){
   // jour. À défaut, les bilans du coach (premier et dernier) prennent le relais.
   var nb=nombrilDepArr(allData,n);
   var deltaN=(nb.dep!=null&&nb.arr!=null)?Math.round((nb.arr-nb.dep)*10)/10:null;
+  var femmeDip=false; try{femmeDip=(prog3Sexe(allData)==="f");}catch(e){}
   var fmtKg=function(v){return String(v).replace(".",",");};
   var signe=function(v){return (v>0?"+":"")+fmtKg(v);};
   var photo=(allData&&allData[531]&&allData[531].img)||"";
   var identite=diplomeIdentite(allData,n);
   var numero=diplomeNumero(CLIENT,startDate,n);
 
-  var T=reset
+  var T=prog6s(n)
+    ? {titre:'DIPLÔME<br>6 SEMAINES',sous:'« Un nouveau rythme est installé »',
+       txt:'Pour avoir mené avec discipline le programme de 6 semaines — nutrition, marche, mouvement et mindset.',
+       msg:'« Félicitations. Six semaines sans lâcher : tes nouvelles habitudes sont en place. Maintenant, on les garde. Bravo. »'}
+    : reset
     ? {titre:'DIPLÔME<br>RESET 14',sous:'« Le déclic est enclenché »',
        txt:'Pour avoir relevé avec discipline le défi Reset de 14 jours — nutrition, marche, mouvement et mindset.',
        msg:'« Félicitations. En 14 jours, tu as prouvé que tu pouvais changer tes habitudes. Le plus dur est fait : maintenant, on construit. Bravo. »'}
@@ -4430,11 +4442,17 @@ function generateDiplome(name,startDate,allData){
   '<div class="sub">Transfo Physique · Méthode AM</div>'+
   '<div class="mont">'+svgMontagneDiplome()+'</div>'+
   (photo?'<div class="photo"><img src="'+photo+'" alt=""/></div>':'')+
+  // 👩 Pour une femme, jamais le poids affiché : seulement le résultat.
+  // Akli : « ça peut les complexer de montrer leur poids de départ ou même
+  // leur poids d'arrivée ». Le diplôme se partage, le chiffre resterait.
   (dep!=null&&arr!=null
-    ? '<div class="parcours">'+
+    ? (femmeDip
+      ? '<div class="parcours" style="justify-content:center"><div class="ecart" style="font-size:20px;text-align:center">'+signe(delta)+' kg en '+n+' jours'+
+        (deltaN!=null&&deltaN!==0?'<small style="font-size:14px;color:#0ea5e9;margin-top:3px">'+signe(deltaN)+' cm de tour de taille</small>':'')+'</div></div>'
+      : '<div class="parcours">'+
       '<div class="pt"><span>Départ · J1</span><b>'+fmtKg(dep)+' kg</b></div>'+
       '<div class="ecart">'+signe(delta)+' kg en '+n+' jours</div>'+
-      '<div class="pt r"><span>Arrivée · J'+n+'</span><b>'+fmtKg(arr)+' kg</b></div></div>'
+      '<div class="pt r"><span>Arrivée · J'+n+'</span><b>'+fmtKg(arr)+' kg</b></div></div>')
     : '')+
   '<div class="title">'+T.titre+'</div>'+
   '<div class="subtitle">'+T.sous+'</div>'+
@@ -5082,7 +5100,7 @@ function renderView(){
   else if(state.view==="finance")html+=viewFinance(name,start);
   else if(state.view==="stats")html+=(state.partage?viewPartage():state.pesees?viewPesees(name):state.statsExo?viewStatsExo(name):viewStats(name));
   else if(state.view==="dream"){
-    if(progLen(lsGetStr("amcoach_start_"+CLIENT))<=14){ state.view="calendar"; html+=viewCalendar(name); }
+    if(progLen(lsGetStr("amcoach_start_"+CLIENT))<=42){ state.view="calendar"; html+=viewCalendar(name); }
     else html+=viewDream(name);
   }
   else if(state.view==="sport"||state.view==="training"){
@@ -5247,7 +5265,7 @@ function vid14Amorcer(){
     for(var i=0;i<L.length;i++){
       var all=lsGet("amcoach_"+L[i].slug,{});
       var dur=90; try{dur=progLen(L[i].start_date,all)||90;}catch(e){}
-      if(dur>14||vid14Sexe(all)!==sx)continue;
+      if(dur>42||vid14Sexe(all)!==sx)continue;
       var t=all[507]||{};
       if(Object.keys(t).length){ V[sx]=JSON.parse(JSON.stringify(t)); change=true; break; }
     }
@@ -5268,7 +5286,7 @@ function vid14Diffuser(sexe){
   for(var i=0;i<L.length;i++){
     var c=L[i], all=lsGet("amcoach_"+c.slug,{});
     var dur=90; try{ dur=progLen(c.start_date,all)||90; }catch(e){}
-    if(dur>14)continue;
+    if(dur>42)continue;
     if(vid14Sexe(all)!==sexe)continue;
     if(vid14AppliquerA(c.slug))nb++;
   }
@@ -5299,12 +5317,22 @@ function progDureeClient(slug){
   var st=lsGetStr("amcoach_start_"+slug)||(c&&c.start_date)||"";
   return progLen(st,lsGet("amcoach_"+slug,{}))||90;
 }
+// 🔷 PROGRAMMES COURTS : Reset 14 jours et programme 6 semaines (42 jours).
+// Ils partagent tout : menus ON/OFF imposés, séances de 7 jours en vidéo,
+// pas de grade, d'identité ni de Dream Board.
+function progCourt(n){return (n||90)<=42;}
+function prog6s(n){n=n||90;return n>14&&n<=42;}
+var PROG_DUREES=[
+  {n:14,ico:"⚡",lib:"Reset 14 jours",court:"14 J",bg:"#F76707"},
+  {n:42,ico:"🔥",lib:"Programme 6 semaines",court:"6 SEM",bg:"#7048E8"},
+  {n:90,ico:"🏆",lib:"Transfo 90 jours",court:"90 J",bg:"#1F2A44"}
+];
+function progType(n){n=n||90;return n<=14?PROG_DUREES[0]:(n<=42?PROG_DUREES[1]:PROG_DUREES[2]);}
 function progChipHTML(slug,grand){
-  var n=progDureeClient(slug), court=n<=14;
-  var bg=court?"#F76707":(n<90?"#7048E8":"#1F2A44");
-  var txt=court?"⚡ 14 J":(n<90?n+" J":"🏆 90 J");
+  var n=progDureeClient(slug), T=progType(n);
+  var txt=(n<90&&n!==14&&n!==42)?n+" J":T.ico+" "+T.court;
   return '<span class="prog-chip" data-s="'+esc(slug)+'" title="Toucher pour changer de programme" style="display:inline-block;vertical-align:middle;margin-left:6px;'+
-    'background:'+bg+';color:#fff;font-weight:900;font-size:'+(grand?"11.5px":"10px")+';letter-spacing:.3px;'+
+    'background:'+T.bg+';color:#fff;font-weight:900;font-size:'+(grand?"11.5px":"10px")+';letter-spacing:.3px;'+
     'padding:'+(grand?"4px 9px":"2px 7px")+';border-radius:20px;border:1.5px solid rgba(255,255,255,.55);cursor:pointer;white-space:nowrap">'+txt+'</span>';
 }
 function progEcrireSlot(slug,idx,val){
@@ -5312,15 +5340,15 @@ function progEcrireSlot(slug,idx,val){
   sbFetch("tracking?on_conflict=client_slug,day_index",{method:"POST",prefer:"resolution=merge-duplicates",
     body:{client_slug:slug,day_index:idx,data:val}}).catch(function(){});
 }
-// Passe un client en Reset 14 jours à partir du jour nd (AAAA-MM-JJ).
-function progVers14(slug,nd){
+// Passe un client sur un programme court (14 ou 42 jours) à partir du jour nd.
+function progVersCourt(slug,nd,jours){
   var cls=lsGet("amcoach_clients",[]), cName=slug;
   for(var ci=0;ci<cls.length;ci++){if(cls[ci].slug===slug){cls[ci].start_date=nd;cName=cls[ci].name;break;}}
   lsSet("amcoach_clients",cls);
   try{localStorage.setItem("amcoach_start_"+slug,nd);}catch(e){}
   sbFetch("clients?on_conflict=slug",{method:"POST",prefer:"resolution=merge-duplicates",
     body:{slug:slug,name:cName,start_date:nd}}).catch(function(){});
-  var end=new Date(nd+"T12:00:00"); end.setDate(end.getDate()+13);
+  var end=new Date(nd+"T12:00:00"); end.setDate(end.getDate()+jours-1);
   var acc=lsGet("amcoach_"+slug,{})[504]||{};
   acc.end=isoLocal(end); acc.off=false;
   progEcrireSlot(slug,504,acc);
@@ -5330,6 +5358,7 @@ function progVers14(slug,nd){
   try{ vid14AppliquerA(slug); }catch(e){}
   return isoLocal(end);
 }
+function progVers14(slug,nd){return progVersCourt(slug,nd,14);}
 // Repasse un client au programme 90 jours : accès illimité, menus en phases.
 // Avant, le drapeau « reset » des menus restait levé et le client gardait
 // les menus du Reset sur ses 90 jours.
@@ -5344,35 +5373,62 @@ function progVers90(slug){
     progEcrireSlot(slug,517,mc);
   }
 }
-// Tap sur la pastille : une question, une confirmation, c'est corrigé.
+// Tap sur la pastille : on choisit parmi les trois programmes.
 function progBasculerDepuisPastille(slug){
   var cl=lsGet("amcoach_clients",[]), c=null;
   for(var i=0;i<cl.length;i++)if(cl[i].slug===slug){c=cl[i];break;}
-  var nom=(c&&c.name)||slug;
+  var nom=(c&&c.name)||slug, actuel=progType(progDureeClient(slug)).n;
+  var ov=document.createElement("div");
+  ov.id="prog-choix";
+  ov.style.cssText="position:fixed;inset:0;z-index:10050;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center";
+  var b='<div style="background:#fff;width:100%;max-width:430px;border-radius:22px 22px 0 0;padding:20px 18px calc(18px + env(safe-area-inset-bottom))">'+
+    '<div style="font-weight:900;font-size:17px;color:#111;margin-bottom:4px">Programme de '+esc(nom)+'</div>'+
+    '<div style="font-size:12.5px;color:#666;margin-bottom:14px">Touche le bon programme pour corriger.</div>';
+  PROG_DUREES.forEach(function(T){
+    var on=(T.n===actuel);
+    b+='<button class="pc-opt" data-n="'+T.n+'"'+(on?' disabled':'')+' style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;margin-bottom:9px;padding:14px 15px;border-radius:15px;cursor:pointer;'+
+      (on?'background:'+T.bg+';color:#fff;border:2.5px solid '+T.bg:'background:#fff;color:'+T.bg+';border:2.5px dashed '+T.bg+'88')+'">'+
+      '<span style="font-size:24px">'+T.ico+'</span><span style="flex:1;font-weight:900;font-size:15px">'+T.lib+'</span>'+
+      (on?'<span style="font-size:11px;font-weight:900;opacity:.85">ACTUEL</span>':'')+'</button>';
+  });
+  b+='<button id="pc-annuler" style="width:100%;padding:13px 0;border-radius:100px;border:1.5px solid #ddd;background:#fff;color:#777;font-weight:800;font-size:13.5px;margin-top:4px">Annuler</button></div>';
+  ov.innerHTML=b; document.body.appendChild(ov);
+  function fermer(){if(ov.parentNode)ov.parentNode.removeChild(ov);}
+  ov.addEventListener("click",function(e){if(e.target===ov)fermer();});
+  document.getElementById("pc-annuler").addEventListener("click",fermer);
+  var opts=ov.querySelectorAll(".pc-opt");
+  for(var k=0;k<opts.length;k++)opts[k].addEventListener("click",function(){
+    var n=+this.getAttribute("data-n"); fermer();
+    progAppliquerChoix(slug,nom,n);
+  });
+}
+function progAppliquerChoix(slug,nom,n){
+  var cl=lsGet("amcoach_clients",[]), c=null;
+  for(var i=0;i<cl.length;i++)if(cl[i].slug===slug){c=cl[i];break;}
   var st=lsGetStr("amcoach_start_"+slug)||(c&&c.start_date)||isoLocal();
-  if(progDureeClient(slug)<=14){
-    if(!confirm("🏆 Passer "+nom+" au programme 90 JOURS ?\n\nIl quitte le Reset 14 jours :\n· accès illimité\n· menus en phases (fin des menus Reset)\n· grade, identité et Dream Board reviennent\n\nDate de départ conservée : "+isoVersFr(st)+"."))return;
+  if(n===90){
+    if(!confirm("🏆 Passer "+nom+" au programme 90 JOURS ?\n\n· accès illimité\n· menus en phases (fin des menus ON/OFF)\n· grade, identité et Dream Board reviennent\n\nDate de départ conservée : "+isoVersFr(st)+"."))return;
     progVers90(slug);
     feedback("🏆 "+nom+" → programme 90 jours","win");
     render();
     return;
   }
-  var t=0; try{t=getToday90(st);}catch(e){}
-  var msg="⚡ Passer "+nom+" en RESET 14 JOURS ?\n\n· l'accès se ferme 14 jours après le départ\n· menus du Reset + vidéos des 14 jours\n· pas de grade, identité, Dream Board ni cycle";
-  if(t>=1)msg+="\n\n⚠️ "+nom+" est déjà au jour "+(t+1)+" : tu vas choisir un nouveau jour 1.";
+  var T=progType(n), t=0; try{t=getToday90(st);}catch(e){}
+  var msg=T.ico+" Passer "+nom+" en "+T.lib.toUpperCase()+" ?\n\n· l'accès se ferme "+n+" jours après le départ\n· menus ON/OFF + vidéos de séance\n· pas de grade, identité ni Dream Board";
+  if(t>=1)msg+="\n\n⚠️ "+nom+" est déjà au jour "+(t+1)+" : tu vas choisir le jour 1.";
   if(!confirm(msg))return;
   // Erreur à l'inscription : le départ est récent, on le garde par défaut.
   var defaut=(t<14)?st:isoLocal();
-  pickDate("Jour 1 du Reset 14 jours",defaut,function(nd){
+  pickDate("Jour 1 · "+T.lib,defaut,function(nd){
     if(!nd)return;
-    var fin=progVers14(slug,nd);
-    feedback("⚡ "+nom+" → Reset 14 jours, du "+isoVersFr(nd)+" au "+isoVersFr(fin),"win");
+    var fin=progVersCourt(slug,nd,n);
+    feedback(T.ico+" "+nom+" → "+T.lib+", du "+isoVersFr(nd)+" au "+isoVersFr(fin),"win");
     render();
   },{aide:"Garde la date déjà prévue si tu corriges une erreur d'inscription."});
 }
 function navBar(){
   var start=lsGetStr("amcoach_start_"+CLIENT);
-  var is14=progLen(start)<=14;
+  var is14=progLen(start)<=42;
   // 🌟 Dream Board : réservé au programme de 90 jours. Sur un Reset de 14
   // jours, écrire sa vie idéale n'a pas sa place — deux semaines servent à
   // enclencher, pas à projeter.
@@ -6514,14 +6570,29 @@ function viewCalendar(name,start){
   if(today90>=progDays-1){
     h+='<button id="diplome-btn" class="card" style="width:calc(100% - 28px);margin-bottom:18px;background:linear-gradient(135deg,var(--gold),#E8C547);border:none;text-align:center;padding:18px;cursor:pointer">'+
       '<div style="font-size:26px;margin-bottom:4px">🎓</div>'+
-      '<div style="font-weight:900;font-size:15px;color:#fff;letter-spacing:1px;text-transform:uppercase">'+(progDays<=14?'Mon Diplôme Reset 14':'Mon Diplôme AM Transfo')+'</div>'+
+      '<div style="font-weight:900;font-size:15px;color:#fff;letter-spacing:1px;text-transform:uppercase">'+(progDays<=14?'Mon Diplôme Reset 14':(progDays<=42?'Mon Diplôme 6 semaines':'Mon Diplôme AM Transfo'))+'</div>'+
       '<div style="font-size:11px;color:rgba(255,255,255,.85);margin-top:3px;font-weight:700">'+progDays+' jours accomplis — Nouvelle version de toi-même</div></button>';
     // Un Reset ne se prolonge pas par un bloc de 90 jours en un tap : c'est
     // Akli qui propose la suite, au bilan du jour 14.
+    // 🔐 LA SUITE SE VALIDE PAR LE COACH. Akli : « il faut l'accord du
+    // coach ». Le client demande, Akli valide depuis son tableau de bord,
+    // et seulement là le bouton de démarrage s'ouvre.
     if(BLOC<4&&!shortProg){
-      h+='<button id="next-bloc" class="card" style="width:calc(100% - 28px);margin-bottom:18px;background:'+K+';border:none;text-align:center;padding:16px;cursor:pointer">'+
-        '<div style="font-weight:900;font-size:14px;color:#fff">🔄 Démarrer le Bloc '+(BLOC+1)+'/4 — 90 jours de plus</div>'+
-        '<div style="font-size:11px;color:var(--mute);margin-top:3px">Nouveau départ, historique conservé</div></button>';
+      var SB=allData[533]||{}, nB=BLOC+1;
+      if(SB.ok===nB){
+        h+='<button id="next-bloc" class="card" style="width:calc(100% - 28px);margin-bottom:18px;background:'+K+';border:none;text-align:center;padding:16px;cursor:pointer">'+
+          '<div style="font-weight:900;font-size:14px;color:#fff">🔄 Démarrer le Bloc '+nB+'/4 — 90 jours de plus</div>'+
+          '<div style="font-size:11px;color:#5DF2A0;margin-top:3px;font-weight:800">✅ Validé par ton coach'+(SB.depart?' · départ le '+isoVersFr(SB.depart):'')+'</div></button>';
+      }else if(SB.demande===nB){
+        h+='<div class="card" style="margin-bottom:18px;text-align:center;padding:16px;border:2px dashed var(--line)">'+
+          '<div style="font-weight:900;font-size:14px;color:var(--ink)">⏳ Demande envoyée à ton coach</div>'+
+          '<div style="font-size:12px;color:var(--mute);margin-top:4px;line-height:1.5">Il valide ton Bloc '+nB+'/4. Le bouton de démarrage s\'ouvre ici dès son accord.</div>'+
+          '<button id="bloc-relance" style="margin-top:10px;border:0;background:#25D366;color:#fff;font-weight:800;font-size:12.5px;padding:9px 16px;border-radius:20px">💬 Lui écrire sur WhatsApp</button></div>';
+      }else{
+        h+='<button id="bloc-demande" class="card" style="width:calc(100% - 28px);margin-bottom:18px;background:'+K+';border:none;text-align:center;padding:16px;cursor:pointer">'+
+          '<div style="font-weight:900;font-size:14px;color:#fff">🔄 Je veux continuer — Bloc '+nB+'/4</div>'+
+          '<div style="font-size:11px;color:var(--mute);margin-top:3px">Ton coach valide la suite avant le départ</div></button>';
+      }
     }
   }
 
@@ -6966,7 +7037,7 @@ function viewDay(name,start){
   var dernierJourT=Math.max(0,Math.min(today90,(progLen(start)||90)-1));
   // 🎖️🏰 Grade et identité se construisent sur 90 jours : sur un Reset de
   // 14 jours, ils n'ont pas le temps de prendre sens. Mindset seul.
-  var court14=(progLen(start)||90)<=14;
+  var court14=(progLen(start)||90)<=42;
   var avecOnglets=(idx===dernierJourT)&&!court14;
   var ongletNdj=state.ndjTab||"mindset";
   if(avecOnglets){
@@ -8405,14 +8476,18 @@ function openRapport(name,start,period,dataOverride){
 function reset14JoursHTML(start){
   var allData=getAllData();
   var today90=getToday90(start);
-  var week2=today90>=7;
+  var nP=progLen(start)||14, six=prog6s(nP);
+  // Reset 14 : semaine 1 à 5 rép, semaine 2 à 10 rép.
+  // 6 semaines : semaines 1 à 3 à 5 rép / 5 min, semaines 4 à 6 à 10 rép / 10 min.
+  var week2=six?today90>=21:today90>=7;
+  var numSem=Math.max(1,Math.min(six?6:2,Math.floor(Math.max(0,today90)/7)+1));
   var reps=week2?10:5;
   var tr7=allData[507]||{};
   var dayNames=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
   var wdToday=(new Date().getDay()+6)%7;
 
   var h='<div class="r14">';
-  h+='<div class="r14-t">🔷 Semaine '+(week2?2:1)+' · Tes 7 jours</div>';
+  h+='<div class="r14-t">'+(six?'🔥 Semaine '+numSem+'/6':'🔷 Semaine '+(week2?2:1))+' · Tes 7 jours</div>';
 
   // La consigne de la semaine, en grand : c'est la seule chose à retenir.
   h+='<div class="r14-consigne">'+
@@ -8424,7 +8499,7 @@ function reset14JoursHTML(start){
     '</div>';
   h+='<div class="r14-expl">Au bip, tu fais tes '+reps+' répétitions. Tu récupères jusqu\'au bip suivant, '+
     '30 secondes plus tard. Tu recommences pendant 5 à 10 minutes. Ensuite, ta marche.</div>';
-  if(!week2)h+='<div class="r14-suite">📈 Semaine 2 : on passe à <b>10 rép</b> toutes les 30 s.</div>';
+  if(!week2)h+='<div class="r14-suite">📈 Semaine '+(six?4:2)+' : on passe à <b>10 rép</b> toutes les 30 s'+(six?', 10 minutes':'')+'.</div>';
 
   // Les 7 jours
   for(var d7=0;d7<7;d7++){
@@ -8896,7 +8971,7 @@ var SPT_HERO_H="/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAwICQsJCAwLCgsODQwOEh4UEhEREiUb
 var SPT_HERO_F="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";
 function viewSport(name, start) {
   var c = sptCfg();
-  var is14 = progLen(start) <= 14;
+  var is14 = progLen(start) <= 42;
   var plan = sptPlanIntervalles(c);
   var sexeH = "";
   try { sexeH = prog3Sexe(getAllData()); } catch (e) { }
@@ -10607,7 +10682,7 @@ function progCartesHTML(all) {
   // sujet : on ne montre pas des portes verrouillées au jour 29 à quelqu'un
   // qui s'arrête au jour 14. Ses séances bonus, elles, restent affichées.
   var court = false;
-  try { court = progLen(lsGetStr("amcoach_start_" + CLIENT)) <= 14; } catch (e) { }
+  try { court = progLen(lsGetStr("amcoach_start_" + CLIENT)) <= 42; } catch (e) { }
   if (court) sexe = null;
 
   // 🏃 FORMULE SANS PROGRAMME (nutrition + marche + express). Le socle des
@@ -12194,16 +12269,19 @@ function ncFormHTML(){
       // ⚡🏆 DURÉE : le choix le plus lourd de conséquences, posé en premier,
       // en deux grosses cartes. Plus de date de fin à calculer à la main.
       '<div class="card-label">QUEL PROGRAMME ?</div>'+
-      '<div style="display:flex;gap:8px;margin-bottom:6px">'+
-      '<button class="nc-duree" data-d="14" style="flex:1;padding:13px 6px;border-radius:14px;font-weight:900;font-size:14px;line-height:1.25;cursor:pointer;'+
-        (state.ncDuree===14?'background:#F76707;color:#fff;border:2.5px solid #F76707':'background:#fff;color:#F76707;border:2.5px dashed #F7A26B')+'">⚡ RESET<br>14 JOURS</button>'+
-      '<button class="nc-duree" data-d="90" style="flex:1;padding:13px 6px;border-radius:14px;font-weight:900;font-size:14px;line-height:1.25;cursor:pointer;'+
-        (state.ncDuree===90?'background:#1F2A44;color:#fff;border:2.5px solid #1F2A44':'background:#fff;color:#1F2A44;border:2.5px dashed #9AA5BD')+'">🏆 TRANSFO<br>90 JOURS</button>'+
+      '<div style="display:flex;gap:6px;margin-bottom:6px">'+
+      PROG_DUREES.map(function(T){
+        var on=(state.ncDuree===T.n), l=T.lib.toUpperCase().replace(/ (\d)/," <br>$1").replace("RESET <br>14","RESET<br>14");
+        if(T.n===42)l="6<br>SEMAINES"; if(T.n===90)l="TRANSFO<br>90 JOURS"; if(T.n===14)l="RESET<br>14 JOURS";
+        return '<button class="nc-duree" data-d="'+T.n+'" style="flex:1;padding:12px 3px;border-radius:14px;font-weight:900;font-size:12.5px;line-height:1.25;cursor:pointer;'+
+          (on?'background:'+T.bg+';color:#fff;border:2.5px solid '+T.bg:'background:#fff;color:'+T.bg+';border:2.5px dashed '+T.bg+'88')+'">'+T.ico+'<br>'+l+'</button>';
+      }).join('')+
       '</div>'+
       '<div style="font-size:11px;color:var(--mute);margin-bottom:12px;line-height:1.5">'+
         (state.ncDuree===14?'Accès fermé automatiquement après 14 jours. Menus Reset et vidéos des 14 jours inclus.'
+        :state.ncDuree===42?'Accès fermé automatiquement après 6 semaines. Menus ON/OFF en 2 parties et vidéos des séances inclus.'
         :state.ncDuree===90?'Grade, identité, Dream Board et menus en phases. Accès illimité.'
-        :'<b style="color:var(--warn-d)">Choisis 14 ou 90 jours.</b>')+'</div>'+
+        :'<b style="color:var(--warn-d)">Choisis le programme : 14 jours, 6 semaines ou 90 jours.</b>')+'</div>'+
       // 👨👩 LE SEXE SE POSE À LA CRÉATION. C'est lui qui commande la photo,
       // le programme des trois mois, la couleur de l'appli et la carte du
       // cycle. Le laisser vide obligeait à y revenir plus tard, et un homme
@@ -12230,16 +12308,17 @@ function ncFormHTML(){
       '<div style="font-size:11px;color:var(--mute);margin-bottom:12px;line-height:1.5">Les menus démarrent à la date de départ ci-dessous. Tout reste modifiable ensuite dans sa fiche.</div>'+
       '<div class="card-label">DATE DE DÉPART</div>'+
       '<input id="nc-date" type="date" class="num-input" style="font-size:15px;font-weight:400;margin-bottom:12px" value="'+isoLocal()+'"/>'+
-      '<div id="nc-fin14" style="font-size:12px;font-weight:800;color:#F76707;margin:-4px 0 14px;'+(state.ncDuree===14?'':'display:none')+'"></div>'+
-      (state.ncDuree===14?'':
+      '<div id="nc-fin14" data-j="'+(state.ncDuree||0)+'" style="font-size:12px;font-weight:800;color:'+(state.ncDuree===42?'#7048E8':'#F76707')+';margin:-4px 0 14px;'+(state.ncDuree===14||state.ncDuree===42?'':'display:none')+'"></div>'+
+      (state.ncDuree===14||state.ncDuree===42?'':
       '<div class="card-label">DATE DE FIN D\'ACCÈS (OPTIONNEL — vide = illimité)</div>'+
       '<input id="nc-end" type="date" class="num-input" style="font-size:15px;font-weight:400;margin-bottom:16px"/>')+
       (function(){
         var ok=!!(state.ncSexe&&state.ncDuree);
-        var bg=state.ncDuree===14?'background:#F76707;':state.ncDuree===90?'background:#1F2A44;':'';
-        var lib=state.ncDuree===14?'Créer · ⚡ RESET 14 JOURS →':state.ncDuree===90?'Créer · 🏆 TRANSFO 90 JOURS →':'Créer le lien →';
-        var manque=!state.ncDuree&&!state.ncSexe?'Choisis 14 ou 90 jours, puis Homme ou Femme'
-          :!state.ncDuree?'Choisis 14 ou 90 jours pour continuer':!state.ncSexe?'Choisis Homme ou Femme pour continuer':'';
+        var TT=state.ncDuree?progType(state.ncDuree):null;
+        var bg=TT?'background:'+TT.bg+';':'';
+        var lib=TT?'Créer · '+TT.ico+' '+({14:'RESET 14 JOURS',42:'6 SEMAINES',90:'TRANSFO 90 JOURS'})[TT.n]+' →':'Créer le lien →';
+        var manque=!state.ncDuree&&!state.ncSexe?'Choisis le programme, puis Homme ou Femme'
+          :!state.ncDuree?'Choisis le programme pour continuer':!state.ncSexe?'Choisis Homme ou Femme pour continuer':'';
         return '<button id="nc-create" class="big-btn" style="padding:14px 0;font-size:14px;margin-bottom:0;'+bg+(ok?'':'opacity:.45')+'"'+(ok?'':' disabled')+'>'+lib+'</button>'+
           (manque?'<div style="font-size:11px;color:var(--warn-d);font-weight:800;margin-top:8px;text-align:center">'+manque+'</div>':'');
       })()+
@@ -13335,6 +13414,7 @@ function viewCoachDetail(){
     '<div style="padding:16px 14px 0">';
 
   h+=GMK("apercu");
+  h+=blocDemandesHTML(c.slug);
 
 
   // KPIs
@@ -13466,12 +13546,10 @@ function viewCoachDetail(){
   h+='<div class="card" style="border-left:4px solid var(--warn-d);padding:13px 15px">'+
     '<div style="font-weight:800;font-size:13px;margin-bottom:10px">Programme actuel :'+progChipHTML(c.slug,true)+'</div>'+
     '<div style="display:flex;gap:8px;margin-bottom:8px">'+
-    (progDureeClient(c.slug)<=14
-      ? '<button id="reset14-off" style="flex:1;font-size:12px;font-weight:800;padding:10px 0;border:1.5px solid #1F2A44;border-radius:10px;background:#fff;color:#1F2A44">🏆 Passer au programme 90 jours</button>'
-      : '<button id="reset14-on" style="flex:1;font-size:12px;font-weight:800;padding:10px 0;border:1.5px solid #F76707;border-radius:10px;background:#fff;color:#F76707">⚡ Passer en Reset 14 jours</button>')+
+    '<button id="reset14-on" style="flex:1;font-size:12px;font-weight:800;padding:10px 0;border:1.5px solid #1F2A44;border-radius:10px;background:#fff;color:#1F2A44">🔁 Changer de programme (14 j · 6 sem · 90 j)</button>'+
     '</div>'+
-    '<button class="copy-menu14 big-btn" data-slug="'+esc(c.slug)+'" style="width:100%;padding:11px 0;font-size:12px;background:var(--warn-d);box-shadow:none">🍽️ Copier lien MENU 14 jours</button>'+
-    '<div style="font-size:11px;color:var(--mute);margin-top:8px;line-height:1.5">"Activer" fixe la fin d\'accès à J+14 : app et menu se bloquent ensuite automatiquement. "Passer au 90 jours" débloque tout (accès illimité) — renvoie alors le lien tracker habituel.</div></div>';
+    (progCourt(progDureeClient(c.slug))?'<button class="copy-menu14 big-btn" data-slug="'+esc(c.slug)+'" style="width:100%;padding:11px 0;font-size:12px;background:var(--warn-d);box-shadow:none">🍽️ Copier lien MENU '+(prog6s(progDureeClient(c.slug))?'6 semaines':'14 jours')+'</button>':'')+
+    '<div style="font-size:11px;color:var(--mute);margin-top:8px;line-height:1.5">14 jours et 6 semaines ferment l\'accès automatiquement à la fin. 90 jours = accès illimité. Après un changement, renvoie le lien tracker.</div></div>';
 
   // 🍗 SUIVI NUTRITION / PROTÉINES (slot 510) — bonus optionnel activé par le coach
   var nut=allData[510]||{};
@@ -13816,16 +13894,16 @@ function viewCoachDetail(){
 
   // 🎬 RESET 14 JOURS : les vidéos viennent du modèle Homme / Femme.
   var estReset14=false;
-  try{ estReset14=(progLen(c.start_date,allData)||90)<=14; }catch(e){}
+  try{ estReset14=(progLen(c.start_date,allData)||90)<=42; }catch(e){}
   if(estReset14){
     try{ vid14Amorcer(); }catch(e){}
     var V14=vid14Lire(), sxC=vid14Sexe(allData);
     var sxV=state.v14Sexe||sxC, jeu=V14[sxV]||{};
     var jN=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
     h+='<div class="card v14">'+
-      '<div class="v14-t">🎬 Vidéos du Reset 14 jours</div>'+
+      '<div class="v14-t">🎬 Vidéos des séances · 14 jours et 6 semaines</div>'+
       '<div class="v14-s">Un jeu pour les hommes, un pour les femmes. Saisis-les une fois : '+
-      'chaque cliente Reset reçoit celui de son programme.</div>'+
+      'chaque cliente en 14 jours ou 6 semaines reçoit celui de son programme.</div>'+
       '<div class="v14-onglets">'+
       '<button class="v14-o'+(sxV==="h"?" on h":"")+'" data-v14s="h">👨 Homme</button>'+
       '<button class="v14-o'+(sxV==="f"?" on f":"")+'" data-v14s="f">👩 Femme</button></div>';
@@ -14148,6 +14226,42 @@ function archBascule(slug){
   if(i>=0)a.splice(i,1); else a.push(slug);
   lsSet("amcoach_archives",a);
   return i<0;   // true = vient d'être mis en pause
+}
+// 🔐 Demandes de bloc suivant (slot 533 de chaque client)
+function blocDemandesHTML(slugSeul){
+  var cl=lsGet("amcoach_clients",[]), h='';
+  for(var i=0;i<cl.length;i++){
+    var c=cl[i]; if(slugSeul&&c.slug!==slugSeul)continue;
+    if(!slugSeul&&archEst(c.slug))continue;
+    var S=(lsGet("amcoach_"+c.slug,{})[533])||{};
+    var m=String(c.slug).match(/-b(\d+)$/), blocAct=m?+m[1]:1, nB=blocAct+1;
+    if(nB>4)continue;
+    var demande=(S.demande===nB&&S.ok!==nB), valide=(S.ok===nB);
+    // Bloc déjà démarré par le client : plus rien à afficher
+    var __suite=String(c.slug).replace(/-b\d+$/,"")+"-b"+nB, __deja=false;
+    for(var q=0;q<cl.length;q++)if(cl[q].slug===__suite)__deja=true;
+    if(valide&&__deja)continue;
+    if(slugSeul&&valide){
+      h+='<div class="card" style="padding:13px 15px;margin-bottom:14px;border:2px solid #16A34A;background:#F0FDF4;display:flex;align-items:center;gap:10px">'+
+        '<div style="flex:1;font-size:12.5px;color:#14532D;line-height:1.45"><b>✅ Bloc '+nB+'/4 validé</b><br>Départ le <b>'+isoVersFr(S.depart||S.okDate||isoLocal())+'</b></div>'+
+        '<button class="bloc-ok" data-s="'+esc(c.slug)+'" data-b="'+nB+'" style="flex:0 0 auto;border:1.5px solid #16A34A;border-radius:11px;padding:9px 12px;background:#fff;color:#16A34A;font-weight:800;font-size:12px">📅 Changer la date</button></div>';
+      continue;
+    }
+    if(!demande&&!(slugSeul&&!valide))continue;
+    if(slugSeul&&!demande){
+      // Fiche : autoriser d'avance, seulement en fin de programme
+      var st=lsGetStr("amcoach_start_"+c.slug)||c.start_date, t=0; try{t=getToday90(st);}catch(e){}
+      if(t<(progLen(st,lsGet("amcoach_"+c.slug,{}))||90)-3)continue;
+    }
+    h+='<div class="card" style="padding:14px 15px;margin-bottom:14px;border:2px solid #25D366;background:#F0FDF4">'+
+      '<div style="font-weight:900;font-size:14px;color:#14532D">'+(demande?'🔄 '+esc(c.name)+' veut continuer':'🔄 Suite de '+esc(c.name))+'</div>'+
+      '<div style="font-size:12px;color:#166534;margin:3px 0 10px;line-height:1.5">'+(demande?'Demande du '+isoVersFr(S.date||isoLocal())+' : Bloc '+nB+'/4, 90 jours de plus.':'Programme terminé. Tu peux autoriser le Bloc '+nB+'/4 d\'avance.')+'</div>'+
+      '<div style="display:flex;gap:8px">'+
+      '<button class="bloc-ok" data-s="'+esc(c.slug)+'" data-b="'+nB+'" style="flex:2;border:0;border-radius:11px;padding:11px 0;background:#16A34A;color:#fff;font-weight:900;font-size:13px">✅ Valider le Bloc '+nB+'</button>'+
+      (demande?'<button class="bloc-non" data-s="'+esc(c.slug)+'" data-b="'+nB+'" style="flex:1;border:1.5px solid #DC2626;border-radius:11px;padding:11px 0;background:#fff;color:#DC2626;font-weight:800;font-size:12.5px">Pas maintenant</button>':'')+
+      '</div></div>';
+  }
+  return h;
 }
 function coachPouls(){
   var cl=lsGet("amcoach_clients",[]).filter(function(c){return !archEst(c.slug);});
@@ -15334,6 +15448,7 @@ function viewCoachDash(){
     // le pouls et les raccourcis : Akli tapait « Nouveau client » et ne voyait
     // rien bouger.
     ncFormHTML();
+  h+=blocDemandesHTML();
 
 
   // 🚦 TABLEAU DE BORD UNIQUE — un seul bloc au lieu de trois.
@@ -17037,6 +17152,26 @@ function bindCoach(){
     });
     pch[pc2].addEventListener("touchstart",function(e){e.stopPropagation();},{passive:true});
   }
+  // 🔐 Valider / refuser le bloc suivant
+  var bok=document.querySelectorAll(".bloc-ok");
+  for(var bo=0;bo<bok.length;bo++)bok[bo].addEventListener("click",function(){
+    var sl=this.getAttribute("data-s"), nB=+this.getAttribute("data-b");
+    var S=(lsGet("amcoach_"+sl,{})[533])||{};
+    // 📅 Date exacte de départ du bloc, choisie par le coach
+    pickDate("Départ du Bloc "+nB+"/4",S.depart||isoLocal(),function(nd){
+      if(!nd)return;
+      coachSaveSlot(sl,533,{demande:S.demande||nB,date:S.date||isoLocal(),ok:nB,okDate:isoLocal(),depart:nd});
+      feedback("✅ Bloc "+nB+" validé — départ le "+isoVersFr(nd),"win");
+      render();
+    },{aide:"Le jour 1 du Bloc "+nB+". Le client le voit sur son bouton de démarrage."});
+  });
+  var bno=document.querySelectorAll(".bloc-non");
+  for(var bn=0;bn<bno.length;bn++)bno[bn].addEventListener("click",function(){
+    var sl=this.getAttribute("data-s");
+    if(!confirm("Refuser pour l'instant ? Le client pourra redemander plus tard."))return;
+    coachSaveSlot(sl,533,{demande:null,ok:null,refus:isoLocal()});
+    render();
+  });
   // 🚦 Ouvrir une fiche depuis le pouls
   var pgo=document.querySelectorAll(".pouls-go");
   for(var pi2=0;pi2<pgo.length;pi2++){
@@ -17165,8 +17300,9 @@ function bindCoach(){
     if(!d1||!f)return;
     function maj(){
       if(!d1.value){f.textContent="";return;}
-      var e=new Date(d1.value+"T12:00:00"); e.setDate(e.getDate()+13);
-      f.textContent="⚡ Reset du "+isoVersFr(d1.value)+" au "+isoVersFr(isoLocal(e))+" (14 jours)";
+      var nj=+(f.getAttribute("data-j"))||14;
+      var e=new Date(d1.value+"T12:00:00"); e.setDate(e.getDate()+nj-1);
+      f.textContent=(nj===42?"🔥 6 semaines du ":"⚡ Reset du ")+isoVersFr(d1.value)+" au "+isoVersFr(isoLocal(e))+(nj===42?" (42 jours)":" (14 jours)");
     }
     d1.addEventListener("input",maj); d1.addEventListener("change",maj);
     setTimeout(maj,0);
@@ -17200,14 +17336,14 @@ function bindCoach(){
     document.getElementById("nc-create").addEventListener("click",function(){
       var name=ncName.value.trim(), slug=ncSlug.value.trim();
       if(!name||!slug)return;
-      if(state.ncDuree!==14&&state.ncDuree!==90){alert("Choisis d'abord : ⚡ Reset 14 jours ou 🏆 Transfo 90 jours.");return;}
+      if(state.ncDuree!==14&&state.ncDuree!==42&&state.ncDuree!==90){alert("Choisis d'abord le programme : ⚡ 14 jours, 🔥 6 semaines ou 🏆 90 jours.");return;}
       // Garde-fou : un 90 jours avec une fin d'accès à 14 jours ou moins
       // deviendrait un Reset sans le dire.
       (function(){
         var e0=document.getElementById("nc-end"), d0=document.getElementById("nc-date");
         if(state.ncDuree===90&&e0&&e0.value&&d0&&d0.value){
           var j0=Math.round((new Date(e0.value+"T12:00:00")-new Date(d0.value+"T12:00:00"))/86400000);
-          if(j0<=14){alert("Cette fin d'accès donne "+(j0+1)+" jours : c'est un Reset 14 jours.\n\nChoisis « ⚡ RESET 14 JOURS » ou vide la date de fin.");name="";}
+          if(j0<=41){alert("Cette fin d'accès donne "+(j0+1)+" jours : c'est un programme court.\n\nChoisis « ⚡ 14 JOURS » ou « 🔥 6 SEMAINES », ou vide la date de fin.");name="";}
         }
       })();
       if(!name)return;
@@ -17241,8 +17377,8 @@ function bindCoach(){
       lsSet("amcoach_clients",clients);
       sbFetch("clients?on_conflict=slug",{method:"POST",prefer:"resolution=merge-duplicates",body:{slug:slug,name:name,start_date:startDate}}).catch(function(){});
       var endDate="";
-      if(state.ncDuree===14){
-        var __e14=new Date(startDate+"T12:00:00"); __e14.setDate(__e14.getDate()+13); endDate=isoLocal(__e14);
+      if(state.ncDuree===14||state.ncDuree===42){
+        var __e14=new Date(startDate+"T12:00:00"); __e14.setDate(__e14.getDate()+state.ncDuree-1); endDate=isoLocal(__e14);
       }else{
         var __ne=document.getElementById("nc-end"); endDate=__ne?__ne.value:"";
       }
@@ -17288,7 +17424,7 @@ function bindCoach(){
           var court=false;
           if(endDate){
             var jj=Math.round((new Date(endDate+"T12:00:00")-new Date(startDate+"T12:00:00"))/86400000);
-            court=(jj<=14);
+            court=(jj<=41);
           }
           allM[517]={on:true,debut:startDate,reset:court,phaseForcee:null,note:""};
           try{coachSaveSlot(slug,517,allM[517]);}catch(e){}
@@ -17308,13 +17444,13 @@ function bindCoach(){
       try{
         if(endDate){
           var jR=Math.round((new Date(endDate+"T12:00:00")-new Date(startDate+"T12:00:00"))/86400000);
-          if(jR<=14)vid14AppliquerA(slug);
+          if(jR<=41)vid14AppliquerA(slug);
         }
       }catch(e){}
       var __dureeCree=state.ncDuree;
       state.ncSexe=null; state.ncDuree=null; state.ncMenus=undefined; state.ncProt=false; state.ncArgent=false; state.ncProg=undefined;
       state.showForm=false;
-      feedback(__dureeCree===14?"⚡ "+name+" créé en RESET 14 JOURS":"🏆 "+name+" créé en TRANSFO 90 JOURS","win");
+      feedback(progType(__dureeCree).ico+" "+name+" créé en "+progType(__dureeCree).lib.toUpperCase(),"win");
       render();
     });
   }
@@ -17450,8 +17586,8 @@ function bindCoach(){
     var cc=coachClient(slug);
     var dur=progLen(cc&&cc.start_date)||90;
     var reset=false;
-    if(dur<=14){
-      reset=confirm("Programme de "+dur+" jours.\n\nOK = menu Reset 14 jours\nAnnuler = les 3 phases de 28 jours");
+    if(dur<=42){
+      reset=confirm("Programme de "+dur+" jours.\n\nOK = menu "+(dur<=14?"Reset 14 jours":"6 semaines")+"\nAnnuler = les 3 phases de 28 jours");
     }
     pickDate("Démarrage des menus",isoLocal(),function(r){
       if(!r)return;
@@ -18170,7 +18306,7 @@ function bindCoach(){
   for(var c14=0;c14<cm14.length;c14++){
     cm14[c14].addEventListener("click",function(){
       var slug=this.getAttribute("data-slug");
-      var url=window.location.origin+"/menu.html?client="+slug+"&menu=14jours";
+      var url=window.location.origin+"/menu.html?client="+slug+"&menu="+(prog6s(progDureeClient(slug))?"6semaines":"14jours");
       var btn=this;
       function ok(){btn.textContent="✓ Lien 14 jours copié !";btn.style.background="var(--ok)";setTimeout(function(){btn.textContent="🍽️ Copier lien MENU 14 jours";btn.style.background="var(--warn-d)";},2000);}
       if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(url).then(ok,function(){prompt("Copie ce lien :",url);});}
@@ -19590,13 +19726,32 @@ function bindMain(name,start){
     dbV.addEventListener("input",saveDream);
   }
   // Bloc suivant
+  function blocWhatsApp(nB){
+    var t="Salut Akli 👋 J'ai terminé mes 90 jours ! Je veux continuer avec le Bloc "+nB+"/4. Tu peux me le valider ? 💪";
+    window.open("https://wa.me/"+WA_COACH+"?text="+encodeURIComponent(t),"_blank");
+  }
+  var bdm=document.getElementById("bloc-demande");
+  if(bdm)bdm.addEventListener("click",function(){
+    var nB=BLOC+1;
+    if(!confirm("Demander à ton coach de démarrer le Bloc "+nB+"/4 ?\n\nIl valide, puis le bouton de démarrage s'ouvre dans ton appli."))return;
+    saveDay(533,{demande:nB,date:isoLocal(),ok:null});
+    blocWhatsApp(nB);
+    feedback("📨 Demande envoyée à ton coach","ok");
+    render();
+  });
+  var brl=document.getElementById("bloc-relance");
+  if(brl)brl.addEventListener("click",function(){blocWhatsApp(BLOC+1);});
   var nb=document.getElementById("next-bloc");
   if(nb)nb.addEventListener("click",function(){
-    if(!confirm("Démarrer le Bloc "+(BLOC+1)+"/4 ? Nouveau cycle de 90 jours dès aujourd'hui."))return;
+    // Garde-fou : sans l'accord du coach, pas de nouveau bloc.
+    var __SB=getAllData()[533]||{};
+    if(__SB.ok!==BLOC+1){alert("Ton coach doit d'abord valider la suite.");return;}
+    var __dep=__SB.depart||isoLocal();
+    if(!confirm("Démarrer le Bloc "+(BLOC+1)+"/4 ?\n\nNouveau cycle de 90 jours. Jour 1 : "+isoVersFr(__dep)+"."))return;
     var newBloc=BLOC+1;
     var eff=BASE_CLIENT+"-b"+newBloc;
     localStorage.setItem("amcoach_bloc_"+BASE_CLIENT,String(newBloc));
-    var today=isoLocal();
+    var today=__dep;
     localStorage.setItem("amcoach_name_"+eff,name);
     localStorage.setItem("amcoach_start_"+eff,today);
     sbFetch("clients?on_conflict=slug",{method:"POST",prefer:"resolution=merge-duplicates",body:{slug:eff,name:name,start_date:today}}).catch(function(){});

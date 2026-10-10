@@ -394,7 +394,8 @@
 /* 🖼️ Mini-écrans d'exemple */
 .tuto-haut.td-haut{flex:0 0 auto;padding:58px 0 24px}
 .td{width:min(86%,330px);background:#fff;border-radius:20px;padding:14px 14px 13px;box-shadow:0 14px 34px rgba(0,0,0,.22);color:#111;text-align:left}
-@media (max-height:740px){.td{zoom:.82}.tuto-haut.td-haut{padding:50px 0 18px}}
+@media (max-height:740px){.td{zoom:.82}.tuto-haut.td-haut{padding:50px 0 18px}.tuto-t{font-size:23px;margin-top:10px}.tuto-d{font-size:13.5px;line-height:1.55;margin-top:8px}.tuto-bas{padding-top:18px}.tuto-pts{margin-bottom:12px}}
+.tuto-bas{overflow-y:auto}
 .td-t{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:900;font-size:14px;margin-bottom:10px}
 .td-t span{font-size:11px;font-weight:800;color:#888}
 .td-t .td-ok{color:#16A34A}
@@ -445,6 +446,34 @@
 @keyframes tdSerI{0%,38%{background:transparent;border-color:#CCD;color:transparent}48%,100%{background:#16A34A;border-color:#16A34A;color:#fff}}
 .td-repos{margin-top:9px;text-align:center;font-size:12px;font-weight:800;color:#555}.td-repos b{color:#0EA5C6;font-size:15px}
 .td-svg{width:100%;height:auto;display:block;margin:2px 0 8px}
+.td-obj{display:flex;align-items:center;gap:6px;background:linear-gradient(135deg,#3B82F6,#8B5CF6);border-radius:14px;padding:10px 8px}
+.td-obj-c{flex:1;text-align:center;color:#fff}
+.td-obj-m{width:100%;max-width:110px;margin:0 auto}
+.td-obj-c b{display:block;font-size:15px;font-weight:900;margin-top:2px}
+.td-obj-c small{display:block;font-size:9.5px;font-weight:800;opacity:.85;line-height:1.25}
+.td-obj-f{color:#fff;font-size:20px;font-weight:900}
+.td-rec{display:flex;align-items:center;gap:10px;margin-top:9px;background:#3A2A1E;border-radius:12px;padding:8px 11px;color:#fff}
+.td-rec span{font-size:24px}.td-rec small{display:block;font-size:9px;font-weight:900;letter-spacing:1px;color:#E9C98B}
+.td-rec b{font-size:15px;font-weight:900}
+.td-rec-l{margin-left:auto;font-style:normal;font-size:11px;font-weight:900;color:#5DF2A0}
+.td-j.td-on{background:#2E7D32;color:#fff}.td-j.td-off{background:#C62828;color:#fff}
+.td-j.td-on small,.td-j.td-off small{color:rgba(255,255,255,.85)}
+.td-ph{display:flex;align-items:center;gap:10px;border:1.5px solid #E6E8EE;border-radius:11px;padding:7px 10px;margin-bottom:6px;font-weight:900;font-size:13px;opacity:.6}
+.td-ph b{width:22px;height:22px;border-radius:50%;background:#EEF0F4;display:flex;align-items:center;justify-content:center;font-size:12px}
+.td-ph small{display:block;font-size:10.5px;color:#777;font-weight:700}
+.td-ph.on{opacity:1;border-color:#12C98A;background:#ECFDF5}.td-ph.on b{background:#12C98A;color:#fff}
+.td-bouton{margin-top:8px;text-align:center;background:#12C98A;color:#fff;border-radius:100px;padding:9px 0;font-weight:900;font-size:13px;animation:tdPulse 1.8s infinite}
+@keyframes tdPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+.td-cyc{display:flex;gap:4px;margin-bottom:7px}
+.td-cyc span{flex:1;height:22px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px}
+.td-cyc-n{margin-bottom:8px}.td-cyc-n b{display:block;font-size:13px;font-weight:900}.td-cyc-n small{font-size:11px;color:#666;font-weight:700}
+.td-vid{display:flex;align-items:center;gap:10px;background:#111;color:#fff;border-radius:12px;padding:10px 12px;margin-bottom:6px}
+.td-vid span{width:30px;height:30px;border-radius:50%;background:#E5484D;display:flex;align-items:center;justify-content:center;font-size:12px}
+.td-vid b{display:block;font-size:13.5px}.td-vid small{font-size:10.5px;opacity:.7}
+.td-sdj{background:linear-gradient(135deg,#0EA5C6,#8A3FFF);border-radius:13px;padding:9px 11px;color:#fff;font-size:10.5px;font-weight:900;letter-spacing:.6px}
+.td-sdj span{opacity:.8;font-weight:800}
+.td-sdj-b{display:flex;justify-content:space-between;align-items:center;margin-top:6px;background:#fff;color:#111;border-radius:10px;padding:8px 10px;font-size:13px;letter-spacing:0;animation:tdPulse 1.8s infinite}
+.td-sdj-b i{font-style:normal;color:#8A3FFF}
 .td-dream{font-style:italic;font-size:13px;line-height:1.55;color:#333;background:#FBF7FF;border-left:4px solid #8A3FFF;border-radius:10px;padding:9px 11px}
 .ti-bas{flex:1 1 auto;padding-top:18px;overflow-y:auto}
 .ti-os{display:flex;gap:6px;background:var(--soft2);border-radius:14px;padding:4px;margin:14px 0 4px}
@@ -1107,7 +1136,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="10/10 - Didacticiel avec exemples";
+var APP_VERSION="10/10 - Didacticiel cycle et seances";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -5711,6 +5740,37 @@ function viewMenus(name,start){
     '<a href="'+menuURL(P.p.cle)+'" style="display:block;text-align:center;margin-top:16px;background:#fff;color:'+solid("var(--ok-d)")+';text-decoration:none;padding:15px 0;border-radius:100px;font-weight:900;font-size:15px">'+(avant>0?'👀 Découvrir mes repas':'🍽️ Ouvrir mes repas du jour')+'</a>'+
     '</div>';
 
+  // 📖 Mode d'emploi des menus, sous le bouton : Akli voyait un écran vide.
+  (function(){
+    var nM=90; try{nM=progLen(start)||90;}catch(e){}
+    var L;
+    if(nM<=14)L=[["1","Touche <b>« Ouvrir mes repas du jour »</b>."],
+      ["2","Regarde le calendrier : <b style=\"color:#2E7D32\">ON</b> = avec glucides, <b style=\"color:#C62828\">OFF</b> = sans glucides."],
+      ["3","Touche le numéro du jour : tes repas s'affichent, matin, midi et soir."],
+      ["⚖️","Jour 14 : pesée et tour de taille, à noter dans ta journée."]];
+    else if(nM<=42){
+      var jM=0; try{jM=menuJour(allData);}catch(e){}
+      L=[["1","Touche <b>« Ouvrir mes repas du jour »</b>."]];
+      if(jM<21)L.push(["2","Semaines 1 à 3 : un jour <b style=\"color:#2E7D32\">ON</b> (avec glucides), un jour <b style=\"color:#C62828\">OFF</b> (sans glucides), en alternance."]);
+      else L.push(["2","Semaines 4 à 6 : surtout des jours <b style=\"color:#C62828\">OFF</b>. Les rares jours <b style=\"color:#2E7D32\">ON</b> sont marqués dans le calendrier."]);
+      L.push(["3","Touche le numéro du jour : tes repas s'affichent, matin, midi et soir."]);
+      if(jM>=21)L.push(["⚖️","Dimanche du jour 42 : bilan, pesée et tour de taille."]);
+    }
+    else{
+      var REG=[
+        "Mois 1, <b>Équilibre</b> : matin protéines · midi 1/3 glucides, 1/3 protéines, 1/3 fibres · soir pareil avec des glucides bas.",
+        "Mois 2, <b>Accélération</b> : matin protéines · midi glucides + protéines + fibres · soir protéines + fibres, sans glucides.",
+        "Mois 3, <b>Cyclage</b> : matin protéines · midi et soir selon le jour, glucides bas (GB) ou sans glucides (SG)."];
+      var iP=0; try{iP=Math.min(2,Math.max(0,P.idx||0));}catch(e){}
+      L=[["1","Touche <b>« Ouvrir mes repas du jour »</b>."],["2",REG[iP]],
+        ["3","Touche le numéro du jour : tes repas s'affichent, matin, midi et soir."]];
+    }
+    h+='<div class="card" style="padding:15px 16px;margin-bottom:14px"><div class="card-label">📖 Comment lire tes menus</div>';
+    for(var q=0;q<L.length;q++)h+='<div style="display:flex;gap:10px;align-items:flex-start;padding:7px 0;'+(q?'border-top:1px solid var(--line)':'')+'">'+
+      '<span style="flex:0 0 24px;height:24px;border-radius:50%;background:var(--soft2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;color:var(--ink)">'+L[q][0]+'</span>'+
+      '<span style="font-size:13px;line-height:1.5;color:var(--ink2,var(--ink))">'+L[q][1]+'</span></div>';
+    h+='</div>';
+  })();
   // 🛒 La phase suivante vient de s'ouvrir : on le signale, c'est le moment des courses
   if(!m.reset&&P.idx+1<P.liste.length&&menuPhaseOuverte(allData,P.idx+1)){
     var suiv=P.liste[P.idx+1];
@@ -13135,19 +13195,29 @@ var TUTO_PAGES = [
     d: "Touche le jour en cours. Tape ton <b>poids</b> et ton <b>sommeil</b>. Ensuite, <b>touche chaque habitude réussie</b> : la case devient colorée avec un ✓. Exemple : tu as fait ta séance → tu touches 🏋️ Sport."
   },
   {
-    tag: "NUTRITION", ico: "🍗", demo: "prot", c1: "#12C98A", c2: "var(--b2)",
+    tag: "OBJECTIF", ico: "🏔️", demo: "objectif", c1: "var(--b1)", c2: "var(--b2)",
+    t: "Ta montagne et ta récompense",
+    d: "Sur l'accueil, la <b>montagne</b> est ta jauge. À gauche ton poids du jour, à droite ton objectif. Le <b>sentier vert</b> monte à chaque kilo perdu. Le <b>drapeau rouge</b> passe au <b>vert</b> quand tu atteins ton objectif : ta <b>récompense</b> se débloque. Touche ✏️ pour choisir ton objectif et ta récompense."
+  },
+  {
+    tag: "MON CYCLE", ico: "🌙", demo: "cycle", si: "cycle", c1: "#B4436C", c2: "var(--b2)",
+    t: "Ton cycle, ton énergie",
+    d: "Sur l'accueil, touche <b>🌙 Remplir mon cycle</b>. Deux infos, une seule fois : le <b>1er jour de tes dernières règles</b> et la <b>durée de ton cycle</b>. Chaque jour, l'appli te dit ta phase, ton énergie et la séance adaptée. Note le début de tes prochaines règles. Un poids qui stagne avant les règles, c'est de l'eau, pas un échec."
+  },
+  {
+    tag: "NUTRITION", ico: "🍗", demo: "prot", si: "prot", c1: "#12C98A", c2: "var(--b2)",
     t: "Tes protéines du jour",
     d: "Dans l'onglet <b>Prot</b>, écris ce que tu manges avec la quantité. Exemple : « poulet 150 g » → l'appli ajoute <b>+46 g</b> de protéines. La jauge se remplit jusqu'à ton quota."
   },
   {
-    tag: "MENUS", ico: "🍽️", demo: "menu", c1: "#12C98A", c2: "var(--b1)",
+    tag: "MENUS", ico: "🍽️", demo: "menu", si: "menus", c1: "#12C98A", c2: "var(--b1)",
     t: "Tes repas, jour par jour",
-    d: "L'onglet <b>Menus</b> te dit quoi mettre dans ton assiette aujourd'hui. Tu ouvres, tu suis. Pas de calcul, pas de pesée compliquée."
+    d: function () { return tutoMenusTexte(); }
   },
   {
     tag: "SPORT", ico: "🏋️", demo: "sport", c1: "var(--brand)", c2: "var(--b2)",
     t: "Tes séances et tes minuteurs",
-    d: "Dans l'onglet <b>Sport</b>, ouvre ta séance du jour. <b>Touche chaque série terminée</b> : elle passe au vert ✓ et le temps de repos démarre tout seul. Le minuteur sonne même écran éteint."
+    d: function () { return tutoSportTexte(); }
   },
   {
     tag: "PROGRESSION", ico: "📈", demo: "stats", c1: "var(--b2)", c2: "var(--b1)",
@@ -13155,11 +13225,39 @@ var TUTO_PAGES = [
     d: "L'onglet <b>Stats</b> trace ta courbe de poids et ta régularité. Exemple : −3,2 kg en 4 semaines, 24 jours remplis sur 28. Ton superviseur commente franchement."
   },
   {
-    tag: "DREAM BOARD", ico: "🌟", demo: "dream", c1: "var(--b1)", c2: "var(--b2)",
+    tag: "DREAM BOARD", ico: "🌟", demo: "dream", si: "dream", c1: "var(--b1)", c2: "var(--b2)",
     t: "Écris où tu veux aller",
     d: "Écris ta vie idéale au présent, comme si tu y étais déjà. Relis-la chaque dimanche : c'est ce qui te tient quand la motivation retombe."
   }
 ];
+// Les pages qui concernent CE client : pas de page Prot sans l'onglet Prot,
+// pas de Dream Board sur un programme court.
+function tutoPages() {
+  var all = {}, n = 90;
+  try { all = getAllData(); n = progLen(lsGetStr("amcoach_start_" + CLIENT)) || 90; } catch (e) { }
+  return TUTO_PAGES.filter(function (P) {
+    if (P.si === "prot") return !!nutCfg(all).on;
+    if (P.si === "menus") return menuActif(all);
+    if (P.si === "dream") return !progCourt(n);
+    if (P.si === "cycle") { var sx = null; try { sx = prog3Sexe(all); } catch (e) { } return sx === "f" && n > 14; }
+    return true;
+  });
+}
+function tutoDuree() { try { return progLen(lsGetStr("amcoach_start_" + CLIENT)) || 90; } catch (e) { return 90; } }
+// 🏋️ Le sport selon le programme : 7 jours en vidéo (court) ou séance du
+// jour générée pour le mois (90 jours).
+function tutoSportTexte() {
+  if (progCourt(tutoDuree()))
+    return "Dans l'onglet <b>Sport</b>, tes <b>7 jours de séance</b> sont prêts, avec la vidéo de chaque exercice. Touche <b>▶</b> pour la regarder, puis <b>« Démarrer mes 5 minutes »</b> : au bip, tu fais <b>5 répétitions</b>, toutes les 30 secondes. Ensuite, ta marche.";
+  return "Dans l'onglet <b>Sport</b>, ta <b>🚀 Séance du jour</b> est déjà prête : ton coach l'a programmée pour ton mois. Touche-la, puis <b>touche chaque série terminée</b> : elle passe au vert ✓ et le repos démarre tout seul. Tes marches de la semaine se comptent juste dessous.";
+}
+// 🍽️ Comment lire ses menus : le texte change avec le programme.
+function tutoMenusTexte() {
+  var n = tutoDuree();
+  if (n <= 14) return "Dans l'onglet <b>Menus</b>, touche <b>« Ouvrir mes repas du jour »</b>. Le calendrier te dit si aujourd'hui est un jour <b style=\"color:#2E7D32\">ON</b> (avec glucides) ou <b style=\"color:#C62828\">OFF</b> (sans glucides). Touche le numéro du jour pour voir tes repas. Le jour 14 : ⚖️ pesée.";
+  if (n <= 42) return "Dans l'onglet <b>Menus</b>, touche <b>« Ouvrir mes repas du jour »</b>. Tes 3 premières semaines : un jour <b style=\"color:#2E7D32\">ON</b> (avec glucides), un jour <b style=\"color:#C62828\">OFF</b> (sans glucides), en alternance. Le calendrier te dit lequel s'applique aujourd'hui. Touche le numéro du jour pour voir tes repas.";
+  return "Dans l'onglet <b>Menus</b>, touche <b>« Ouvrir mes repas du jour »</b>. Mois 1, <b>Équilibre</b> : le matin des protéines ; le midi <b>1/3 glucides · 1/3 protéines · 1/3 fibres</b> ; le soir pareil avec des glucides bas. Touche le numéro du jour pour voir tes repas.";
+}
 function tutoVu() { try { return !!localStorage.getItem("amcoach_tuto_" + CLIENT); } catch (e) { return true; } }
 function tutoMarquer() { try { localStorage.setItem("amcoach_tuto_" + CLIENT, isoLocal()); } catch (e) { } }
 
@@ -13226,14 +13324,51 @@ function tutoDemoHTML(k) {
       '<div class="td-saisie">poulet 150 g<span class="td-plus">+46 g</span></div>' +
       '<div class="td-row"><span>🥚 3 œufs</span><b>+19 g</b></div><div class="td-row"><span>🥛 skyr 150 g</span><b>+15 g</b></div>' +
       '<div class="td-jauge"><span class="td-fill"></span></div><div class="td-jl"><b>80 g</b> / 130 g aujourd\'hui</div>';
+  } else if (k === "objectif") {
+    h += '<div class="td-obj">' +
+      '<div class="td-obj-c"><div class="td-obj-m">' + svgMontagne(45, "#5DF2A0") + '</div><b>45 %</b><small>drapeau rouge : en route</small></div>' +
+      '<div class="td-obj-f">→</div>' +
+      '<div class="td-obj-c"><div class="td-obj-m">' + svgMontagne(100, "#5DF2A0") + '</div><b>100 %</b><small>drapeau vert : objectif atteint</small></div></div>' +
+      '<div class="td-rec"><span>💆</span><div><small>TA RÉCOMPENSE</small><b>Massage</b></div><em class="td-rec-l">🎁 débloquée</em></div>';
   } else if (k === "menu") {
+    var nM = tutoDuree();
+    if (nM <= 42) {
+      var tg = [], q;
+      if (nM <= 14) tg = ["on","off","on","off","on","off","on","off","on","off","off","on","off","off"];
+      else for (q = 0; q < 14; q++) tg.push(q % 2 === 0 ? "on" : "off");
+      h += '<div class="td-t">🍽️ ' + (nM <= 14 ? 'Reset 14 jours' : 'Semaines 1 et 2') + ' <span>touche un jour</span></div><div class="td-cal">';
+      for (q = 0; q < 14; q++) h += '<div class="td-j td-' + tg[q] + (q === 4 ? ' auj' : '') + '">' + (q + 1) + '<small>' + (tg[q] === "on" ? "ON" : "OFF") + '</small></div>';
+      h += '</div><div class="td-row" style="margin-top:8px"><span>☀️ Midi · jour 5 ON</span><b>Poulet · riz · brocolis</b></div>' +
+        '<div class="td-row"><span>🌙 Soir · jour OFF</span><b>Saumon · haricots verts</b></div>';
+    } else {
+      h += '<div class="td-t">🍽️ Mois 1 · Équilibre <span>jours 1 à 28</span></div>' +
+        '<div class="td-row"><span>🌅 Matin</span><b>Protéines</b></div>' +
+        '<div class="td-row"><span>☀️ Midi</span><b>1/3 G · 1/3 P · 1/3 F</b></div>' +
+        '<div class="td-row"><span>🌙 Soir</span><b>Glucides bas + P + F</b></div>' +
+        '<div class="td-bouton">🍽️ Ouvrir mes repas du jour</div>';
+    }
+  } else if (k === "menu_ancien") {
     h += '<div class="td-t">🍽️ Jour 6 <span class="td-on">ON · avec glucides</span></div>' +
       '<div class="td-row"><span>🌅 Matin</span><b>Omelette 3 œufs</b></div>' +
       '<div class="td-row"><span>🍽️ Midi</span><b>Poulet · riz · brocolis</b></div>' +
       '<div class="td-row"><span>🍎 Collation</span><b>1 fruit</b></div>' +
       '<div class="td-row"><span>🌙 Soir</span><b>Saumon · haricots verts</b></div>';
+  } else if (k === "cycle") {
+    var CY = [["#B4436C","🌑"],["#E9A23B","🌒"],["#2BF5A0","🌕"],["#12B5EA","🌖"],["#8A3FFF","🌘"]];
+    h += '<div class="td-t">🌙 Mon cycle — jour 18 <span>énergie moyenne</span></div><div class="td-cyc">';
+    for (var c5 = 0; c5 < 5; c5++) h += '<span style="background:' + CY[c5][0] + (c5 === 3 ? '' : ';opacity:.25') + '">' + CY[c5][1] + '</span>';
+    h += '</div><div class="td-cyc-n"><b style="color:#12B5EA">Début lutéal · le calme</b><small>Séance modérée, force stable</small></div>' +
+      '<div class="td-2"><div class="td-in"><small>🩸 Dernières règles</small><b style="font-size:15px">22/09</b></div><div class="td-in"><small>🔁 Durée du cycle</small><b style="font-size:15px">28 <em>j</em></b></div></div>' +
+      '<div class="td-tip" style="color:#B4436C">📅 Prochaines règles vers le 20/10</div>';
+  } else if (k === "sport" && progCourt(tutoDuree())) {
+    h += '<div class="td-t">🏋️ Lundi · tes 7 jours <span>semaine 1</span></div>' +
+      '<div class="td-vid"><span>▶</span><div><b>Squat</b><small>vidéo de l\'exercice</small></div></div>' +
+      '<div class="td-row"><span>💪 Consigne</span><b>5 rép toutes les 30 s</b></div>' +
+      '<div class="td-row"><span>🚶 Puis</span><b>20 min à 1 h de marche</b></div>' +
+      '<div class="td-bouton">▶️ Démarrer mes 5 minutes</div>';
   } else if (k === "sport") {
-    h += '<div class="td-t">🏋️ Séance A · Squat <span>3 × 12</span></div>' +
+    h += '<div class="td-sdj">🚀 SÉANCE DU JOUR <span>(Mois 1 / Sem. 1)</span><div class="td-sdj-b">Séance A · Haut du corps <i>▶</i></div></div>';
+    h += '<div class="td-t" style="margin-top:9px">Squat <span>3 × 12</span></div>' +
       '<div class="td-ser"><div class="td-s on">1<small>12 × 40 kg</small><i>✓</i></div><div class="td-s on">2<small>12 × 40 kg</small><i>✓</i></div><div class="td-s anim">3<small>12 × 40 kg</small><i>✓</i><u>👆</u></div></div>' +
       '<div class="td-repos">⏱️ Repos <b>1:30</b> · démarre tout seul</div>';
   } else if (k === "stats") {
@@ -13249,10 +13384,11 @@ function tutoDemoHTML(k) {
   return h + '</div>';
 }
 function viewTuto() {
-  var i = Math.max(0, Math.min(TUTO_PAGES.length - 1, state.tuto | 0));
-  var P = TUTO_PAGES[i], dernier = (i === TUTO_PAGES.length - 1);
+  var PAGES = tutoPages();
+  var i = Math.max(0, Math.min(PAGES.length - 1, state.tuto | 0));
+  var P = PAGES[i], dernier = (i === PAGES.length - 1);
   var points = "";
-  for (var k = 0; k < TUTO_PAGES.length; k++) points += '<i class="' + (k === i ? "on" : "") + '"></i>';
+  for (var k = 0; k < PAGES.length; k++) points += '<i class="' + (k === i ? "on" : "") + '"></i>';
   if (P.install) {
     return '<div class="tuto">' +
       '<div class="tuto-haut ti-haut" style="background:linear-gradient(150deg,' + P.c1 + ',' + P.c2 + ')">' +
@@ -13273,7 +13409,7 @@ function viewTuto() {
     '<div class="tuto-bas">' +
     '<div class="tuto-tag" style="color:' + P.c2 + ';background:' + P.c2 + '18">' + P.tag + '</div>' +
     '<div class="tuto-t">' + P.t + '</div>' +
-    '<div class="tuto-d">' + P.d + '</div>' +
+    '<div class="tuto-d">' + (typeof P.d === "function" ? P.d() : P.d) + '</div>' +
     '<div class="tuto-pts">' + points + '</div>' +
     '<button id="tuto-next" class="big-btn" style="margin:0">' + (dernier ? "Commencer" : "Suivant") + '</button>' +
     (i > 0 ? '<button id="tuto-prev" class="tuto-prev">Retour</button>' : '') +
@@ -13285,7 +13421,7 @@ function bindTuto() {
   if (sk) sk.addEventListener("click", fermer);
   var nx = document.getElementById("tuto-next");
   if (nx) nx.addEventListener("click", function () {
-    if ((state.tuto | 0) >= TUTO_PAGES.length - 1) { fermer(); return; }
+    if ((state.tuto | 0) >= tutoPages().length - 1) { fermer(); return; }
     state.tuto = (state.tuto | 0) + 1; render();
   });
   var pv = document.getElementById("tuto-prev");

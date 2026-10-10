@@ -389,6 +389,18 @@
 .tuto-pts{display:flex;gap:7px;justify-content:center;margin:auto 0 18px}
 .tuto-pts i{width:8px;height:8px;border-radius:100px;background:var(--line);transition:all .25s}
 .tuto-pts i.on{width:26px;background:var(--ink)}
+.ti-haut{flex:0 0 19%}
+.ti-bas{flex:1 1 auto;padding-top:18px;overflow-y:auto}
+.ti-os{display:flex;gap:6px;background:var(--soft2);border-radius:14px;padding:4px;margin:14px 0 4px}
+.ti-tab{flex:1;padding:10px 0;border-radius:11px;font-size:13.5px;font-weight:800;color:var(--mute);background:none;border:0}
+.ti-tab.on{background:#fff;color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.ti-ok{margin-top:10px;background:#E8F8EF;color:#14532D;border-radius:12px;padding:10px 12px;font-size:13px;font-weight:800}
+.ti-et{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:10px}
+.ti-et li{display:flex;gap:11px;align-items:flex-start;font-size:14px;line-height:1.5;color:var(--ink2,var(--ink))}
+.ti-n{flex:0 0 26px;height:26px;border-radius:50%;background:var(--ink);color:#fff;font-size:13px;font-weight:900;display:flex;align-items:center;justify-content:center;margin-top:-1px}
+.ti-pic{font-size:13px}
+.ti-install{margin-top:14px;padding:13px 0;border-radius:100px;border:0;background:#12C98A;color:#fff;font-weight:900;font-size:14px}
+.ti-note{margin:12px 0 14px;font-size:12.5px;font-weight:800;color:var(--mute)}
 .tuto-prev{margin-top:10px;padding:11px 0;font-size:13px;font-weight:800;color:var(--mute);background:none}
 
 /* ⚡ Le raccourci vers la journée du jour, tout en haut de l'accueil :
@@ -1039,7 +1051,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="10/10 - Programme 6 semaines";
+var APP_VERSION="10/10 - Didacticiel installation";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -13052,6 +13064,10 @@ function bindPesees() {
 // depuis le bas de l'accueil : un client qui abandonne au 3e écran doit
 // pouvoir y revenir sans réinstaller quoi que ce soit.
 var TUTO_PAGES = [
+  // 📲 Page 1 : installer l'appli sur l'écran d'accueil. Sans ça, pas de
+  // rappel du soir sur iPhone, et le client cherche son lien chaque jour.
+  { install: true, tag: "INSTALLATION", ico: "📲", c1: "var(--b1)", c2: "var(--b2)",
+    t: "Mets l'appli sur ton écran d'accueil" },
   {
     tag: "BIENVENUE", ico: "🎯", c1: "var(--b1)", c2: "var(--b2)",
     t: "Un jour à la fois",
@@ -13091,11 +13107,62 @@ var TUTO_PAGES = [
 function tutoVu() { try { return !!localStorage.getItem("amcoach_tuto_" + CLIENT); } catch (e) { return true; } }
 function tutoMarquer() { try { localStorage.setItem("amcoach_tuto_" + CLIENT, isoLocal()); } catch (e) { } }
 
+// 📲 Installation : iPhone ou Android, détecté tout seul, modifiable d'un tap.
+var __installEvt = null;
+window.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); __installEvt = e; });
+function tutoOS() {
+  if (state.tutoOS) return state.tutoOS;
+  var ua = navigator.userAgent || "";
+  return /android/i.test(ua) ? "android" : "ios";
+}
+function tutoDejaInstalle() {
+  try { return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true; } catch (e) { return false; }
+}
+function tutoInstallHTML() {
+  var os = tutoOS();
+  var ET = os === "ios" ? [
+    "Ouvre ton lien dans <b>Safari</b>. S'il s'ouvre dans Instagram ou Facebook : touche <b>⋯</b> puis <b>Ouvrir dans Safari</b>.",
+    "Touche le bouton <b>Partager</b> <span class=\"ti-pic\">⬆️</span> (le carré avec une flèche, en bas ou en haut). Sur un iPhone récent, touche d'abord <b>⋯</b>.",
+    "Fais défiler et touche <b>Sur l'écran d'accueil</b>.",
+    "Garde le nom proposé et touche <b>Ajouter</b>.",
+    "Ouvre désormais l'appli depuis <b>l'icône</b> de ton écran d'accueil."
+  ] : [
+    "Ouvre ton lien dans <b>Chrome</b>.",
+    "Touche le menu <b>⋮</b> en haut à droite.",
+    "Touche <b>Ajouter à l'écran d'accueil</b> ou <b>Installer l'application</b>.",
+    "Confirme avec <b>Ajouter</b> ou <b>Installer</b>.",
+    "Ouvre désormais l'appli depuis <b>l'icône</b> de ton écran d'accueil."
+  ];
+  var h = '<div class="ti-os">' +
+    '<button class="ti-tab' + (os === "ios" ? " on" : "") + '" data-os="ios">🍎 iPhone</button>' +
+    '<button class="ti-tab' + (os === "android" ? " on" : "") + '" data-os="android">🤖 Android</button></div>';
+  if (tutoDejaInstalle()) h += '<div class="ti-ok">✅ C\'est déjà fait : tu ouvres l\'appli depuis ton écran d\'accueil.</div>';
+  h += '<ol class="ti-et">';
+  for (var i = 0; i < ET.length; i++) h += '<li><span class="ti-n">' + (i + 1) + '</span><span>' + ET[i] + '</span></li>';
+  h += '</ol>';
+  if (os === "android" && __installEvt && !tutoDejaInstalle())
+    h += '<button id="ti-install" class="ti-install">📲 Installer maintenant</button>';
+  h += '<div class="ti-note">🔔 Indispensable pour recevoir ton rappel du soir.</div>';
+  return h;
+}
 function viewTuto() {
   var i = Math.max(0, Math.min(TUTO_PAGES.length - 1, state.tuto | 0));
   var P = TUTO_PAGES[i], dernier = (i === TUTO_PAGES.length - 1);
   var points = "";
   for (var k = 0; k < TUTO_PAGES.length; k++) points += '<i class="' + (k === i ? "on" : "") + '"></i>';
+  if (P.install) {
+    return '<div class="tuto">' +
+      '<div class="tuto-haut ti-haut" style="background:linear-gradient(150deg,' + P.c1 + ',' + P.c2 + ')">' +
+      '<button id="tuto-skip" class="tuto-skip">Ignorer</button>' +
+      '<div class="tuto-ico" style="font-size:60px">' + P.ico + '</div></div>' +
+      '<div class="tuto-bas ti-bas">' +
+      '<div class="tuto-tag" style="color:' + P.c2 + ';background:' + P.c2 + '18">' + P.tag + '</div>' +
+      '<div class="tuto-t" style="font-size:23px">' + P.t + '</div>' +
+      tutoInstallHTML() +
+      '<div class="tuto-pts">' + points + '</div>' +
+      '<button id="tuto-next" class="big-btn" style="margin:0">Suivant</button>' +
+      '</div></div>';
+  }
   return '<div class="tuto">' +
     '<div class="tuto-haut" style="background:linear-gradient(150deg,' + P.c1 + ',' + P.c2 + ')">' +
     '<button id="tuto-skip" class="tuto-skip">Ignorer</button>' +
@@ -13120,6 +13187,14 @@ function bindTuto() {
   });
   var pv = document.getElementById("tuto-prev");
   if (pv) pv.addEventListener("click", function () { state.tuto = Math.max(0, (state.tuto | 0) - 1); render(); });
+  var tabs = document.querySelectorAll(".ti-tab");
+  for (var t = 0; t < tabs.length; t++) tabs[t].addEventListener("click", function () { state.tutoOS = this.getAttribute("data-os"); render(); });
+  var ins = document.getElementById("ti-install");
+  if (ins) ins.addEventListener("click", function () {
+    if (!__installEvt) return;
+    __installEvt.prompt();
+    __installEvt.userChoice.then(function () { __installEvt = null; render(); }).catch(function () { });
+  });
 }
 
 // ═══════════ ⏱️ CHRONOMÈTRE À TOURS ═══════════

@@ -1127,6 +1127,15 @@ var SIL_DEFAUT=3;
 // Le verdict d'un rapport doit s'appuyer là-dessus, pas sur le simple fait
 // d'avoir ouvert l'appli.
 var HABITS_PILIERS={sport:1,nutrition:1,sommeil:1,hydratation:1};
+// ⚖️ POIDS DE CHAQUE PILIER SUR LE RÉSULTAT. Akli : « on retient
+// l'hydratation alors que c'est la nutrition qui fait défaut ». Quand
+// plusieurs piliers traînent, la priorité va au plus lourd, pas au plus bas.
+// Ordre fixé par Akli : sommeil, nutrition, sport, hydratation.
+var PILIER_POIDS={sommeil:4,nutrition:3,sport:2,hydratation:1};
+// Seuil pour qu'un pilier soit TENU. La nutrition est plus exigeante : à
+// 67 %, c'est un jour sur trois hors menu — de quoi annuler la semaine sur
+// la balance. Les autres piliers sont tenus à deux jours sur trois.
+var PILIER_SEUIL={nutrition:80,sport:66,sommeil:66,hydratation:66};
 // Habitudes d'ÉQUILIBRE : elles comptent pour la vie, pas pour la balance.
 // Ne pas cocher « travail » un dimanche n'est pas un échec — les afficher
 // comme tel désignerait un faux coupable et brouillerait le vrai message.
@@ -1136,7 +1145,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="10/10 - Didacticiel cycle et seances";
+var APP_VERSION="10/10 - Ordre des piliers";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -4161,7 +4170,10 @@ function computeLoops(allData,period,offset){
   // Faiblesses : habitudes qui sautent le plus souvent.
   // Les compléments sont facultatifs — les compter masquerait la vraie boucle d'échec.
   var faibles=ratesA.filter(function(r){return r.cnt>=3&&r.rate<=0.45;})
-    .sort(function(a,b){return a.rate-b.rate;});
+    .sort(function(a,b){
+      var ia=(a.hab&&PILIER_POIDS[a.hab.id])||0, ib=(b.hab&&PILIER_POIDS[b.hab.id])||0;
+      return (ib-ia)||(a.rate-b.rate);
+    });
   // Enchaînements de jours manqués (un jour saute → le suivant aussi)
   var lastFilled=-1;
   for(var li=offset;li<offset+period;li++){if(allData[li]&&allData[li].habits)lastFilled=li;}
@@ -8323,7 +8335,20 @@ function openRapportSimple(name,start,period,dataOverride){
   }
   // Combien de piliers sont réellement décrochés
   var pilFaibles=[];
-  for(var pf=0;pf<piliers.length;pf++){if(piliers[pf].pct<66)pilFaibles.push(piliers[pf]);}
+  for(var pf=0;pf<piliers.length;pf++){if(piliers[pf].pct<(PILIER_SEUIL[piliers[pf].id]||66))pilFaibles.push(piliers[pf]);}
+  // ⚖️ Le poids ne bouge pas (objectif perte) : la nutrition passe devant,
+  // même à 85 %. C'est l'assiette qui fait l'essentiel du résultat.
+  var dPoidsRef=(dPeriode!=null?dPeriode:dPoids);
+  var poidsBloque=false;
+  try{ poidsBloque=(capGet(allData)==="perte"&&nbJours>=5&&dPoidsRef!=null&&dPoidsRef>-0.3); }catch(e){}
+  var pilNutr=null;
+  for(var pn2=0;pn2<piliers.length;pn2++)if(piliers[pn2].id==="nutrition")pilNutr=piliers[pn2];
+  if(poidsBloque&&pilNutr&&pilNutr.pct<90&&pilFaibles.indexOf(pilNutr)<0)pilFaibles.push(pilNutr);
+  pilFaibles.sort(function(a,b){
+    var d=(PILIER_POIDS[b.id]||0)-(PILIER_POIDS[a.id]||0);
+    return d?d:a.pct-b.pct;
+  });
+  var priorite=pilFaibles[0]||null;
 
   // 🔄 LES DEUX BOUCLES.
   // Vertueuse : ce qui lui fait gagner des points, tenu au moins 2 jours sur 3.
@@ -8333,6 +8358,7 @@ function openRapportSimple(name,start,period,dataOverride){
   var vertu=[], echec=[];
   for(var b2=0;b2<liste.length;b2++){
     var it2=liste[b2];
+    if(it2.pilier&&pilFaibles.indexOf(it2)>=0){echec.push(it2);continue;}
     if(it2.pct>=66){vertu.push(it2);continue;}
     // Seuls les PILIERS entrent dans la boucle d'échec. Reprocher « travail
     // 29 % » à quelqu'un qui ne coche pas cette case le week-end noie le vrai
@@ -8342,7 +8368,10 @@ function openRapportSimple(name,start,period,dataOverride){
     // à 50 % n'apparaissait NULLE PART — ni tenu, ni décroché.
     if(it2.pilier)echec.push(it2);
   }
-  echec.sort(function(a,b){return a.pct-b.pct;});
+  echec.sort(function(a,b){
+    var d=(PILIER_POIDS[b.id]||0)-(PILIER_POIDS[a.id]||0);
+    return d?d:a.pct-b.pct;
+  });
 
   // Le verdict : une phrase, choisie sur l'assiduité, qui dit quoi penser.
   // 🎯 LE VERDICT croise DEUX choses : la présence (assiduité) et le CONTENU
@@ -8365,7 +8394,8 @@ function openRapportSimple(name,start,period,dataOverride){
     vcoul="#2FBF71";vemo="💪";salut="Bien joué";
   }else if(nbPil&&pilKO===1&&assidu>=65){
     // Un seul pilier qui traîne : on peut féliciter, mais on nomme la case.
-    verdict="Tu tiens presque tout. Il reste « "+pilFaibles[0].lab+" » — c'est la seule case qui manque pour que ça avance vraiment.";
+    verdict="Tu tiens presque tout. Il reste « "+priorite.lab+" » — c'est la case qui manque pour que ça avance vraiment."+
+      (poidsBloque&&priorite.id==="nutrition"?" Ton poids le montre : "+(dPoidsRef>0?"+":"")+String(dPoidsRef).replace(".",",")+" kg.":"");
     vcoul="#5B8FC7";vemo="🎯";salut="Bien parti";
   }else if(pilKO>=2&&assidu>=80){
     // LE cas de Leila : présente tous les jours, piliers vides.
@@ -8384,8 +8414,16 @@ function openRapportSimple(name,start,period,dataOverride){
 
   // UNE action pour la semaine. Une seule : c'est ce qui la rend faisable.
   var action;
-  if(pilFaibles.length&&assidu>=65)
-    action="Cocher « "+pilFaibles[pilFaibles.length-1].lab+" » chaque jour. Sans ce pilier, aucun programme ne donne de résultat — le reste ne compensera pas.";
+  if(priorite&&assidu>=65){
+    var ACT={
+      nutrition:"Cocher « Nutrition » chaque jour : suivre ton menu midi et soir, sans écart. L'assiette fait 70 % du résultat — le sport ne rattrape pas une assiette ratée."+
+        (poidsBloque?" Ton poids a bougé de "+(dPoidsRef>0?"+":"")+String(dPoidsRef).replace(".",",")+" kg : c'est là que ça se joue.":""),
+      sport:"Cocher « Sport » chaque jour : ta séance ou ta marche, même courte. Sans mouvement, le corps garde ses réserves.",
+      sommeil:"Cocher « Sommeil » chaque jour : te coucher 30 minutes plus tôt. C'est la nuit que le corps transforme.",
+      hydratation:"Cocher « Hydratation » chaque jour : 2 litres d'eau, une bouteille le matin, une l'après-midi."
+    };
+    action=ACT[priorite.id]||("Cocher « "+priorite.lab+" » chaque jour. Sans ce pilier, aucun programme ne donne de résultat — le reste ne compensera pas.");
+  }
   else if(assidu<65)action="Remplir ta journée dans l'appli, tous les jours. Même une journée imparfaite compte — c'est le geste qui construit l'habitude.";
   else if(moySom!=null&&moySom<7)action="Te coucher 30 minutes plus tôt. Ton sommeil est à "+moySom+" h de moyenne : c'est la nuit que le corps transforme.";
   else if(echec.length)action="Reprendre « "+echec[0].lab+" », et rien d'autre. C'est la case qui casse ta boucle — le reste tient déjà.";

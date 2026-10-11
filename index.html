@@ -1145,7 +1145,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="11/10 - Poids de depart unique";
+var APP_VERSION="11/10 - Superviseurs plus varies";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -2852,47 +2852,77 @@ var TONS={
   normal:{
     nom:"Le carré", emoji:"🎯", desc:"Direct et posé. Va à l'essentiel, sans détour.",
     prenoms:{h:["Marc","Thomas","Julien"],f:["Claire","Sophie","Laura"]},
-    haut:["Tu tiens le rythme","Machine bien lancée","Rien ne te fait décrocher","C'est ça, la régularité","Tu ne négocies plus","Solide, jour après jour"],
-    bon:["Bien engagé","Ça prend forme","La dynamique est là","Tu construis quelque chose","Le rythme s'installe","Continue comme ça"],
-    moyen:["À consolider","Encore un cran à passer","La base est là, serre un peu","Ni bien ni mal — décide","Tu peux faire mieux","Reprends la main"],
-    bas:["Ça décroche","Le fil se détend","Il faut se remettre dedans","Une journée pleine, et ça repart","Le plus dur, c'est de recommencer","Reviens dans la course"],
-    zero:["À relancer","On repart de zéro, et alors ?","Aujourd'hui suffit à changer ça","Un seul jour rempli, pour commencer","Personne ne tient sans repartir","Le premier pas, maintenant"]
+    haut:["Tu tiens le rythme","Machine bien lancée","Rien ne te fait décrocher","C'est ça, la régularité","Tu ne négocies plus","Solide, jour après jour",
+      "Tu fais ce qui est prévu, sans négocier","C'est exactement ce qu'on attend","Rien à corriger cette semaine","La constance, c'est toi","Tu as trouvé ton rythme","Encore une journée dans la bonne case"],
+    bon:["Bien engagé","Ça prend forme","La dynamique est là","Tu construis quelque chose","Le rythme s'installe","Continue comme ça",
+      "La direction est la bonne","Tu progresses, garde le cap","Chaque jour compte, celui-ci aussi","Tu es plus régulier qu'au départ","Le gros du travail est en place","Un cran de plus et c'est complet"],
+    moyen:["À consolider","Encore un cran à passer","La base est là, serre un peu","Ni bien ni mal — décide","Tu peux faire mieux","Reprends la main",
+      "Tu fais la moitié du chemin","La régularité manque encore","Choisis une case et tiens-la","Le potentiel est là, l'application moins","Tu peux reprendre la main dès ce soir","Encore trop d'irrégularité"],
+    bas:["Ça décroche","Le fil se détend","Il faut se remettre dedans","Une journée pleine, et ça repart","Le plus dur, c'est de recommencer","Reviens dans la course",
+      "Une semaine difficile, ça arrive","On reprend au prochain repas","Remplis ta journée ce soir, c'est tout","Le rythme se reconstruit vite","Ne laisse pas une mauvaise semaine en faire deux","Le programme t'attend, il n'a pas bougé"],
+    zero:["À relancer","On repart de zéro, et alors ?","Aujourd'hui suffit à changer ça","Un seul jour rempli, pour commencer","Personne ne tient sans repartir","Le premier pas, maintenant",
+      "Un jour suffit pour relancer","On ne regarde pas en arrière","Une case, ce soir, pour commencer","Tu reprends quand tu veux, maintenant c'est bien","Rien n'est perdu","Le plus dur est de rouvrir l'appli : c'est fait"]
   },
   marseillais:{
     nom:"Le Marseillais", emoji:"☀️", desc:"Chambreur, imagé, il te pousse au cul avec le sourire.",
     prenoms:{h:["Momo","Ange","Dédé"],f:["Nadine","Josy","Mireille"]},
-    haut:["Té, t'es un tigre !","Oh bonne mère, tu déroules","Là t'as mis le maillot, bravo","Dégun peut rien te dire","Tu joues à la maison, ça se voit","Fada de régularité, j'adore"],
-    bon:["Ça sent bon, continue","Té, tu prends le rythme","On tient le bon bout, collègue","Ça se met en place tranquille","Tu chauffes, lâche pas","Bien joué, on lâche rien"],
-    moyen:["Bon, t'es un cave ou t'es un tigre ?","Té, tu fais quoi là ?","Ni bien ni mal, décide-toi","Allez, un peu de cœur au ventre","T'es capable de mieux, je le sais","Serre les dents deux minutes"],
-    bas:["Oh collègue, tu me lâches ?","Ça part en cacade cette histoire","Té, réveille-toi un peu","Une bonne journée et on repart","Le plus dur c'est de s'y remettre","Reviens, on t'attend au tournant"],
-    zero:["Bon, on efface et on repart","Allez, aujourd'hui c'est le jour","Té, un jour rempli et ça relance","Dégun tient sans repartir, dégun","Un seul pas, après on verra","Aujourd'hui, maintenant, allez"]
+    haut:["Té, t'es un tigre !","Oh bonne mère, tu déroules","Là t'as mis le maillot, bravo","Dégun peut rien te dire","Tu joues à la maison, ça se voit","Fada de régularité, j'adore",
+      "Fatche, t'es réglé comme une horloge","Là c'est pas de la gnognotte, collègue","Tu fais ça tranquille, comme au Vélodrome","Même le mistral te ferait pas reculer","T'es solide comme la Bonne Mère","Je cherche quoi te reprocher, je trouve pas",
+      "T'as la tête dure, et c'est une qualité","Té, tu boulègues et ça paie","Ça roule, j'ai plus qu'à boire mon café","Tu te poses pas de questions, tu fais"],
+    bon:["Ça sent bon, continue","Té, tu prends le rythme","On tient le bon bout, collègue","Ça se met en place tranquille","Tu chauffes, lâche pas","Bien joué, on lâche rien",
+      "C'est pas encore la Canebière, mais ça avance","Tu boulègues bien, garde le cap","Té, ça commence à ressembler à quelque chose","Un petit effort et t'es dans le dur","Doucement mais sûrement, comme la pétanque","T'es sur la bonne route, pas de détour",
+      "Ça se tient, faut juste pas s'endormir","Bonne semaine, on va chercher la suivante","On est pas loin, collègue, pousse un peu","Tu tiens la barre, le bateau avance"],
+    moyen:["Té, tu fais quoi là ?","Ni bien ni mal, décide-toi","Allez, un peu de cœur au ventre","T'es capable de mieux, je le sais","Serre les dents deux minutes","Oh, tu fais la sieste ou quoi ?",
+      "Moitié dedans moitié dehors, ça marche pas","Fais pas le fada, remets-toi dedans","On va pas finir en tisane, allez","T'as le talent, il manque l'envie","Ça m'escagasse de te voir à moitié","Un petit coup de collier et ça repart",
+      "On est pas à la plage, collègue","T'attends quoi, la marée ?","Le plus dur est fait, termine le boulot","Té, à ce rythme on y sera en 2030"],
+    bas:["Oh collègue, tu me lâches ?","Ça part en cacade cette histoire","Té, réveille-toi un peu","Une bonne journée et on repart","Le plus dur c'est de s'y remettre","Reviens, on t'attend au tournant",
+      "Peuchère, ça tire la langue","Fais pas le cacou, on reprend","Le canapé t'a eu, avoue","On remonte la pente, une marche à la fois","T'es pas mort, t'es en pause, ça se rattrape","Té, ce soir tu remplis, et on n'en parle plus",
+      "J'ai vu pire, mais j'ai vu mieux de toi","Allez, on reprend le maillot","Un jour bien fait et je t'oublie le reste","On lâche pas l'affaire pour une mauvaise semaine"],
+    zero:["Bon, on efface et on repart","Allez, aujourd'hui c'est le jour","Té, un jour rempli et ça relance","Dégun tient sans repartir, dégun","Un seul pas, après on verra","Aujourd'hui, maintenant, allez",
+      "Page blanche, on écrit la suite","Même l'OM repart après une défaite","On recommence, et cette fois on tient","Fatche, ça fait un moment, mais t'es là","Personne te juge, on y retourne","Un verre d'eau, ta journée, et c'est relancé",
+      "Té, le plus dur c'est le premier jour","On repart tranquille, sans se presser","Allez, une case, juste une","Je t'attends, collègue, je bouge pas"]
   },
   italien:{
     nom:"L'Italien", emoji:"🇮🇹", desc:"Expansif et théâtral. Il s'enflamme pour un rien.",
     prenoms:{h:["Francesco","Gennaro","Matteo"],f:["Giulia","Chiara","Rosaria"]},
-    haut:["Bellissimo ! Que dire de plus","Perfetto, tu es en feu","Bravissimo, continua così !","Madonna, quelle régularité","Sei un campione, un vrai","Magnifico, je n'ai rien à ajouter"],
-    bon:["Molto bene, ça prend forme","Bene, tu montes en puissance","Ça se construit, piano piano","Bravo, la dynamique est là","Continua, tu es sur la bonne route","Ottimo, garde ce rythme"],
-    moyen:["Mamma mia, tu fais quoi là ?","Insomma... ni bien ni mal","Allora, tu te décides ?","La base est là, il manque le cœur","Puoi fare di più, je le sais","Un peu de passione, per favore"],
-    bas:["Madonna mia, tu me lâches ?","Che disastro, il faut réagir","Basta ! On se remet dedans","Une journée pleine et on repart","Ricominciare, c'est le plus dur","Torna qui, reviens dans la course"],
-    zero:["Niente. Rien du tout. Allora ?","On efface, si riparte da zero","Oggi suffit à tout changer","Un seul jour, un seul, coraggio","Tout le monde repart un jour","Il primo passo, adesso"]
+    haut:["Bellissimo ! Que dire de plus","Perfetto, tu es en feu","Bravissimo, continua così !","Madonna, quelle régularité","Sei un campione, un vrai","Magnifico, je n'ai rien à ajouter",
+      "Fantastico, je n'en reviens pas","Tu es une opera d'arte","Che spettacolo, ogni giorno","Grandioso, la régularité incarnée","Sei incredibile, continua","Perfezione, ni plus ni moins"],
+    bon:["Molto bene, ça prend forme","Bene, tu montes en puissance","Ça se construit, piano piano","Bravo, la dynamique est là","Continua, tu es sur la bonne route","Ottimo, garde ce rythme",
+      "Bene bene, ça monte","Piano piano si va lontano","Tu prends le bon chemin, bravo","Ça sent bon, comme une sauce maison","Avanti, tu es presque là","Bella settimana, continua"],
+    moyen:["Mamma mia, tu fais quoi là ?","Insomma... ni bien ni mal","Allora, tu te décides ?","La base est là, il manque le cœur","Puoi fare di più, je le sais","Un peu de passione, per favore",
+      "Eh, allora ? Il manque quelque chose","Comme des pâtes sans sauce, ça manque","Un po' di grinta, per favore","Tu peux mieux, je le sens","Ni carne ni pesce, decidi","Dai, un petit effort"],
+    bas:["Madonna mia, tu me lâches ?","Che disastro, il faut réagir","Basta ! On se remet dedans","Une journée pleine et on repart","Ricominciare, c'est le plus dur","Torna qui, reviens dans la course",
+      "Mamma mia, qu'est-ce qui se passe ?","Ça me brise le cœur, reprends","Coraggio, on remonte ensemble","Una giornata, une seule, et ça repart","Non mollare adesso","Allez, on retrousse les manches"],
+    zero:["Niente. Rien du tout. Allora ?","On efface, si riparte da zero","Oggi suffit à tout changer","Un seul jour, un seul, coraggio","Tout le monde repart un jour","Il primo passo, adesso",
+      "Silenzio totale. On recommence ?","Ogni giorno è un nuovo inizio","Pronto ? Il programma t'attend","Una casella, stasera","On repart, senza drammi","Avanti, il primo giorno è oggi"]
   },
   drole:{
     nom:"Le rigolo", emoji:"😄", desc:"Léger et taquin. On rigole, mais on avance.",
     prenoms:{h:["Kevin","Bruno","Sacha"],f:["Manon","Cécile","Alice"]},
-    haut:["T'es en feu, quelqu'un a un extincteur ?","Là c'est plus de la discipline, c'est un don","Tu commences à faire peur, doucement","Bravo, tu bats 87% des gens","Tellement régulier que c'en est suspect","Un métronome avec des jambes"],
-    bon:["Ça sent bon, continue de cuisiner","T'es sur la bonne pente, la montante","Ça pousse, comme du basilic","Pas mal du tout, presque impressionnant","Le rythme s'installe, le dérange pas","Tu deviens fréquentable"],
-    moyen:["Bof. Voilà, c'est dit","Ni héros ni catastrophe, un mardi","T'es en mode économie d'énergie ?","La base est là, le reste s'est perdu","Un petit coup de rein, allez","Mi-figue mi-raisin, choisis un fruit"],
-    bas:["Ton streak fait la sieste","Ça sent le mou, ouvre une fenêtre","T'as pris un abonnement au canapé ?","Un jour rempli et on n'en parle plus","Recommencer c'est le pire, après ça glisse","Ton objectif t'a envoyé un message"],
-    zero:["Zéro. Le vide. Mais un beau vide","On repart de rien, c'est plus léger","Aujourd'hui suffit à tout changer","Un seul jour, même pas parfait","Personne n'a jamais commencé un lundi parfait","Le premier pas attend depuis un moment"]
+    haut:["T'es en feu, quelqu'un a un extincteur ?","Là c'est plus de la discipline, c'est un don","Tu commences à faire peur, doucement","Bravo, tu bats 87% des gens","Tellement régulier que c'en est suspect","Un métronome avec des jambes",
+      "Même ta balance est jalouse","Tu devrais donner des cours","Je commence à m'ennuyer, tout va bien","Si la régularité était un sport, médaille d'or","T'as avalé un réveil ?","Tellement carré qu'on pourrait y ranger des livres"],
+    bon:["Ça sent bon, continue de cuisiner","T'es sur la bonne pente, la montante","Ça pousse, comme du basilic","Pas mal du tout, presque impressionnant","Le rythme s'installe, le dérange pas","Tu deviens fréquentable",
+      "Ça avance, plus vite qu'une file à la poste","Tu chauffes doucement, comme un gratin","Pas loin du sans-faute, presque énervant","Le moteur tourne, ne cale pas","Tu deviens prévisible, c'est un compliment","Bonne pente, garde les freins au garage"],
+    moyen:["Bof. Voilà, c'est dit","Ni héros ni catastrophe, un mardi","T'es en mode économie d'énergie ?","La base est là, le reste s'est perdu","Un petit coup de rein, allez","Mi-figue mi-raisin, choisis un fruit",
+      "Tu fais du surplace avec style","Moitié héros, moitié pyjama","T'as mis le mode avion sur ta motivation ?","Un peu tiède, comme un café oublié","Pas mal, pas bien, juste là","Il manque le piment"],
+    bas:["Ton streak fait la sieste","Ça sent le mou, ouvre une fenêtre","T'as pris un abonnement au canapé ?","Un jour rempli et on n'en parle plus","Recommencer c'est le pire, après ça glisse","Ton objectif t'a envoyé un message",
+      "Ta motivation est partie acheter du pain","Même ton réveil s'inquiète","On dirait un lundi qui dure","Ton canapé a gagné cette manche","Un jour rempli, et on oublie tout","Remets une pièce dans la machine"],
+    zero:["Zéro. Le vide. Mais un beau vide","On repart de rien, c'est plus léger","Aujourd'hui suffit à tout changer","Un seul jour, même pas parfait","Personne n'a jamais commencé un lundi parfait","Le premier pas attend depuis un moment",
+      "Ton appli croyait que tu avais déménagé","Silence radio, on rallume","Zéro pointé, mais avec élégance","Bonne nouvelle : on ne peut que monter","Une case, et le suspense est relancé","Le programme t'attend en pyjama"]
   },
   sarcastique:{
     nom:"Le sarcastique", emoji:"🙃", desc:"Piquant et froid. Ça pique là où ça motive.",
     prenoms:{h:["Vincent","Hugo","Damien"],f:["Camille","Élise","Margot"]},
-    haut:["Bon. Difficile de critiquer, pour une fois","Impeccable. C'était pas obligé de m'impressionner","Tu tiens. Étonnant. Continue","Là je n'ai rien à dire, savoure","Sans faute. Tu fais exprès ?","Parfait. Ça me met au chômage"],
-    bon:["Pas mal. J'ai dit pas mal, pas génial","Ça avance. Doucement, mais ça avance","Tu progresses. Ne t'emballe pas","Correct. Le mot est bien choisi","Bien. Voyons si ça tient demain","Tu commences à saisir le principe"],
-    moyen:["Moyen. Le mot existe pour toi","Ni bien ni mal. Passionnant","Tu fais le minimum. Bravo pour l'efficacité","La base est là. Le reste ?","Tu peux mieux faire, et tu le sais","On appelle ça tiède"],
-    bas:["Ah. On s'est perdu en route","Le fil se détend. Comme la motivation","Intéressant, cette technique du surplace","Une journée pleine, ce serait un début","Recommencer, c'est un concept","Ton objectif demande de tes nouvelles"],
-    zero:["Zéro. Difficile de faire plus clair","Rien. Absolument rien. Impressionnant","Aujourd'hui suffirait, mais bon","Un jour rempli. Un seul. Je vise bas","Tout le monde repart. Toi aussi peut-être","Le premier pas. Il ne se fera pas seul"]
+    haut:["Bon. Difficile de critiquer, pour une fois","Impeccable. C'était pas obligé de m'impressionner","Tu tiens. Étonnant. Continue","Là je n'ai rien à dire, savoure","Sans faute. Tu fais exprès ?","Parfait. Ça me met au chômage",
+      "Encore parfait. Ça devient lassant","Tu veux une médaille ? Tu la mérites","Aucun reproche. Je suis déçu","Tu exagères, c'est impeccable","Je n'ai plus d'arguments","Régulier à en devenir agaçant"],
+    bon:["Pas mal. J'ai dit pas mal, pas génial","Ça avance. Doucement, mais ça avance","Tu progresses. Ne t'emballe pas","Correct. Le mot est bien choisi","Bien. Voyons si ça tient demain","Tu commences à saisir le principe",
+      "Presque bien. Presque","C'est mieux. Ne fanfaronne pas","Tu y crois enfin, on dirait","Bonne direction, rythme timide","Il manque peu. C'est ce qui agace","Bien, avec une marge de progrès confortable"],
+    moyen:["Moyen. Le mot existe pour toi","Ni bien ni mal. Passionnant","Tu fais le minimum. Bravo pour l'efficacité","La base est là. Le reste ?","Tu peux mieux faire, et tu le sais","On appelle ça tiède",
+      "Tu sais que la moitié, ça compte pour moitié ?","Effort constaté. Résultat, pas encore","La motivation était en option ?","On frôle l'implication","C'est un début. Ça date un peu","Tu attends une invitation ?"],
+    bas:["Ah. On s'est perdu en route","Le fil se détend. Comme la motivation","Intéressant, cette technique du surplace","Une journée pleine, ce serait un début","Recommencer, c'est un concept","Ton objectif demande de tes nouvelles",
+      "Ah, on fait une pause sans prévenir","Je note un léger relâchement. Léger","Tu as testé l'immobilité, verdict ?","On peut faire pire. Ne relève pas le défi","Bon, on reprend ou on regarde ?","Ta discipline est en télétravail"],
+    zero:["Zéro. Difficile de faire plus clair","Rien. Absolument rien. Impressionnant","Aujourd'hui suffirait, mais bon","Un jour rempli. Un seul. Je vise bas","Tout le monde repart. Toi aussi peut-être","Le premier pas. Il ne se fera pas seul",
+      "Tiens, revoilà le néant","Rien. Je suis presque impressionné","Si tu cherchais à battre un record, c'est fait","Une case, juste pour voir l'effet","On rouvre le dossier ?","Bonne nouvelle : impossible de faire moins"]
   },
   vulgaire:{
     nom:"Le taré", emoji:"🥊", desc:"Fou, agressif, aucun filtre. Il gueule pour te faire bouger.",
@@ -2916,20 +2946,30 @@ var TONS={
   jeune:{
     nom:"Le jeune", emoji:"🔥", desc:"Argot d'aujourd'hui, phrases courtes, ça va vite.",
     prenoms:{h:["Ryan","Ilyes","Noah"],f:["Inès","Maya","Lina"]},
-    haut:["Wesh c'est un banger cette journée","T'es chaud de ouf, sah","Grosse dinguerie, continue","C'est carré, rien à dire","T'as le rizz de la discipline","Là t'es en main character energy"],
-    bon:["Ça commence à être carré","T'es dans le bail, lâche pas","Ça monte tranquille, sah","Propre. Continue comme ça","Le rythme est posé, lâche pas","Pas mal wesh, t'assures"],
-    moyen:["Bof, t'es en mode PNJ là","Tu fais le strict minimum, sah","Ni ouf ni cringe, faut choisir","La base y est, le reste il est où ?","Tu peux clairement mieux, wesh","Reprends le contrôle du bail"],
-    bas:["Là c'est un peu le seum","T'es en train de ghoster tes objectifs","Faut se remettre dedans, sah","Une journée pleine et c'est reparti","Le plus dur c'est de relancer, après ça passe crème","Reviens dans le game, wesh"],
-    zero:["Zéro. Chokbar. On repart de là","T'as rien fait, on efface","Aujourd'hui ça change tout, sah","Un jour rempli, juste un, c'est pas la mort","Tout le monde repart un jour, miskine","Premier pas, go"]
+    haut:["Wesh c'est un banger cette journée","T'es chaud de ouf, sah","Grosse dinguerie, continue","C'est carré, rien à dire","T'as le rizz de la discipline","Là t'es en main character energy",
+      "Tu farm la discipline, c'est ouf","Wesh t'es dans ta prime","Grosse masterclass ce jour","T'as rien lâché, t'es goat","Ça tourne H24, respect","Là t'es en mode boss final"],
+    bon:["Ça commence à être carré","T'es dans le bail, lâche pas","Ça monte tranquille, sah","Propre. Continue comme ça","Le rythme est posé, lâche pas","Pas mal wesh, t'assures",
+      "Ça monte en level, tranquille","T'es dans le flow, lâche rien","Propre, juste un peu plus de grind","C'est validé, continue","Bonne vibe, garde-la","T'es pas loin du full combo"],
+    moyen:["Bof, t'es en mode PNJ là","Tu fais le strict minimum, sah","Ni ouf ni cringe, faut choisir","La base y est, le reste il est où ?","Tu peux clairement mieux, wesh","Reprends le contrôle du bail",
+      "T'es en mode afk ou quoi ?","Ça manque de sauce, wesh","Faut lock in maintenant","Moitié chaud moitié froid, choisis","T'as le potentiel, montre-le","On est pas en mode chill là"],
+    bas:["Là c'est un peu le seum","T'es en train de ghoster tes objectifs","Faut se remettre dedans, sah","Une journée pleine et c'est reparti","Le plus dur c'est de relancer, après ça passe crème","Reviens dans le game, wesh",
+      "Ça sent le respawn, allez","Ta série a crash, on relance","Faut sortir du mode veille","T'as un peu ghosté le programme","Reviens dans la partie, wesh","Un jour clean et c'est reparti"],
+    zero:["Zéro. Chokbar. On repart de là","T'as rien fait, on efface","Aujourd'hui ça change tout, sah","Un jour rempli, juste un, c'est pas la mort","Tout le monde repart un jour, miskine","Premier pas, go",
+      "Nouvelle partie, on reset","T'étais en pause, on relance","Zéro pointé mais pas game over","Une case et t'es back","On repart de 0, easy","Le respawn c'est maintenant"]
   },
   commentateur:{
     nom:"Le commentateur", emoji:"🎙️", desc:"Ta journée racontée comme un match en direct.",
     prenoms:{h:["Gérard","Patrick","Christian"],f:["Nathalie","Estelle","Véronique"]},
-    haut:["Et quelle démonstration, mesdames et messieurs !","Il déroule, personne ne peut le suivre !","Incroyable régularité, le public est debout !","Sans faute, absolument sans faute !","Il domine cette journée de bout en bout !","Une prestation de très haut niveau !"],
-    bon:["Belle dynamique, il monte en puissance","Le voilà qui prend le contrôle du match","Ça se met en place, patiemment","Solide, il fait le métier","Il tient son rythme de croisière","Bonne séquence, il faut confirmer"],
-    moyen:["Match fermé, il faut aller chercher plus","Il gère, mais sans prendre de risque","Mi-temps compliquée, tout reste à faire","La base est là, le contenu manque","Il lui faut un sursaut maintenant","Le public attend une réaction"],
-    bas:["Alerte, il décroche dans les derniers instants","Coup dur, la mécanique se grippe","Il perd le fil, il faut réagir vite","Une journée pleine et il revient dans le match","Tout se joue sur la relance","Le comeback commence par un point"],
-    zero:["Score vierge, rien à signaler","Journée blanche, on remet les compteurs","Une seule action relance la partie","Un jour rempli, et le match repart","Les plus grands sont revenus de loin","Coup d'envoi, maintenant"]
+    haut:["Et quelle démonstration, mesdames et messieurs !","Il déroule, personne ne peut le suivre !","Incroyable régularité, le public est debout !","Sans faute, absolument sans faute !","Il domine cette journée de bout en bout !","Une prestation de très haut niveau !",
+      "Il enchaîne, c'est une leçon de régularité !","Le chronomètre s'affole, quelle constance !","On tient peut-être le joueur de la saison !","Pas une seule faute de main !","Le public scande son nom !","Il fait le métier avec une classe folle !"],
+    bon:["Belle dynamique, il monte en puissance","Le voilà qui prend le contrôle du match","Ça se met en place, patiemment","Solide, il fait le métier","Il tient son rythme de croisière","Bonne séquence, il faut confirmer",
+      "Belle construction de jeu","Il avance ses pions avec méthode","Ça prend forme, il faut maintenant marquer","Bonne tenue de balle, il garde la possession","Il monte en régime","Il lui manque juste le dernier geste"],
+    moyen:["Match fermé, il faut aller chercher plus","Il gère, mais sans prendre de risque","Mi-temps compliquée, tout reste à faire","La base est là, le contenu manque","Il lui faut un sursaut maintenant","Le public attend une réaction",
+      "Il cherche encore son placement","Le match s'équilibre, il doit accélérer","Trop de déchet dans le dernier geste","Il a les jambes, il faut la tête","Le coach attend plus de lui","Encore un effort pour faire basculer la rencontre"],
+    bas:["Alerte, il décroche dans les derniers instants","Coup dur, la mécanique se grippe","Il perd le fil, il faut réagir vite","Une journée pleine et il revient dans le match","Tout se joue sur la relance","Le comeback commence par un point",
+      "Il est en difficulté sur ce match","Il recule, il faut reprendre le terrain","Le banc s'agite, il faut une réaction","Il a besoin d'un temps fort","On attend le sursaut d'orgueil","Il lui faut une action pour se relancer"],
+    zero:["Score vierge, rien à signaler","Journée blanche, on remet les compteurs","Une seule action relance la partie","Un jour rempli, et le match repart","Les plus grands sont revenus de loin","Coup d'envoi, maintenant",
+      "Il n'est pas encore entré sur le terrain","Il est sur le banc, il attend son tour","Le match peut commencer à tout moment","Une seule action pour lancer la partie","L'échauffement est terminé, on y va","Il entre en jeu maintenant !"]
   }
 };
 var TON_ORDRE=["normal","marseillais","italien","drole","sarcastique","vulgaire","jeune","commentateur"];
@@ -3730,10 +3770,46 @@ function supMessage(allData,today90,pct){
       return {texte:MO.txt,alerte:false,moment:true,cle:MO.cle};
     }
   }catch(e){}
-  // 4. Rien d'alarmant, rien à fêter : la phrase d'état habituelle
+  // 4. Rien d'alarmant, rien à fêter : la phrase d'état habituelle, plus
+  // des phrases qui citent SES chiffres (série, kilos, jours remplis). Akli :
+  // « Momo dit souvent t'es un tigre, c'est monotone à la longue ».
   var niv=pct>=85?"haut":pct>=65?"bon":pct>=45?"moyen":pct>=25?"bas":"zero";
-  return {texte:pickEtat(T[niv],ton+"-"+niv,today90),alerte:false,cle:niv};
+  var LN=(T[niv]||[]).slice();
+  try{
+    var DY=(TON_DYN[ton]||TON_DYN.normal)[niv]||[];
+    var serie=computeStreak(allData,today90), remplisN=0, kgP=null;
+    for(var rq=0;rq<=today90;rq++)if(allData[rq]&&allData[rq].habits&&Object.keys(allData[rq].habits).length)remplisN++;
+    var PD=poidsDepart(allData,lsGetStr("amcoach_start_"+CLIENT));
+    for(var rk=today90;rk>=0&&kgP==null;rk--){var dk=allData[rk];if(dk&&dk.poids){var wk=parseFloat(dk.poids);if(PD&&!isNaN(wk))kgP=Math.round((PD.v-wk)*10)/10;}}
+    for(var dy=0;dy<DY.length;dy++){
+      var t=DY[dy];
+      if(t.indexOf("{serie}")>=0&&serie<3)continue;
+      if(t.indexOf("{kg}")>=0&&!(kgP>=0.5&&capGet(allData)==="perte"))continue;
+      if(t.indexOf("{jours}")>=0&&remplisN<5)continue;
+      LN.push(t.replace("{serie}",serie).replace("{kg}",String(kgP).replace(".",",")).replace("{jours}",remplisN));
+    }
+  }catch(e){}
+  return {texte:pickEtat(LN,ton+"-"+niv,today90),alerte:false,cle:niv};
 }
+// 🔢 Phrases avec les chiffres du client, par superviseur.
+var TON_DYN={
+  normal:{haut:["{serie} jours d'affilée. C'est ça, la régularité","{kg} kg en moins depuis le départ. Continue","{jours} journées remplies. Le travail paie"],
+          bon:["{serie} jours de suite, garde la série","Déjà {kg} kg de moins. Ne relâche pas","{jours} journées remplies, la base est solide"]},
+  marseillais:{haut:["{serie} jours d'affilée, collègue. Dégun fait ça","Té, {kg} kg envolés. C'est pas tombé du ciel","{jours} journées remplies. Fatche, quelle constance","{serie} jours sans lâcher, même le mistral t'arrête pas"],
+          bon:["{serie} jours de suite, on lâche rien","Déjà {kg} kg de moins, té. On continue","{jours} journées au compteur, ça se construit","{serie} jours d'affilée, garde la cadence"]},
+  italien:{haut:["{serie} giorni di fila ! Bellissimo","{kg} kg in meno, che meraviglia","{jours} journées remplies, bravissimo"],
+          bon:["{serie} jours de suite, avanti","Già {kg} kg in meno, continua","{jours} journées, piano piano"]},
+  drole:{haut:["{serie} jours d'affilée. Ton canapé se sent seul","{kg} kg de moins, ta balance fait la fête","{jours} journées remplies, record de sérieux"],
+          bon:["{serie} jours de suite, ne casse pas la chaîne","{kg} kg de moins, presque une valise","{jours} journées, tu deviens un habitué"]},
+  sarcastique:{haut:["{serie} jours d'affilée. Je n'y croyais pas","{kg} kg de moins. Bon. Admettons, c'est bien","{jours} journées remplies. Tu t'acharnes"],
+          bon:["{serie} jours de suite. Voyons demain","{kg} kg de moins. Pas mal, pour un début","{jours} journées. Le compteur tourne"]},
+  vulgaire:{haut:["{serie} jours d'affilée, bordel, respect","{kg} kg dégagés, putain de boulot","{jours} journées remplies, tu lâches rien"],
+          bon:["{serie} jours de suite, lâche pas maintenant","{kg} kg en moins, continue de pousser","{jours} journées, ça commence à peser"]},
+  jeune:{haut:["{serie} jours de streak, t'es goat","-{kg} kg wesh, grosse dinguerie","{jours} journées validées, t'es chaud"],
+          bon:["{serie} jours de streak, garde-la","-{kg} kg déjà, ça monte","{jours} journées, tu farm bien"]},
+  commentateur:{haut:["{serie} jours sans interruption, record en vue !","{kg} kilos perdus, le tableau d'affichage parle !","{jours} journées au compteur, quelle saison !"],
+          bon:["{serie} jours de suite, il tient le rythme","{kg} kilos de moins, il marque des points","{jours} journées, il construit sa saison"]}
+};
 // 💬 Tirage de la phrase d'état.
 // L'ancien calcul (jour % 6) ne changeait qu'une fois par jour : en ouvrant
 // l'appli trois fois dans la journée, on relisait trois fois la même phrase.

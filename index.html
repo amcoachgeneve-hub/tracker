@@ -1145,7 +1145,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="10/10 - Ordre des piliers";
+var APP_VERSION="11/10 - Poids de depart unique";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -4038,6 +4038,28 @@ function dayScore(d){
   for(var i=0;i<HABITS.length;i++){if(d.habits[HABITS[i].id])done++;}
   return Math.round(done/HABITS.length*100);
 }
+// ⚖️ LE POIDS DE DÉPART, UN SEUL POUR TOUTE L'APPLI. Akli : Fayza « a
+// commencé à 68,7 » — c'est le poids de son bilan d'entrée. Le premier poids
+// noté dans l'appli (68,2 au J1) venait trois jours plus tard. Règle : le
+// bilan fait au départ (jusqu'à 3 jours après le jour 1) fait foi ; sans
+// bilan, c'est la première pesée du programme.
+function poidsDepart(allData,start){
+  var bl=((allData||{})[600]||{}).list||[], best=null, lim=null;
+  try{ if(start){var L=new Date(start+"T12:00:00"); L.setDate(L.getDate()+3); lim=isoLocal(L);} }catch(e){}
+  for(var i=0;i<bl.length;i++){
+    var a=bl[i]||{}, v=parseFloat(String(a.poids||"").replace(",","."));
+    if(isNaN(v)||v<30||v>300)continue;
+    var m=String(a.date||"").match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/), iso=m?(m[3]+"-"+("0"+m[2]).slice(-2)+"-"+("0"+m[1]).slice(-2)):"";
+    if(lim&&iso&&iso>lim)continue;
+    if(!best||(iso&&iso<best.iso))best={v:v,iso:iso,src:"bilan"};
+  }
+  if(best)return best;
+  for(var j=0;j<90;j++){
+    var d=(allData||{})[j];
+    if(d&&d.poids!=null&&d.poids!==""){var w=parseFloat(String(d.poids).replace(",","."));if(!isNaN(w))return {v:w,iso:"",src:"j"+(j+1)};}
+  }
+  return null;
+}
 function computeSeries(allData,days){
   var out=[];
   for(var i=0;i<days;i++){
@@ -4474,6 +4496,7 @@ function generateDiplome(name,startDate,allData){
     if(pd&&pd.poids!=null&&pd.poids!==""){var pv=parseFloat(String(pd.poids).replace(",","."));
       if(!isNaN(pv)){ if(dep==null)dep=pv; arr=pv; }}
   }
+  try{var __PDd=poidsDepart(allData,startDate);if(__PDd&&arr!=null)dep=__PDd.v;}catch(e){}
   var delta=(dep!=null&&arr!=null)?Math.round((arr-dep)*10)/10:null;
   // 📏 Tour de taille au nombril : noté par le client au J1 et au dernier
   // jour. À défaut, les bilans du coach (premier et dernier) prennent le relais.
@@ -4559,7 +4582,7 @@ function generateDiplome(name,startDate,allData){
       ? '<div class="parcours" style="justify-content:center"><div class="ecart" style="font-size:20px;text-align:center">'+signe(delta)+' kg en '+n+' jours'+
         (deltaN!=null&&deltaN!==0?'<small style="font-size:14px;color:#0ea5e9;margin-top:3px">'+signe(deltaN)+' cm de tour de taille</small>':'')+'</div></div>'
       : '<div class="parcours">'+
-      '<div class="pt"><span>Départ · J1</span><b>'+fmtKg(dep)+' kg</b></div>'+
+      '<div class="pt"><span>Départ</span><b>'+fmtKg(dep)+' kg</b></div>'+
       '<div class="ecart">'+signe(delta)+' kg en '+n+' jours</div>'+
       '<div class="pt r"><span>Arrivée · J'+n+'</span><b>'+fmtKg(arr)+' kg</b></div></div>')
     : '')+
@@ -6616,7 +6639,8 @@ function viewCalendar(name,start){
       // 🎯 Carte objectif — trois colonnes, anneau central, piste et récompense
       var pcG=0, depG=null, colG=solid("var(--brand)");
       (function(){
-        for(var w=0;w<=today90;w++){
+        try{var __PDg=poidsDepart(allData,start);if(__PDg)depG=__PDg.v;}catch(e){}
+        if(depG==null)for(var w=0;w<=today90;w++){
           if(allData[w]&&allData[w].poids){depG=parseFloat(allData[w].poids);break;}
         }
         if(depG==null)depG=curW;
@@ -8275,6 +8299,7 @@ function openRapportSimple(name,start,period,dataOverride){
       if(!isNaN(vv)){ if(pDepart===null)pDepart=vv; pActuel=vv; }
     }
   }
+  var __PD=poidsDepart(allData,start); if(__PD)pDepart=__PD.v;
   var dPoids=(pDepart!=null&&pActuel!=null&&pDepart!==pActuel)?Math.round((pActuel-pDepart)*10)/10:
              (pDepart!=null&&pActuel!=null?0:null);
   // Et séparément, ce qui a bougé SUR LA PÉRIODE : c'est l'information utile
@@ -8479,7 +8504,8 @@ function openRapportSimple(name,start,period,dataOverride){
     '<div class="k">'+
     '<div><div class="n" style="color:'+vcoul+'">'+assidu+'%</div><div class="l">de tes journées<br>remplies</div></div>'+
     (dPoids!=null?'<div><div class="n" style="color:'+(dPoids<0?'#2FBF71':'#1B2430')+'">'+(dPoids>0?'+':'')+dPoids+'</div>'+
-      '<div class="l">kg depuis<br>le départ'+(pActuel!=null?'<br><span style="font-weight:800;color:#1B2430">'+pActuel+' kg aujourd\'hui</span>':'')+'</div></div>':'')+
+      '<div class="l">kg depuis<br>le départ ('+pDepart+' kg)'+(pActuel!=null?'<br><span style="font-weight:800;color:#1B2430">'+pActuel+' kg aujourd\'hui</span>':'')+
+      (dPeriode!=null?'<br><span style="font-weight:900;color:'+(dPeriode<0?'#2FBF71':'#C75B4A')+'">'+(dPeriode>0?'+':'')+dPeriode+' kg sur ces '+nbJours+' jours</span>':'')+'</div></div>':'')+
     (moySom!=null?'<div><div class="n">'+moySom+'</div><div class="l">heures de<br>sommeil / nuit</div></div>':'')+
     '</div>';
 
@@ -8520,15 +8546,27 @@ function openRapportSimple(name,start,period,dataOverride){
 
 function openRapport(name,start,period,dataOverride){
   var allData=dataOverride||getAllData();
-  var series=computeSeries(allData,period);
-  var d0=new Date(start), d1=new Date(d0);d1.setDate(d1.getDate()+period-1);
+  // 🔁 MÊME FENÊTRE QUE LE RAPPORT SIMPLE : les `period` derniers jours.
+  // Avant, le détaillé lisait les jours 1 à N : au jour 28, « 7 jours »
+  // montrait la première semaine pendant que le simple montrait la dernière.
+  var __t=start?getToday90(start):89;
+  var __fin=Math.max(0,Math.min(__t,89)), __deb=Math.max(0,__fin-period+1);
+  var __n=__fin-__deb+1;
+  var series=computeSeries(allData,__fin+1).slice(__deb);
+  var d0=new Date(start+"T12:00:00"); d0.setDate(d0.getDate()+__deb);
+  var d1=new Date(start+"T12:00:00"); d1.setDate(d1.getDate()+__fin);
   function fmt(dt){return dt.toLocaleDateString("fr-FR");}
 
   var filled=series.filter(function(s){return s.score!=null;});
   var avgScore=avgOf(series,"score")||0, avgMental=avgOf(series,"mental")||0;
   var pv=series.map(function(s){return s.poids;}).filter(function(v){return v!=null;});
   var p1=pv.length?pv[pv.length-1]:null;
-  var dp=pv.length>=2?Math.round((pv[pv.length-1]-pv[0])*10)/10:null;
+  // Variation sur la période, et depuis le vrai départ (bilan d'entrée).
+  var dPer=pv.length>=2?Math.round((pv[pv.length-1]-pv[0])*10)/10:null;
+  var __PD=poidsDepart(allData,start), __pAct=null;
+  for(var __q=0;__q<=__fin;__q++){var __d=allData[__q];if(__d&&__d.poids!=null&&__d.poids!==""){var __w=parseFloat(__d.poids);if(!isNaN(__w))__pAct=__w;}}
+  if(p1==null)p1=__pAct;
+  var dp=(__PD&&__pAct!=null)?Math.round((__pAct-__PD.v)*10)/10:dPer;
   var sc=avgScore>=80?"var(--ok)":avgScore>=50?"var(--warn)":R;
   var mc=avgMental>=75?"var(--ok)":avgMental>=50?"var(--warn)":R;
 
@@ -8540,7 +8578,7 @@ function openRapport(name,start,period,dataOverride){
   var habCounts=[];
   for(var hb=0;hb<HABITS.length;hb++){
     var hab=HABITS[hb], cnt=0;
-    for(var i=0;i<period;i++){
+    for(var i=__deb;i<=__fin;i++){
       var dd=allData[i];
       if(dd&&dd.habits&&dd.habits[hab.id])cnt++;
     }
@@ -8552,12 +8590,12 @@ function openRapport(name,start,period,dataOverride){
 
   var html="<!DOCTYPE html><html lang='fr'><head><meta charset='UTF-8'/><meta name='viewport' content='width=device-width,initial-scale=1'/><title>Rapport J"+period+" — "+esc(name)+"</title><style>"+themeCSS()+css+"</style></head><body><div id='rapbar' style='position:sticky;top:0;z-index:999;background:var(--ink);padding:9px 10px;display:flex;gap:7px'><button onclick='rapShare()' style='flex:1;background:var(--brand2);color:#fff;border:0;border-radius:9px;padding:11px 6px;font-weight:800;font-size:13px'>📤 Partager</button><button onclick='rapPdf()' style='flex:1;background:var(--gold);color:#fff;border:0;border-radius:9px;padding:11px 6px;font-weight:800;font-size:13px'>🖨️ PDF</button><button onclick='window.close();setTimeout(function(){if(history.length>1)history.back();},250)' style='background:#333;color:#fff;border:0;border-radius:9px;padding:11px 13px;font-weight:800;font-size:13px'>✕</button></div><div class='pg'>";
   html+="<div class='hdr'><div class='brand'><div class='b' style='background:var(--brand)'></div>AM Coach Genève<div class='b' style='background:var(--brand2)'></div></div><div class='sub'>TransfoPhysique · Rapport J"+period+"</div></div>";
-  html+="<div class='hero'><div class='hn'>"+esc(name)+"</div><div class='hs'>"+period+" jours de transformation</div><div class='hd'>"+fmt(d0)+" → "+fmt(d1)+"</div></div>";
+  html+="<div class='hero'><div class='hn'>"+esc(name)+"</div><div class='hs'>"+(__deb===0?__n+" jours de transformation":"Les "+__n+" derniers jours · J"+(__deb+1)+" à J"+(__fin+1))+"</div><div class='hd'>"+fmt(d0)+" → "+fmt(d1)+"</div></div>";
   html+="<div class='kg'>";
   html+="<div class='kpi'><div class='kv' style='color:"+sc+"'>"+avgScore+"%</div><div class='kl'>Score moyen</div></div>";
   html+="<div class='kpi'><div class='kv' style='color:"+mc+"'>"+avgMental+"%</div><div class='kl'>Mental moyen</div></div>";
-  html+="<div class='kpi'><div class='kv'>"+(p1!=null?p1:"—")+"<span style='font-size:13px'> kg</span></div><div class='kl'>Poids actuel</div>"+(dp!=null?"<div class='ks' style='color:"+(dp<=0?"var(--ok)":"var(--brand)")+"'>"+(dp>0?"+":"")+dp+" kg</div>":"")+"</div>";
-  html+="<div class='kpi'><div class='kv' style='color:var(--brand)'>"+filled.length+"<span style='font-size:13px'>/"+period+"</span></div><div class='kl'>Jours remplis</div></div></div>";
+  html+="<div class='kpi'><div class='kv'>"+(p1!=null?p1:"—")+"<span style='font-size:13px'> kg</span></div><div class='kl'>Poids actuel</div>"+(dp!=null?"<div class='ks' style='color:"+(dp<=0?"var(--ok)":"var(--brand)")+"'>"+(dp>0?"+":"")+dp+" kg depuis le départ"+(__PD?" ("+__PD.v+" kg)":"")+"</div>":"")+(dPer!=null?"<div class='ks' style='color:"+(dPer<=0?"var(--ok)":"var(--brand)")+"'>"+(dPer>0?"+":"")+dPer+" kg sur "+__n+" jours</div>":"")+"</div>";
+  html+="<div class='kpi'><div class='kv' style='color:var(--brand)'>"+filled.length+"<span style='font-size:13px'>/"+__n+"</span></div><div class='kl'>Jours remplis</div></div></div>";
   html+="<div class='sec'><div class='st'><div class='sb' style='background:var(--brand)'></div><span class='sl'>Courbes de progression</span></div>";
   html+="<div class='ch'><div class='ct'>Score global</div>"+spark("score","var(--brand)")+"</div>";
   html+="<div class='ch'><div class='ct'>Ressenti mental</div>"+spark("mental","var(--brand2)")+"</div>";
@@ -8565,18 +8603,18 @@ function openRapport(name,start,period,dataOverride){
   html+="</div><div class='sec'><div class='st'><div class='sb' style='background:var(--brand2)'></div><span class='sl'>Habitudes sur "+period+" jours</span></div><div class='hg'>";
   for(var hc=0;hc<habCounts.length;hc++){
     var hh=habCounts[hc];
-    html+="<div class='hc'><div class='hi'>"+hh.icon+"</div><div><div class='hnm'>"+hh.label+"</div><div class='hv' style='color:"+hh.color+"'>"+hh.val+"/"+period+"j</div></div></div>";
+    html+="<div class='hc'><div class='hi'>"+hh.icon+"</div><div><div class='hnm'>"+hh.label+"</div><div class='hv' style='color:"+hh.color+"'>"+hh.val+"/"+__n+"j</div></div></div>";
   }
   html+="</div></div>";
   // 🔁 BOUCLES VERTUEUSES / D'ÉCHEC
-  var loops=computeLoops(allData,period);
+  var loops=computeLoops(allData,__n,__deb);
   var loopsBlock=loopsHTML(loops,false);
   if(loopsBlock){
     html+="<div class='sec'><div class='st'><div class='sb' style='background:var(--ok-d)'></div><span class='sl'>\ud83d\udd01 Tes boucles \u2014 ce que tes "+period+" jours racontent</span></div>"+loopsBlock+"</div>";
   }
   // MINDSET RÉCAP
   var fiers=[],positifs=[],negatifs=[];
-  for(var mi2=0;mi2<period;mi2++){
+  for(var mi2=__deb;mi2<=__fin;mi2++){
     var dm=allData[mi2];
     if(dm&&dm.mindset){
       if(dm.mindset.fier)fiers.push({d:mi2+1,t:dm.mindset.fier});
@@ -8617,7 +8655,7 @@ function openRapport(name,start,period,dataOverride){
   var resume="Rapport "+name+" — J"+period+"\n"+
     (avgScore?"Score moyen : "+avgScore+" %\n":"")+
     (avgMental?"Mental : "+avgMental+" %\n":"")+
-    (p1!=null?"Poids : "+p1+" kg"+(dp!=null?" ("+(dp>0?"+":"")+dp+" kg)":"")+"\n":"")+
+    (p1!=null?"Poids : "+p1+" kg"+(dp!=null?" ("+(dp>0?"+":"")+dp+" kg depuis le départ)":"")+"\n":"")+
     "— AM Coach Genève";
   html+="<script>"+
     "var RESUME="+JSON.stringify(resume)+";"+
@@ -13753,6 +13791,7 @@ function viewCoachDetail(){
   var avgScore=avgOf(series,"score"), avgMental=avgOf(series,"mental");
   var pv=series.map(function(s){return s.poids;}).filter(function(v){return v!=null;});
   var dp=pv.length>=2?Math.round((pv[pv.length-1]-pv[0])*10)/10:null;
+  try{var __PDc=poidsDepart(allData,c.start_date);if(__PDc&&pv.length)dp=Math.round((pv[pv.length-1]-__PDc.v)*10)/10;}catch(e){}
   var alert=computeAlert(allData,t90);
   var month=currentMonth(t90);
   var goal=getGoal(allData,month);

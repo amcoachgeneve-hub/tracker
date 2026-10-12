@@ -1145,7 +1145,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="12/10c - Audit + programme a la conversion";
+var APP_VERSION="12/10d - Sexe dans le bilan";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -17030,7 +17030,7 @@ function viewCoachBilan(){
       '<div style="font-weight:900;font-size:13.5px">'+(dejaClient?'✅ Déjà transformé en client':'🚀 Il signe ?')+'</div>'+
       '<div style="font-size:11.5px;color:var(--mute);line-height:1.5;margin:3px 0 '+(dejaClient?'0':'10px')+'">'+
       (dejaClient?'Ce prospect a déjà sa fiche client et son lien de suivi.'
-                 :'Crée son lien de suivi 90 jours. Ses bilans seront repris automatiquement dans sa fiche.')+'</div>'+
+                 :'Crée son lien de suivi : tu choisis ⚡ 14 jours, 🔥 6 semaines ou 🏆 90 jours. Ses bilans, son sexe et ses menus suivent tout seuls.')+'</div>'+
       (dejaClient?'':(state.blMode?'<div style="font-size:12px;font-weight:800;color:var(--brand);margin-bottom:9px">'+(state.blMode==="partenariat"?"🤝 Partenariat — appuie sur le bouton correspondant":"✍️ Contrat signé — appuie sur le bouton correspondant")+'</div>':'')+'<button id="bl-convertir" data-mode="contrat" style="width:100%;padding:13px 0;border-radius:12px;border:0;background:var(--ok-d);color:#fff;font-weight:900;font-size:13.5px">✍️ Contrat signé — en faire un client</button>'+
         '<button id="bl-convertir-part" data-mode="partenariat" style="width:100%;margin-top:8px;padding:13px 0;border-radius:12px;border:2px solid var(--brand);background:#fff;color:var(--brand);font-weight:900;font-size:13.5px">🤝 Partenariat — en faire un client</button>')+
       '</div>';
@@ -17099,6 +17099,14 @@ function viewCoachBilan(){
   //   REPRIS  = mensurations et repères de la dernière fois -> repris comme
   //             base à corriger, pour n'avoir à modifier que ce qui a changé
   var __prec=(!__ed&&bl.length)?bl[bl.length-1]:null;
+  // Sexe déjà connu : dernière analyse, sinon le programme du client.
+  if(!state.blSexe&&!__ed){
+    if(__prec&&__prec.sexe)state.blSexe=__prec.sexe;
+    else if(!estLibre&&!estProspect){
+      var __sx=((lsGet("amcoach_"+slug,{})[520]||{}).sexe)||((lsGet("amcoach_"+slug,{})[514]||{}).theme)||"";
+      if(__sx==="h"||__sx==="f")state.blSexe=__sx.toUpperCase();
+    }
+  }
   var CHAMPS_FIXES={prenom:1,nom:1,naiss:1,taille:1,sexe:1};
   function pv(k,def){
     if(__ed){
@@ -17132,6 +17140,11 @@ function viewCoachBilan(){
     '<div style="font-weight:900;font-size:12px;color:var(--violet);margin:2px 0 8px">IDENTITÉ</div>'+
     '<div style="display:flex;gap:8px"><div style="flex:1">'+bilanInput("bl-prenom","PRÉNOM","","text",pv("prenom")||idPre||cName)+'</div>'+
     '<div style="flex:1">'+bilanInput("bl-nom","NOM","","text",pv("nom")||idNom)+'</div></div>'+
+    '<div class="card-label">SEXE <span style="color:var(--brand);font-weight:900">*</span></div>'+
+    '<div style="display:flex;gap:8px;margin-bottom:12px">'+
+      '<button type="button" id="bl-sexe-H" class="big-btn'+(state.blSexe==="H"?"":" gray")+'" style="flex:1;padding:11px 0;font-size:13.5px'+(state.blSexe==="H"?";background:var(--brand2)":"")+'">👨 Homme</button>'+
+      '<button type="button" id="bl-sexe-F" class="big-btn'+(state.blSexe==="F"?"":" gray")+'" style="flex:1;padding:11px 0;font-size:13.5px'+(state.blSexe==="F"?";background:var(--brand2)":"")+'">👩 Femme</button>'+
+    '</div>'+
     '<div style="display:flex;gap:8px"><div style="flex:1">'+bilanInput("bl-age","ÂGE","45",null,pv("age"))+'</div>'+
     '<div style="flex:1">'+bilanInput("bl-taille","TAILLE (CM)","178",null,pv("taille"))+'</div></div>'+
     '<div class="card-label">DATE DE NAISSANCE</div><input id="bl-naiss" class="num-input" type="date" value="'+esc(frVersIso(pv("naiss")||__bdayTracker))+'" style="margin-bottom:10px"/>'+
@@ -17231,11 +17244,6 @@ function viewCoachBilan(){
     '<div style="display:flex;gap:8px"><div style="flex:1">'+bilanInput("bl-mg","% M. GRASSE","20",null,pv("mg"))+'</div><div style="flex:1">'+bilanInput("bl-mm","% M. MUSCULAIRE","38",null,pv("mm"))+'</div></div>'+
     '<div style="display:flex;gap:8px"><div style="flex:1">'+bilanInput("bl-gv","GRAISSE VISCÉRALE","8",null,pv("gv"))+'</div><div style="flex:1">'+bilanInput("bl-kcal","MÉTABOLISME (KCAL)","1800",null,pv("kcal"))+'</div></div>'+
     '<div style="font-weight:900;font-size:12px;color:var(--brand2);margin:8px 0 8px">🧮 CALCUL OBJECTIF (utilise poids + % MG ci-dessus)</div>'+
-    '<div class="card-label">SEXE</div>'+
-    '<div style="display:flex;gap:8px;margin-bottom:10px">'+
-      '<button type="button" id="bl-sexe-F" class="big-btn'+((state.blSexe||"F")==="F"?"":" gray")+'" style="flex:1;padding:10px 0;font-size:13px'+((state.blSexe||"F")==="F"?";background:var(--brand2)":"")+'">Femme</button>'+
-      '<button type="button" id="bl-sexe-H" class="big-btn'+((state.blSexe||"F")==="H"?"":" gray")+'" style="flex:1;padding:10px 0;font-size:13px'+((state.blSexe||"F")==="H"?";background:var(--brand2)":"")+'">Homme</button>'+
-    '</div>'+
     '<div class="card-label">PROFIL DE STOCKAGE</div>'+
     '<div style="display:flex;gap:6px;margin-bottom:4px">'+
       '<button type="button" class="bl-stock big-btn'+(__stk()==="androide"?"":" gray")+'" data-profil="androide" style="flex:1;padding:10px 0;font-size:12px'+(__stk()==="androide"?";background:var(--violet)":"")+'">🍎 Pomme</button>'+
@@ -18622,7 +18630,7 @@ function bindCoach(){
         if(!vu){ p.etape="gagne"; p.maj=isoLocal(); p.mode=mode; L2.unshift(p); }
         pipeEcrire(L2);
         fermer();
-        state.blProspect=p.id; state.blLibre=null; state.blRep=null; state.blProfil=""; state.blStock="";
+        state.blProspect=p.id; state.blLibre=null; state.blRep=null; state.blProfil=""; state.blStock=""; state.blSexe=null;
         state.blForm=false; state.blEdit=null; state.blMode=mode;
         render();
         feedback(mode==="partenariat"?"🤝 Partenariat — crée son lien ci-dessous":"✍️ Contrat — crée son lien ci-dessous","ok");
@@ -18656,7 +18664,7 @@ function bindCoach(){
 
   var pBil=document.querySelectorAll(".pipe-bilan");
   for(var pb=0;pb<pBil.length;pb++)pBil[pb].addEventListener("click",function(){
-    state.blProspect=this.getAttribute("data-id"); state.blRep=null; state.blProfil=""; state.blStock="";
+    state.blProspect=this.getAttribute("data-id"); state.blRep=null; state.blProfil=""; state.blStock=""; state.blSexe=null;
     state.blForm=false; state.blEdit=null;
     render();
   });
@@ -18709,6 +18717,7 @@ function bindCoach(){
     setTimeout(function(){
       if(confirm("Créer la fiche client de "+p.nom+" dans le dashboard ?")){
         state.coachKPI=false; state.showForm=true; state.prefillNom=p.nom;
+        try{var __bb=(p.bilans||[]),__ls=__bb.length?__bb[__bb.length-1].sexe:null;if(__ls==="H"||__ls==="F")state.ncSexe=__ls.toLowerCase();}catch(e){}
         render();
       }
     },350);
@@ -18965,7 +18974,7 @@ function bindCoach(){
            prenom:parts[0], nom:parts.slice(1).join(" "),
            cree:isoLocal(), maj:isoLocal(), bilans:[]};
     blvSauver(p);
-    state.blLibre=p.id; state.coachBilans=false; state.blRep=null; state.blProfil=""; state.blStock="";
+    state.blLibre=p.id; state.coachBilans=false; state.blRep=null; state.blProfil=""; state.blStock=""; state.blSexe=null;
     state.blForm=true; state.blEdit=null;
     render();
   });
@@ -19281,7 +19290,8 @@ function bindCoach(){
   var blSave=document.getElementById("bl-save");
   if(blSave)blSave.addEventListener("click",function(){
     function gv2(id){var el=document.getElementById(id);return el?el.value.trim():"";}
-    var a={date:isoVersFr(gv2("bl-date"))||gv2("bl-date"),age:gv2("bl-age"),sexe:(state.blSexe||"F"),stock:(state.blStock||"mixte"),mgc:gv2("bl-mgc"),poids:gv2("bl-poids"),poidsCible:gv2("bl-poidscible"),taille:gv2("bl-taille"),
+    if(state.blSexe!=="H"&&state.blSexe!=="F"){alert("Choisis 👨 Homme ou 👩 Femme en haut du bilan.");var __sb=document.getElementById("bl-sexe-H");if(__sb)__sb.scrollIntoView({block:"center",behavior:"smooth"});return;}
+    var a={date:isoVersFr(gv2("bl-date"))||gv2("bl-date"),age:gv2("bl-age"),sexe:state.blSexe,stock:(state.blStock||"mixte"),mgc:gv2("bl-mgc"),poids:gv2("bl-poids"),poidsCible:gv2("bl-poidscible"),taille:gv2("bl-taille"),
       prenom:gv2("bl-prenom"),nom:gv2("bl-nom"),naiss:isoVersFr(gv2("bl-naiss"))||gv2("bl-naiss"),
       persoKg:gv2("bl-perso-kg"),persoMois:gv2("bl-perso-mois"),mg:gv2("bl-mg"),mm:gv2("bl-mm"),gv:gv2("bl-gv"),kcal:gv2("bl-kcal"),
       obj1:gv2("bl-obj1"),obj2:gv2("bl-obj2"),obj3:gv2("bl-obj3"),pb:gv2("bl-pb"),mesures:{},mdist:{},scores:{},q:{}};
@@ -19319,7 +19329,7 @@ function bindCoach(){
       if(a.nom)lpx.nom=a.nom;
       lpx.maj=isoLocal();
       blvSauver(lpx);
-      state.blEdit=null; state.blForm=false; state.blRep=null; state.blProfil=""; state.blStock="";
+      state.blEdit=null; state.blForm=false; state.blRep=null; state.blProfil=""; state.blStock=""; state.blSexe=null;
       feedback("📋 Bilan enregistré","ok");
       render();
       return;
@@ -19336,7 +19346,7 @@ function bindCoach(){
       else {cible.bilans.push(a);pos=cible.bilans.length-1;}
       for(var y2=0;y2<LP2.length;y2++){if(LP2[y2].id===cible.id)LP2[y2]=cible;}
       pipeEcrire(LP2);
-      state.blEdit=null; state.blForm=false; state.blRep=null; state.blProfil=""; state.blStock="";
+      state.blEdit=null; state.blForm=false; state.blRep=null; state.blProfil=""; state.blStock=""; state.blSexe=null;
       feedback("📋 Bilan enregistré","ok");
       render();
       return;

@@ -69,6 +69,9 @@ input,textarea,select{outline:none}
 .food-col-name{font-weight:900;font-size:14px;text-transform:uppercase;letter-spacing:1px}
 .food-tag{font-size:11px;font-weight:800;padding:3px 10px;border-radius:20px;color:#fff}
 .food-list{font-size:13px;color:#444;line-height:1.9}
+.food-grp{display:flex;align-items:flex-start;gap:10px;border-radius:10px;padding:6px 10px;margin-bottom:5px}
+.food-let{flex:0 0 24px;height:24px;margin-top:3px;border-radius:7px;color:#fff;font-weight:900;font-size:13px;display:flex;align-items:center;justify-content:center}
+.food-items{flex:1;min-width:0;line-height:1.75;color:#2A2F38;font-weight:600}
 .food-note{background:#FFF8F0;border:2px solid #FFE0B2;border-radius:12px;padding:12px 14px;font-size:12px;color:#B45309;font-weight:700;line-height:1.6;margin:0 14px 16px}
 
 .plate{display:flex;gap:6px;margin-bottom:14px}
@@ -335,9 +338,9 @@ function cyclageTag(dayIdx){ // dayIdx 0-29 → semaine 0-3 bouclée
 // ═══════════ LISTES ALIMENTS (triées A→Z, corrigées) ═══════════
 var PROTEINES=["Agneau maigre","Boulettes végé","Cabillaud","Calamar","Cheval","Crevettes","Crustacés (homard, crabe, langouste)","Cuisse de grenouille","Dinde","Edamame","Faisan","Filet de porc","Filet mignon de porc","Filet végétarien","Foie de veau","Haddock","Hampe de bœuf","Lapin","Langoustine","Magret de canard dégraissé","Maquereau","Marcassin","Morue salée","Moule","Noix de St-Jacques","Œuf, blanc d'œuf","Perdreau","Pétoncles","Pigeon","Poulet (blanc)","Poulpe","Protéine de pois / riz (poudre)","Roastbeef de bœuf","Rôti de chevreuil","Rouelle de porc dégraissée","Rumsteak","Sardines","Saumon","Seiche","Soja","Steak de bœuf","Steak haché 5% / 15%","Tempeh","Thon au naturel","Thon frais","Tofu","Tournedos","Tous les poissons","Truite","Veau"];
 
-var GLUCIDES_RA=["Artichaut","Carottes","Châtaignes","Flageolets","Fruits","Galettes végétariennes","Graine de chia","Haricots blancs / rouges","Igname","Lait d'amande","Lait de soja","Lentilles jaunes / marron","Maïs","Navet","Nouilles sans blé","Panais","Patate douce","Petits pois","Pois cassés","Pois chiches","Pomme de terre (jaune, rouge, douce)","Potimarron","Quinoa","Riz","Salsifis","Tomates","+ Cacahuètes (1 poignée)","+ Noix de cajou (1 poignée)","+ Pistaches (1 poignée)"];
+var GLUCIDES_RA=["Artichaut","Carottes","Châtaignes","Flageolets","Fruits","Galettes végétariennes","Graine de chia","Haricots secs : blancs, rouges, noirs (glucides)","Igname","Lait d'amande","Lait de soja","Lentilles jaunes / marron","Maïs","Navet","Nouilles sans blé","Panais","Patate douce","Petits pois","Pois cassés","Pois chiches","Pomme de terre (jaune, rouge, douce)","Potimarron","Quinoa","Riz","Salsifis","Tomates","+ Cacahuètes (1 poignée)","+ Noix de cajou (1 poignée)","+ Pistaches (1 poignée)"];
 
-var GLUCIDES_GB_OK=["Artichauts","Betteraves","Carottes","Courges","Flageolets","Fruits","Haricots blancs / rouges / noirs","Lentilles vertes / marron / jaunes","Maïs","Navet","Petits pois","Pois cassés","Pois chiches","Pommes de terre (jaune, rouge, douce)","Salsifis","Tomates","+ Cacahuètes (1 poignée)","+ Noix de cajou (1 poignée)","+ Pistaches (1 poignée)"];
+var GLUCIDES_GB_OK=["Artichauts","Betteraves","Carottes","Courges","Flageolets","Fruits","Haricots secs : blancs, rouges, noirs (glucides)","Lentilles vertes / marron / jaunes","Maïs","Navet","Petits pois","Pois cassés","Pois chiches","Pommes de terre (jaune, rouge, douce)","Salsifis","Tomates","+ Cacahuètes (1 poignée)","+ Noix de cajou (1 poignée)","+ Pistaches (1 poignée)"];
 var GLUCIDES_GB_ACCEPT=["Lait amande / coco / soja","Plats végétariens si < 35 g de glucides / 100 g et sans blé"];
 var GLUCIDES_GB_NON=["Blé","Fromage blanc 0%","Galettes végétariennes","Gnocchis","Graine de chia","Maïzena","Nouilles","Pâtes (blé)","Pané végétarien","Polenta","Quinoa","Riz","Sauce nems","Sushis","Tapioca","Yaourt grec"];
 
@@ -346,7 +349,7 @@ var GLUCIDES_RETOUR=["Baguette / pain blanc","Blé (boulgour, ébly)","Biscottes
 // 🥛 Les laitiers riches en protéines rejoignent la colonne protéines : c'est
 // leur vraie place nutritionnelle, et ça évite de les chercher ailleurs.
 var PROTEINES_RETOUR=["Cottage cheese","Fromage blanc 0% / 3%","Fromage à pâte dure (portion)","Mozzarella light","Petit-suisse 0%","Ricotta","Skyr","Yaourt grec 0%","Yaourt nature"];
-var FIBRES=["Algues (nori, wakamé)","Amandes (1 poignée)","Asperge","Aubergine","Avocats","Blette","Brocoli","Câpres","Céleri branche","Céleri-rave","Champignons","Chicorée","Chou-fleur","Choucroute","Choux","Choux de Bruxelles","Cœur de palmier","Concombre","Cornichons","Courgette","Cresson","Endives","Épinards","Fenouil","Haricot","Haricots verts","Kale","Konjac","Noisettes (1 poignée)","Noix (1 poignée)","Oignons, ail","Pak choï","Pois mange-tout","Poireaux","Poivrons, radis","Pousses de bambou","Radis noir","Roquette","Salade (laitue, scarole, frisée, mâche...)"];
+var FIBRES=["Algues (nori, wakamé)","Amandes (1 poignée)","Asperge","Aubergine","Avocats","Blette","Brocoli","Câpres","Céleri branche","Céleri-rave","Champignons","Chicorée","Chou-fleur","Choucroute","Choux","Choux de Bruxelles","Cœur de palmier","Concombre","Cornichons","Courgette","Cresson","Endives","Épinards","Fenouil","Haricots verts / beurre (fibres)","Kale","Konjac","Noisettes (1 poignée)","Noix (1 poignée)","Oignons, ail","Pak choï","Pois mange-tout","Poireaux","Poivrons, radis","Pousses de bambou","Radis noir","Roquette","Salade (laitue, scarole, frisée, mâche...)"];
 
 // ═══════════ ÉTAT ═══════════
 var params=new URLSearchParams(window.location.search);
@@ -1317,6 +1320,28 @@ function assiettesDeLaPhase(){
   return assietteHTML("midi","Assiette du midi — rééquilibrage")+
          assietteHTML("soir","Assiette du soir — glucides bas");
 }
+// 🔤 Liste A→Z colorée : une couleur par lettre, la lettre en pastille.
+// L'œil trouve « P » sans relire toute la colonne.
+var FOOD_PAL=[["#E7F0FF","#1F5FD1"],["#E6F6EC","#1E8A4C"],["#FFF1E3","#D2691E"],["#F3E9FF","#7B3FC4"],
+  ["#FFE8F0","#C2185B"],["#E2F6F6","#00838F"],["#FFF7D6","#A67C00"],["#FDE9E7","#C62828"]];
+function foodLettre(t){
+  var c=String(t||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/^[^A-Za-z\u0152\u0153]+/,"").charAt(0).toUpperCase();
+  if(c==="\u0152")c="O";
+  return /^\+/.test(String(t).trim())?"+":(c||"#");
+}
+function foodGroupes(items){
+  var h="",cur=null,buf=[],n=0;
+  function flush(){
+    if(!buf.length)return;
+    var P=FOOD_PAL[n%FOOD_PAL.length];n++;
+    h+='<div class="food-grp" style="background:'+P[0]+'"><span class="food-let" style="background:'+P[1]+'">'+esc(cur)+'</span>'+
+      '<span class="food-items">'+buf.map(function(x){return esc(String(x).replace(/^\+\s*/,""));}).join("<br>")+'</span></div>';
+    buf=[];
+  }
+  for(var i=0;i<items.length;i++){var L=foodLettre(items[i]);if(L!==cur){flush();cur=L;}buf.push(items[i]);}
+  flush();
+  return h;
+}
 function viewAliments(){
   // 📂 Chaque catégorie est repliée : la liste complète faisait défiler
   // pendant dix secondes avant d'arriver aux fibres.
@@ -1325,7 +1350,7 @@ function viewAliments(){
       '<span class="food-tag" style="background:'+tagColor+'">'+tagTxt+'</span>'+
       '<span class="food-col-name">'+name+'</span>'+
       '<span class="food-col-n">'+items.length+'</span><span class="food-col-c">⌄</span></summary>'+
-      '<div class="food-list">'+items.map(esc).join("<br>")+'</div></details>';
+      '<div class="food-list">'+foodGroupes(items)+'</div></details>';
   }
   // Le Reset n'est pas la diète TransfoPhysique : les jours ON, le blé et les
   // laitages sont autorisés, comme au mois 4. Les jours OFF, pas de glucides

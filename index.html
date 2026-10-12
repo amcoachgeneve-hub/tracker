@@ -1145,7 +1145,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="12/10b - Profil stockage bilan";
+var APP_VERSION="12/10c - Audit + programme a la conversion";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -3021,7 +3021,7 @@ document.addEventListener("click",function(ev){
     try{
       var b=new Blob([txt],{type:"application/json"}),u=URL.createObjectURL(b),a=document.createElement("a");
       a.href=u;a.download="mes-donnees-discipline90-"+isoLocal()+".json";document.body.appendChild(a);a.click();
-      setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(u);},400);
+      setTimeout(function(){if(a.parentNode)a.parentNode.removeChild(a);URL.revokeObjectURL(u);},400);
     }catch(e){window.open("data:application/json;charset=utf-8,"+encodeURIComponent(txt),"_blank");}
     try{feedback("⬇️ Fichier généré","ok");}catch(e){}
     return;
@@ -4803,7 +4803,14 @@ function statProjection(poidsVals,cible,finIdx,joursRestants){
   var act=null;
   for(var i=finIdx;i>=0;i--){if(poidsVals[i]!=null){act=poidsVals[i];break;}}
   if(act==null)return null;
-  if(cible==null||!cible)return {act:act,tendance:T,assez:T&&T.n>=8,cible:null};
+  if(cible==null||!cible){
+    // Sans poids cible : on garde quand même le rythme et le sens de la courbe.
+    // Avant, le verdict affichait « Rythme actuel : undefined kg par semaine ».
+    var as0=!!(T&&T.n>=8);
+    return {act:act,tendance:T,assez:as0,cible:null,
+      parSem:(as0&&T.pente<-0.005)?Math.round(-T.pente*7*100)/100:null,
+      monte:!!(as0&&T.pente>0.005),stagne:!!(as0&&T.pente>=-0.005&&T.pente<=0.005)};
+  }
   var reste=Math.round((act-cible)*10)/10;
   if(reste<=0)return {act:act,cible:cible,atteint:true,tendance:T,assez:true};
   var assez=!!(T&&T.n>=8);
@@ -5309,7 +5316,7 @@ function renderView(){
   else if(state.view==="finance")html+=viewFinance(name,start);
   else if(state.view==="stats")html+=(state.partage?viewPartage():state.pesees?viewPesees(name):state.statsExo?viewStatsExo(name):viewStats(name));
   else if(state.view==="dream"){
-    if(progLen(lsGetStr("amcoach_start_"+CLIENT))<=42){ state.view="calendar"; html+=viewCalendar(name); }
+    if(progLen(lsGetStr("amcoach_start_"+CLIENT))<=42){ state.view="calendar"; html+=viewCalendar(name,start); }
     else html+=viewDream(name);
   }
   else if(state.view==="sport"||state.view==="training"){
@@ -5610,6 +5617,55 @@ function progBasculerDepuisPastille(slug){
     var n=+this.getAttribute("data-n"); fermer();
     progAppliquerChoix(slug,nom,n);
   });
+}
+// 🎯 Feuille de choix du programme (14 j / 6 sem / 90 j), réutilisable.
+// actuel = programme en cours (marqué), cb(n) reçoit 14, 42 ou 90.
+function progChoixSheet(titre,sous,actuel,cb){
+  var ov=document.createElement("div");
+  ov.id="prog-choix2";
+  ov.style.cssText="position:fixed;inset:0;z-index:10050;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center";
+  var b='<div style="background:#fff;width:100%;max-width:430px;border-radius:22px 22px 0 0;padding:20px 18px calc(18px + env(safe-area-inset-bottom))">'+
+    '<div style="font-weight:900;font-size:17px;color:#111;margin-bottom:4px">'+esc(titre)+'</div>'+
+    '<div style="font-size:12.5px;color:#666;margin-bottom:14px;line-height:1.45">'+esc(sous)+'</div>';
+  PROG_DUREES.forEach(function(T){
+    var on=(T.n===actuel);
+    b+='<button class="pc2-opt" data-n="'+T.n+'" style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;margin-bottom:9px;padding:14px 15px;border-radius:15px;cursor:pointer;'+
+      'background:'+(on?T.bg:'#fff')+';color:'+(on?'#fff':T.bg)+';border:2.5px solid '+T.bg+'">'+
+      '<span style="font-size:24px">'+T.ico+'</span><span style="flex:1;font-weight:900;font-size:15px">'+T.lib+'</span>'+
+      (on?'<span style="font-size:11px;font-weight:900;opacity:.85">ACTUEL</span>':'')+'</button>';
+  });
+  b+='<button id="pc2-annuler" style="width:100%;padding:13px 0;border-radius:100px;border:1.5px solid #ddd;background:#fff;color:#777;font-weight:800;font-size:13.5px;margin-top:4px">Annuler</button></div>';
+  ov.innerHTML=b; document.body.appendChild(ov);
+  function fermer(){if(ov.parentNode)ov.parentNode.removeChild(ov);}
+  ov.addEventListener("click",function(e){if(e.target===ov)fermer();});
+  document.getElementById("pc2-annuler").addEventListener("click",fermer);
+  var opts=ov.querySelectorAll(".pc2-opt");
+  for(var k=0;k<opts.length;k++)opts[k].addEventListener("click",function(){
+    var n=+this.getAttribute("data-n"); fermer(); cb(n);
+  });
+}
+// Pose le programme complet d'un nouveau client : accès, menus, vidéos, thème.
+// Utilisé quand un bilan devient client : plus rien à régler à la main.
+function progInstallerNouveau(slug,depart,n,sx){
+  if(n===14||n===42){
+    progVersCourt(slug,depart,n);          // fin d'accès + menus ON/OFF + vidéos
+  }else{
+    var mc={on:true,debut:depart,reset:false,phaseForcee:null,note:""};
+    var all=lsGet("amcoach_"+slug,{}); all[517]=mc; lsSet("amcoach_"+slug,all);
+    try{coachSaveSlot(slug,517,mc);}catch(e){}
+  }
+  if(sx==="h"||sx==="f"){
+    var allS=lsGet("amcoach_"+slug,{});
+    allS[514]={theme:sx};
+    var P0=allS[520]||{};
+    P0.sexe=sx; P0.seances=P0.seances||[]; P0.journal=P0.journal||[];
+    P0.expressSeul=false; P0.dernier=P0.dernier||{}; P0.marches=P0.marches||{};
+    P0.socle=P0.socle||[]; P0.bonus=P0.bonus||[];
+    allS[520]=P0; lsSet("amcoach_"+slug,allS);
+    try{coachSaveSlot(slug,514,allS[514]);}catch(e){}
+    try{coachSaveSlot(slug,520,P0);}catch(e){}
+    try{prog3Sync(sx);}catch(e){}
+  }
 }
 function progAppliquerChoix(slug,nom,n){
   var cl=lsGet("amcoach_clients",[]), c=null;
@@ -7886,7 +7942,7 @@ function statsExoSerie(allData, ref) {
         var SR = X.series[s];
         if (!SR.ok) continue;
         // Les kilos notés à part (cible en %) priment sur la valeur de cible.
-        var ch = parseFloat(SR.kg) || parseFloat(SR.c) || 0, rp = parseFloat(SR.v) || 0;
+        var ch = serieCharge(SR), rp = parseFloat(SR.v) || 0;
         if (!ch && !rp) continue;
         if (!best || ch > best.ch || (ch === best.ch && rp > best.rp)) best = { ch: ch, rp: rp, t: SR.t || "reps" };
       }
@@ -7900,9 +7956,19 @@ function volSeance(X) {
   for (var s = 0; s < X.series.length; s++) {
     var SR = X.series[s];
     if (!SR.ok) continue;
-    v += (parseFloat(SR.kg) || parseFloat(SR.c) || 0) * (parseFloat(SR.v) || 0);
+    v += serieCharge(SR) * (parseFloat(SR.v) || 0);
   }
   return Math.round(v);
+}
+// Charge en kg d'une série enregistrée. « c » porte aussi un pourcentage
+// ou un tempo selon l'exercice (u = "%") : ce n'est alors PAS une charge.
+// Avant, « 60 % » s'affichait « 60 kg × 60 ».
+function serieCharge(SR) {
+  if (!SR) return 0;
+  var k = parseFloat(SR.kg);
+  if (k > 0) return k;
+  if (SR.u && SR.u !== "kg") return 0;
+  return parseFloat(SR.c) || 0;
 }
 function viewStatsExo(name) {
   var allData = getAllData(), E = statsExoSerie(allData, state.statsExo);
@@ -8032,7 +8098,7 @@ function viewStats(name){
       niv=3;
     }else{
       ico="🔥";titre=supVerdictTitre(allData,"progresse");
-      sous="Rythme actuel : "+PJ.parSem+" kg par semaine."+(PJ.dateCible?" À ce rythme, "+PJ.cible+" kg le "+PJ.dateCible:"")+
+      sous="Rythme actuel : "+PJ.parSem+" kg par semaine"+(PJ.dateCible&&PJ.cible?". À ce rythme, "+PJ.cible+" kg le "+PJ.dateCible:"")+
         (PJ.retard!=null&&PJ.retard<=0?" — soit "+Math.abs(Math.floor(PJ.retard/7))+" semaine(s) avant l'échéance.":".")+" "+supVerdictSous(allData,"finProgresse");
       niv=4;
     }
@@ -8181,7 +8247,7 @@ function viewStats(name){
         for(var s2=0;s2<X.series.length;s2++){
           var SR=X.series[s2];
           if(!SR.ok)continue;
-          var ch=parseFloat(SR.kg)||parseFloat(SR.c)||0, rp=parseFloat(SR.v)||0;
+          var ch=serieCharge(SR), rp=parseFloat(SR.v)||0;
           if(!ch&&!rp)continue;
           // Meilleure série : la charge d'abord, les répétitions pour départager.
           if(!best||ch>best.ch||(ch===best.ch&&rp>best.rp))best={ch:ch,rp:rp,t:SR.t||"reps"};
@@ -11973,10 +12039,6 @@ function viewProgRun() {
 // droits, et il rame sur un téléphone en salle. Le dessin se retourne
 // (face / dos), il pèse quelques kilo-octets et il marche hors ligne.
 var EXPRESS_ID = "sx_express";
-var EXPRESS_CARDIO = [
-  ["Rameur", "🚣"], ["Vélo assis", "🚴"], ["Elliptique", "🏃"],
-  ["Escalier", "🪜"], ["Tapis de course", "🏃‍♂️"]
-];
 // Muscles proposés sur la carte, face avant et face arrière.
 var EXPRESS_ZONES = {
   av: [
@@ -13877,7 +13939,9 @@ function viewCoachDetail(){
     '<div class="hdr"><div style="display:flex;align-items:center;gap:12px">'+
     '<button id="cd-back" class="day-back">←</button>'+
     '<div style="flex:1"><div style="color:#fff;font-weight:900;font-size:16px">'+esc(c.name)+progChipHTML(c.slug,true)+'</div>'+
-    '<div style="color:var(--mute);font-size:12px">Jour '+Math.min(t90+1,progLen(c.start_date,lsGet("amcoach_"+c.slug,{}))||90)+'/'+(progLen(c.start_date,lsGet("amcoach_"+c.slug,{}))||90)+' · départ '+new Date(c.start_date).toLocaleDateString("fr-FR")+' · 🔥 '+streak+'j</div>'+
+    '<div style="color:var(--mute);font-size:12px">'+(joursAvantDepart(c.start_date)>0
+      ? '<b style="color:#3B6FD8">⏳ Démarre le '+dateCourteFR(c.start_date)+' · dans '+joursAvantDepart(c.start_date)+' j</b>'
+      : 'Jour '+Math.min(t90+1,progLen(c.start_date,lsGet("amcoach_"+c.slug,{}))||90)+'/'+(progLen(c.start_date,lsGet("amcoach_"+c.slug,{}))||90)+' · départ '+new Date(c.start_date).toLocaleDateString("fr-FR")+' · 🔥 '+streak+'j')+'</div>'+
     (function(){var la=lastActLabel(allData);return '<div style="font-size:12px;font-weight:800;margin-top:3px;color:'+la.c+'">📱 Dernière activité : '+la.t+'</div>';})()+'</div></div></div>'+
     '<div style="padding:16px 14px 0">';
 
@@ -14139,8 +14203,8 @@ function viewCoachDetail(){
         '<button id="mn-off" style="width:100%;padding:11px 0;border-radius:11px;border:1.5px solid var(--line);background:var(--card);color:var(--mute);font-weight:800;font-size:12px">⛔ Désactiver</button>';
     }else{
       h+='<div style="font-size:11.5px;color:var(--mute);line-height:1.5;margin-bottom:10px">Ouvre l\'onglet 🍽️ chez '+esc(c.name)+' et l\'envoie vers ses menus. '+
-        (essai14?'<strong>Programme court : le Reset 14 jours sera proposé.</strong>':'Trois phases de 28 jours, enchaînées automatiquement.')+'</div>'+
-        '<button id="mn-on" style="width:100%;padding:12px 0;border-radius:12px;border:0;background:var(--ok-d);color:#fff;font-weight:900;font-size:13px">🍽️ Activer les menus</button>';
+        'Tu choisis le programme : ⚡ 14 jours, 🔥 6 semaines ou 🏆 90 jours.</div>'+
+        '<button id="mn-on" style="width:100%;padding:12px 0;border-radius:12px;border:0;background:var(--ok-d);color:#fff;font-weight:900;font-size:13px">🍽️ Activer les menus · '+progType(progDureeClient(c.slug)).ico+' '+progType(progDureeClient(c.slug)).lib+'</button>';
     }
     h+='</div>';
   })();
@@ -16921,19 +16985,22 @@ function viewCoachBilan(){
   var estLibre=!!state.blLibre;
   var estProspect=!!state.blProspect;
   var slug=estLibre?state.blLibre:(estProspect?state.blProspect:state.coachDetail);
-  var cName=slug, bl=[];
+  var cName=slug, bl=[], idPre="", idNom="";
   if(estLibre){
     var lp=blvTrouver(slug);
     cName=lp?blvNom(lp):"Bilan";
+    if(lp){idPre=lp.prenom||"";idNom=lp.nom||"";}
     bl=(lp&&lp.bilans)||[];
   }else if(estProspect){
     var pp=null,LP=pipeLire();
     for(var z=0;z<LP.length;z++){if(LP[z].id===slug)pp=LP[z];}
     cName=pp?pipeNomComplet(pp):"Prospect";
+    if(pp){idPre=pp.prenom||"";idNom=pp.nom||"";}
     bl=(pp&&pp.bilans)||[];
   }else{
     var clients=lsGet("amcoach_clients",[]);
     for(var i=0;i<clients.length;i++){if(clients[i].slug===slug){cName=clients[i].name;break;}}
+    var __pn=String(cName||"").trim().split(/\s+/); idPre=__pn[0]||""; idNom=__pn.slice(1).join(" ");
     bl=(lsGet("amcoach_"+slug,{})[600]||{}).list||[];
   }
   var h='<div class="app" style="max-width:480px">'+
@@ -17063,8 +17130,8 @@ function viewCoachBilan(){
       '<div style="font-size:12px;font-weight:800;color:var(--ink)">🔁 Repris de l\'analyse du '+esc(__prec.date||"précédente")+'</div>'+
       '<div style="font-size:11px;color:var(--mute);margin-top:3px;line-height:1.45">Identité, taille et distances de repère sont déjà remplies. Les tours de mesure restent vides : ce sont eux qui changent.</div></div>':'')+
     '<div style="font-weight:900;font-size:12px;color:var(--violet);margin:2px 0 8px">IDENTITÉ</div>'+
-    '<div style="display:flex;gap:8px"><div style="flex:1">'+bilanInput("bl-prenom","PRÉNOM","","text",pv("prenom")||cName)+'</div>'+
-    '<div style="flex:1">'+bilanInput("bl-nom","NOM","","text",pv("nom"))+'</div></div>'+
+    '<div style="display:flex;gap:8px"><div style="flex:1">'+bilanInput("bl-prenom","PRÉNOM","","text",pv("prenom")||idPre||cName)+'</div>'+
+    '<div style="flex:1">'+bilanInput("bl-nom","NOM","","text",pv("nom")||idNom)+'</div></div>'+
     '<div style="display:flex;gap:8px"><div style="flex:1">'+bilanInput("bl-age","ÂGE","45",null,pv("age"))+'</div>'+
     '<div style="flex:1">'+bilanInput("bl-taille","TAILLE (CM)","178",null,pv("taille"))+'</div></div>'+
     '<div class="card-label">DATE DE NAISSANCE</div><input id="bl-naiss" class="num-input" type="date" value="'+esc(frVersIso(pv("naiss")||__bdayTracker))+'" style="margin-bottom:10px"/>'+
@@ -17096,8 +17163,11 @@ function viewCoachBilan(){
     }
     var A=bilanProfilAuto(rep);
     // Le choix manuel prime toujours sur la détection
-    var manuel=(state.blProfil!==undefined&&state.blProfil!=="")?state.blProfil:"";
-    var pfSel=manuel||((__ed&&__ed.profil)||"")||((A.etat==="ok")?A.top.k:"");
+    // Les anciennes analyses rangeaient aussi Pomme/Poire/Mixte dans « profil » :
+    // on ne garde ici qu'un profil psychologique connu, sinon l'écran plantait.
+    function __psy(k){return (k&&bilanProfil(k))?k:"";}
+    var manuel=__psy(state.blProfil);
+    var pfSel=manuel||__psy(__ed&&__ed.profil)||((A.etat==="ok")?A.top.k:"");
     var auto=(!manuel&&A.etat==="ok"&&pfSel===A.top.k);
     h+='<div style="background:var(--soft);border-radius:13px;padding:13px 14px;margin:0 0 16px">'+
       '<div style="font-size:11px;font-weight:900;letter-spacing:.6px;text-transform:uppercase;color:var(--mute);margin-bottom:7px">Le profil que j\'ai en face</div>';
@@ -18061,17 +18131,27 @@ function bindCoach(){
   if(mnOn)mnOn.addEventListener("click",function(){
     var slug=state.coachDetail;
     var cc=coachClient(slug);
-    var dur=progLen(cc&&cc.start_date)||90;
-    var reset=false;
-    if(dur<=42){
-      reset=confirm("Programme de "+dur+" jours.\n\nOK = menu "+(dur<=14?"Reset 14 jours":"6 semaines")+"\nAnnuler = les 3 phases de 28 jours");
-    }
-    pickDate("Démarrage des menus",isoLocal(),function(r){
-      if(!r)return;
-      coachSaveSlot(slug,517,{on:true,debut:r,reset:reset,phaseForcee:null,note:""});
-      feedback(reset?"🍽️ Reset 14 jours activé":"🍽️ Menus activés","win");
-      render();
-    },{aide:"À partir de quand la cliente voit ses menus."});
+    var nom=(cc&&cc.name)||slug;
+    var st=lsGetStr("amcoach_start_"+slug)||(cc&&cc.start_date)||isoLocal();
+    var actuel=progType(progDureeClient(slug)).n;
+    progChoixSheet("Menus de "+nom,"Quel programme ? Les menus suivent la durée choisie.",actuel,function(n){
+      var T=progType(n);
+      if(n!==actuel){
+        if(!confirm(T.ico+" "+nom+" est en "+progType(actuel).lib+".\n\nPasser son programme en "+T.lib.toUpperCase()+" et activer les menus qui vont avec ?"))return;
+      }
+      pickDate("Menus "+T.lib+" · départ",st,function(r){
+        if(!r)return;
+        if(n===14||n===42){
+          if(n!==actuel)progVersCourt(slug,r,n);
+          else coachSaveSlot(slug,517,{on:true,debut:r,reset:true,phaseForcee:null,note:""});
+        }else{
+          if(n!==actuel)progVers90(slug);
+          coachSaveSlot(slug,517,{on:true,debut:r,reset:false,phaseForcee:null,note:""});
+        }
+        feedback("🍽️ Menus "+T.lib+" activés dès le "+isoVersFr(r),"win");
+        render();
+      },{aide:"Par défaut, le jour 1 de son programme."});
+    });
   });
   // 📅 Recaler le départ des menus. Le raccourci « Aligner sur le programme »
   // pose la date du jour 1 de la cliente : les deux compteurs avancent alors
@@ -18719,7 +18799,7 @@ function bindCoach(){
     var dat=lsGet("amcoach_"+slug,{});
     var nm=(cc&&cc.name)||slug;
     var st=(cc&&cc.start_date)||"";
-    var duree=st?progLen(st):90;
+    var duree=st?progLen(st,dat):90;
     var t90=st?getToday90(st):0;
     var ser=computeSeries(dat,90);
     var aS=avgOf(ser,"score"),aM=avgOf(ser,"mental"),aE=avgOf(ser,"energie");
@@ -18943,9 +19023,13 @@ function bindCoach(){
     var propose=prompt("Lien de suivi pour "+nom+" :\n\nIl recevra ?client="+slug,slug);
     if(propose===null)return;
     slug=slugOf(propose)||slug;
-    var depart=prompt("Date de départ (AAAA-MM-JJ) :",isoLocal());
-    if(depart===null)return;
-    depart=(depart||"").trim()||isoLocal();
+    // Le sexe vient de la dernière analyse (bouton Homme / Femme du bilan)
+    var __bls=pp.bilans||[], __der=__bls.length?__bls[__bls.length-1]:null;
+    var sxB=__der&&__der.sexe?(__der.sexe==="H"?"h":"f"):null;
+    progChoixSheet("Programme de "+nom,"Choisis son programme : l'accès, les menus et les vidéos se règlent tout seuls.",null,function(nP){
+    var TP=progType(nP);
+    pickDate("Jour 1 · "+TP.lib,isoLocal(),function(depart){
+    if(!depart)return;
     unmarkDeleted(slug);
     clients.unshift({name:nom,slug:slug,start_date:depart,created_at:new Date().toISOString()});
     lsSet("amcoach_clients",clients);
@@ -18968,9 +19052,13 @@ function bindCoach(){
       pipeEcrire(LP);
     }
     state.blProspect=null; state.blLibre=null; state.blForm=false; state.blEdit=null; state.coachBilans=false;
+    // Programme, menus, vidéos et thème posés d'un coup
+    try{progInstallerNouveau(slug,depart,nP,sxB);}catch(e){}
     state.coachDetail=slug;
     render();
-    feedback("🎉 "+nom+" est client ("+(mode==="partenariat"?"partenariat":"contrat signé")+") — lien ?client="+slug,"win");
+    feedback("🎉 "+nom+" est client · "+TP.ico+" "+TP.lib+" dès le "+isoVersFr(depart)+" · menus activés","win");
+    },{aide:"Le jour 1 de son programme. Les menus démarrent le même jour."});
+    });
   }); }
 
   // 🧠 RECALCUL DU PROFIL. La détection lit les trois champs au moment du
@@ -19207,7 +19295,7 @@ function bindCoach(){
     for(var qq=0;qq<allQ.length;qq++){a.q[allQ[qq][0]]=gv2("bl-q-"+allQ[qq][0]);}
     // On enregistre le profil retenu : le choix manuel s'il y en a eu un,
     // sinon celui que l'analyse a déduit des réponses.
-    if(state.blProfil)a.profil=state.blProfil;
+    if(state.blProfil&&bilanProfil(state.blProfil))a.profil=state.blProfil;
     else{
       var __rp={};
       for(var __r=0;__r<BILAN_PROFIL_Q.length;__r++)__rp[BILAN_PROFIL_Q[__r].k]=a.q[BILAN_PROFIL_Q[__r].k]||"";

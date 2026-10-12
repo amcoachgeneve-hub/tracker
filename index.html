@@ -1145,7 +1145,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="11/10 - Superviseurs plus varies";
+var APP_VERSION="12/10 - Profil stockage bilan";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -1757,6 +1757,7 @@ var state={
   coachBilans:false,   // écran « Mes bilans » (personnes reçues, sans tracker)
   blLibre:null,        // id de la personne dont on remplit le bilan libre
   blvQ:"",             // recherche dans la liste des bilans
+  blStock:"",          // profil de stockage (pomme/poire/mixte) du calcul objectif
   blProfil:"",         // profil détecté pendant le bilan (signification/acceptation/sécurité)
   blRep:null,          // brouillon des 3 réponses, pour recalculer sans perdre la saisie
   otForm:false,
@@ -16888,7 +16889,7 @@ function blDraftSauver(){
     d.champs[n[i].id]=n[i].value;
   }
   // Boutons à état (sexe, profil de stockage)
-  d.sexe=state.blSexe||null; d.profil=state.blProfil||null;
+  d.sexe=state.blSexe||null; d.profil=state.blProfil||null; d.stock=state.blStock||null;
   lsSet(blDraftKey(slug),d);
   var ind=document.getElementById("bl-draft-info");
   if(ind)ind.textContent="💾 Brouillon enregistré à "+new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
@@ -16909,6 +16910,7 @@ function blDraftRestaurer(){
   }
   if(d.sexe)state.blSexe=d.sexe;
   if(d.profil)state.blProfil=d.profil;
+  if(d.stock)state.blStock=d.stock;
   return n>0;
 }
 function viewCoachBilan(){
@@ -17013,6 +17015,7 @@ function viewCoachBilan(){
   var __bdayTracker=bdayLire(__allC).bday||"";
   // ✏️ Mode modification : on repart des valeurs enregistrées
   var __ed=(state.blEdit!=null&&bl[state.blEdit])?bl[state.blEdit]:null;
+  function __stk(){return state.blStock||(__ed&&__ed.stock)||"mixte";}
   // 🔁 REPORT AUTOMATIQUE. Le nom, la date de naissance ou la taille ne
   // changent pas d'une analyse à l'autre : les retaper à chaque fois est une
   // perte de temps et une source d'erreurs. On reprend donc la dernière
@@ -17158,9 +17161,9 @@ function viewCoachBilan(){
     '</div>'+
     '<div class="card-label">PROFIL DE STOCKAGE</div>'+
     '<div style="display:flex;gap:6px;margin-bottom:4px">'+
-      '<button type="button" class="bl-profil big-btn'+((state.blProfil||"mixte")==="androide"?"":" gray")+'" data-profil="androide" style="flex:1;padding:10px 0;font-size:12px'+((state.blProfil||"mixte")==="androide"?";background:var(--violet)":"")+'">🍎 Pomme</button>'+
-      '<button type="button" class="bl-profil big-btn'+((state.blProfil||"mixte")==="gynoide"?"":" gray")+'" data-profil="gynoide" style="flex:1;padding:10px 0;font-size:12px'+((state.blProfil||"mixte")==="gynoide"?";background:var(--violet)":"")+'">🍐 Poire</button>'+
-      '<button type="button" class="bl-profil big-btn'+((state.blProfil||"mixte")==="mixte"?"":" gray")+'" data-profil="mixte" style="flex:1;padding:10px 0;font-size:12px'+((state.blProfil||"mixte")==="mixte"?";background:var(--violet)":"")+'">🔄 Mixte</button>'+
+      '<button type="button" class="bl-stock big-btn'+(__stk()==="androide"?"":" gray")+'" data-profil="androide" style="flex:1;padding:10px 0;font-size:12px'+(__stk()==="androide"?";background:var(--violet)":"")+'">🍎 Pomme</button>'+
+      '<button type="button" class="bl-stock big-btn'+(__stk()==="gynoide"?"":" gray")+'" data-profil="gynoide" style="flex:1;padding:10px 0;font-size:12px'+(__stk()==="gynoide"?";background:var(--violet)":"")+'">🍐 Poire</button>'+
+      '<button type="button" class="bl-stock big-btn'+(__stk()==="mixte"?"":" gray")+'" data-profil="mixte" style="flex:1;padding:10px 0;font-size:12px'+(__stk()==="mixte"?";background:var(--violet)":"")+'">🔄 Mixte</button>'+
     '</div>'+
     '<div style="font-size:11px;color:var(--mute);line-height:1.5;margin-bottom:10px">Le tour de taille utilisé pour l\'analyse est la mesure « Nombril » ci-dessous.</div>'+
     bilanInput("bl-mgc","% MASSE GRASSE CIBLE","25",null,pv("mgc"))+
@@ -17475,7 +17478,7 @@ function bilanReport(slug,idx,mode){
         planRowsHTMLV2(pl)+ws+
         (function(){
           var vN=parseFloat(a.mesures&&a.mesures.nombril)||0;
-          var Am=morphoAnalyse(a.sexe||"F",a.profil||"mixte",vN,mgcV);
+          var Am=morphoAnalyse(a.sexe||"F",a.stock||({androide:1,gynoide:1}[a.profil]?a.profil:"mixte"),vN,mgcV);
           var ic={androide:"🍎",gynoide:"🍐",mixte:"🔄"}[Am.profil];
           var vw="";
           if(Am.visceral===2)vw='<div class="warn">🚨 Tour de taille '+Am.ventre+' cm (seuil '+Am.w2+' cm) : graisse viscérale probable — la plus dangereuse, mais la première à partir en déficit. Suivi médical recommandé en parallèle.</div>';
@@ -18532,7 +18535,7 @@ function bindCoach(){
         if(!vu){ p.etape="gagne"; p.maj=isoLocal(); p.mode=mode; L2.unshift(p); }
         pipeEcrire(L2);
         fermer();
-        state.blProspect=p.id; state.blLibre=null; state.blRep=null; state.blProfil="";
+        state.blProspect=p.id; state.blLibre=null; state.blRep=null; state.blProfil=""; state.blStock="";
         state.blForm=false; state.blEdit=null; state.blMode=mode;
         render();
         feedback(mode==="partenariat"?"🤝 Partenariat — crée son lien ci-dessous":"✍️ Contrat — crée son lien ci-dessous","ok");
@@ -18566,7 +18569,7 @@ function bindCoach(){
 
   var pBil=document.querySelectorAll(".pipe-bilan");
   for(var pb=0;pb<pBil.length;pb++)pBil[pb].addEventListener("click",function(){
-    state.blProspect=this.getAttribute("data-id"); state.blRep=null; state.blProfil="";
+    state.blProspect=this.getAttribute("data-id"); state.blRep=null; state.blProfil=""; state.blStock="";
     state.blForm=false; state.blEdit=null;
     render();
   });
@@ -18875,7 +18878,7 @@ function bindCoach(){
            prenom:parts[0], nom:parts.slice(1).join(" "),
            cree:isoLocal(), maj:isoLocal(), bilans:[]};
     blvSauver(p);
-    state.blLibre=p.id; state.coachBilans=false; state.blRep=null; state.blProfil="";
+    state.blLibre=p.id; state.coachBilans=false; state.blRep=null; state.blProfil=""; state.blStock="";
     state.blForm=true; state.blEdit=null;
     render();
   });
@@ -18993,6 +18996,7 @@ function bindCoach(){
   for(var bp=0;bp<blPf.length;bp++)blPf[bp].addEventListener("click",function(){
     var k=this.getAttribute("data-k");
     state.blProfil=(state.blProfil===k)?"":k;
+    try{blDraftSauver();}catch(e){}
     render();
   });
 
@@ -19033,7 +19037,7 @@ function bindCoach(){
       if(!(tll>0)){out.innerHTML='<div style="font-size:12px;color:var(--warn-d);font-weight:700;margin-bottom:10px">📏 Renseigne la TAILLE pour activer le calcul et les protections IMC.</div>';return;}
       var pl=calcPlanV2(state.blSexe||"F",p0,mga,mgc,tll,ag||null);
       var vNom=nv("bl-m-nombril");
-      var mo=morphoHTML(morphoAnalyse(state.blSexe||"F",state.blProfil||"mixte",vNom>0?vNom:0,mgc),mgc);
+      var mo=morphoHTML(morphoAnalyse(state.blSexe||"F",state.blStock||"mixte",vNom>0?vNom:0,mgc),mgc);
       out.innerHTML='<div style="margin-bottom:10px"><div style="font-size:12px;font-weight:800;color:var(--brand);margin-bottom:6px">🔥 Barre calorique : '+pl.kcal+' kcal / jour · 💪 '+pl.prot+' g protéines</div>'+planCardHTMLV2(pl,mgc)+mo+'</div>';
     }else{out.innerHTML='';}
   }
@@ -19041,15 +19045,16 @@ function bindCoach(){
     var el=document.getElementById(id);
     if(el)el.addEventListener("input",blPlanCompute);
   });
-  var blProfs=document.querySelectorAll(".bl-profil");
+  var blProfs=document.querySelectorAll(".bl-stock");
   for(var bpf=0;bpf<blProfs.length;bpf++){
     blProfs[bpf].addEventListener("click",function(){
-      state.blProfil=this.getAttribute("data-profil");
+      state.blStock=this.getAttribute("data-profil");
       for(var bq=0;bq<blProfs.length;bq++){
         if(blProfs[bq]===this){blProfs[bq].classList.remove("gray");blProfs[bq].style.background="var(--violet)";}
         else{blProfs[bq].classList.add("gray");blProfs[bq].style.background="";}
       }
       blPlanCompute();
+      try{blDraftSauver();}catch(e){}
     });
   }
   ["F","H"].forEach(function(sx){
@@ -19061,6 +19066,7 @@ function bindCoach(){
         if(b2){if(s2===sx){b2.classList.remove("gray");b2.style.background="var(--brand2)";}else{b2.classList.add("gray");b2.style.background="";}}
       });
       blPlanCompute();
+      try{blDraftSauver();}catch(e){}
     });
   });
   if(document.getElementById("bl-plan-out"))blPlanCompute();
@@ -19180,7 +19186,7 @@ function bindCoach(){
   var blSave=document.getElementById("bl-save");
   if(blSave)blSave.addEventListener("click",function(){
     function gv2(id){var el=document.getElementById(id);return el?el.value.trim():"";}
-    var a={date:isoVersFr(gv2("bl-date"))||gv2("bl-date"),age:gv2("bl-age"),sexe:(state.blSexe||"F"),profil:(state.blProfil||"mixte"),mgc:gv2("bl-mgc"),poids:gv2("bl-poids"),poidsCible:gv2("bl-poidscible"),taille:gv2("bl-taille"),
+    var a={date:isoVersFr(gv2("bl-date"))||gv2("bl-date"),age:gv2("bl-age"),sexe:(state.blSexe||"F"),stock:(state.blStock||"mixte"),mgc:gv2("bl-mgc"),poids:gv2("bl-poids"),poidsCible:gv2("bl-poidscible"),taille:gv2("bl-taille"),
       prenom:gv2("bl-prenom"),nom:gv2("bl-nom"),naiss:isoVersFr(gv2("bl-naiss"))||gv2("bl-naiss"),
       persoKg:gv2("bl-perso-kg"),persoMois:gv2("bl-perso-mois"),mg:gv2("bl-mg"),mm:gv2("bl-mm"),gv:gv2("bl-gv"),kcal:gv2("bl-kcal"),
       obj1:gv2("bl-obj1"),obj2:gv2("bl-obj2"),obj3:gv2("bl-obj3"),pb:gv2("bl-pb"),mesures:{},mdist:{},scores:{},q:{}};
@@ -19218,7 +19224,7 @@ function bindCoach(){
       if(a.nom)lpx.nom=a.nom;
       lpx.maj=isoLocal();
       blvSauver(lpx);
-      state.blEdit=null; state.blForm=false; state.blRep=null; state.blProfil="";
+      state.blEdit=null; state.blForm=false; state.blRep=null; state.blProfil=""; state.blStock="";
       feedback("📋 Bilan enregistré","ok");
       render();
       return;
@@ -19235,7 +19241,7 @@ function bindCoach(){
       else {cible.bilans.push(a);pos=cible.bilans.length-1;}
       for(var y2=0;y2<LP2.length;y2++){if(LP2[y2].id===cible.id)LP2[y2]=cible;}
       pipeEcrire(LP2);
-      state.blEdit=null; state.blForm=false; state.blRep=null; state.blProfil="";
+      state.blEdit=null; state.blForm=false; state.blRep=null; state.blProfil=""; state.blStock="";
       feedback("📋 Bilan enregistré","ok");
       render();
       return;

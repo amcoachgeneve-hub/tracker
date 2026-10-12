@@ -1608,6 +1608,30 @@ function bindMain(){
   }
 }
 
+// ═══════════ 🔄 MISE À JOUR AUTOMATIQUE ═══════════
+// Le téléphone affiche d'abord la copie gardée, puis télécharge la nouvelle
+// en arrière-plan. Sans ce contrôle, la cliente voyait l'ancien menu jusqu'à
+// la réouverture suivante. On relit la page quelques secondes après
+// l'ouverture : si la version a changé, on recharge une seule fois.
+var MENU_VERSION="12/10 - Haricots + couleurs A-Z";
+(function(){
+  function verifier(){
+    try{
+      fetch(location.pathname,{cache:"no-store"}).then(function(r){return r.text();}).then(function(t){
+        var m=String(t).match(/var MENU_VERSION="([^"]*)"/);
+        if(!m||m[1]===MENU_VERSION)return;
+        var deja=null;try{deja=sessionStorage.getItem("menuMaj");}catch(e){}
+        if(deja===m[1])return;              // jamais deux rechargements pour la même version
+        try{sessionStorage.setItem("menuMaj",m[1]);}catch(e){}
+        location.reload();
+      }).catch(function(){});
+    }catch(e){}
+  }
+  setTimeout(verifier,3500);
+  setTimeout(verifier,12000);
+  document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible")setTimeout(verifier,2500);});
+})();
+
 // ═══════════ BOOT ═══════════
 (function(){
   cfgCharger(function(){render();});

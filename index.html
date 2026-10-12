@@ -1145,7 +1145,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="12/10d - Sexe dans le bilan";
+var APP_VERSION="12/10e - Bilans synchronises iPad telephone";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -1780,7 +1780,8 @@ var COACH_CLES={
   "amcoach_archives":907,     // clients mis en pause
   "amcoach_depenses":908,     // dépenses du mois
   "amcoach_abos":909,         // abonnements
-  "amcoach_videos14":920      // vidéos du Reset 14 jours, homme et femme
+  "amcoach_videos14":920,     // vidéos du Reset 14 jours, homme et femme
+  "amcoach_bldrafts":921      // brouillons de bilans : visibles sur l'iPad ET le téléphone
 };
 var __coachEnv={};
 function coachCloudPousser(cle){
@@ -2179,6 +2180,30 @@ function cloudRafraichir(force){
   if(!CLIENT)return;
   if(!force&&Date.now()-__cloudLe<20000)return;
   loadFromCloud(function(){ try{render();}catch(e){} });
+}
+// 📱💻 Côté coach : quand on revient sur l'appli (autre appareil utilisé entre
+// temps), on redescend clients, bilans et brouillons. Avant, le téléphone
+// gardait ce qu'il avait chargé le matin.
+var __coachRetourLe=0;
+function coachRetourBrancher(){
+  if(window.__coachVis)return;
+  window.__coachVis=true;
+  function rafraichir(){
+    if(!state.coachAuthed||Date.now()-__coachRetourLe<15000)return;
+    __coachRetourLe=Date.now();
+    try{coachFileRattraper();}catch(e){}
+    try{loadCoachDataFromCloud();}catch(e){}
+    try{coachCloudCharger(function(n){
+      if(!n)return;
+      var a=document.activeElement, tape=a&&(a.tagName==="INPUT"||a.tagName==="TEXTAREA");
+      if(!tape){try{render();}catch(e){}}
+    });}catch(e){}
+  }
+  document.addEventListener("visibilitychange",function(){
+    if(document.visibilityState==="hidden"){try{if(document.getElementById("bl-form"))blDraftSauver();}catch(e){}}
+    else rafraichir();
+  });
+  window.addEventListener("focus",rafraichir);
 }
 function brancherRetourAppli(){
   if(window.__cloudVis)return;
@@ -16940,8 +16965,33 @@ function blSujet(){
   return state.coachDetail||null;
 }
 function blDraftKey(slug){return "amcoach_bldraft_"+slug;}
-function blDraftLire(slug){return lsGet(blDraftKey(slug),null);}
-function blDraftEffacer(slug){try{localStorage.removeItem(blDraftKey(slug));}catch(e){}}
+// ☁️ Les brouillons vivent dans une seule clé synchronisée : un bilan commencé
+// sur l'iPad se retrouve sur le téléphone. Avant, il restait sur l'appareil
+// où il avait été tapé, et le bilan paraissait vide ailleurs.
+function blDraftsTous(){var m=lsGet("amcoach_bldrafts",{});return (m&&typeof m==="object"&&!Array.isArray(m))?m:{};}
+function blDraftLire(slug){
+  var m=blDraftsTous(), a=m[slug]||null, b=lsGet(blDraftKey(slug),null);
+  if(a&&b)return (String(b.maj||"")>String(a.maj||""))?b:a;
+  return a||b;
+}
+function blDraftEffacer(slug){
+  try{localStorage.removeItem(blDraftKey(slug));}catch(e){}
+  var m=blDraftsTous(); if(m[slug]){delete m[slug]; lsSet("amcoach_bldrafts",m);}
+}
+// Anciens brouillons restés sur cet appareil : on les envoie dans le nuage.
+function blDraftsMigrer(){
+  try{
+    var m=blDraftsTous(), chg=false;
+    for(var i=localStorage.length-1;i>=0;i--){
+      var k=localStorage.key(i);
+      if(!k||k.indexOf("amcoach_bldraft_")!==0)continue;
+      var sl=k.slice("amcoach_bldraft_".length), d=lsGet(k,null);
+      if(d&&d.champs&&(!m[sl]||String(d.maj||"")>String(m[sl].maj||""))){m[sl]=d;chg=true;}
+      localStorage.removeItem(k);
+    }
+    if(chg)lsSet("amcoach_bldrafts",m);
+  }catch(e){}
+}
 var __blTimer=null;
 function blDraftSauver(){
   var slug=blSujet();
@@ -16954,7 +17004,8 @@ function blDraftSauver(){
   }
   // Boutons à état (sexe, profil de stockage)
   d.sexe=state.blSexe||null; d.profil=state.blProfil||null; d.stock=state.blStock||null;
-  lsSet(blDraftKey(slug),d);
+  var __m=blDraftsTous(); __m[slug]=d; lsSet("amcoach_bldrafts",__m);
+  try{localStorage.removeItem(blDraftKey(slug));}catch(e){}
   var ind=document.getElementById("bl-draft-info");
   if(ind)ind.textContent="💾 Brouillon enregistré à "+new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
 }
@@ -20483,6 +20534,8 @@ function bindMain(name,start){
 (function(){
   render(); // instant render with local data
   if(typeof IS_COACH!=="undefined"&&IS_COACH&&state.coachAuthed){
+    try{ blDraftsMigrer(); }catch(e){}
+    try{ coachRetourBrancher(); }catch(e){}
     try{ coachFileRattraper(); }catch(e){}
     loadCoachDataFromCloud();
     // Deux appareils : on redescend d'abord les outils du coach (séances,

@@ -1145,7 +1145,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="12/10e - Bilans synchronises iPad telephone";
+var APP_VERSION="12/10f - Fusion bilans iPad telephone";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -1865,6 +1865,21 @@ function coachCloudCharger(cb){
       for(var i=0;i<(rows||[]).length;i++){
         var d=rows[i].data||{}; if(!d.cle||d.v==null)continue;
         var local=localStorage.getItem(d.cle);
+        // 🔀 Bilans libres, prospects, brouillons : on FUSIONNE au lieu d'écraser.
+        if(d.cle==="amcoach_bilans_libres"||d.cle==="amcoach_pipeline"||d.cle==="amcoach_bldrafts"){
+          try{
+            var Lo=local?JSON.parse(local):null, Re=JSON.parse(d.v), Fu;
+            if(d.cle==="amcoach_bldrafts"){
+              Fu=Object.assign({},Re||{});
+              for(var kd in (Lo||{})){if(!Fu[kd]||String(Lo[kd].maj||"")>String(Fu[kd].maj||""))Fu[kd]=Lo[kd];}
+            }else Fu=fichesFusion(Lo,Re,d.cle==="amcoach_bilans_libres");
+            var sFu=JSON.stringify(Fu);
+            if(sFu!==local){localStorage.setItem(d.cle,sFu);n++;}
+            if(d.maj)lsSetStr("amcoach_maj_"+d.cle,d.maj);
+            if(sFu!==JSON.stringify(Re))coachCloudPousser(d.cle);   // le local apportait du neuf
+          }catch(e){}
+          continue;
+        }
         var vide=(local===null||local==="[]"||local==="{}"||local==="null");
         var majLocale=lsGetStr("amcoach_maj_"+d.cle);
         var plusRecent=(d.maj && (!majLocale || d.maj>majLocale));
@@ -2123,7 +2138,11 @@ function coachLoadClient(slug,force,cb){
     .then(function(rows){
       if(rows&&rows.length){
         var all=lsGet("amcoach_"+slug,{});
-        for(var i=0;i<rows.length;i++)all[rows[i].day_index]=rows[i].data;
+        for(var i=0;i<rows.length;i++){
+          var __d=rows[i].data;
+          if(rows[i].day_index===600){try{__d=bl600Fusion(slug,__d);}catch(e){}}
+          all[rows[i].day_index]=__d;
+        }
         lsSet("amcoach_"+slug,all);
       }
       if(cb)cb(); else render();
@@ -2154,7 +2173,11 @@ function coachLoadAll(force){
       }
       for(var s2 in par){
         var all=lsGet("amcoach_"+s2,{});
-        for(var y=0;y<par[s2].length;y++)all[par[s2][y].day_index]=par[s2][y].data;
+        for(var y=0;y<par[s2].length;y++){
+          var __d2=par[s2][y].data;
+          if(par[s2][y].day_index===600){try{__d2=bl600Fusion(s2,__d2);}catch(e){}}
+          all[par[s2][y].day_index]=__d2;
+        }
         lsSet("amcoach_"+s2,all);
       }
       __coachBusy=false;
@@ -15072,8 +15095,16 @@ function caObjectif(cible){
 // Stockage à part du pipeline : ces personnes ne sont pas des prospects en
 // cours de closing, ce sont des bilans faits. Les compter dans le pipeline
 // fausserait tous les taux de conversion.
-function blvLire(){var l=lsGet("amcoach_bilans_libres",[]);return Array.isArray(l)?l:[];}
-function blvEcrire(l){lsSet("amcoach_bilans_libres",l);}
+function blvBrut(){var l=lsGet("amcoach_bilans_libres",[]);return Array.isArray(l)?l:[];}
+function blvLire(){return blvBrut().filter(function(x){return x&&!x.supprime;});}
+// Les fiches supprimées gardent une trace : sans elle, l'autre appareil les
+// ferait revenir à la prochaine fusion.
+function blvEcrire(l){
+  var ids={}; l.forEach(function(x){if(x&&x.id)ids[x.id]=1;});
+  var morts=blvBrut().filter(function(x){return x&&x.supprime&&!ids[x.id];});
+  l.forEach(function(x){if(x&&!x.supprime)x.ts=x.ts||Date.now();});
+  lsSet("amcoach_bilans_libres",l.concat(morts));
+}
 function blvTrouver(id){var L=blvLire();for(var i=0;i<L.length;i++){if(L[i].id===id)return L[i];}return null;}
 function blvNom(p){
   if(!p)return "";
@@ -15081,6 +15112,7 @@ function blvNom(p){
   return n||p.nomComplet||"Sans nom";
 }
 function blvSauver(p){
+  p.ts=Date.now();
   var L=blvLire(),trouve=false;
   for(var i=0;i<L.length;i++){if(L[i].id===p.id){L[i]=p;trouve=true;}}
   if(!trouve)L.unshift(p);
@@ -16406,9 +16438,97 @@ function loadCoachDataFromCloud(){
       if(!bySlug[r.client_slug])bySlug[r.client_slug]={};
       bySlug[r.client_slug][r.day_index]=r.data;
     }
-    for(var slug in bySlug){lsSet("amcoach_"+slug,bySlug[slug]);}
+    for(var slug in bySlug){
+      try{var __f=bl600Fusion(slug,bySlug[slug][600]);if(__f)bySlug[slug][600]=__f;}catch(e){}
+      lsSet("amcoach_"+slug,bySlug[slug]);
+    }
+    // Un client sans aucune ligne dans le nuage mais avec un bilan ici
+    try{lsGet("amcoach_clients",[]).forEach(function(c){
+      if(!c||!c.slug||bySlug[c.slug])return;
+      var l6=(lsGet("amcoach_"+c.slug,{})||{})[600];
+      if(l6&&(l6.list||[]).length)bl600Fusion(c.slug,null);
+    });}catch(e){}
     render();
   }).catch(function(){});
+}
+
+// ═══════════ 🔀 FUSION DES BILANS ENTRE APPAREILS ═══════════
+// iPad et téléphone écrivent chacun leur copie. Avant, la dernière écriture
+// écrasait l'autre : un bilan fait sur l'iPad disparaissait si le téléphone
+// renvoyait sa liste plus ancienne. On FUSIONNE maintenant : chaque analyse a
+// une clé, les suppressions laissent une trace, la version la plus récente
+// d'une même analyse gagne.
+function blCle(a){
+  if(!a)return "";
+  if(a.id)return String(a.id);
+  return "d"+(a.date||"")+"|"+(a.poids||"")+"|"+String(a.obj1||"").slice(0,20);
+}
+function blNouvelId(){return "b"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+// A et B : {list:[...], suppr:[...]}. Renvoie la fusion triée par date.
+function blFusion(A,B){
+  A=A||{};B=B||{};
+  var suppr={}, out={}, ordre=[];
+  (A.suppr||[]).concat(B.suppr||[]).forEach(function(k){suppr[k]=1;});
+  function ajoute(x){
+    if(!x)return; var k=blCle(x); if(!k||suppr[k])return;
+    if(!out[k]){out[k]=x;ordre.push(k);}
+    else if((x.ts||0)>(out[k].ts||0))out[k]=x;
+  }
+  (B.list||[]).forEach(ajoute); (A.list||[]).forEach(ajoute);
+  function iso(x){var m=String(x.date||"").match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);return m?m[3]+("0"+m[2]).slice(-2)+("0"+m[1]).slice(-2):String(x.date||"");}
+  var L=ordre.map(function(k){return out[k];});
+  L.sort(function(x,y){var a=iso(x),b=iso(y);return a<b?-1:a>b?1:0;});
+  var r={list:L}; var sk=Object.keys(suppr); if(sk.length)r.suppr=sk;
+  return r;
+}
+function blMemeListe(A,B){
+  var a=((A||{}).list||[]).map(blCle).join(","), b=((B||{}).list||[]).map(blCle).join(",");
+  var ta=((A||{}).list||[]).map(function(x){return x.ts||0;}).join(","), tb=((B||{}).list||[]).map(function(x){return x.ts||0;}).join(",");
+  return a===b&&ta===tb&&((A||{}).suppr||[]).length===((B||{}).suppr||[]).length;
+}
+// Slot 600 d'un client : fusion local + nuage. Si le local apporte quelque
+// chose, on le renvoie au nuage — c'est ce qui sauve un bilan resté sur un appareil.
+function bl600Fusion(slug,nuage){
+  var loc=(lsGet("amcoach_"+slug,{})||{})[600];
+  if(!loc)return nuage;
+  if(!nuage)nuage={list:[]};
+  var F=blFusion(loc,nuage);
+  if(!blMemeListe(F,nuage)){
+    try{
+      sbFetch("tracking?on_conflict=client_slug,day_index",{method:"POST",prefer:"resolution=merge-duplicates",
+        body:{client_slug:slug,day_index:600,data:F}})
+        .then(function(r){if(!(r&&r.ok))coachFileAjouter(slug,600,F);})
+        .catch(function(){coachFileAjouter(slug,600,F);});
+    }catch(e){}
+  }
+  return F;
+}
+// Listes de fiches (bilans libres, prospects) : fusion par identifiant.
+// mortsOk = les fiches supprimées laissent une trace {id, supprime:true}.
+function fichesFusion(loc,nua,mortsOk){
+  loc=Array.isArray(loc)?loc:[]; nua=Array.isArray(nua)?nua:[];
+  var parId={}, ordre=[], morts={};
+  function prendre(x,deLocal){
+    if(!x||!x.id)return;
+    if(x.supprime){morts[x.id]=x;return;}
+    var y=parId[x.id];
+    if(!y){parId[x.id]=x;ordre.push(x.id);return;}
+    var base=((x.ts||0)>(y.ts||0))?x:y, autre=(base===x)?y:x;
+    var m=JSON.parse(JSON.stringify(base));
+    var F=blFusion({list:autre.bilans,suppr:autre.blSuppr},{list:base.bilans,suppr:base.blSuppr});
+    m.bilans=F.list; if(F.suppr)m.blSuppr=F.suppr;
+    if(!m.clientSlug&&autre.clientSlug)m.clientSlug=autre.clientSlug;
+    parId[x.id]=m;
+  }
+  nua.forEach(function(x){prendre(x,false);});
+  if(mortsOk){loc.forEach(function(x){prendre(x,true);});}
+  else{
+    // Prospects : on ne fusionne que les bilans des fiches présentes des deux côtés
+    loc.forEach(function(x){ if(x&&x.id&&parId[x.id])prendre(x,true); });
+  }
+  var res=ordre.filter(function(id){return !morts[id];}).map(function(id){return parId[id];});
+  if(mortsOk)for(var k in morts)res.push(morts[k]);
+  return res;
 }
 
 // ═══════════ PLAN PARTAGÉ (calculateur + bilan) ═══════════
@@ -16971,12 +17091,14 @@ function blDraftKey(slug){return "amcoach_bldraft_"+slug;}
 function blDraftsTous(){var m=lsGet("amcoach_bldrafts",{});return (m&&typeof m==="object"&&!Array.isArray(m))?m:{};}
 function blDraftLire(slug){
   var m=blDraftsTous(), a=m[slug]||null, b=lsGet(blDraftKey(slug),null);
+  if(a&&a.efface)a=null;
   if(a&&b)return (String(b.maj||"")>String(a.maj||""))?b:a;
   return a||b;
 }
 function blDraftEffacer(slug){
   try{localStorage.removeItem(blDraftKey(slug));}catch(e){}
-  var m=blDraftsTous(); if(m[slug]){delete m[slug]; lsSet("amcoach_bldrafts",m);}
+  // Trace datée : l'autre appareil saura que ce brouillon est fini.
+  var m=blDraftsTous(); if(m[slug]&&!m[slug].efface){m[slug]={efface:true,maj:new Date().toISOString()}; lsSet("amcoach_bldrafts",m);}
 }
 // Anciens brouillons restés sur cet appareil : on les envoie dans le nuage.
 function blDraftsMigrer(){
@@ -19045,7 +19167,7 @@ function bindCoach(){
     if(!confirm(msg))return;
     // Le brouillon en cours pour cette personne n'a plus d'objet
     try{blDraftEffacer("libre-"+id);}catch(e){}
-    blvEcrire(L.filter(function(x){return x.id!==id;}));
+    blvEcrire(L.filter(function(x){return x.id!==id;}).concat([{id:id,supprime:true,ts:Date.now()}]));
     render();
     feedback("Fiche supprimée","undo");
   });
@@ -19262,22 +19384,24 @@ function bindCoach(){
       var L=blvLire(), c=null;
       for(var a=0;a<L.length;a++){if(L[a].id===state.blLibre)c=L[a];}
       if(!c)return;
-      c.bilans=(c.bilans||[]).slice(); c.bilans.splice(i,1); c.maj=isoLocal();
+      c.bilans=(c.bilans||[]).slice(); var __rm1=c.bilans.splice(i,1)[0]; c.maj=isoLocal(); c.ts=Date.now();
+      if(__rm1)c.blSuppr=(c.blSuppr||[]).concat([blCle(__rm1)]);
       for(var a2=0;a2<L.length;a2++){if(L[a2].id===c.id)L[a2]=c;}
       blvEcrire(L);
     }else if(state.blProspect){
       var P=pipeLire(), q=null;
       for(var b2=0;b2<P.length;b2++){if(P[b2].id===state.blProspect)q=P[b2];}
       if(!q)return;
-      q.bilans=(q.bilans||[]).slice(); q.bilans.splice(i,1); q.maj=isoLocal();
+      q.bilans=(q.bilans||[]).slice(); var __rm2=q.bilans.splice(i,1)[0]; q.maj=isoLocal(); q.ts=Date.now();
+      if(__rm2)q.blSuppr=(q.blSuppr||[]).concat([blCle(__rm2)]);
       for(var b3=0;b3<P.length;b3++){if(P[b3].id===q.id)P[b3]=q;}
       pipeEcrire(P);
     }else{
       var slug=state.coachDetail;
       var b6=lsGet("amcoach_"+slug,{})[600]||{};
       var list=(b6.list||[]).slice();
-      list.splice(i,1);
-      coachSaveSlot(slug,600,{list:list});
+      var __rm3=list.splice(i,1)[0];
+      coachSaveSlot(slug,600,{list:list,suppr:(b6.suppr||[]).concat(__rm3?[blCle(__rm3)]:[])});
     }
     // Une modification en cours sur l'analyse supprimée n'a plus d'objet
     if(state.blEdit===i){state.blEdit=null;state.blForm=false;}
@@ -19364,6 +19488,18 @@ function bindCoach(){
       a.profil=(__A.etat==="ok")?__A.top.k:"";
     }
     if(!a.poids&&!a.obj1){alert("Renseigne au moins le poids ou un objectif.");return;}
+    // Clé stable + horodatage : c'est ce qui permet de fusionner iPad et téléphone.
+    (function(){
+      var src=null;
+      try{
+        if(state.blLibre){var q0=blvTrouver(state.blLibre);src=q0&&q0.bilans;}
+        else if(state.blProspect){var P0=pipeLire();for(var z0=0;z0<P0.length;z0++)if(P0[z0].id===state.blProspect)src=P0[z0].bilans;}
+        else src=((lsGet("amcoach_"+state.coachDetail,{})[600]||{}).list);
+      }catch(e){}
+      var vieux=(state.blEdit!=null&&src&&src[state.blEdit])?src[state.blEdit]:null;
+      a.id=vieux?blCle(vieux):blNouvelId();
+      a.ts=Date.now();
+    })();
     var pos;
     if(state.blLibre){
       // Bilan libre : la personne n'a ni tracker ni fiche pipeline. Son bilan
@@ -19407,7 +19543,8 @@ function bindCoach(){
     var list=(b6.list||[]).slice();
     if(state.blEdit!=null&&list[state.blEdit]){list[state.blEdit]=a;pos=state.blEdit;}
     else {list.push(a);pos=list.length-1;}
-    coachSaveSlot(slug,600,{list:list});
+    var __o600={list:list}; if(b6.suppr)__o600.suppr=b6.suppr;
+    coachSaveSlot(slug,600,__o600);
     var naiss=(a.naiss||"").trim();
     if(naiss){
       var dc=lsGet("amcoach_"+slug,{});

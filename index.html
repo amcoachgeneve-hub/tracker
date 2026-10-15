@@ -1145,7 +1145,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="12/10f - Fusion bilans iPad telephone";
+var APP_VERSION="15/10 - Reequilibrage offert apres Reset";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -1388,11 +1388,13 @@ var MENU_PHASES=[
 ];
 var MENU_RESET={cle:"14jours",num:"Reset",nom:"Reset 14 jours",jours:14,
   desc:"14 jours pour relancer la perte de poids."};
+var MENU_REEQ={cle:"reequilibrage",num:"Cadeau",nom:"Rééquilibrage alimentaire",jours:28,
+  desc:"4 semaines offertes, tous les jours ON : matin protéines · collation protéines · midi glucides + protéines + fibres · après-midi fruits · soir comme le midi."};
 var MENU_6S={cle:"6semaines",num:"6 semaines",nom:"Programme 6 semaines",jours:42,
   desc:"Deux parties de 3 semaines, jours ON et OFF selon ton calendrier."};
 // Le menu court qui va avec la durée du programme
 function menuCourtDef(data){
-  var n=90; try{n=progLen(menuDepartDe(data),data)||90;}catch(e){}
+  var n=90; try{n=progBase(menuDepartDe(data),data)||90;}catch(e){}
   return prog6s(n)?MENU_6S:MENU_RESET;
 }
 // 🍽️ Sur un Reset 14 jours, les menus sont inclus et ne s'éteignent pas.
@@ -1441,7 +1443,12 @@ function menuJour(data){
 // Phase courante : soit forcée par le coach, soit déduite des jours écoulés
 function menuPhase(data){
   var m=menuCfg(data);
-  if(m.reset){var MC=menuCourtDef(data);return {p:MC,idx:0,jour:Math.min(menuJour(data),MC.jours-1),total:MC.jours,liste:[MC]};}
+  if(m.reset){
+    var MC=menuCourtDef(data), jM=menuJour(data);
+    if(progReeq(data)&&MC===MENU_RESET&&jM>=14)
+      return {p:MENU_REEQ,idx:1,jour:Math.min(jM-14,27),total:28,liste:[MENU_RESET,MENU_REEQ]};
+    return {p:MC,idx:0,jour:Math.min(jM,MC.jours-1),total:MC.jours,liste:[MC]};
+  }
   if(m.phaseForcee){
     for(var f=0;f<MENU_PHASES.length;f++){
       if(MENU_PHASES[f].cle===m.phaseForcee)
@@ -4606,7 +4613,7 @@ function nombrilDepArr(allData,n){
   return {dep:dep,arr:arr};
 }
 function generateDiplome(name,startDate,allData){
-  var n=progLen(startDate,allData)||90;
+  var n=progBase(startDate,allData)||90;
   var reset=n<=14;
   var d0=new Date(startDate), d1=new Date(d0); d1.setDate(d1.getDate()+n-1);
   var fmt=function(dt){return dt.toLocaleDateString("fr-FR");};
@@ -5569,8 +5576,15 @@ function progLen(start,data){
   var acc=(data||getAllData())[504]||{};
   var pd=90;
   if(acc.end&&start){var d=Math.floor((new Date(acc.end)-new Date(start))/86400000)+1;if(d>0&&d<90)pd=d;}
+  // Une fin d'accès mal saisie (11 jours au lieu de 14) ne crée pas un
+  // « Reset 11 jours » : un programme court dure au moins 14 jours.
+  if(pd<14)pd=14;
   return pd;
 }
+// 🥗 RÉÉQUILIBRAGE OFFERT : 4 semaines ajoutées après un Reset 14 jours.
+// Le calendrier dure alors 42 jours, mais le programme reste un Reset.
+function progReeq(data){var a=(data||getAllData())[504]||{};return !!a.reeq;}
+function progBase(start,data){var n=progLen(start,data);return progReeq(data)?14:n;}
 // ═══════════ ⚡ 14 JOURS / 🏆 90 JOURS — VISIBLE PARTOUT CÔTÉ COACH ═══════════
 // Akli confondait les deux à l'inscription et ne le voyait qu'en ouvrant la
 // fiche. Le programme s'affiche maintenant en pastille pleine sur chaque
@@ -5579,7 +5593,7 @@ function progDureeClient(slug){
   var c=null,cl=lsGet("amcoach_clients",[]);
   for(var i=0;i<cl.length;i++)if(cl[i].slug===slug){c=cl[i];break;}
   var st=lsGetStr("amcoach_start_"+slug)||(c&&c.start_date)||"";
-  return progLen(st,lsGet("amcoach_"+slug,{}))||90;
+  return progBase(st,lsGet("amcoach_"+slug,{}))||90;
 }
 // 🔷 PROGRAMMES COURTS : Reset 14 jours et programme 6 semaines (42 jours).
 // Ils partagent tout : menus ON/OFF imposés, séances de 7 jours en vidéo,
@@ -5595,6 +5609,7 @@ function progType(n){n=n||90;return n<=14?PROG_DUREES[0]:(n<=42?PROG_DUREES[1]:P
 function progChipHTML(slug,grand){
   var n=progDureeClient(slug), T=progType(n);
   var txt=(n<90&&n!==14&&n!==42)?n+" J":T.ico+" "+T.court;
+  if(progReeq(lsGet("amcoach_"+slug,{})))txt="⚡ 14 J + 🥗 4 SEM";
   return '<span class="prog-chip" data-s="'+esc(slug)+'" title="Toucher pour changer de programme" style="display:inline-block;vertical-align:middle;margin-left:6px;'+
     'background:'+T.bg+';color:#fff;font-weight:900;font-size:'+(grand?"11.5px":"10px")+';letter-spacing:.3px;'+
     'padding:'+(grand?"4px 9px":"2px 7px")+';border-radius:20px;border:1.5px solid rgba(255,255,255,.55);cursor:pointer;white-space:nowrap">'+txt+'</span>';
@@ -5958,9 +5973,12 @@ function viewMenus(name,start){
 
   // 📖 Mode d'emploi des menus, sous le bouton : Akli voyait un écran vide.
   (function(){
-    var nM=90; try{nM=progLen(start)||90;}catch(e){}
+    var nM=90; try{nM=progBase(start)||90;}catch(e){}
     var L;
-    if(nM<=14)L=[["1","Touche <b>« Ouvrir mes repas du jour »</b>."],
+    if(P&&P.p===MENU_REEQ)L=[["1","Touche <b>« Ouvrir mes repas du jour »</b>."],
+      ["2","Tous les jours <b style=\"color:#2E7D32\">ON</b> : matin protéines · collation protéines · midi glucides + protéines + fibres · après-midi fruits · soir comme le midi."],
+      ["⚖️","Une pesée par semaine suffit : note-la dans ta journée."]];
+    else if(nM<=14)L=[["1","Touche <b>« Ouvrir mes repas du jour »</b>."],
       ["2","Regarde le calendrier : <b style=\"color:#2E7D32\">ON</b> = avec glucides, <b style=\"color:#C62828\">OFF</b> = sans glucides."],
       ["3","Touche le numéro du jour : tes repas s'affichent, matin, midi et soir."],
       ["⚖️","Jour 14 : pesée et tour de taille, à noter dans ta journée."]];
@@ -6630,6 +6648,61 @@ function blocForteresse(allData,today90,start){
 
   return h;
 }
+
+// ═══════════ 🥗 RÉÉQUILIBRAGE OFFERT APRÈS LE RESET ═══════════
+function reeqBilan(allData,start){
+  var D=allData||{}, rem=0, sc=0, nsc=0;
+  for(var i=0;i<14;i++){var s1=dayScore(D[i]);if(s1!=null){rem++;sc+=s1;nsc++;}}
+  var moy=nsc?Math.round(sc/nsc):0;
+  var dep=null; try{var PD=poidsDepart(D,start);dep=PD?PD.v:null;}catch(e){}
+  var fin=null; for(var j=13;j>=0;j--){if(D[j]&&D[j].poids){var w=parseFloat(String(D[j].poids).replace(",","."));if(!isNaN(w)){fin=w;break;}}}
+  var perte=(dep!=null&&fin!=null)?Math.round((dep-fin)*10)/10:null;
+  var g=getGoal(D,1), objOk=!!(g&&g.target&&fin!=null&&fin<=parseFloat(g.target));
+  var ok=(perte!=null&&perte>=3)||objOk||(rem>=14&&moy>=70);
+  return {ok:ok,perte:perte,dep:dep,fin:fin,rem:rem,moy:moy,objOk:objOk,recomp:(g&&g.reward)||""};
+}
+// Ajoute 28 jours au Reset. par = "auto" (mérité) ou "coach" (offert).
+function reeqDonnees(acc,start,par){
+  acc=JSON.parse(JSON.stringify(acc||{}));
+  var e=new Date(String(start).slice(0,10)+"T12:00:00"); e.setDate(e.getDate()+41);
+  acc.end=isoLocal(e); acc.off=false; acc.reeq={le:isoLocal(),par:par}; delete acc.reeqNon;
+  return acc;
+}
+function reeqWaMsg(allData,start,B){
+  var nm=lsGetStr("amcoach_name_"+CLIENT)||"";
+  return "Salut Akli ! C'est "+nm+". J'ai terminé mon Reset 14 jours"+
+    (B.perte!=null&&B.perte>0?" : -"+String(B.perte).replace(".",",")+" kg":"")+
+    (B.objOk?", objectif atteint 🎯":"")+" ("+B.rem+"/14 journées remplies). "+
+    "Je veux continuer : je suis partant(e) pour le challenge 90 jours 💪 On en parle ?";
+}
+function reeqCarteHTML(allData,start,today90){
+  if(today90<13)return "";
+  var B=reeqBilan(allData,start), on=progReeq(allData);
+  // Mérité : le cadeau s'ouvre tout seul, sans rien demander.
+  if(!on&&B.ok&&!IS_COACH&&!((allData[504]||{}).reeqNon)){
+    try{saveDay(504,reeqDonnees(allData[504],start,"auto"));on=true;}catch(e){}
+  }
+  var h='';
+  if(on){
+    var jR=Math.max(0,Math.min(27,today90-14));
+    h+='<div class="card" style="margin-bottom:14px;padding:18px 17px;border:none;color:#fff;background:linear-gradient(140deg,#1E8A4C,#2FB86A)">'+
+      '<div style="font-size:30px;line-height:1">🎁</div>'+
+      '<div style="font-weight:900;font-size:17px;margin-top:8px">'+(today90<14?'Tu as débloqué ton cadeau !':'Rééquilibrage offert · jour '+(jR+1)+'/28')+'</div>'+
+      '<div style="font-size:13px;line-height:1.55;margin-top:6px;color:rgba(255,255,255,.92)">'+
+        (today90<14?'4 semaines de <b>rééquilibrage alimentaire offertes</b> démarrent demain, avec un menu bonus : tous les jours ON. Ton calendrier continue 28 jours de plus.'
+                   :'Tous les jours ON : matin protéines · collation protéines · midi glucides + protéines + fibres · après-midi fruits · soir comme le midi.')+'</div>'+
+      '<button id="reeq-menus" style="margin-top:13px;width:100%;padding:13px 0;border-radius:100px;border:0;background:#fff;color:#1E8A4C;font-weight:900;font-size:13.5px">🍽️ Voir mon menu bonus</button>'+
+    '</div>';
+  }
+  if(B.ok&&!IS_COACH){
+    h+='<a href="https://wa.me/'+WA_COACH+'?text='+encodeURIComponent(reeqWaMsg(allData,start,B))+'" target="_blank" rel="noopener" class="card" '+
+      'style="display:block;text-decoration:none;margin-bottom:14px;padding:16px 17px;border:2px solid #25D366;background:var(--card)">'+
+      '<div style="font-weight:900;font-size:15px;color:var(--ink)">🏆 Prêt(e) pour le challenge 90 jours ?</div>'+
+      '<div style="font-size:12.5px;color:var(--mute);line-height:1.5;margin-top:4px">Ton Reset est réussi'+(B.perte!=null&&B.perte>0?' : −'+String(B.perte).replace(".",",")+' kg':'')+'. Envoie ta demande à ton coach en un tap.</div>'+
+      '<div style="margin-top:11px;text-align:center;padding:12px 0;border-radius:100px;background:#25D366;color:#fff;font-weight:900;font-size:13.5px">📲 Envoyer sur WhatsApp</div></a>';
+  }
+  return h;
+}
 // ═══════════ CALENDAR ═══════════
 function viewCalendar(name,start){
   var allData=getAllData();
@@ -6642,8 +6715,8 @@ function viewCalendar(name,start){
   var wkOff=(new Date(start).getDay()+6)%7; // 0=lundi ... 6=dimanche
   // Durée du programme selon la date de fin d'accès (slot 504) : 14, 30 jours... sinon 90
   var acc0=allData[504]||{};
-  var progDays=90;
-  if(acc0.end){var pdd=Math.floor((new Date(acc0.end)-new Date(start))/86400000)+1;if(pdd>0&&pdd<90)progDays=pdd;}
+  var progDays=progLen(start,allData)||90;
+  var reeqOn=progReeq(allData), progB=reeqOn?14:progDays;
   var shortProg=progDays<90;
   var daysLeft=Math.max(progDays-(today90+1),0);
   var month=shortProg?1:currentMonth(today90);
@@ -6655,7 +6728,7 @@ function viewCalendar(name,start){
     '<button id="pp-btn" class="pp-btn" title="Ma photo de profil">'+(ppImg?'<img src="'+ppImg+'" alt=""/>':'<span>📷</span>')+'</button>'+
     '<input id="pp-file" type="file" accept="image/*" style="display:none"/>'+
     '<div class="hdr-brand"><div class="bar bar-r"></div>'+
-    '<span class="hdr-title">'+(progDays<90?'RESET '+progDays+' JOURS':'DISCIPLINE 90')+'</span><div class="bar bar-b"></div></div>'+
+    '<span class="hdr-title">'+(reeqOn&&today90>=14?'RÉÉQUILIBRAGE':progB<=14?'RESET 14 JOURS':progB<=42?'6 SEMAINES':'DISCIPLINE 90')+'</span><div class="bar bar-b"></div></div>'+
     '<div class="hdr-sub">'+esc(name)+' · '+progDays+' jours'+(BLOC>1?' · Bloc '+BLOC+'/4':'')+' <span id="sync-badge" style="font-size:11px"></span></div></div>'+
     '<div style="padding:16px 14px 0">';
 
@@ -6912,11 +6985,15 @@ function viewCalendar(name,start){
   }
 
   // DIPLÔME (fin de programme) — au jour 14 pour un Reset, au jour 90 sinon.
-  if(today90>=progDays-1){
+  if(today90>=progB-1){
     h+='<button id="diplome-btn" class="card" style="width:calc(100% - 28px);margin-bottom:18px;background:linear-gradient(135deg,var(--gold),#E8C547);border:none;text-align:center;padding:18px;cursor:pointer">'+
       '<div style="font-size:26px;margin-bottom:4px">🎓</div>'+
-      '<div style="font-weight:900;font-size:15px;color:#fff;letter-spacing:1px;text-transform:uppercase">'+(progDays<=14?'Mon Diplôme Reset 14':(progDays<=42?'Mon Diplôme 6 semaines':'Mon Diplôme AM Transfo'))+'</div>'+
-      '<div style="font-size:11px;color:rgba(255,255,255,.85);margin-top:3px;font-weight:700">'+progDays+' jours accomplis — Nouvelle version de toi-même</div></button>';
+      '<div style="font-weight:900;font-size:15px;color:#fff;letter-spacing:1px;text-transform:uppercase">'+(progB<=14?'Mon Diplôme Reset 14':(progB<=42?'Mon Diplôme 6 semaines':'Mon Diplôme AM Transfo'))+'</div>'+
+      '<div style="font-size:11px;color:rgba(255,255,255,.85);margin-top:3px;font-weight:700">'+(function(){var r=0;for(var q=0;q<progB;q++){if(allData[q]&&dayScore(allData[q])!=null)r++;}return r+'/'+progB+' journées remplies';})()+' — Nouvelle version de toi-même</div></button>';
+    // 🥗 FIN DU RESET : cadeau et suite. Akli : 4 semaines de rééquilibrage
+    // offertes si le Reset a été tenu (3 kg ou objectif atteint, ou 14 jours
+    // remplis avec un superviseur content), et la proposition du 90 jours.
+    if(progB<=14)h+=reeqCarteHTML(allData,start,today90);
     // Un Reset ne se prolonge pas par un bloc de 90 jours en un tap : c'est
     // Akli qui propose la suite, au bilan du jour 14.
     // 🔐 LA SUITE SE VALIDE PAR LE COACH. Akli : « il faut l'accord du
@@ -8388,7 +8465,7 @@ function viewStats(name){
   (function(){
     var sexe=null; try{sexe=prog3Sexe(allData);}catch(e){}
     if(sexe!=="f")return;
-    if(progLen(lsGetStr("amcoach_start_"+CLIENT))<=14)return;
+    if(progBase(lsGetStr("amcoach_start_"+CLIENT))<=14)return;
     var c=cycGet(allData);
     if(!c.on)return;
     var E=cycEtat(c), ST=cycStats(c), moyR=cycReglesMoy(c);
@@ -8871,7 +8948,7 @@ function openRapport(name,start,period,dataOverride){
 function reset14JoursHTML(start){
   var allData=getAllData();
   var today90=getToday90(start);
-  var nP=progLen(start)||14, six=prog6s(nP);
+  var nP=progBase(start)||14, six=prog6s(nP);
   // Reset 14 : semaine 1 à 5 rép, semaine 2 à 10 rép.
   // 6 semaines : semaines 1 à 3 à 5 rép / 5 min, semaines 4 à 6 à 10 rép / 10 min.
   var week2=six?today90>=21:today90>=7;
@@ -11650,7 +11727,7 @@ function cycLigneHTML(all) {
   // 🔷 Reset 14 jours : pas de suivi du cycle. Il faut trois cycles pour lire
   // une régularité ; sur deux semaines, la carte n'apporte rien et prend de
   // la place sur l'écran qu'on ouvre chaque jour.
-  if (progLen(lsGetStr("amcoach_start_" + CLIENT)) <= 14) return "";
+  if (progBase(lsGetStr("amcoach_start_" + CLIENT)) <= 14) return "";
   var c = cycGet(all), E = c.on ? cycEtat(c) : null;
   var titre = E ? "Mon cycle — jour " + E.jour : "Remplir mon cycle";
   var sous = E ? E.def.nom + " · énergie " + E.def.energie.toLowerCase()
@@ -13497,7 +13574,7 @@ var TUTO_PAGES = [
 // pas de Dream Board sur un programme court.
 function tutoPages() {
   var all = {}, n = 90;
-  try { all = getAllData(); n = progLen(lsGetStr("amcoach_start_" + CLIENT)) || 90; } catch (e) { }
+  try { all = getAllData(); n = progBase(lsGetStr("amcoach_start_" + CLIENT)) || 90; } catch (e) { }
   return TUTO_PAGES.filter(function (P) {
     if (P.si === "prot") return !!nutCfg(all).on;
     if (P.si === "menus") return menuActif(all);
@@ -13506,7 +13583,7 @@ function tutoPages() {
     return true;
   });
 }
-function tutoDuree() { try { return progLen(lsGetStr("amcoach_start_" + CLIENT)) || 90; } catch (e) { return 90; } }
+function tutoDuree() { try { return progBase(lsGetStr("amcoach_start_" + CLIENT)) || 90; } catch (e) { return 90; } }
 // 🏋️ Le sport selon le programme : 7 jours en vidéo (court) ou séance du
 // jour générée pour le mois (90 jours).
 function tutoSportTexte() {
@@ -14257,6 +14334,26 @@ function viewCoachDetail(){
     h+='</div>';
   })();
 
+  // 🥗 RÉÉQUILIBRAGE OFFERT — après un Reset 14 jours
+  (function(){
+    var stR=lsGetStr("amcoach_start_"+c.slug)||c.start_date;
+    if(progBase(stR,allData)>14)return;
+    var B=reeqBilan(allData,stR), on=progReeq(allData), a5=allData[504]||{};
+    h+='<div class="card" style="padding:14px 15px;border-left:4px solid #1E8A4C">'+
+      '<div style="font-weight:800;font-size:13px;margin-bottom:6px">🥗 Rééquilibrage offert · 4 semaines</div>';
+    if(on){
+      h+='<div style="font-size:12px;color:var(--mute);line-height:1.5;margin-bottom:10px">✅ Actif'+((a5.reeq&&a5.reeq.par==="coach")?' (offert par toi)':' (mérité)')+
+        ' · menu bonus tous les jours ON · fin le '+(a5.end?isoVersFr(a5.end):'—')+'</div>'+
+        '<button id="reeq-retirer" style="width:100%;padding:11px 0;border-radius:11px;border:1.5px solid var(--line);background:var(--card);color:var(--mute);font-weight:800;font-size:12px">Retirer le rééquilibrage</button>';
+    }else{
+      h+='<div style="font-size:12px;color:var(--mute);line-height:1.55;margin-bottom:10px">Débloqué tout seul si : −3 kg, objectif atteint, ou 14 jours remplis avec un score moyen ≥ 70 %.<br>'+
+        'Ici : '+(B.perte!=null?(B.perte>0?'−':'+')+String(Math.abs(B.perte)).replace(".",",")+' kg':'poids ?')+' · '+B.rem+'/14 jours · score '+B.moy+' %'+(B.objOk?' · objectif ✓':'')+
+        (B.ok?' → <b style="color:#1E8A4C">conditions remplies</b>':'')+'</div>'+
+        '<button id="reeq-offrir" style="width:100%;padding:12px 0;border-radius:12px;border:0;background:#1E8A4C;color:#fff;font-weight:900;font-size:13px">🎁 Offrir le rééquilibrage 4 semaines</button>';
+    }
+    h+='</div>';
+  })();
+
   // 🎯 CHALLENGE — déclenché par le coach
   (function(){
     var ch=chCfg(allData);
@@ -14334,7 +14431,7 @@ function viewCoachDetail(){
   h+=GMK("analyse");
   // Sur un Reset 14 jours, pas de section cycle du tout : un titre sans
   // contenu donnait l'impression d'une donnée manquante.
-  var sansCycle=progLen(lsGetStr("amcoach_start_"+state.coachDetail),allData)<=14;
+  var sansCycle=progBase(lsGetStr("amcoach_start_"+state.coachDetail),allData)<=14;
   if(!sansCycle)h+=cdSecOpen("cycle","🌙","Son cycle","Phase, régularité, prévision");
   // 🌙 SON CYCLE — seulement pour les clientes qui l'ont renseigné. Akli
   // programme ses séances dessus : une grosse séance en fin lutéale ne
@@ -14343,7 +14440,7 @@ function viewCoachDetail(){
   (function(){
     var sexe=null; try{sexe=prog3Sexe(allData);}catch(e){}
     if(sexe!=="f")return;
-    if(progLen(lsGetStr("amcoach_start_"+state.coachDetail),allData)<=14)return;
+    if(progBase(lsGetStr("amcoach_start_"+state.coachDetail),allData)<=14)return;
     var c=cycGet(allData);
     if(!c.on)return;
     var E=cycEtat(c), ST=cycStats(c), moyR=cycReglesMoy(c);
@@ -16442,6 +16539,19 @@ function loadCoachDataFromCloud(){
       try{var __f=bl600Fusion(slug,bySlug[slug][600]);if(__f)bySlug[slug][600]=__f;}catch(e){}
       lsSet("amcoach_"+slug,bySlug[slug]);
     }
+    // 🔧 Fin d'accès mal saisie sur un Reset (moins de 14 jours) : on la
+    // remet à 14 jours, sinon le client voit « Reset 11 jours » et se fait
+    // couper l'accès avant la fin.
+    try{lsGet("amcoach_clients",[]).forEach(function(c){
+      var D=bySlug[c&&c.slug]; if(!D||!D[504]||!D[504].end||D[504].reeq||!c.start_date)return;
+      var st=String(c.start_date).slice(0,10);
+      var d=Math.floor((new Date(D[504].end)-new Date(st))/86400000)+1;
+      if(d>=1&&d<14){
+        var e=new Date(st+"T12:00:00"); e.setDate(e.getDate()+13);
+        var acc=JSON.parse(JSON.stringify(D[504])); acc.end=isoLocal(e);
+        D[504]=acc; coachSaveSlot(c.slug,504,acc);
+      }
+    });}catch(e){}
     // Un client sans aucune ligne dans le nuage mais avec un bilan ici
     try{lsGet("amcoach_clients",[]).forEach(function(c){
       if(!c||!c.slug||bySlug[c.slug])return;
@@ -18307,6 +18417,31 @@ function bindCoach(){
     render();
   });
 
+  // 🥗 Offrir / retirer le rééquilibrage de 4 semaines
+  var rqO=document.getElementById("reeq-offrir");
+  if(rqO)rqO.addEventListener("click",function(){
+    var slug=state.coachDetail, cc=coachClient(slug), nom=(cc&&cc.name)||slug;
+    var st=lsGetStr("amcoach_start_"+slug)||(cc&&cc.start_date);
+    if(!st)return;
+    if(!confirm("🎁 Offrir 4 semaines de rééquilibrage à "+nom+" ?\n\n· son calendrier continue 28 jours après le Reset\n· menu bonus : tous les jours ON\n· accès prolongé jusqu'au "+isoVersFr(isoLocal(new Date(new Date(st+"T12:00:00").getTime()+41*86400000)))))return;
+    var all=lsGet("amcoach_"+slug,{});
+    coachSaveSlot(slug,504,reeqDonnees(all[504],st,"coach"));
+    var mc=all[517]||{}; mc.on=true; mc.reset=true; if(!mc.debut)mc.debut=st; mc.phaseForcee=null;
+    coachSaveSlot(slug,517,mc);
+    feedback("🎁 Rééquilibrage offert à "+nom,"win");
+    render();
+  });
+  var rqR=document.getElementById("reeq-retirer");
+  if(rqR)rqR.addEventListener("click",function(){
+    var slug=state.coachDetail, st=lsGetStr("amcoach_start_"+slug);
+    if(!st||!confirm("Retirer le rééquilibrage ? L'accès revient à 14 jours."))return;
+    var all=lsGet("amcoach_"+slug,{}), acc=JSON.parse(JSON.stringify(all[504]||{}));
+    var e=new Date(st+"T12:00:00"); e.setDate(e.getDate()+13); acc.end=isoLocal(e); delete acc.reeq; acc.reeqNon=true;   // le coach a retiré : plus d'activation automatique
+    coachSaveSlot(slug,504,acc);
+    feedback("Rééquilibrage retiré","undo");
+    render();
+  });
+
   // 🍽️ Activer les menus / forcer une phase
   var mnOn=document.getElementById("mn-on");
   if(mnOn)mnOn.addEventListener("click",function(){
@@ -19046,6 +19181,7 @@ function bindCoach(){
     cm14[c14].addEventListener("click",function(){
       var slug=this.getAttribute("data-slug");
       var url=window.location.origin+"/menu.html?client="+slug+"&menu="+(prog6s(progDureeClient(slug))?"6semaines":"14jours");
+      try{var __mp=menuPhase(lsGet("amcoach_"+slug,{}));if(__mp&&__mp.p===MENU_REEQ)url=window.location.origin+"/menu.html?client="+slug+"&menu=reequilibrage";}catch(e){}
       var btn=this;
       function ok(){btn.textContent="✓ Lien 14 jours copié !";btn.style.background="var(--ok)";setTimeout(function(){btn.textContent="🍽️ Copier lien MENU 14 jours";btn.style.background="var(--warn-d)";},2000);}
       if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(url).then(ok,function(){prompt("Copie ce lien :",url);});}
@@ -20535,6 +20671,8 @@ function bindMain(name,start){
       });
     });
   }
+  var rqm=document.getElementById("reeq-menus");
+  if(rqm)rqm.addEventListener("click",function(){state.view="menus";render();});
   var dip=document.getElementById("diplome-btn");
   if(dip)dip.addEventListener("click",function(){
     var win=window.open("","_blank");

@@ -1163,7 +1163,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="19/10b - Objectif reequilibrage + superviseur kg";
+var APP_VERSION="19/10c - Seances pendant le reequilibrage";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -9001,17 +9001,31 @@ function reset14JoursHTML(start){
   var allData=getAllData();
   var today90=getToday90(start);
   var nP=progBase(start)||14, six=prog6s(nP);
+  // 🎁 Rééquilibrage offert : les séances continuent, c'est le cadeau.
+  var reeqS=progReeq(allData)&&today90>=14;
   // Reset 14 : semaine 1 à 5 rép, semaine 2 à 10 rép.
   // 6 semaines : semaines 1 à 3 à 5 rép / 5 min, semaines 4 à 6 à 10 rép / 10 min.
   var week2=six?today90>=21:today90>=7;
-  var numSem=Math.max(1,Math.min(six?6:2,Math.floor(Math.max(0,today90)/7)+1));
+  var numSem=Math.max(1,Math.min((six||reeqS)?6:2,Math.floor(Math.max(0,today90)/7)+1));
   var reps=week2?10:5;
   var tr7=allData[507]||{};
+  // Vidéos absentes chez la cliente (Masta n'en avait jamais reçu) : on va
+  // chercher le modèle du coach, on le pose chez elle, une seule fois.
+  if(!Object.keys(tr7).length&&!IS_COACH&&!window.__vid14Cherche){
+    window.__vid14Cherche=true;
+    try{
+      sbFetch("tracking?client_slug=eq.__coach&day_index=eq.920&select=data").then(function(r){return r.json();}).then(function(rows){
+        var d=rows&&rows[0]&&rows[0].data; if(!d||!d.v)return;
+        var V=JSON.parse(d.v)||{}, jeu=V[vid14Sexe(getAllData())]||{};
+        if(Object.keys(jeu).length){saveDay(507,jeu);render();}
+      }).catch(function(){});
+    }catch(e){}
+  }
   var dayNames=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
   var wdToday=(new Date().getDay()+6)%7;
 
   var h='<div class="r14">';
-  h+='<div class="r14-t">'+(six?'🔥 Semaine '+numSem+'/6':'🔷 Semaine '+(week2?2:1))+' · Tes 7 jours</div>';
+  h+='<div class="r14-t">'+(reeqS?'🎁 Semaine '+numSem+'/6 · Tes séances continuent':six?'🔥 Semaine '+numSem+'/6':'🔷 Semaine '+(week2?2:1))+' · Tes 7 jours</div>';
 
   // La consigne de la semaine, en grand : c'est la seule chose à retenir.
   h+='<div class="r14-consigne">'+
@@ -16616,6 +16630,13 @@ function loadCoachDataFromCloud(){
         var acc=JSON.parse(JSON.stringify(D[504])); acc.end=isoLocal(e);
         D[504]=acc; coachSaveSlot(c.slug,504,acc);
       }
+    });}catch(e){}
+    // 🎬 Client en programme court sans vidéos de séance : on les pose.
+    try{lsGet("amcoach_clients",[]).forEach(function(c){
+      var D=bySlug[c&&c.slug]; if(!D||!c.start_date)return;
+      if((progBase(c.start_date,D)||90)>42)return;
+      if(D[507]&&Object.keys(D[507]).length)return;
+      vid14AppliquerA(c.slug);
     });}catch(e){}
     // Un client sans aucune ligne dans le nuage mais avec un bilan ici
     try{lsGet("amcoach_clients",[]).forEach(function(c){

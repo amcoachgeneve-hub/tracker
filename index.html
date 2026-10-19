@@ -817,6 +817,24 @@ input,textarea{outline:none}
 .filter-btn{flex:1;padding:10px 0;border-radius:10px;background:#EBEBEB;color:var(--mute);font-weight:800;font-size:12px}
 .filter-btn.active{background:var(--ink);color:#fff}
 .kpi-row{display:flex;gap:8px;margin-bottom:10px}
+/* 📋 Fiche bilan en colonnes sur iPad et ordinateur : moins de défilement. */
+.bl-sec{break-inside:avoid;-webkit-column-break-inside:avoid;page-break-inside:avoid;display:inline-block;width:100%;padding:2px 0 10px}
+@media (min-width:760px){
+  .app.bl-app{max-width:1180px!important}
+  .bl-cols{column-count:2;column-gap:22px}
+  .bl-sec{border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:16px;background:var(--card)}
+}
+@media (min-width:1150px){.bl-cols{column-count:3}}
+.bl-zt{width:100%;border-collapse:separate;border-spacing:0 3px;font-size:12px;margin-top:6px}
+.bl-zt td{padding:6px 8px;font-weight:800;color:#1B2430;text-align:center}
+.bl-zt td:first-child{text-align:left;border-radius:8px 0 0 8px}
+.bl-zt td:last-child{border-radius:0 8px 8px 0}
+.bl-zt tr.on td{outline:2.5px solid #1B2430;outline-offset:-2px}
+.bl-mt{width:100%;border-collapse:collapse;font-size:12.5px;margin:4px 0 12px}
+.bl-mt th{color:var(--brand);font-size:11px;font-weight:900;padding:6px 4px;text-align:center}
+.bl-mt td{padding:4px;border-bottom:1px solid var(--line)}
+.bl-mt td.lb{background:var(--brand);color:#fff;font-weight:800;padding:8px 9px;border-radius:0;white-space:nowrap}
+.bl-mt input{width:100%;padding:9px 6px;margin:0!important;font-size:15px;text-align:center}
 .kpi-card{flex:1;background:#fff;border-radius:14px;padding:14px 16px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.06)}
 .kpi-val{font-size:22px;font-weight:900}
 .kpi-lbl{font-size:11px;color:var(--mute);margin-top:3px;font-weight:700}
@@ -1145,7 +1163,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="15/10 - Reequilibrage offert apres Reset";
+var APP_VERSION="19/10b - Objectif reequilibrage + superviseur kg";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -2744,6 +2762,16 @@ function gcalLink(task,dateStr,hour){
   return "https://calendar.google.com/calendar/render?action=TEMPLATE&text="+encodeURIComponent("⚡ ONE THING : "+task)+"&dates="+start+"/"+end+"&details="+encodeURIComponent("Ma mission de conquête du jour — AM Coach TransfoPhysique. 5-4-3-2-1 GO !");
 }
 
+// Quel objectif est en cours : celui du mois (90 jours), celui du programme
+// court, ou — après un Reset — celui du rééquilibrage (slot 104), qui repart
+// de zéro au jour 15. Le diplôme du Reset reste, l'objectif est neuf.
+function goalMois(allData,start,today90){
+  try{
+    if(progReeq(allData)&&today90>=14)return 4;
+    if((progLen(start,allData)||90)<90)return 1;
+  }catch(e){}
+  return currentMonth(today90);
+}
 function getGoal(allData,month){
   // Objectifs stockés en day_index 101/102/103
   var g=allData[100+month];
@@ -3681,6 +3709,9 @@ function supMoment(allData,today90,ton){
         if(!isNaN(v)){if(dep===null)dep=v;act=v;}
       }
     }
+    // Même poids de départ que partout (bilan d'entrée) : sinon le
+    // superviseur annonçait −4 kg quand l'accueil affichait −5 kg.
+    try{var __PDk=poidsDepart(allData,lsGetStr("amcoach_start_"+CLIENT));if(__PDk&&act!=null)dep=__PDk.v;}catch(e){}
     if(dep!=null&&act!=null){
       var perdu=Math.round((dep-act)*10)/10;
       var pal2=Math.floor(perdu/2)*2;
@@ -3704,7 +3735,8 @@ function supMoment(allData,today90,ton){
           if(!vus["kg"+p])basK.push("kg"+p);
         }
         if(basK.length)vus=momentRetirer(basK);
-        if(kFrais&&!vus["kg"+pal2])return {cle:"kg"+pal2,txt:momentTexte("kilos",ton,pal2)};
+        // Le palier déclenche le message, le chiffre affiché est le vrai.
+        if(kFrais&&!vus["kg"+pal2])return {cle:"kg"+pal2,txt:momentTexte("kilos",ton,String(perdu).replace(".",","))};
       }
     }
   }catch(e){}
@@ -3774,7 +3806,7 @@ function supMessage(allData,today90,pct){
   try{TG=statTendance(poidsV);TR=statTendance(poidsV,10);}catch(e){}
   var atteint=false;
   try{
-    var g=getGoal(allData,currentMonth(today90));
+    var g=getGoal(allData,goalMois(allData,lsGetStr("amcoach_start_"+CLIENT),today90));
     var cible=(g&&g.target)?parseFloat(g.target):null;
     var act=null;
     for(var k=poidsV.length-1;k>=0;k--){if(poidsV[k]!=null){act=poidsV[k];break;}}
@@ -6719,9 +6751,11 @@ function viewCalendar(name,start){
   var reeqOn=progReeq(allData), progB=reeqOn?14:progDays;
   var shortProg=progDays<90;
   var daysLeft=Math.max(progDays-(today90+1),0);
-  var month=shortProg?1:currentMonth(today90);
+  var month=goalMois(allData,start,today90);
   var goal=getGoal(allData,month);
   var curW=latestWeight(allData,today90);
+  var phaseReeq=(month===4);
+  var objLib=phaseReeq?'Objectif rééquilibrage':objLib;
 
   var ppImg=photoProfil();
   var h='<div class="hdr" style="position:relative">'+
@@ -6894,6 +6928,8 @@ function viewCalendar(name,start){
       var pcG=0, depG=null, colG=solid("var(--brand)");
       (function(){
         try{var __PDg=poidsDepart(allData,start);if(__PDg)depG=__PDg.v;}catch(e){}
+        // Rééquilibrage : le départ, c'est le poids de fin du Reset.
+        if(phaseReeq){for(var wr=13;wr>=0;wr--){if(allData[wr]&&allData[wr].poids){var __w=parseFloat(String(allData[wr].poids).replace(",","."));if(!isNaN(__w)){depG=__w;break;}}}}
         if(depG==null)for(var w=0;w<=today90;w++){
           if(allData[w]&&allData[w].poids){depG=parseFloat(allData[w].poids);break;}
         }
@@ -6917,7 +6953,7 @@ function viewCalendar(name,start){
       h+='<div style="margin:-18px -16px 0;padding:18px 17px 20px;background:linear-gradient(135deg,'+solid("var(--brand)")+','+solid("var(--brand2)")+');border-radius:20px 20px 0 0">'+
         '<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:6px">'+
         '<span style="width:34px;height:34px;flex:0 0 34px;border-radius:11px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:17px">🎯</span>'+
-        '<span style="flex:1;font-weight:900;font-size:12px;letter-spacing:1.4px;text-transform:uppercase;color:rgba(255,255,255,.92);padding-top:9px">'+(shortProg?'Objectif '+progDays+' jours':'Objectif du mois '+month)+'</span>'+
+        '<span style="flex:1;font-weight:900;font-size:12px;letter-spacing:1.4px;text-transform:uppercase;color:rgba(255,255,255,.92);padding-top:9px">'+objLib+'</span>'+
         // Repères compacts, calés en haut à droite
         '<div style="flex:0 0 auto;text-align:right;line-height:1.35">'+
         (resteG!==null&&resteG>0?'<div style="font-size:12.5px;font-weight:900;color:#fff">Plus que '+resteG+' kg</div>':'<div style="font-size:12.5px;font-weight:900;color:#5DF2A0">🎉 Objectif atteint</div>')+
@@ -6947,7 +6983,7 @@ function viewCalendar(name,start){
             '<div style="position:absolute;right:6px;bottom:44px;font-size:96px;opacity:.16;line-height:1;pointer-events:none">'+TH.e+'</div>'+
             '<div style="position:relative">'+
             '<div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.1);border:1.5px solid '+TH.c+'66;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:11px">'+TH.e+'</div>'+
-            '<div style="font-size:10.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:'+TH.c+'">'+(reached?'✅ Récompense débloquée':'Ta récompense du mois')+'</div>'+
+            '<div style="font-size:10.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:'+TH.c+'">'+(reached?'✅ Récompense débloquée':(phaseReeq?'Ta récompense du rééquilibrage':shortProg?'Ta récompense':'Ta récompense du mois'))+'</div>'+
             '<div style="font-weight:900;font-size:24px;color:#fff;line-height:1.15;margin-top:3px">'+esc(goal.reward||"À définir")+'</div>'+
             '<div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-top:7px">'+
             (reached
@@ -6959,10 +6995,10 @@ function viewCalendar(name,start){
         '<div style="font-size:13px;color:var(--mute);margin-top:13px;text-align:center;line-height:1.5">'+phrase+'</div>';
       // 🎉 Première fois : la fête plein écran (cliente seulement)
       if(reached&&!IS_COACH){
-        var __kF="amcoach_objfete_"+(CLIENT||"")+"_"+(shortProg?"p":month)+"_"+goal.target;
+        var __kF="amcoach_objfete_"+(CLIENT||"")+"_"+(phaseReeq?"r":shortProg?"p":month)+"_"+goal.target;
         var __vu=null; try{__vu=localStorage.getItem(__kF);}catch(x){__vu="1";}
         if(!__vu){
-          h+=objFeteHTML(__kF,(shortProg?'Objectif '+progDays+' jours':'Objectif du mois '+month),
+          h+=objFeteHTML(__kF,objLib,
             (depG!=null?depG+' kg → <b>'+curW+' kg</b>'+(perduG>0?' · −'+perduG+' kg':''):'Objectif '+goal.target+' kg atteint'),
             goal.reward,rewardTheme(goal.reward));
           try{if(navigator.vibrate)setTimeout(function(){navigator.vibrate([60,40,140]);},1500);}catch(x){}
@@ -6971,12 +7007,12 @@ function viewCalendar(name,start){
     }
     h+='</div>';
   }else{
-    h+='<button id="goal-set" class="card" style="width:calc(100% - 28px);margin-bottom:18px;border:2px dashed #DDD;text-align:center;padding:16px;font-weight:800;font-size:14px;color:var(--mute);cursor:pointer">🎯 Définir mon objectif '+(shortProg?'('+progDays+' jours)':'du mois '+month)+' →</button>';
+    h+='<button id="goal-set" class="card" style="width:calc(100% - 28px);margin-bottom:18px;border:2px dashed #DDD;text-align:center;padding:16px;font-weight:800;font-size:14px;color:var(--mute);cursor:pointer">🎯 Définir mon objectif '+(phaseReeq?'rééquilibrage (28 jours)':shortProg?'('+progB+' jours)':'du mois '+month)+' →</button>';
   }
   if(state.showGoalForm){
     var g0=goal||{};
     h+='<div class="card" style="margin-bottom:18px;padding:18px 16px">'+
-      '<div style="font-weight:900;font-size:14px;margin-bottom:14px">🎯 Mon objectif — '+(shortProg?'fin des '+progDays+' jours':'fin du mois '+month)+'</div>'+
+      '<div style="font-weight:900;font-size:14px;margin-bottom:14px">🎯 Mon objectif — '+(phaseReeq?'fin du rééquilibrage':shortProg?'fin des '+progB+' jours':'fin du mois '+month)+'</div>'+
       '<div style="font-weight:800;font-size:11px;color:var(--mute);margin-bottom:6px">POIDS CIBLE (KG)</div>'+
       '<input id="goal-target" type="number" step="0.1" class="num-input" value="'+(g0.target||"")+'" placeholder="ex: 78" style="margin-bottom:12px"/>'+
       '<div style="font-weight:800;font-size:11px;color:var(--mute);margin-bottom:6px">🎁 MA RÉCOMPENSE SI JE RÉUSSIS</div>'+
@@ -8542,6 +8578,10 @@ function openRapportSimple(name,start,period,dataOverride){
   // regarde la période écoulée, ce qui rend la comparaison possible.
   var fin=Math.min(t90,89);
   var deb=Math.max(0,fin-period+1);
+  // Rapport « programme complet » (14 jours d'un Reset, 42 d'un 6 semaines) :
+  // du jour 1 au dernier jour du programme, même consulté plus tard.
+  try{var __pb=progBase(start,allData),__pl=progLen(start,allData);
+    if(period===__pb||period===__pl){fin=Math.min(t90,period-1);deb=0;}}catch(e){}
   var jours=[],remplis=0,scores=[],poids=[],somm=[];
   for(var i=deb;i<=fin;i++){
     var d=allData[i]||{};
@@ -8705,6 +8745,18 @@ function openRapportSimple(name,start,period,dataOverride){
     vcoul="#C75B4A";vemo="🤝";salut="Parlons-en,";
   }
 
+  // 🏆 LE RÉSULTAT PASSE AVANT LE RESTE. Masta : −5 kg en 14 jours, et le
+  // rapport titrait « Bien parti » avec « le rythme a baissé » en rouge.
+  // Quand la balance a vraiment bougé (−3 kg, ou −3 % du poids de départ),
+  // on le dit d'abord ; la case à renforcer vient ensuite, en conseil.
+  var gros=(dPoids!=null&&dPoids<0&&(dPoids<=-3||(pDepart&&-dPoids/pDepart>=0.03)));
+  if(gros){
+    var kgTxt=String(-dPoids).replace(".",",");
+    verdict="−"+kgTxt+" kg depuis le départ"+(deb===0?" en "+nbJours+" jours":"")+" : c'est un résultat remarquable."+
+      (pilKO&&priorite?" Pour aller encore plus loin, « "+priorite.lab+" » est la case à renforcer.":" Tu tiens tes piliers : continue exactement comme ça.");
+    vcoul="#2FBF71";vemo="🏆";salut="Bravo";
+  }
+
   // UNE action pour la semaine. Une seule : c'est ce qui la rend faisable.
   var action;
   if(priorite&&assidu>=65){
@@ -8757,16 +8809,16 @@ function openRapportSimple(name,start,period,dataOverride){
     // que rien ne va est contre-productif : la cliente cesse de croire les
     // félicitations, y compris celles qu'elle mérite vraiment.
     '<div class="hd"><h1>'+esc(salut)+' '+esc(name)+(salut==="Bravo"?' 👏':'')+'</h1>'+
-    '<p>Ton bilan après '+nbJours+' jour'+(nbJours>1?'s':'')+'</p></div>'+
+    '<p>'+(function(){try{var __b=progBase(start,allData);if(__b<=14&&nbJours>=14)return 'Ton bilan du Reset 14 jours';}catch(e){}return 'Ton bilan après '+nbJours+' jour'+(nbJours>1?'s':'');})()+'</p></div>'+
     '<div class="v"><div class="e">'+vemo+'</div><div class="t" style="color:'+vcoul+'">'+verdict+'</div>'+
     // La comparaison passe AVANT les chiffres : « as-tu rectifié depuis la
     // dernière fois » compte plus que le niveau absolu.
     (deltaAssidu!=null?'<div style="margin-top:11px;padding:11px 13px;border-radius:12px;background:'+
-      (deltaAssidu>0?'#EAF8F0':deltaAssidu<0?'#FDF1EC':'#F2F4F7')+'">'+
+      (deltaAssidu>0?'#EAF8F0':(deltaAssidu<0&&!gros)?'#FDF1EC':'#F2F4F7')+'">'+
       '<div style="font-size:11px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:#7A8698">Par rapport aux '+period+' jours d\'avant</div>'+
-      '<div style="font-size:14px;font-weight:800;margin-top:3px;color:'+(deltaAssidu>0?'#2FBF71':deltaAssidu<0?'#C75B4A':'#1B2430')+'">'+
+      '<div style="font-size:14px;font-weight:800;margin-top:3px;color:'+(deltaAssidu>0?'#2FBF71':(deltaAssidu<0&&!gros)?'#C75B4A':'#1B2430')+'">'+
       (deltaAssidu>0?'▲ +'+deltaAssidu+' points d\'assiduité — tu as rectifié 👏':
-       deltaAssidu<0?'▼ '+deltaAssidu+' points — le rythme a baissé':'▬ Même niveau qu\'avant')+'</div>'+
+       deltaAssidu<0?(gros?'▼ '+deltaAssidu+' points de régularité — les résultats sont là, garde le rythme':'▼ '+deltaAssidu+' points — le rythme a baissé'):'▬ Même niveau qu\'avant')+'</div>'+
       '<div style="font-size:12px;color:#7A8698;margin-top:3px">'+prevAssidu+' % avant → '+assidu+' % maintenant</div></div>':'')+
     '</div>'+
     '<div class="k">'+
@@ -14497,7 +14549,9 @@ function viewCoachDetail(){
       '<button class="cd-rapfmt" data-f="simple" style="flex:1;padding:9px 4px;border-radius:9px;border:1.5px solid '+(state.rapFmt!=="detail"?"var(--brand)":"var(--line)")+';background:'+(state.rapFmt!=="detail"?"var(--soft)":"#fff")+';font-size:11.5px;font-weight:800;color:'+(state.rapFmt!=="detail"?"var(--ink)":"var(--mute)")+'">👤 Simple (client)</button>'+
       '<button class="cd-rapfmt" data-f="detail" style="flex:1;padding:9px 4px;border-radius:9px;border:1.5px solid '+(state.rapFmt==="detail"?"var(--brand)":"var(--line)")+';background:'+(state.rapFmt==="detail"?"var(--soft)":"#fff")+';font-size:11.5px;font-weight:800;color:'+(state.rapFmt==="detail"?"var(--ink)":"var(--mute)")+'">📊 Détaillé (moi)</button></div>'+
       '<div style="display:flex;gap:6px;margin-bottom:8px">';
-    var per=[7,30,60,90];
+    // Les boutons suivent le programme : un Reset s'analyse à 7 et 14 jours.
+    var __stP=lsGetStr("amcoach_start_"+c.slug)||c.start_date, __bP=progBase(__stP,allData), __rq=progReeq(allData);
+    var per=__bP<=14?(__rq?[7,14,28,42]:[7,14]):(__bP<=42?[7,21,42]:[7,30,60,90]);
     for(var pi=0;pi<per.length;pi++){
       var nn=0;for(var xx=0;xx<per[pi];xx++){if(allData[xx]&&Object.keys(allData[xx]).length>0)nn++;}
       h+='<button class="cd-rap" data-p="'+per[pi]+'" style="flex:1;padding:10px 2px;border-radius:9px;border:1.5px solid '+(nn?"var(--gold)":"var(--line)")+';background:#fff;color:'+(nn?"#8A6A2F":"#CCC")+';font-weight:900;font-size:11.5px">J'+per[pi]+'</button>';
@@ -14724,18 +14778,20 @@ function coachAnalytics(){
     }
     // Poids : premier et dernier renseignés
     var p1=null,p2=null;
-    for(var w=0;w<dur;w++){if(d[w]&&d[w].poids){var v=parseFloat(d[w].poids);if(p1===null)p1=v;p2=v;}}
+    for(var w=0;w<dur;w++){if(d[w]&&d[w].poids){var v=parseFloat(String(d[w].poids).replace(",","."));if(!isNaN(v)){if(p1===null)p1=v;p2=v;}}}
+    // Même poids de départ que partout ailleurs : le bilan d'entrée s'il existe
+    try{var __pd=poidsDepart(d,c.start_date);if(__pd&&p2!=null)p1=__pd.v;}catch(e){}
     var perte=(p1!=null&&p2!=null)?Math.round((p1-p2)*10)/10:null;
     // 🎯 Résultat : évalué UNIQUEMENT au bilan final, jamais sur une pesée du jour.
     // Un client au jour 20 n'a pas « raté » son objectif — il n'est pas encore évalué.
-    var b6=d[600]||{}, cles=[];
-    for(var bk in b6){if(b6.hasOwnProperty(bk)&&b6[bk])cles.push(bk);}
-    cles.sort();
+    // Les analyses sont rangées dans 600.list (l'ancien code lisait des clés
+    // datées qui n'existent plus : tous les résultats tombaient à 0).
+    var b6=d[600]||{}, L6=Array.isArray(b6.list)?b6.list:[];
     var prem=null,dern=null;
-    for(var ck=0;ck<cles.length;ck++){
-      var bb=b6[cles[ck]];
-      if(!prem&&bb.poids&&bb.poidsCible)prem={k:cles[ck],o:bb};
-      if(bb.poids)dern={k:cles[ck],o:bb};
+    for(var ck=0;ck<L6.length;ck++){
+      var bb=L6[ck]||{};
+      if(!prem&&bb.poids&&bb.poidsCible)prem={k:ck,o:bb};
+      if(bb.poids)dern={k:ck,o:bb};
     }
     var obj=null, enAttente=false;
     if(prem){
@@ -14754,19 +14810,23 @@ function coachAnalytics(){
     }
     // Statut : fini / actif / décroché (rien depuis 10 jours et programme non terminé)
     var ecart=t90-last;
-    var fini=last>=dur-1||t90>=dur-1&&remplis>=dur*0.6;
-    var lache=!fini&&last>=0&&ecart>10;
-    if(fini)out.finis++; else if(lache)out.abandons++; else out.actifs++;
+    // ⏳ Pas encore commencé : ni en cours, ni compté dans les moyennes.
+    var avenir=false; try{avenir=joursAvantDepart(c.start_date)>0;}catch(e){}
+    var fini=!avenir&&(last>=dur-1||t90>=dur-1&&remplis>=dur*0.6);
+    var lache=!avenir&&!fini&&last>=0&&ecart>10;
+    if(avenir)out.avenir=(out.avenir||0)+1;
+    else if(fini)out.finis++; else if(lache)out.abandons++; else out.actifs++;
     if(lache)out.jourAbandon.push(last+1);
-    // Seuls les résultats validés au bilan alimentent les KPI de résultat
-    if(obj){out.pertes.push(obj.fait);out.kgTotal+=obj.fait;}
-    out.remplissage.push(dur>0?Math.round(remplis/Math.min(t90+1,dur)*100):0);
-    out.series.push(bestStreak(d,Math.min(dur-1,Math.max(0,t90))));
+    // ⚖️ Kilos perdus : départ (bilan d'entrée ou J1) → dernière pesée.
+    if(!avenir&&perte!=null&&perte>0){out.pertes.push(perte);out.kgTotal+=perte;}
+    if(!avenir)out.remplissage.push(dur>0?Math.round(remplis/Math.min(t90+1,dur)*100):0);
+    if(!avenir)out.series.push(bestStreak(d,Math.min(dur-1,Math.max(0,t90))));
     if(obj){out.objectifs.push(obj);if(obj.atteint)out.objAtteints++;}
     if(enAttente)out.enAttente++;
     out.clients.push({nom:c.name,slug:c.slug,jour:Math.min(t90+1,dur),dernier:last+1,
                       remplis:remplis,duree:dur,perte:perte,obj:obj,enAttente:enAttente,
-                      statut:fini?"fini":lache?"lache":"actif",inactifDepuis:ecart});
+                      statut:avenir?"avenir":fini?"fini":lache?"lache":"actif",inactifDepuis:ecart,
+                      depart:c.start_date});
   }
   // Courbe de rétention : combien ont atteint chaque palier
   var seuils=[7,14,30,60,90];
@@ -14786,7 +14846,11 @@ function coachAnalytics(){
   out.serieMax=out.series.length?Math.max.apply(null,out.series):null;
   out.abandonMed=out.jourAbandon.length?out.jourAbandon.slice().sort(function(a,b){return a-b;})[Math.floor(out.jourAbandon.length/2)]:null;
   out.meilleurePerte=out.pertes.length?Math.max.apply(null,out.pertes):null;
-  out.tauxFin=out.total?Math.round(out.finis/out.total*100):0;
+  // « Vont au bout » : seulement parmi ceux dont le programme est joué
+  // (finis ou décrochés). Les clients en cours ne comptent pas encore.
+  out.joues=out.finis+out.abandons;
+  out.tauxFin=out.joues?Math.round(out.finis/out.joues*100):0;
+  out.kgTotal=Math.round(out.kgTotal*10)/10;
   // Taux d'objectifs atteints, calculé uniquement sur les clients qui en ont un
   out.objTotal=out.objectifs.length;
   out.tauxObj=out.objTotal?Math.round(out.objAtteints/out.objTotal*100):null;
@@ -14816,7 +14880,8 @@ function viewCoachStats(){
     '<div class="kpi-card"><div class="kpi-val" style="color:var(--brand2)">'+A.actifs+'</div><div class="kpi-lbl">En cours</div></div></div>'+
     '<div class="kpi-row" style="margin-bottom:16px">'+
     '<div class="kpi-card"><div class="kpi-val" style="color:'+(A.abandons?"var(--warn-d)":"var(--mute)")+'">'+A.abandons+'</div><div class="kpi-lbl">Décrochés</div></div>'+
-    '<div class="kpi-card"><div class="kpi-val" style="color:'+gaugeCol(A.tauxFin)+'">'+A.tauxFin+'%</div><div class="kpi-lbl">Taux de complétion</div></div></div>';
+    '<div class="kpi-card"><div class="kpi-val" style="color:'+(A.joues?gaugeCol(A.tauxFin):"var(--mute)")+'">'+(A.joues?A.tauxFin+'%':'—')+'</div><div class="kpi-lbl">Vont au bout'+(A.joues?' ('+A.finis+'/'+A.joues+')':'')+'</div></div></div>'+
+    (A.avenir?'<div style="font-size:11.5px;color:var(--mute);margin:-8px 0 14px;font-weight:700">⏳ '+A.avenir+' client'+(A.avenir>1?'s':'')+' à venir, pas encore compté'+(A.avenir>1?'s':'')+'.</div>':'');
 
   // ── Où ils décrochent
   h+='<div class="card" style="padding:16px">'+
@@ -14869,12 +14934,12 @@ function viewCoachStats(){
   var ordre=A.clients.slice().sort(function(a,b){return b.remplis-a.remplis;});
   for(var ci=0;ci<ordre.length;ci++){
     var C=ordre[ci];
-    var badge=C.statut==="fini"?{t:"Terminé",c:"var(--ok)"}:C.statut==="lache"?{t:"Décroché",c:"var(--warn-d)"}:{t:"En cours",c:"var(--brand2)"};
+    var badge=C.statut==="avenir"?{t:"À venir",c:"#3B6FD8"}:C.statut==="fini"?{t:"Terminé",c:"var(--ok)"}:C.statut==="lache"?{t:"Décroché",c:"var(--warn-d)"}:{t:"En cours",c:"var(--brand2)"};
     var pct=C.duree?Math.round(C.remplis/C.duree*100):0;
     h+='<div style="display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid var(--line)">'+
       '<div style="flex:1;min-width:0">'+
       '<div style="font-weight:800;font-size:13.5px">'+esc(C.nom)+'</div>'+
-      '<div style="font-size:11px;color:var(--mute);font-weight:700">J'+C.jour+'/'+C.duree+' · '+C.remplis+' remplis'+
+      '<div style="font-size:11px;color:var(--mute);font-weight:700">'+(C.statut==="avenir"?'⏳ Démarre le '+dateCourteFR(C.depart)+' · '+C.duree+' jours':'J'+C.jour+'/'+C.duree+' · '+C.remplis+' remplis')+
       (C.perte!=null?' · '+(C.perte>0?'−':'+')+Math.abs(C.perte)+' kg':'')+
       (C.obj?(C.obj.atteint?' · 🎯 objectif atteint'+(C.obj.bonus>0?' +'+C.obj.bonus+' kg bonus':''):' · 🎯 '+C.obj.pct+'% de la cible')
             :(C.enAttente?' · ⏳ bilan final à faire':''))+
@@ -17182,6 +17247,91 @@ function bilanInput(id,label,ph,type,val){
   return '<div class="card-label">'+label+'</div><input id="'+id+'" class="num-input" type="'+(type||"number")+'" '+(type==="text"?'':'step="0.1" inputmode="decimal"')+' placeholder="'+(ph||"")+'"'+
     (val!==undefined&&val!==null&&val!==""?' value="'+esc(String(val))+'"':'')+' style="margin-bottom:10px"/>';
 }
+
+// ═══════════ 📊 ZONES IMC ET % DE GRAS (fiche bilan) ═══════════
+// Le même visuel que la fiche papier d'Akli : une jauge IMC en demi-cercle
+// et le tableau du % de gras, avec la flèche sur la zone du client.
+var BL_IMC_Z=[[15,18.5,"#A8DDF0","Maigreur"],[18.5,25,"#6FB6E8","Normal"],[25,30,"#F2B866","Surpoids"],[30,40,"#E8804A","Obésité"],[40,45,"#DD4B3E","Obésité massive"]];
+var BL_MG_Z=[["Idéal","#7BE36B",[8,12],[10,15]],["Correct","#D6F75A",[13,16],[16,20]],["Léger engraissement","#F5F05A",[17,25],[21,30]],
+  ["Engraissement marqué","#F0BE78",[26,30],[31,40]],["Santé en danger","#E8896A",[31,40],[41,50]],["Pronostic vital","#E06A5E",[41,null],[51,null]]];
+function blMgZone(sx,mg){
+  if(!(mg>0))return -1;
+  var col=(sx==="F")?3:2;
+  for(var i=0;i<BL_MG_Z.length;i++){var r=BL_MG_Z[i][col];if(r[1]==null||mg<r[1]+1)return i;}
+  return BL_MG_Z.length-1;
+}
+function blImcSVG(imc){
+  var cx=120,cy=112,R=96,r=56;
+  function ang(v){v=Math.max(15,Math.min(45,v));return Math.PI*(1-(v-15)/30);}
+  function pt(a,rad){return [cx+rad*Math.cos(a),cy-rad*Math.sin(a)];}
+  var g='';
+  BL_IMC_Z.forEach(function(z){
+    var a0=ang(z[0]),a1=ang(z[1]),p0=pt(a0,R),p1=pt(a1,R),q1=pt(a1,r),q0=pt(a0,r);
+    g+='<path d="M'+p0[0].toFixed(1)+' '+p0[1].toFixed(1)+' A'+R+' '+R+' 0 0 1 '+p1[0].toFixed(1)+' '+p1[1].toFixed(1)+
+      ' L'+q1[0].toFixed(1)+' '+q1[1].toFixed(1)+' A'+r+' '+r+' 0 0 0 '+q0[0].toFixed(1)+' '+q0[1].toFixed(1)+'Z" fill="'+z[2]+'"/>';
+  });
+  [18.5,25,30,40].forEach(function(v){var p=pt(ang(v),R+11);g+='<text x="'+p[0].toFixed(1)+'" y="'+p[1].toFixed(1)+'" font-size="9.5" font-weight="800" text-anchor="middle" fill="#5A6472">'+String(v).replace(".",",")+'</text>';});
+  if(imc>0){
+    var a=ang(imc),tip=pt(a,R-4);
+    g+='<line x1="'+cx+'" y1="'+cy+'" x2="'+tip[0].toFixed(1)+'" y2="'+tip[1].toFixed(1)+'" stroke="#1B2430" stroke-width="4" stroke-linecap="round"/>'+
+      '<circle cx="'+cx+'" cy="'+cy+'" r="7" fill="#1B2430"/>';
+  }
+  return '<svg viewBox="0 0 240 124" style="width:100%;max-width:300px;display:block;margin:0 auto">'+g+'</svg>';
+}
+function blZonesHTML(sx,poids,taille,mg,mgc){
+  var imc=(poids>0&&taille>0)?poids/Math.pow(taille/100,2):null;
+  var h='';
+  if(imc){
+    var zi=0;for(var i=0;i<BL_IMC_Z.length;i++){if(imc>=BL_IMC_Z[i][0])zi=i;}
+    h+='<div style="background:var(--soft);border-radius:13px;padding:11px 12px;margin:4px 0 10px">'+
+      '<div style="font-size:11px;font-weight:900;letter-spacing:.6px;color:var(--mute);text-transform:uppercase">IMC</div>'+blImcSVG(imc)+
+      '<div style="text-align:center;font-weight:900;font-size:15px;margin-top:-2px">IMC '+imc.toFixed(1).replace(".",",")+
+      ' · <span style="color:'+BL_IMC_Z[zi][2].replace("#A8DDF0","#3A9CC4")+'">'+BL_IMC_Z[zi][3]+'</span></div></div>';
+  }
+  if(mg>0){
+    var zc=blMgZone(sx,mg), zt=(mgc>0)?blMgZone(sx,mgc):-1, colH=(sx!=="F");
+    h+='<div style="background:var(--soft);border-radius:13px;padding:11px 12px;margin:0 0 10px">'+
+      '<div style="font-size:11px;font-weight:900;letter-spacing:.6px;color:var(--mute);text-transform:uppercase">% de gras · '+(colH?'homme':'femme')+'</div>'+
+      '<table class="bl-zt"><tr><td style="background:transparent"></td><td style="background:transparent;font-size:10.5px;color:var(--mute)'+(colH?';color:var(--ink)':'')+'">Hommes</td><td style="background:transparent;font-size:10.5px;color:var(--mute)'+(!colH?';color:var(--ink)':'')+'">Femmes</td><td style="background:transparent"></td></tr>';
+    BL_MG_Z.forEach(function(z,i){
+      function rg(a){return a[1]==null?a[0]+' et +':a[0]+' à '+a[1];}
+      var mark=(i===zc?'◀ '+String(mg).replace(".",",")+' %':'')+(i===zt?(i===zc?' · ':'')+'🎯 '+String(mgc).replace(".",",")+' %':'');
+      h+='<tr class="'+(i===zc?'on':'')+'"><td style="background:'+z[1]+'">'+z[0]+'</td>'+
+        '<td style="background:'+z[1]+(colH?'':';opacity:.55')+'">'+rg(z[2])+'</td><td style="background:'+z[1]+(!colH?'':';opacity:.55')+'">'+rg(z[3])+'</td>'+
+        '<td style="background:transparent;text-align:left;white-space:nowrap;font-size:11.5px">'+mark+'</td></tr>';
+    });
+    h+='</table></div>';
+  }
+  return h;
+}
+function blZonesMaj(){
+  var el=document.getElementById("bl-zones"); if(!el)return;
+  function nv(id){var e=document.getElementById(id);return e?parseFloat(String(e.value).replace(",",".")):NaN;}
+  el.innerHTML=blZonesHTML(state.blSexe||"H",nv("bl-poids"),nv("bl-taille"),nv("bl-mg"),nv("bl-mgc"));
+}
+// Silhouettes homme / femme avec les tours à mesurer (poitrine, nombril).
+function blSilhouetteSVG(){
+  var c="var(--brand)", k="#2A3038";
+  function fl(x1,x2,y){return '<line x1="'+x1+'" y1="'+y+'" x2="'+x2+'" y2="'+y+'" stroke="'+c+'" stroke-width="2.4" marker-start="url(#blA)" marker-end="url(#blA)"/>';}
+  return '<svg viewBox="0 0 230 200" style="width:100%;max-width:280px;display:block;margin:2px auto 8px">'+
+    '<defs><marker id="blA" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="'+c+'"/></marker></defs>'+
+    // homme
+    '<circle cx="80" cy="22" r="12" fill="'+k+'"/>'+
+    '<path d="M56 42 Q80 34 104 42 L106 84 Q103 100 100 110 L60 110 Q57 100 54 84 Z" fill="'+k+'"/>'+
+    '<rect x="42" y="44" width="11" height="68" rx="5.5" fill="'+k+'" transform="rotate(6 47 44)"/>'+
+    '<rect x="107" y="44" width="11" height="68" rx="5.5" fill="'+k+'" transform="rotate(-6 112 44)"/>'+
+    '<rect x="62" y="106" width="15" height="82" rx="7" fill="'+k+'"/><rect x="83" y="106" width="15" height="82" rx="7" fill="'+k+'"/>'+
+    // femme
+    '<circle cx="160" cy="22" r="11" fill="'+k+'"/><circle cx="160" cy="9" r="5" fill="'+k+'"/>'+
+    '<path d="M141 42 Q160 36 179 42 L176 64 Q170 78 172 88 Q182 102 180 112 L140 112 Q138 102 148 88 Q150 78 144 64 Z" fill="'+k+'"/>'+
+    '<rect x="129" y="44" width="9" height="62" rx="4.5" fill="'+k+'" transform="rotate(8 133 44)"/>'+
+    '<rect x="182" y="44" width="9" height="62" rx="4.5" fill="'+k+'" transform="rotate(-8 186 44)"/>'+
+    '<rect x="143" y="108" width="14" height="80" rx="7" fill="'+k+'"/><rect x="163" y="108" width="14" height="80" rx="7" fill="'+k+'"/>'+
+    fl(57,103,56)+fl(62,98,90)+fl(144,176,55)+fl(149,171,84)+
+    '<line x1="18" y1="8" x2="18" y2="190" stroke="'+c+'" stroke-width="2.4" marker-start="url(#blA)" marker-end="url(#blA)"/>'+
+    '<line x1="212" y1="8" x2="212" y2="190" stroke="'+c+'" stroke-width="2.4" marker-start="url(#blA)" marker-end="url(#blA)"/>'+
+  '</svg>';
+}
 // ═══════════ 💾 BROUILLON DE BILAN ═══════════
 // Un bilan se remplit en plusieurs fois, parfois pendant la séance.
 // Tout ce qui est tapé est sauvegardé au fil de l'eau : fermer l'app ne perd rien.
@@ -17286,10 +17436,10 @@ function viewCoachBilan(){
     var __pn=String(cName||"").trim().split(/\s+/); idPre=__pn[0]||""; idNom=__pn.slice(1).join(" ");
     bl=(lsGet("amcoach_"+slug,{})[600]||{}).list||[];
   }
-  var h='<div class="app" style="max-width:480px">'+
+  var h='<div class="app bl-app" style="max-width:480px">'+
     '<div class="hdr"><div style="display:flex;align-items:center;gap:12px">'+
     '<button id="bl-back" class="day-back">←</button>'+
-    '<div style="flex:1"><div style="color:#fff;font-weight:900;font-size:16px">📋 Bilans — '+esc(cName)+'</div>'+
+    '<div style="flex:1"><div style="color:var(--ink);font-weight:900;font-size:16px">📋 Bilans — '+esc(cName)+'</div>'+
     '<div style="color:var(--mute);font-size:12px">Analyse '+(bl.length+1)+' · Méthode AM Transfo Physique</div></div></div></div>'+
     '<div style="padding:16px 14px 40px">';
   // 🚀 CONVERSION : le prospect signe → on crée son lien tracker et ses
@@ -17420,6 +17570,7 @@ function viewCoachBilan(){
     (__prec?'<div style="background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:12px">'+
       '<div style="font-size:12px;font-weight:800;color:var(--ink)">🔁 Repris de l\'analyse du '+esc(__prec.date||"précédente")+'</div>'+
       '<div style="font-size:11px;color:var(--mute);margin-top:3px;line-height:1.45">Identité, taille et distances de repère sont déjà remplies. Les tours de mesure restent vides : ce sont eux qui changent.</div></div>':'')+
+    '<div class="bl-cols"><div class="bl-sec">'+
     '<div style="font-weight:900;font-size:12px;color:var(--violet);margin:2px 0 8px">IDENTITÉ</div>'+
     '<div style="display:flex;gap:8px"><div style="flex:1">'+bilanInput("bl-prenom","PRÉNOM","","text",pv("prenom")||idPre||cName)+'</div>'+
     '<div style="flex:1">'+bilanInput("bl-nom","NOM","","text",pv("nom")||idNom)+'</div></div>'+
@@ -17433,10 +17584,11 @@ function viewCoachBilan(){
     '<div class="card-label">DATE DE NAISSANCE</div><input id="bl-naiss" class="num-input" type="date" value="'+esc(frVersIso(pv("naiss")||__bdayTracker))+'" style="margin-bottom:10px"/>'+
     '<div style="font-size:10.5px;color:var(--mute);font-weight:700;margin:-4px 0 12px;line-height:1.4">Reportée dans le tracker de la cliente si elle y manque.</div>'+
     '<div class="card-label">DATE DE L\'ANALYSE</div><input id="bl-date" class="num-input" type="date" value="'+esc(frVersIso((__ed&&__ed.date)||dstr)||isoLocal())+'" style="margin-bottom:12px"/>'+
+    '</div><div class="bl-sec">'+
     '<div style="font-weight:900;font-size:12px;color:var(--violet);margin:8px 0 8px">OBJECTIFS & PROBLÈMES PHYSIQUES</div>'+
     bilanInput("bl-obj1","OBJECTIF 1","","text",pv("obj1"))+bilanInput("bl-obj2","OBJECTIF 2","","text",pv("obj2"))+bilanInput("bl-obj3","OBJECTIF 3","","text",pv("obj3"))+
     '<div class="card-label">PROBLÈMES PHYSIQUES</div><textarea id="bl-pb" class="num-input" rows="2" style="margin-bottom:10px;resize:vertical"></textarea>';
-  h+='<div style="font-weight:900;font-size:12px;color:var(--violet);margin:8px 0 8px">POURQUOI & CONTEXTE</div>';
+  h+='</div><div class="bl-sec"><div style="font-weight:900;font-size:12px;color:var(--violet);margin:8px 0 8px">POURQUOI & CONTEXTE</div>';
   // 🧭 PROFILAGE — trois questions, puis le profil qu'on en tire.
   // Elles passent AVANT le reste du contexte : le profil détermine le ton de
   // tout l'entretien, il faut l'avoir en tête dès les premières minutes.
@@ -17515,17 +17667,21 @@ function viewCoachBilan(){
     h+=bilanQ("bl-q-"+BILAN_CONTEXTE[qc][0],BILAN_CONTEXTE[qc][1],BILAN_CONTEXTE[qc][2],__ed&&__ed.q?__ed.q[BILAN_CONTEXTE[qc][0]]:"");
   }
 
-  h+='<div style="font-weight:900;font-size:12px;color:var(--violet);margin:8px 0 8px">BARÈME AM TRANSFO</div>';
+  h+='</div><div class="bl-sec"><div style="font-weight:900;font-size:12px;color:var(--violet);margin:8px 0 8px">BARÈME AM TRANSFO</div>';
   for(var s3=0;s3<BILAN_SCORES.length;s3++){
     h+=bilanQ("bl-s-"+BILAN_SCORES[s3][0],(s3+1)+". "+BILAN_SCORES[s3][1],"area",__ed&&__ed.scores?__ed.scores[BILAN_SCORES[s3][0]]:"");
   }
-  h+='<div style="font-weight:900;font-size:12px;color:var(--violet);margin:8px 0 8px">HABITUDES ALIMENTAIRES</div>';
-  for(var hq=0;hq<BILAN_HAB.length;hq++){h+=bilanQ("bl-q-"+BILAN_HAB[hq][0],BILAN_HAB[hq][1],"area",__ed&&__ed.q?__ed.q[BILAN_HAB[hq][0]]:"");}
-  h+='<div style="font-weight:900;font-size:12px;color:var(--violet);margin:8px 0 8px">COMPOSITION CORPORELLE</div>'+
+  // Les 24 questions d'habitudes, longues, passent en dernier : en colonnes,
+  // composition, calcul et mesures restent ainsi côte à côte en haut.
+  var __hab='<div class="bl-sec"><div style="font-weight:900;font-size:12px;color:var(--violet);margin:8px 0 8px">HABITUDES ALIMENTAIRES</div>';
+  for(var hq=0;hq<BILAN_HAB.length;hq++){__hab+=bilanQ("bl-q-"+BILAN_HAB[hq][0],BILAN_HAB[hq][1],"area",__ed&&__ed.q?__ed.q[BILAN_HAB[hq][0]]:"");}
+  __hab+='</div>';
+  h+='</div><div class="bl-sec"><div style="font-weight:900;font-size:12px;color:var(--violet);margin:8px 0 8px">COMPOSITION CORPORELLE</div>'+
     bilanInput("bl-poids","POIDS DE DÉPART (KG)","86",null,pv("poids"))+
     bilanInput("bl-poidscible","🎯 POIDS CIBLE À 90 JOURS","78",null,pv("poidsCible"))+
     '<div style="display:flex;gap:8px"><div style="flex:1">'+bilanInput("bl-mg","% M. GRASSE","20",null,pv("mg"))+'</div><div style="flex:1">'+bilanInput("bl-mm","% M. MUSCULAIRE","38",null,pv("mm"))+'</div></div>'+
     '<div style="display:flex;gap:8px"><div style="flex:1">'+bilanInput("bl-gv","GRAISSE VISCÉRALE","8",null,pv("gv"))+'</div><div style="flex:1">'+bilanInput("bl-kcal","MÉTABOLISME (KCAL)","1800",null,pv("kcal"))+'</div></div>'+
+    '<div id="bl-zones"></div>'+
     '<div style="font-weight:900;font-size:12px;color:var(--brand2);margin:8px 0 8px">🧮 CALCUL OBJECTIF (utilise poids + % MG ci-dessus)</div>'+
     '<div class="card-label">PROFIL DE STOCKAGE</div>'+
     '<div style="display:flex;gap:6px;margin-bottom:4px">'+
@@ -17543,8 +17699,10 @@ function viewCoachBilan(){
     '<div style="flex:1">'+bilanInput("bl-perso-mois","EN COMBIEN DE MOIS","12",null,pv("persoMois"))+'</div></div>'+
     '<div id="bl-perso-out" style="font-size:12px;font-weight:800;color:var(--ok-d);line-height:1.5"></div></div>'+
     '<div id="bl-plan-out"></div>';
-  h+='<div style="font-weight:900;font-size:12px;color:var(--violet);margin:8px 0 8px">MESURES CORPORELLES (CM)</div>';
-  h+='<div style="font-size:11px;color:var(--mute);margin-bottom:8px">Bras / jambes / mollets : le tour (cm) + la distance de repère (coude ou rotule) pour reprendre toujours la même mesure au bilan suivant.</div>';
+  h+='</div><div class="bl-sec"><div style="font-weight:900;font-size:12px;color:var(--violet);margin:8px 0 8px">MESURES CORPORELLES (CM)</div>';
+  h+=blSilhouetteSVG();
+  h+='<div style="font-size:11px;color:var(--mute);margin-bottom:4px">Distance de repère (coude ou rotule) : reprise de la dernière analyse, pour mesurer toujours au même endroit.</div>';
+  h+='<table class="bl-mt"><tr><th style="text-align:left">Membres</th><th>Distance coude/rotule</th><th>Mesure (cm)</th></tr>';
   // Les DISTANCES de repère sont reprises de la dernière analyse : c'est ce
   // qui garantit qu'on mesure au même endroit, donc que les bilans restent
   // comparables. Les TOURS, eux, restent vides à dessein — un chiffre
@@ -17553,12 +17711,10 @@ function viewCoachBilan(){
     var bm2=BILAN_MESURES[m2];
     var vMes=__ed&&__ed.mesures?__ed.mesures[bm2[0]]:"";
     var vDst=__ed&&__ed.mdist?__ed.mdist[bm2[0]]:(__prec&&__prec.mdist?__prec.mdist[bm2[0]]:"");
-    if(bm2[2]){
-      h+='<div style="display:flex;gap:8px"><div style="flex:1.2">'+bilanInput("bl-m-"+bm2[0],bm2[1].toUpperCase()+" (CM)","",null,vMes)+'</div><div style="flex:1">'+bilanInput("bl-d-"+bm2[0],"DISTANCE (CM)","",null,vDst)+'</div></div>';
-    }else{
-      h+=bilanInput("bl-m-"+bm2[0],bm2[1].toUpperCase()+" (CM)","",null,vMes);
-    }
+    function __in(id,v){return '<input id="'+id+'" class="num-input" type="number" step="0.1" inputmode="decimal"'+(v!==undefined&&v!==null&&v!==""?' value="'+esc(String(v))+'"':'')+'/>';}
+    h+='<tr><td class="lb">'+esc(bm2[1])+'</td><td>'+(bm2[2]?__in("bl-d-"+bm2[0],vDst):'<div style="text-align:center;color:var(--mute)">—</div>')+'</td><td>'+__in("bl-m-"+bm2[0],vMes)+'</td></tr>';
   }
+  h+='</table></div>'+__hab+'</div>';
   h+='<div id="bl-draft-info" style="text-align:center;font-size:11px;color:var(--mute);font-weight:700;margin-bottom:9px"></div>'+
     '<button id="bl-save" class="big-btn" style="padding:15px 0;font-size:14px">'+
     (state.blEdit!=null?'✏️ Mettre à jour l&#39;analyse '+(state.blEdit+1):'💾 Enregistrer l&#39;analyse '+(bl.length+1))+'</button>'+
@@ -18056,13 +18212,13 @@ function bindCoach(){
       // qui trahit le faible volume dessert plus qu'il ne prouve.
       (function(){
         var t=[];
-        if(A.tauxObj!=null&&A.tauxObj>0)t.push([A.tauxObj+"%","objectifs atteints"]);
-        if(A.perteMoy!=null&&A.perteMoy>0)t.push([A.perteMoy,"kg perdus en moyenne"]);
+        // Akli : le poids perdu au total parle plus que les jours d'affilée.
+        if(A.kgTotal>0)t.push([String(Math.round(A.kgTotal*10)/10).replace(".",","),"kg perdus au total"]);
         if(A.remplMoy!=null&&A.remplMoy>0)t.push([A.remplMoy+"%","d'assiduité"]);
-        if(A.serieMax!=null&&A.serieMax>=7)t.push([A.serieMax,"jours d'affilée"]);
-        if(A.tauxFin>0)t.push([A.tauxFin+"%","vont au bout"]);
+        if(A.joues&&A.tauxFin>0)t.push([A.tauxFin+"%","vont au bout"]);
+        if(A.perteMoy!=null&&A.perteMoy>0)t.push([String(A.perteMoy).replace(".",","),"kg perdus en moyenne"]);
+        if(A.tauxObj!=null&&A.tauxObj>0)t.push([A.tauxObj+"%","objectifs atteints"]);
         if(A.total>=4)t.push([A.total,"clients accompagnés"]);
-        if(A.kgTotal>3&&A.total>=3)t.push([(Math.round(A.kgTotal*10)/10),"kg perdus au total"]);
         if(!t.length)return '<div style="text-align:center;color:#8A96A3;font-size:13px;line-height:1.7;padding:20px 0">Pas encore assez de recul<br>pour publier des chiffres.</div>';
         var g='<div class="grid">';
         for(var i=0;i<t.length&&i<4;i++)g+=bloc(t[i][0],t[i][1]);
@@ -18077,7 +18233,7 @@ function bindCoach(){
     var A=coachAnalytics();
     var m="📊 *AM Coach Genève — mes résultats*\n\n"+
       "👥 "+A.total+" client"+(A.total>1?"s":"")+" accompagnés\n"+
-      "🎓 "+A.finis+" programme"+(A.finis>1?"s":"")+" mené"+(A.finis>1?"s":"")+" à terme ("+A.tauxFin+" %)\n"+
+      "🎓 "+A.finis+" programme"+(A.finis>1?"s":"")+" mené"+(A.finis>1?"s":"")+" à terme"+(A.joues?" ("+A.tauxFin+" %)":"")+"\n"+
       (A.tauxObj!=null?"🎯 "+A.tauxObj+" % d'objectifs de poids atteints ("+A.objAtteints+"/"+A.objTotal+")\n":"")+
       (A.kgTotal>0?"⚖️ "+(Math.round(A.kgTotal*10)/10)+" kg perdus au total\n":"")+
       (A.perteMoy!=null?"📉 "+A.perteMoy+" kg en moyenne par personne\n":"")+
@@ -19456,8 +19612,9 @@ function bindCoach(){
   }
   ["bl-poids","bl-poidscible","bl-mg","bl-mgc","bl-taille","bl-age","bl-m-nombril"].forEach(function(id){
     var el=document.getElementById(id);
-    if(el)el.addEventListener("input",blPlanCompute);
+    if(el){el.addEventListener("input",blPlanCompute);el.addEventListener("input",blZonesMaj);}
   });
+  setTimeout(blZonesMaj,0);
   var blProfs=document.querySelectorAll(".bl-stock");
   for(var bpf=0;bpf<blProfs.length;bpf++){
     blProfs[bpf].addEventListener("click",function(){
@@ -19479,6 +19636,7 @@ function bindCoach(){
         if(b2){if(s2===sx){b2.classList.remove("gray");b2.style.background="var(--brand2)";}else{b2.classList.add("gray");b2.style.background="";}}
       });
       blPlanCompute();
+      try{blZonesMaj();}catch(e){}
       try{blDraftSauver();}catch(e){}
     });
   });
@@ -20599,7 +20757,7 @@ function bindMain(name,start){
   });
   var allData=getAllData();
   var today90=getToday90(start);
-  var month=currentMonth(today90);
+  var month=goalMois(allData,start,today90);
   // ▶️ Ouvrir la journée en cours
   var gj=document.getElementById("go-jour");
   if(gj)gj.addEventListener("click",function(){

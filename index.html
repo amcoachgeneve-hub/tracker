@@ -1163,7 +1163,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="19/10c - Seances pendant le reequilibrage";
+var APP_VERSION="19/10e - Programme du bloc suivant";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -6755,6 +6755,9 @@ function viewCalendar(name,start){
   var goal=getGoal(allData,month);
   var curW=latestWeight(allData,today90);
   var phaseReeq=(month===4);
+  // Pendant le rééquilibrage, on compte SES jours : « Jour 1 sur 28 », pas
+  // « Jour 15 » d'un programme de 42 jours qui ne veut rien dire pour elle.
+  var jAff=phaseReeq?today90-13:Math.min(today90+1,progB), durAff=phaseReeq?28:progB;
   var objLib=phaseReeq?'Objectif rééquilibrage':objLib;
 
   var ppImg=photoProfil();
@@ -6763,7 +6766,7 @@ function viewCalendar(name,start){
     '<input id="pp-file" type="file" accept="image/*" style="display:none"/>'+
     '<div class="hdr-brand"><div class="bar bar-r"></div>'+
     '<span class="hdr-title">'+(reeqOn&&today90>=14?'RÉÉQUILIBRAGE':progB<=14?'RESET 14 JOURS':progB<=42?'6 SEMAINES':'DISCIPLINE 90')+'</span><div class="bar bar-b"></div></div>'+
-    '<div class="hdr-sub">'+esc(name)+' · '+progDays+' jours'+(BLOC>1?' · Bloc '+BLOC+'/4':'')+' <span id="sync-badge" style="font-size:11px"></span></div></div>'+
+    '<div class="hdr-sub">'+esc(name)+(phaseReeq?' · 4 semaines offertes':' · '+progB+' jours')+(BLOC>1?' · Bloc '+BLOC+'/4':'')+' <span id="sync-badge" style="font-size:11px"></span></div></div>'+
     '<div style="padding:16px 14px 0">';
 
   // ⚡ RACCOURCI — la journée du jour, avant tout le reste.
@@ -6783,8 +6786,8 @@ function viewCalendar(name,start){
       '<div class="jr-ico">'+(fini?'✅':'⚡')+'</div>'+
       '<div class="jr-txt"><div class="jr-t">'+(fini?'Journée bouclée':'Remplir ma journée')+'</div>'+
       '<div class="jr-s">'+(fini
-        ? 'Jour '+(today90+1)+' · tout est noté, bravo'
-        : 'Jour '+(today90+1)+' · il te reste '+manque.join(', '))+'</div></div>'+
+        ? 'Jour '+jAff+(phaseReeq?'/28':'')+' · tout est noté, bravo'
+        : 'Jour '+jAff+(phaseReeq?'/28':'')+' · il te reste '+manque.join(', '))+'</div></div>'+
       '<div class="jr-fl">›</div></button>';
   })();
 
@@ -6814,7 +6817,7 @@ function viewCalendar(name,start){
     jjours+='<span class="sem-j'+(faitJ?" on":(passeJ?" ko":""))+'">'+LJ[(wkOff+SEM.deb+sj)%7]+'</span>';
   }
   h+='<div class="card" style="padding:24px 18px 20px;margin-bottom:16px;text-align:center">'+
-    '<div style="font-size:20px;font-weight:900;color:var(--ink);letter-spacing:-.3px;margin-bottom:4px">Ma semaine '+SEM.semaine+'</div>'+
+    '<div style="font-size:20px;font-weight:900;color:var(--ink);letter-spacing:-.3px;margin-bottom:4px">Ma semaine '+(phaseReeq?Math.floor((today90-14)/7)+1:SEM.semaine)+(phaseReeq?' · rééquilibrage':'')+'</div>'+
     '<div style="font-size:12px;font-weight:700;color:var(--mute);margin-bottom:14px">Journée validée = 🥗 nutrition · 🏋️ sport · 😴 sommeil · 🧠 les 3 questions</div>'+
     '<div class="ring-wrap" style="margin:0 auto">'+svgRing(SEM.pctSemaine/100,semCol,196,16)+
     '<div class="ring-txt" style="flex-direction:column;gap:2px">'+
@@ -6887,7 +6890,7 @@ function viewCalendar(name,start){
       '<span style="background:var(--soft2);border-radius:100px;padding:9px 15px;font-size:12.5px;font-weight:700;color:var(--ink2)"><b>'+filled+'</b> remplis</span>'+
       '<span style="background:var(--soft2);border-radius:100px;padding:9px 15px;font-size:12.5px;font-weight:700;color:var(--ink2)"><b>'+daysLeft+'</b> restants</span>'+
     '</div>'+
-    '<div style="font-size:11.5px;color:var(--mute);font-weight:700;margin-top:11px">Jour '+Math.min(today90+1,progDays)+' sur '+progDays+'</div>'+
+    '<div style="font-size:11.5px;color:var(--mute);font-weight:700;margin-top:11px">'+(phaseReeq?'Rééquilibrage · jour ':'Jour ')+jAff+' sur '+durAff+'</div>'+
     '</div>';
 
 
@@ -7039,7 +7042,7 @@ function viewCalendar(name,start){
       var SB=allData[533]||{}, nB=BLOC+1;
       if(SB.ok===nB){
         h+='<button id="next-bloc" class="card" style="width:calc(100% - 28px);margin-bottom:18px;background:'+K+';border:none;text-align:center;padding:16px;cursor:pointer">'+
-          '<div style="font-weight:900;font-size:14px;color:#fff">🔄 Démarrer le Bloc '+nB+'/4 — 90 jours de plus</div>'+
+          '<div style="font-weight:900;font-size:14px;color:#fff">🔄 Démarrer le Bloc '+nB+'/4 — '+(function(){var T=progType(SB.prog||90);return T.ico+' '+T.lib;})()+'</div>'+
           '<div style="font-size:11px;color:#5DF2A0;margin-top:3px;font-weight:800">✅ Validé par ton coach'+(SB.depart?' · départ le '+isoVersFr(SB.depart):'')+'</div></button>';
       }else if(SB.demande===nB){
         h+='<div class="card" style="margin-bottom:18px;text-align:center;padding:16px;border:2px dashed var(--line)">'+
@@ -7264,7 +7267,7 @@ function viewCalendar(name,start){
   // tout seul quand on arrive par le second appui sur l'onglet Agenda.
   h+='<details class="cal-tiroir"'+(state.calOpen?' open':'')+'>'+
     '<summary><span class="cal-sum-t">📅 Mon calendrier</span>'+
-    '<span class="cal-sum-n">jour '+Math.min(today90+1,progDays)+' sur '+progDays+'</span>'+
+    '<span class="cal-sum-n">'+(phaseReeq?'rééquilibrage · jour ':'jour ')+jAff+' sur '+durAff+'</span>'+
     '<span class="cal-sum-c">⌄</span></summary><div class="cal-corps">'+
     '<div class="legend" style="justify-content:center;margin:2px 0 12px">'+
     '<span><i style="background:var(--ok)"></i>Complet</span>'+
@@ -14999,7 +15002,7 @@ function blocDemandesHTML(slugSeul){
     if(valide&&__deja)continue;
     if(slugSeul&&valide){
       h+='<div class="card" style="padding:13px 15px;margin-bottom:14px;border:2px solid #16A34A;background:#F0FDF4;display:flex;align-items:center;gap:10px">'+
-        '<div style="flex:1;font-size:12.5px;color:#14532D;line-height:1.45"><b>✅ Bloc '+nB+'/4 validé</b><br>Départ le <b>'+isoVersFr(S.depart||S.okDate||isoLocal())+'</b></div>'+
+        '<div style="flex:1;font-size:12.5px;color:#14532D;line-height:1.45"><b>✅ Bloc '+nB+'/4 validé · '+progType(S.prog||90).ico+' '+progType(S.prog||90).lib+'</b><br>Départ le <b>'+isoVersFr(S.depart||S.okDate||isoLocal())+'</b></div>'+
         '<button class="bloc-ok" data-s="'+esc(c.slug)+'" data-b="'+nB+'" style="flex:0 0 auto;border:1.5px solid #16A34A;border-radius:11px;padding:9px 12px;background:#fff;color:#16A34A;font-weight:800;font-size:12px">📅 Changer la date</button></div>';
       continue;
     }
@@ -15011,7 +15014,7 @@ function blocDemandesHTML(slugSeul){
     }
     h+='<div class="card" style="padding:14px 15px;margin-bottom:14px;border:2px solid #25D366;background:#F0FDF4">'+
       '<div style="font-weight:900;font-size:14px;color:#14532D">'+(demande?'🔄 '+esc(c.name)+' veut continuer':'🔄 Suite de '+esc(c.name))+'</div>'+
-      '<div style="font-size:12px;color:#166534;margin:3px 0 10px;line-height:1.5">'+(demande?'Demande du '+isoVersFr(S.date||isoLocal())+' : Bloc '+nB+'/4, 90 jours de plus.':'Programme terminé. Tu peux autoriser le Bloc '+nB+'/4 d\'avance.')+'</div>'+
+      '<div style="font-size:12px;color:#166534;margin:3px 0 10px;line-height:1.5">'+(demande?'Demande du '+isoVersFr(S.date||isoLocal())+' : Bloc '+nB+'/4. Tu choisis le programme : 14 jours, 6 semaines ou 90 jours.':'Programme terminé. Tu peux autoriser la suite (Bloc '+nB+'/4) d\'avance, en 14 jours, 6 semaines ou 90 jours.')+'</div>'+
       '<div style="display:flex;gap:8px">'+
       '<button class="bloc-ok" data-s="'+esc(c.slug)+'" data-b="'+nB+'" style="flex:2;border:0;border-radius:11px;padding:11px 0;background:#16A34A;color:#fff;font-weight:900;font-size:13px">✅ Valider le Bloc '+nB+'</button>'+
       (demande?'<button class="bloc-non" data-s="'+esc(c.slug)+'" data-b="'+nB+'" style="flex:1;border:1.5px solid #DC2626;border-radius:11px;padding:11px 0;background:#fff;color:#DC2626;font-weight:800;font-size:12.5px">Pas maintenant</button>':'')+
@@ -18172,13 +18175,18 @@ function bindCoach(){
   for(var bo=0;bo<bok.length;bo++)bok[bo].addEventListener("click",function(){
     var sl=this.getAttribute("data-s"), nB=+this.getAttribute("data-b");
     var S=(lsGet("amcoach_"+sl,{})[533])||{};
-    // 📅 Date exacte de départ du bloc, choisie par le coach
-    pickDate("Départ du Bloc "+nB+"/4",S.depart||isoLocal(),function(nd){
-      if(!nd)return;
-      coachSaveSlot(sl,533,{demande:S.demande||nB,date:S.date||isoLocal(),ok:nB,okDate:isoLocal(),depart:nd});
-      feedback("✅ Bloc "+nB+" validé — départ le "+isoVersFr(nd),"win");
-      render();
-    },{aide:"Le jour 1 du Bloc "+nB+". Le client le voit sur son bouton de démarrage."});
+    var cc=coachClient(sl), nom=(cc&&cc.name)||sl;
+    // 🎯 D'abord le programme de la suite (14 j, 6 sem ou 90 j), puis la
+    // date exacte du jour 1. Akli ne savait pas ce que « Bloc 2 » lançait.
+    progChoixSheet("Suite de "+nom+" · Bloc "+nB+"/4","Quel programme pour la suite ? Accès, menus et vidéos se règlent tout seuls.",S.prog||90,function(nP){
+      var TP=progType(nP);
+      pickDate("Jour 1 · "+TP.lib,S.depart||isoLocal(),function(nd){
+        if(!nd)return;
+        coachSaveSlot(sl,533,{demande:S.demande||nB,date:S.date||isoLocal(),ok:nB,okDate:isoLocal(),depart:nd,prog:nP});
+        feedback("✅ Bloc "+nB+" validé · "+TP.ico+" "+TP.lib+" · départ le "+isoVersFr(nd),"win");
+        render();
+      },{aide:"Le jour 1 de la suite. Le client le voit sur son bouton de démarrage."});
+    });
   });
   var bno=document.querySelectorAll(".bloc-non");
   for(var bn=0;bn<bno.length;bn++)bno[bn].addEventListener("click",function(){
@@ -20828,7 +20836,8 @@ function bindMain(name,start){
     var __SB=getAllData()[533]||{};
     if(__SB.ok!==BLOC+1){alert("Ton coach doit d'abord valider la suite.");return;}
     var __dep=__SB.depart||isoLocal();
-    if(!confirm("Démarrer le Bloc "+(BLOC+1)+"/4 ?\n\nNouveau cycle de 90 jours. Jour 1 : "+isoVersFr(__dep)+"."))return;
+    var __nP=__SB.prog||90, __TP=progType(__nP);
+    if(!confirm("Démarrer le Bloc "+(BLOC+1)+"/4 ?\n\n"+__TP.ico+" "+__TP.lib+". Jour 1 : "+isoVersFr(__dep)+"."))return;
     var newBloc=BLOC+1;
     var eff=BASE_CLIENT+"-b"+newBloc;
     localStorage.setItem("amcoach_bloc_"+BASE_CLIENT,String(newBloc));
@@ -20836,6 +20845,26 @@ function bindMain(name,start){
     localStorage.setItem("amcoach_name_"+eff,name);
     localStorage.setItem("amcoach_start_"+eff,today);
     sbFetch("clients?on_conflict=slug",{method:"POST",prefer:"resolution=merge-duplicates",body:{slug:eff,name:name,start_date:today}}).catch(function(){});
+    // Le programme choisi par le coach est posé sur le nouveau bloc :
+    // accès, menus, vidéos, thème et superviseur suivent.
+    (function(){
+      var cur=getAllData(), nv={};
+      if(__nP<=42){
+        var e=new Date(today+"T12:00:00"); e.setDate(e.getDate()+__nP-1);
+        nv[504]={end:isoLocal(e),off:false};
+        nv[517]={on:true,reset:true,debut:today,phaseForcee:null,note:""};
+        if(cur[507])nv[507]=cur[507];
+      }else{
+        nv[517]={on:true,reset:false,debut:today,phaseForcee:null,note:""};
+      }
+      [503,514,518].forEach(function(k){if(cur[k])nv[k]=cur[k];});
+      if(cur[520]&&cur[520].sexe)nv[520]={sexe:cur[520].sexe,seances:[],journal:[],dernier:{},marches:{},socle:cur[520].socle||[],bonus:cur[520].bonus||[]};
+      try{lsSet("amcoach_"+eff,nv);}catch(e){}
+      Object.keys(nv).forEach(function(k){
+        sbFetch("tracking?on_conflict=client_slug,day_index",{method:"POST",prefer:"resolution=merge-duplicates",
+          body:{client_slug:eff,day_index:+k,data:nv[k]}}).catch(function(){});
+      });
+    })();
     window.location.reload();
   });
   // 📷 Photo de profil depuis l'en-tête

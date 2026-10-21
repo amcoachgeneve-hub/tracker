@@ -1163,7 +1163,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="19/10e - Programme du bloc suivant";
+var APP_VERSION="20/10b - Saisie conservee + code d acces";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -1724,6 +1724,15 @@ setTimeout(function(){
 // plus. On retient donc le dernier identifiant ouvert sur ce téléphone, et on
 // le remet quand l'adresse arrive nue.
 try{
+  // 📱 L'appli Android (APK) s'ouvre toujours sur l'adresse nue : on retient
+  // aussi si ce téléphone est celui du coach, pour rouvrir le bon espace.
+  if(params.get("coach")==="1")localStorage.setItem("amcoach_dernier_mode","coach");
+  else if(CLIENT)localStorage.setItem("amcoach_dernier_mode","client");
+  if(!CLIENT&&!params.get("coach")&&localStorage.getItem("amcoach_dernier_mode")==="coach"){
+    var __uc=new URL(location.href); __uc.searchParams.set("coach","1");
+    history.replaceState(null,"",__uc.pathname+"?"+__uc.searchParams.toString()+__uc.hash);
+    params=new URLSearchParams(location.search);
+  }
   if(CLIENT&&!params.get("coach"))localStorage.setItem("amcoach_dernier_client",CLIENT);
   else if(!CLIENT&&!params.get("coach")){
     var __d=localStorage.getItem("amcoach_dernier_client");
@@ -5272,8 +5281,26 @@ function renderGarde() {
   var el = document.activeElement, F = null;
   if (el && (el.tagName === "TEXTAREA" || el.tagName === "INPUT") && el.id)
     F = { id: el.id, val: el.value, s: el.selectionStart, e: el.selectionEnd };
-  return { champ: F, y: window.scrollY || window.pageYOffset || 0, ecran: renderEcran(), tiroirs: tiroirsOuverts() };
+  // ✍️ Champs en cours de saisie (pas encore enregistrés). Un rendu lancé
+  // en arrière-plan — retour dans l'appli après avoir copié un lien YouTube,
+  // rechargement des données — les effaçait. On les garde et on les remet.
+  var sales = {};
+  try {
+    var L = document.querySelectorAll("#root input[id],#root textarea[id],#root select[id]");
+    for (var i = 0; i < L.length; i++) {
+      var x = L[i];
+      if (x.type === "checkbox" || x.type === "radio" || x.type === "file" || x.type === "hidden") continue;
+      var change = (x.tagName === "SELECT") ? (x.selectedIndex >= 0 && x.options[x.selectedIndex] && !x.options[x.selectedIndex].defaultSelected) : (x.value !== x.defaultValue);
+      if (change) sales[x.id] = x.value;
+    }
+  } catch (e) { }
+  return { champ: F, y: window.scrollY || window.pageYOffset || 0, ecran: renderEcran(), tiroirs: tiroirsOuverts(), sales: sales };
 }
+// Dernier geste de l'utilisateur : un rendu qui le suit de près est voulu
+// (enregistrer, annuler…) et ne doit pas ressusciter les champs.
+var __dernierGeste = 0;
+document.addEventListener("click", function () { __dernierGeste = Date.now(); }, true);
+document.addEventListener("keydown", function (e) { if (e.key === "Enter") __dernierGeste = Date.now(); }, true);
 // 🗂️ Les tiroirs dépliés ne vivent que dans le DOM : un render les referme
 // tous. C'est ce qui éjectait Akli du Reset 14 — le tiroir des séances se
 // repliait sous ses doigts et il devait tout rouvrir. On note lesquels sont
@@ -5306,6 +5333,14 @@ function renderRestaure(G) {
   if (!G) return;
   var memeEcran = (G.ecran === renderEcran());
   if (memeEcran) tiroirsRouvrir(G.tiroirs);
+  if (memeEcran && G.sales && (Date.now() - __dernierGeste) > 900) {
+    for (var k in G.sales) {
+      var el0 = document.getElementById(k);
+      if (el0 && el0.value !== G.sales[k] && (el0.tagName === "SELECT" || el0.value === el0.defaultValue)) {
+        el0.value = G.sales[k];   // sans déclencher d'événement : pas d'effet de bord (brouillons…)
+      }
+    }
+  }
   if (G.champ) {
     var el = document.getElementById(G.champ.id);
     if (el) {
@@ -5331,7 +5366,7 @@ function renderView(){
   setTimeout(function(){try{applyTheme(getAllData());ancrerNav();}catch(e){}},0);
   var root=document.getElementById("root");
   if(IS_COACH){root.innerHTML=state.coachAuthed?((state.blProspect||state.blLibre)?viewCoachBilan():state.coachBilans?viewCoachBilans():state.coachKPI?viewCoachKPI():state.coachStats?viewCoachStats():state.coachCalc?viewCoachCalc():(state.prog3?viewProg3():state.cdAssign?viewProgAssign():state.cdProg?viewProgBuilder():(state.coachDetail?(state.cdTab==="bilan"?viewCoachBilan():viewCoachDetail()):viewCoachDash()))):viewCoachLogin();bindCoach();return;}
-  if(!CLIENT){root.innerHTML=viewNoClient();return;}
+  if(!CLIENT){root.innerHTML=viewNoClient();bindNoClient();return;}
   var name=lsGetStr("amcoach_name_"+CLIENT);
   var start=lsGetStr("amcoach_start_"+CLIENT);
   if(!name||!start){root.innerHTML=viewOnboarding();bindOnboarding();return;}
@@ -5422,10 +5457,41 @@ function renderView(){
 }
 
 // ═══════════ NO CLIENT ═══════════
+// 🔑 Première ouverture sans lien (appli Android installée, par exemple) :
+// le client tape son code — le même que dans son lien ?client=… — une fois.
 function viewNoClient(){
   return '<div class="dark-screen">'+
     '<div class="dark-brand"><div class="bar bar-r"></div><span>AM Coach</span><div class="bar bar-b"></div></div>'+
-    '<div style="color:#333;font-size:13px">Lien invalide. Contacte ton coach.</div></div>';
+    '<div class="dark-sub">DISCIPLINE 90 · La discipline devient automatique</div>'+
+    '<div style="width:100%;max-width:340px">'+
+    '<div class="dark-label">Ton code d\'accès</div>'+
+    '<input id="nc-code" class="dark-input" placeholder="ex : masta972" autocapitalize="none" autocorrect="off" spellcheck="false"/>'+
+    '<div id="nc-err" style="color:#FF8A8A;font-size:12.5px;font-weight:700;min-height:18px;margin:-4px 0 10px"></div>'+
+    '<button id="nc-go" class="btn-primary">Entrer →</button>'+
+    '<div style="color:#8A96A3;font-size:12px;line-height:1.55;margin-top:16px;text-align:center">Ton coach t\'a envoyé ton code avec ton lien.<br>Tu peux aussi coller le lien entier.</div>'+
+    '<button id="nc-coach" style="margin-top:22px;width:100%;background:none;border:0;color:#5C6773;font-size:12px;font-weight:700">Accès coach</button>'+
+    '</div></div>';
+}
+function bindNoClient(){
+  var inp=document.getElementById("nc-code"), go=document.getElementById("nc-go"), er=document.getElementById("nc-err");
+  if(!inp||!go)return;
+  function entrer(){
+    var v=String(inp.value||"").trim();
+    var m=v.match(/[?&]client=([^&#\s]+)/); if(m)v=decodeURIComponent(m[1]);
+    v=v.toLowerCase().replace(/\s+/g,"");
+    if(!v){er.textContent="Tape ton code.";return;}
+    go.disabled=true; go.textContent="Vérification…"; er.textContent="";
+    sbFetch("clients?slug=eq."+encodeURIComponent(v)+"&select=slug").then(function(r){return r.json();}).then(function(rows){
+      if(rows&&rows.length){
+        try{localStorage.setItem("amcoach_dernier_client",v);localStorage.setItem("amcoach_dernier_mode","client");}catch(e){}
+        location.href=location.pathname+"?client="+encodeURIComponent(v);
+      }else{er.textContent="Code inconnu. Vérifie avec ton coach.";go.disabled=false;go.textContent="Entrer →";}
+    }).catch(function(){er.textContent="Pas de connexion internet. Réessaie.";go.disabled=false;go.textContent="Entrer →";});
+  }
+  go.addEventListener("click",entrer);
+  inp.addEventListener("keydown",function(e){if(e.key==="Enter")entrer();});
+  var co=document.getElementById("nc-coach");
+  if(co)co.addEventListener("click",function(){location.href=location.pathname+"?coach=1";});
 }
 
 // ═══════════ ONBOARDING ═══════════
@@ -10731,7 +10797,23 @@ function pxfApercuHTML(src) {
 }
 function bindProgExoForm() {
   var id = state.cdProg.edit;
-  function retour() { state.cdProg.edit = null; render(); }
+  // 💾 Brouillon de l'exercice : l'iPhone peut recharger la page pendant qu'on
+  // est parti copier le lien YouTube. On garde ce qui est tapé, à chaque frappe.
+  var CLE_PXF = "amcoach_pxf_brouillon", CH = ["pxf-n", "pxf-m", "pxf-mat", "pxf-v", "pxf-g"];
+  function pxfGarder() {
+    var d = { id: id, t: Date.now(), v: {} };
+    CH.forEach(function (k) { var e = document.getElementById(k); if (e) d.v[k] = e.value; });
+    try { localStorage.setItem(CLE_PXF, JSON.stringify(d)); } catch (e) { }
+  }
+  function pxfOublier() { try { localStorage.removeItem(CLE_PXF); } catch (e) { } }
+  (function () {
+    var d = null; try { d = JSON.parse(localStorage.getItem(CLE_PXF) || "null"); } catch (e) { }
+    if (!d || d.id !== id || Date.now() - d.t > 6 * 3600 * 1000) return;
+    CH.forEach(function (k) { var e = document.getElementById(k); if (e && d.v[k] != null && d.v[k] !== "") e.value = d.v[k]; });
+  })();
+  CH.forEach(function (k) { var e = document.getElementById(k); if (e) { e.addEventListener("input", pxfGarder); e.addEventListener("change", pxfGarder); } });
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden" && document.getElementById("pxf-n")) pxfGarder(); });
+  function retour() { pxfOublier(); state.cdProg.edit = null; render(); }
   var bk = document.getElementById("pxf-back");
   if (bk) bk.addEventListener("click", retour);
   // L'aperçu se met à jour dès qu'on colle un lien, sans quitter le champ.
@@ -10743,6 +10825,7 @@ function bindProgExoForm() {
   }
   if (v) v.addEventListener("input", apercu);
   if (g) g.addEventListener("input", apercu);
+  if ((v && v.value) || (g && g.value)) apercu();
   bindCorpsPicker(function (m) {
     var sel = document.getElementById("pxf-m");
     if (sel) sel.value = m;
@@ -10751,6 +10834,7 @@ function bindProgExoForm() {
   if (ok) ok.addEventListener("click", function () {
     var nom = (document.getElementById("pxf-n").value || "").trim();
     if (!nom) { alert("Donne au moins un nom à l'exercice."); return; }
+    pxfOublier();
     var b = bibGet(), X = null;
     if (id !== "new") { for (var i = 0; i < b.length; i++) if (b[i].id === id) X = b[i]; }
     if (!X) { X = { id: progId("b"), f: 1, priv: 1 }; b.unshift(X); }
@@ -19995,6 +20079,8 @@ function bindCoach(){
     copies[i].addEventListener("click",function(){
       var slug=this.getAttribute("data-slug");
       var url=window.location.origin+window.location.pathname+"?client="+slug;
+      // Le code et l'appli Android partent avec le lien : rien à expliquer à part.
+      url="👉 Ton suivi DISCIPLINE 90 : "+url+"\n\n📱 Sur Android, tu peux aussi installer l'appli : "+window.location.origin+"/discipline90.apk\n🔑 Ton code d'accès : "+slug;
       var btn=this;
       function ok(){btn.textContent="✓ Lien copié !";btn.style.background="var(--ok)";setTimeout(function(){btn.textContent="📋 Copier lien WhatsApp";btn.style.background=K;},2000);}
       if(navigator.clipboard&&navigator.clipboard.writeText){

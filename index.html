@@ -1163,7 +1163,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="21/10 - Proposer l appli Android";
+var APP_VERSION="21/10b - Remplacer un exercice";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -10734,6 +10734,7 @@ function viewProgBuilder() {
         '<button class="prg-mini" data-prg-up="' + e + '">↑ Monter</button>' +
         '<button class="prg-mini" data-prg-down="' + e + '">↓ Descendre</button>' +
         (e < S.exos.length - 1 ? '<button class="prg-mini' + (X.sup ? ' on' : '') + '" data-prg-sup="' + e + '">⛓️ ' + (X.sup ? 'Superset activé' : 'Enchaîner au suivant') + '</button>' : '') +
+        '<button class="prg-mini" data-prg-remp="' + e + '">🔄 Remplacer</button>' +
         '<button class="prg-mini bad" data-prg-delexo="' + e + '">🗑 Retirer</button></div></div>';
     }
     h += '</div>';
@@ -10922,8 +10923,8 @@ function viewProgBiblio(S) {
     return true;
   });
   var h = '<div class="prg-top"><button id="prg-bib-close" class="prg-back">‹</button>' +
-    '<div style="flex:1"><div class="prg-titre">Exercices</div>' +
-    '<div class="prg-sous">Pour « ' + esc(S.nom) + ' »</div></div></div>' +
+    '<div style="flex:1"><div class="prg-titre">' + (st.remp != null ? '🔄 Remplacer' : 'Exercices') + '</div>' +
+    '<div class="prg-sous">' + (st.remp != null && S.exos[st.remp] ? 'Remplace « ' + esc(S.exos[st.remp].n) + ' » · séries, repos et note gardés' : 'Pour « ' + esc(S.nom) + ' »') + '</div></div></div>' +
     '<div style="padding:12px 13px 90px">' +
     '<div class="prg-tabs">' +
     '<button class="prg-tab' + (st.tab === "fav" ? " on" : "") + '" data-prg-tab="fav">⭐ Favoris</button>' +
@@ -10949,6 +10950,7 @@ function viewProgBiblio(S) {
   }
   h += '<button id="prg-bib-new" class="prg-mini" style="width:100%;margin-top:14px;padding:13px 0">＋ Créer mon propre exercice</button>' +
     '<div class="spt-txt" style="margin-top:10px">Le ✏️ de chaque ligne ouvre sa fiche : c\'est là qu\'on colle le lien YouTube ou le GIF. L\'image de la vidéo devient automatiquement la vignette.</div></div>';
+  if (st.remp != null) return h + '<div class="prg-barre"><div class="spt-txt" style="text-align:center;font-weight:800">Touche l\'exercice qui prend sa place.</div></div>';
   h += '<div class="prg-barre"><button id="prg-bib-ok" class="big-btn" style="margin:0' + (st.sel.length ? '' : ';opacity:.45') + '"' + (st.sel.length ? '' : ' disabled') + '>' +
     (st.sel.length ? 'Ajouter ' + st.sel.length + ' exercice' + (st.sel.length > 1 ? 's' : '') : 'Sélectionne des exercices') + '</button></div>';
   return h;
@@ -11015,7 +11017,7 @@ function bindProgBuilder() {
   if (state.cdProg.bib) {
     var st = state.cdProg;
     var cl = document.getElementById("prg-bib-close");
-    if (cl) cl.addEventListener("click", function () { st.bib = false; st.sel = []; render(); });
+    if (cl) cl.addEventListener("click", function () { st.bib = false; st.sel = []; st.remp = null; render(); });
     var tabs = document.querySelectorAll("[data-prg-tab]");
     for (var t = 0; t < tabs.length; t++) tabs[t].addEventListener("click", function () { st.tab = this.getAttribute("data-prg-tab"); render(); });
     var q = document.getElementById("prg-q");
@@ -11034,6 +11036,20 @@ function bindProgBuilder() {
     for (var p2 = 0; p2 < picks.length; p2++) picks[p2].addEventListener("click", function (ev) {
       if (ev.target && ev.target.getAttribute && (ev.target.getAttribute("data-prg-fav") || ev.target.getAttribute("data-prg-mod"))) return;
       var id = this.getAttribute("data-prg-pick"), k = st.sel.indexOf(id);
+      // 🔄 Remplacement : on change l'exercice, tout le reste reste en place
+      // (séries, charges, repos, note, enchaînement, position).
+      if (st.remp != null && S.exos[st.remp]) {
+        var bb = bibGet(), N = null;
+        for (var q2 = 0; q2 < bb.length; q2++) if (bb[q2].id === id) N = bb[q2];
+        if (!N) return;
+        var E = S.exos[st.remp], ancien = E.n;
+        E.ref = N.id; E.n = N.n; E.m = N.m; E.mat = N.mat; E.v = N.v; E.g = N.g || "";
+        state.cdProg.open = st.remp;
+        st.remp = null; st.bib = false; st.sel = [];
+        sauver();
+        try { feedback("🔄 « " + ancien + " » → « " + N.n + " »", "ok"); } catch (e) { }
+        return;
+      }
       if (k >= 0) st.sel.splice(k, 1); else st.sel.push(id);
       render();
     });
@@ -11179,6 +11195,9 @@ function bindProgBuilder() {
     sauver();
   });
 
+  paire("data-prg-remp", function (e) {
+    state.cdProg.bib = true; state.cdProg.sel = []; state.cdProg.remp = e; state.cdProg.q = ""; render();
+  });
   paire("data-prg-delexo", function (e) {
     if (!confirm("Retirer « " + S.exos[e].n + " » de la séance ?")) return;
     S.exos.splice(e, 1); state.cdProg.open = -1; sauver();

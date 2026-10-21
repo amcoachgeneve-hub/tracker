@@ -1163,7 +1163,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION="20/10b - Saisie conservee + code d acces";
+var APP_VERSION="21/10 - Proposer l appli Android";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -6801,6 +6801,49 @@ function reeqCarteHTML(allData,start,today90){
   }
   return h;
 }
+// ═══════════ 📱 PROPOSER L'APPLI ANDROID ═══════════
+function dansAppliAndroid(){
+  try{
+    // Ouvert DEPUIS l'appli installée : on le note pour ne plus jamais la proposer
+    // (Chrome et l'appli partagent la même mémoire sur le téléphone).
+    if(String(document.referrer||"").indexOf("android-app://")===0){sessionStorage.setItem("amcoach_twa","1");localStorage.setItem("amcoach_apk_ok","1");}
+    if(sessionStorage.getItem("amcoach_twa")==="1")return true;
+    if(localStorage.getItem("amcoach_apk_ok")==="1")return true;
+  }catch(e){}
+  return false;
+}
+function apkBandeauHTML(){
+  if(IS_COACH||!/Android/i.test(navigator.userAgent||""))return "";
+  if(dansAppliAndroid())return "";
+  try{
+    if(window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches)return "";
+    var non=+(localStorage.getItem("amcoach_apk_non")||0);
+    if(non&&Date.now()-non<7*86400000)return "";   // refusé : on repropose dans 7 jours
+  }catch(e){}
+  return '<div id="apk-band" class="card" style="margin:14px 14px 0;padding:15px 16px;border:2px solid #16A34A;background:var(--card)">'+
+    '<div style="display:flex;align-items:center;gap:12px">'+
+      '<img src="/icone-192.png" alt="" style="width:46px;height:46px;border-radius:12px;flex:0 0 auto"/>'+
+      '<div style="flex:1;min-width:0"><div style="font-weight:900;font-size:15px;color:var(--ink)">Installe l\'appli DISCIPLINE 90</div>'+
+      '<div style="font-size:12px;color:var(--mute);line-height:1.45;margin-top:2px">Une icône sur ton téléphone, plein écran, tes données gardées.</div></div></div>'+
+    '<a id="apk-go" href="/discipline90.apk" download style="display:block;text-align:center;text-decoration:none;margin-top:12px;padding:13px 0;border-radius:100px;background:#16A34A;color:#fff;font-weight:900;font-size:14px">📲 Télécharger l\'appli</a>'+
+    '<div id="apk-aide" style="display:none;font-size:12.5px;color:var(--ink2);line-height:1.6;margin-top:11px;background:var(--soft);border-radius:11px;padding:10px 12px">'+
+      '1. Ouvre le fichier <b>discipline90.apk</b> téléchargé.<br>'+
+      '2. Si Android le demande : <b>Paramètres → Autoriser cette source</b>, puis reviens.<br>'+
+      '3. Touche <b>Installer</b>, puis <b>Ouvrir</b>.<br>'+
+      '4. Tape ton code : <b>'+esc(BASE_CLIENT||CLIENT||"")+'</b></div>'+
+    '<div style="display:flex;justify-content:space-between;margin-top:9px">'+
+      '<button id="apk-fait" style="background:none;border:0;color:#16A34A;font-weight:800;font-size:12px;padding:4px 0">✅ C\'est installé</button>'+
+      '<button id="apk-non" style="background:none;border:0;color:var(--mute);font-weight:700;font-size:12px;padding:4px 0">Plus tard</button></div>'+
+  '</div>';
+}
+function bindApkBandeau(){
+  var go=document.getElementById("apk-go"), aide=document.getElementById("apk-aide");
+  if(go)go.addEventListener("click",function(){if(aide)aide.style.display="block";});
+  var f=document.getElementById("apk-fait");
+  if(f)f.addEventListener("click",function(){try{localStorage.setItem("amcoach_apk_ok","1");}catch(e){}var b=document.getElementById("apk-band");if(b)b.remove();});
+  var n=document.getElementById("apk-non");
+  if(n)n.addEventListener("click",function(){try{localStorage.setItem("amcoach_apk_non",String(Date.now()));}catch(e){}var b=document.getElementById("apk-band");if(b)b.remove();});
+}
 // ═══════════ CALENDAR ═══════════
 function viewCalendar(name,start){
   var allData=getAllData();
@@ -6835,6 +6878,9 @@ function viewCalendar(name,start){
     '<div class="hdr-sub">'+esc(name)+(phaseReeq?' · 4 semaines offertes':' · '+progB+' jours')+(BLOC>1?' · Bloc '+BLOC+'/4':'')+' <span id="sync-badge" style="font-size:11px"></span></div></div>'+
     '<div style="padding:16px 14px 0">';
 
+  // 📱 ANDROID : le lien ouvert dans Chrome propose l'appli DISCIPLINE 90.
+  // Rien dans l'appli elle-même, ni sur iPhone, ni une fois refusé.
+  h+=apkBandeauHTML();
   // ⚡ RACCOURCI — la journée du jour, avant tout le reste.
   (function(){
     if(today90<0||today90>=progDays)return;
@@ -20965,6 +21011,7 @@ function bindMain(name,start){
       });
     });
   }
+  try{bindApkBandeau();}catch(e){}
   var rqm=document.getElementById("reeq-menus");
   if(rqm)rqm.addEventListener("click",function(){state.view="menus";render();});
   var dip=document.getElementById("diplome-btn");

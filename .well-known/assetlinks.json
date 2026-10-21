@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "ch.amcoach.discipline90",
+    "sha256_cert_fingerprints": ["A3:C2:B7:34:D6:95:4F:CD:D5:E6:25:CE:07:7A:CC:E9:37:C9:BA:64:62:C4:3C:B1:36:2F:27:FD:AD:21:82:63"]
+  }
+}]

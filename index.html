@@ -1163,7 +1163,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "24/10 - Carnet seances coachees";
+var APP_VERSION = "24/10c - Analyse client couleurs";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -12898,6 +12898,11 @@ function carnetOuvrir(slug,cid){
   if(!W)return;
   state.carnet={slug:slug,edit:!!cid,w:W,pick:false,q:""};
   render();
+  // Données fraîches du client : seul le cadre se met à jour, la saisie reste intacte.
+  try{coachLoadClient(slug,true,function(){
+    var el=document.getElementById("cn-point");
+    if(el&&state.carnet&&state.carnet.slug===slug){var t=document.createElement("div");t.innerHTML=carnetPointHTML(slug);el.parentNode.replaceChild(t.firstChild,el);}
+  });}catch(e){}
 }
 function carnetGarder(){
   var C=state.carnet; if(!C||C.edit)return;
@@ -12919,12 +12924,111 @@ function carnetListeHTML(slug){
   });
   return h;
 }
+// 📋 OÙ IL EN EST — le cadre en haut du carnet. Akli coache en présentiel :
+// avant la première série, il voit le poids du moment et ce que le client a
+// rempli dans l'appli cette semaine. Un sommeil qui décroche, un moral bas,
+// un anniversaire qui approche : il le lui dit de vive voix, sur place.
+function carnetPoint(slug){
+  var all=lsGet("amcoach_"+slug,{})||{}, cc=coachClient(slug)||{};
+  var st=String(lsGetStr("amcoach_start_"+slug)||cc.start_date||"").slice(0,10);
+  var R={poids:null,dPoids:null,debut:null,d7:null,jour:null,len:null,lignes:[],ok:[],bday:null,vide:null};
+  if(!st)return R;
+  var t=getToday90(st), L=90; try{L=progLen(st,all);}catch(e){}
+  R.jour=t; R.len=L;
+  var fin=Math.min(t,L-1);
+  // Poids : la dernière pesée, la première du programme, celle d'il y a 7 jours
+  var P=[]; for(var i=0;i<=Math.max(fin,0);i++){var w=parseFloat(String((all[i]||{}).poids||"").replace(",","."));if(w>20&&w<400)P.push({i:i,w:w});}
+  if(P.length){
+    var der=P[P.length-1]; R.poids=der.w; R.dPoids=fin-der.i; R.debut=Math.round((der.w-P[0].w)*10)/10;
+    var avant=null; for(var k=P.length-1;k>=0;k--){if(P[k].i<=der.i-6){avant=P[k];break;}}
+    if(avant)R.d7=Math.round((der.w-avant.w)*10)/10;
+  }
+  if(t<0){R.lignes.push(["🗓️","Son programme démarre le "+isoVersFr(st)+".",0]);return R;}
+  // Les 7 derniers jours terminés (aujourd'hui compte s'il est déjà rempli)
+  var a0=Math.max(0,fin-6), jours=[];
+  for(var j=a0;j<=fin;j++){var D=all[j]||{}; if(j===t&&!Object.keys(D).length)continue; jours.push(D);}
+  var remplis=jours.filter(function(D){return D&&Object.keys(D).length;});
+  var derR=-1; for(var q=fin;q>=0;q--){if(all[q]&&Object.keys(all[q]).length){derR=q;break;}}
+  R.vide=(derR<0)?null:Math.max(0,t-derR-(t===derR?0:1));
+  if(derR<0)R.lignes.push(["📵","Il n'a encore rien rempli dans l'appli.",2]);
+  else if(t-derR>=2)R.lignes.push(["📵","Rien rempli depuis "+(t-derR)+" jours : relance-le.",2]);
+  if(remplis.length){
+    var n=remplis.length;
+    function cpt(h){return remplis.filter(function(D){return D.habits&&D.habits[h];}).length;}
+    var hs=remplis.map(function(D){return parseFloat(String(D.sommeilH||"").replace(",","."));}).filter(function(x){return x>0&&x<16;});
+    var moyH=hs.length?Math.round(hs.reduce(function(a,b){return a+b;},0)/hs.length*10)/10:null;
+    var court=hs.filter(function(x){return x<6;}).length;
+    var ns=cpt("sommeil");
+    var txtH=moyH!=null?" · "+String(moyH).replace(".",",")+" h en moyenne":"";
+    if(ns/n<0.66||(moyH!=null&&moyH<6.5)||court>=2)R.lignes.push(["😴","Sommeil : "+ns+" bonne"+(ns>1?"s":"")+" nuit"+(ns>1?"s":"")+" sur "+n+txtH+(court?" · "+court+" nuit"+(court>1?"s":"")+" sous 6 h":"")+". Rappel sommeil.",2]);
+    else R.ok.push("😴 Sommeil"+txtH);
+    var piliers=[["nutrition","🥗","Nutrition",0.8,"Rappel menus et portions."],["hydratation","💧","Hydratation",0.66,"Rappel : boire plus."],["sport","🏋️","Sport",0.5,"Rappel : bouger entre les séances."]];
+    piliers.forEach(function(Pi){
+      var c=cpt(Pi[0]);
+      if(c/n<Pi[3])R.lignes.push([Pi[1],Pi[2]+" : "+c+" jour"+(c>1?"s":"")+" sur "+n+". "+Pi[4],c/n<Pi[3]/2?2:1]);
+      else R.ok.push(Pi[1]+" "+Pi[2]+" "+c+"/"+n);
+    });
+    // Moral et énergie : la dernière valeur, et les jours difficiles
+    var mBas=0,eBas=0,mDer=null,eDer=null;
+    remplis.forEach(function(D){
+      if(D.mental!=null&&D.mental!==""){mDer=D.mental;if(D.mental>=3)mBas++;}
+      if(D.energie!=null&&D.energie!==""){eDer=D.energie;if(D.energie<=1)eBas++;}
+    });
+    if(mBas>=2||(mDer!=null&&mDer>=3))R.lignes.push(["🧠","Moral : "+(mDer!=null?MENTAL[mDer][0].toLowerCase()+" au dernier relevé":"bas")+(mBas?" · "+mBas+" jour"+(mBas>1?"s":"")+" difficile"+(mBas>1?"s":""):"")+". Prends 2 minutes pour en parler.",mBas>=2?2:1]);
+    else if(mDer!=null)R.ok.push("🧠 Moral "+MENTAL[mDer][0].toLowerCase());
+    if(eBas>=2||(eDer!=null&&eDer<=1))R.lignes.push(["⚡","Énergie : "+(eDer!=null?ENERGIE[eDer][0].toLowerCase()+" au dernier relevé":"basse")+". Adapte les charges aujourd'hui.",1]);
+    else if(eDer!=null)R.ok.push("⚡ Énergie "+ENERGIE[eDer][0].toLowerCase());
+    // Ce qu'il a noté de négatif récemment : de quoi ouvrir la discussion
+    for(var z=remplis.length-1;z>=Math.max(0,remplis.length-3);z--){
+      var ng=remplis[z].mindset&&String(remplis[z].mindset.negatif||"").trim();
+      if(ng){R.lignes.push(["💬","Il a noté : « "+(ng.length>110?ng.slice(0,108)+"…":ng)+" »",0]);break;}
+    }
+  }
+  // Poids qui remonte sur 7 jours
+  if(R.d7!=null&&R.d7>=0.5)R.lignes.unshift(["⚖️","Poids en hausse : +"+String(R.d7).replace(".",",")+" kg en 7 jours. Fais le point avec lui.",1]);
+  // Son cycle (clientes) : la séance conseillée du moment
+  try{var cy=cycGet(all); if(cy&&cy.on){var E=cycEtat(cy); if(E)R.lignes.push([E.def.icone,"Cycle jour "+E.jour+" · "+E.def.nom+" · énergie "+E.def.energie.toLowerCase()+". Séance conseillée : "+E.def.sport,0]);}}catch(e){}
+  // Anniversaire : aujourd'hui, ou dans les 14 jours
+  try{
+    var B=bdayLire(all);
+    if(B.bday){
+      var now=new Date(); now.setHours(12,0,0,0);
+      var mm=parseInt(B.bday.slice(0,2),10), dd=parseInt(B.bday.slice(3,5),10);
+      var prochain=new Date(now.getFullYear(),mm-1,dd,12); if(prochain<now&&!(prochain.getDate()===now.getDate()&&prochain.getMonth()===now.getMonth()))prochain=new Date(now.getFullYear()+1,mm-1,dd,12);
+      var dans=Math.round((prochain-now)/86400000);
+      var age=B.year?(prochain.getFullYear()-parseInt(B.year,10)):null;
+      if(dans===0)R.bday="🎂 C'est son anniversaire aujourd'hui"+(age?" : "+age+" ans":"")+" !";
+      else if(dans<=14)R.bday="🎂 Anniversaire dans "+dans+" jour"+(dans>1?"s":"")+" ("+("0"+dd).slice(-2)+"/"+("0"+mm).slice(-2)+")"+(age?" : "+age+" ans":"")+".";
+    }
+  }catch(e){}
+  return R;
+}
+function carnetPointHTML(slug){
+  var R=carnetPoint(slug);
+  var h='<div id="cn-point" class="card" style="padding:12px 14px;margin-bottom:12px;border-left:4px solid var(--brand)">'+
+    '<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px"><div style="font-weight:900;font-size:13px;flex:1">📋 Où il en est</div>'+
+    (R.jour!=null&&R.jour>=0?'<div style="font-size:11px;font-weight:800;color:var(--mute)">jour '+Math.min(R.jour+1,R.len)+' sur '+R.len+'</div>':'')+'</div>';
+  if(R.poids!=null){
+    var dc=R.debut, col=dc<0?"var(--ok-d)":dc>0?"var(--warn-d)":"var(--mute)";
+    h+='<div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:6px"><span style="font-size:22px;font-weight:900">'+String(R.poids).replace(".",",")+' kg</span>'+
+      '<span style="font-size:11.5px;font-weight:800;color:var(--mute)">'+(R.dPoids===0?"pesé aujourd'hui":R.dPoids===1?"pesé hier":"pesé il y a "+R.dPoids+" j")+'</span>'+
+      (dc?'<span style="font-size:12px;font-weight:900;color:'+col+'">'+(dc>0?"+":"")+String(dc).replace(".",",")+' kg depuis le début</span>':'')+'</div>';
+  }else h+='<div style="font-size:12px;color:var(--mute);margin-bottom:6px">⚖️ Aucune pesée notée pour l\'instant.</div>';
+  if(R.bday)h+='<div style="font-size:12.5px;font-weight:900;color:var(--brand);background:var(--soft);border-radius:9px;padding:7px 9px;margin-bottom:6px">'+esc(R.bday)+'</div>';
+  R.lignes.forEach(function(Li){
+    var c=Li[2]===2?"var(--bad)":Li[2]===1?"var(--warn-d)":"var(--ink2)";
+    h+='<div style="display:flex;gap:7px;font-size:12px;line-height:1.45;margin-top:4px;color:'+c+';font-weight:'+(Li[2]?800:600)+'"><span>'+Li[0]+'</span><span>'+esc(Li[1])+'</span></div>';
+  });
+  if(R.ok.length)h+='<div style="font-size:11px;color:var(--ok-d);font-weight:800;margin-top:7px">✅ '+esc(R.ok.join(" · "))+'</div>';
+  if(!R.lignes.length&&R.poids!=null)h+='<div style="font-size:11.5px;color:var(--mute);margin-top:4px">Sur les 7 derniers jours, rien à signaler.</div>';
+  return h+'</div>';
+}
 function viewCarnet(){
   var C=state.carnet, W=C.w, cc=coachClient(C.slug), nomC=(cc&&cc.name)||C.slug;
   if(C.pick)return viewCarnetPick();
   var h='<div class="app" style="max-width:640px"><div class="prg-top"><button id="cn-back" class="prg-back">‹</button>'+
     '<div style="flex:1;min-width:0"><div class="prg-titre">📓 '+esc(nomC)+'</div><div class="prg-sous">'+(C.edit?'Modifier la séance':'Séance coachée')+' · tout est gardé pendant la saisie</div></div></div>'+
-    '<div style="padding:12px 13px 120px">'+
+    '<div style="padding:12px 13px 120px">'+carnetPointHTML(C.slug)+
     '<div style="display:flex;gap:8px;margin-bottom:10px"><input id="cn-nom" class="prg-search" style="flex:1.6;margin:0" value="'+esc(W.nom)+'" placeholder="Nom de la séance"/>'+
     '<input id="cn-d" type="date" class="prg-search" style="flex:1;margin:0" value="'+esc(W.d)+'"/></div>';
   if(!W.exos.length){
@@ -17701,7 +17805,8 @@ function bilanInput(id,label,ph,type,val){
 // ═══════════ 📊 ZONES IMC ET % DE GRAS (fiche bilan) ═══════════
 // Le même visuel que la fiche papier d'Akli : une jauge IMC en demi-cercle
 // et le tableau du % de gras, avec la flèche sur la zone du client.
-var BL_IMC_Z=[[15,18.5,"#A8DDF0","Maigreur"],[18.5,25,"#6FB6E8","Normal"],[25,30,"#F2B866","Surpoids"],[30,40,"#E8804A","Obésité"],[40,45,"#DD4B3E","Obésité massive"]];
+// Vert = normal, orange = surpoids (ou maigreur), rouge = obésité.
+var BL_IMC_Z=[[15,18.5,"#F5C46A","Maigreur"],[18.5,25,"#5CC36E","Normal"],[25,30,"#F29B38","Surpoids"],[30,40,"#E5484D","Obésité"],[40,45,"#A8262B","Obésité massive"]];
 var BL_MG_Z=[["Idéal","#7BE36B",[8,12],[10,15]],["Correct","#D6F75A",[13,16],[16,20]],["Léger engraissement","#F5F05A",[17,25],[21,30]],
   ["Engraissement marqué","#F0BE78",[26,30],[31,40]],["Santé en danger","#E8896A",[31,40],[41,50]],["Pronostic vital","#E06A5E",[41,null],[51,null]]];
 function blMgZone(sx,mg){
@@ -17726,7 +17831,7 @@ function blImcSVG(imc){
     g+='<line x1="'+cx+'" y1="'+cy+'" x2="'+tip[0].toFixed(1)+'" y2="'+tip[1].toFixed(1)+'" stroke="#1B2430" stroke-width="4" stroke-linecap="round"/>'+
       '<circle cx="'+cx+'" cy="'+cy+'" r="7" fill="#1B2430"/>';
   }
-  return '<svg viewBox="0 0 240 124" style="width:100%;max-width:300px;display:block;margin:0 auto">'+g+'</svg>';
+  return '<svg viewBox="0 -10 240 134" style="width:100%;max-width:300px;display:block;margin:0 auto">'+g+'</svg>';
 }
 function blZonesHTML(sx,poids,taille,mg,mgc){
   var imc=(poids>0&&taille>0)?poids/Math.pow(taille/100,2):null;
@@ -17736,7 +17841,7 @@ function blZonesHTML(sx,poids,taille,mg,mgc){
     h+='<div style="background:var(--soft);border-radius:13px;padding:11px 12px;margin:4px 0 10px">'+
       '<div style="font-size:11px;font-weight:900;letter-spacing:.6px;color:var(--mute);text-transform:uppercase">IMC</div>'+blImcSVG(imc)+
       '<div style="text-align:center;font-weight:900;font-size:15px;margin-top:-2px">IMC '+imc.toFixed(1).replace(".",",")+
-      ' · <span style="color:'+BL_IMC_Z[zi][2].replace("#A8DDF0","#3A9CC4")+'">'+BL_IMC_Z[zi][3]+'</span></div></div>';
+      ' · <span style="color:'+BL_NIV[blNiveau("imc",imc,sx)][0]+'">'+BL_IMC_Z[zi][3]+'</span></div></div>';
   }
   if(mg>0){
     var zc=blMgZone(sx,mg), zt=(mgc>0)?blMgZone(sx,mgc):-1, colH=(sx!=="F");
@@ -17753,6 +17858,25 @@ function blZonesHTML(sx,poids,taille,mg,mgc){
     h+='</table></div>';
   }
   return h;
+}
+// 🚦 FEU TRICOLORE DES VALEURS : vert = zone normale, orange = à surveiller,
+// rouge = danger pour la santé. Le client voit tout de suite où il se situe.
+function blNiveau(type,v,sx){
+  v=parseFloat(String(v==null?"":v).replace(",","."));
+  if(!(v>0))return null;
+  var F=(sx==="F");
+  if(type==="imc")return v>=30?2:(v>=25||v<18.5)?1:0;
+  if(type==="mg"){var z=blMgZone(F?"F":"H",v);return z>=3?2:z===2?1:0;}
+  if(type==="gv")return v>=15?2:v>=10?1:0;
+  if(type==="taille"){var w1=F?80:94,w2=F?88:102;return v>=w2?2:v>=w1?1:0;}
+  return null;
+}
+var BL_NIV=[["#1E9E5A","#E3F6EA","Normal"],["#D9770B","#FFF1DC","À surveiller"],["#D93A3A","#FDE4E4","Danger"]];
+function blValCol(type,v,sx,txt){
+  var n=blNiveau(type,v,sx);
+  if(n==null)return txt;
+  var C=BL_NIV[n];
+  return '<span style="color:'+C[0]+';background:'+C[1]+';border-radius:7px;padding:1px 7px">'+txt+'</span>';
 }
 function blZonesMaj(){
   var el=document.getElementById("bl-zones"); if(!el)return;
@@ -18426,7 +18550,14 @@ function bilanReport(slug,idx,mode,listeAutre,nomAutre){
     'p{font-size:12px;color:#444;white-space:pre-wrap}'+
     '.pdfbar{position:fixed;left:0;right:0;bottom:0;padding:10px 14px;background:rgba(255,255,255,.95);border-top:1px solid #E5E5E5}'+
     '.pdfbar button{width:100%;padding:13px;border:0;border-radius:12px;font-weight:900;font-size:14px;background:var(--ink);color:#fff}'+
-    '@media print{.pdfbar,body>button{display:none!important}}';
+    '@media print{.pdfbar,body>button{display:none!important}}'+
+    // Jauge IMC et tableau du % de gras : les mêmes que dans la fiche bilan.
+    '.bl-zt{width:100%;border-collapse:separate;border-spacing:0 3px;font-size:12px;margin-top:6px}.bl-zt td{padding:6px 8px;font-weight:800;color:#1B2430;text-align:center}'+
+    '.bl-zt td:first-child{text-align:left;border-radius:8px 0 0 8px}.bl-zt td:last-child{border-radius:0 8px 8px 0}.bl-zt tr.on td{outline:2.5px solid #1B2430;outline-offset:-2px}'+
+    '*{-webkit-print-color-adjust:exact;print-color-adjust:exact}.zones{break-inside:avoid;margin-top:10px}';
+  var sxR=(a.sexe==="F")?"F":"H";
+  var zonesH='';
+  try{zonesH=blZonesHTML(sxR,parseFloat(a.poids),parseFloat(a.taille),parseFloat(String(a.mg||"").replace(",",".")),parseFloat(String(a.mgc||"").replace(",",".")));}catch(e){}
   var kh='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Analyse '+(idx+1)+' — '+esc(cName)+'</title><style>'+themeCSS()+css+'</style></head><body>'+
     '<button onclick="window.close();setTimeout(function(){if(history.length>1)history.back();},250)" style="position:fixed;top:10px;right:10px;z-index:999;background:var(--ink);color:#fff;border:0;border-radius:18px;padding:8px 14px;font-weight:800;font-size:12px">✕</button>'+
     '<div class="brand"><span class="bar br"></span><span>AM Coach Genève</span><span class="bar bb"></span></div>'+
@@ -18434,12 +18565,14 @@ function bilanReport(slug,idx,mode,listeAutre,nomAutre){
     '<h2>Composition corporelle</h2><div class="grid2">'+
     '<div class="kv"><span>Âge</span><strong>'+(a.age||"—")+'</strong></div>'+
     '<div class="kv"><span>Poids</span><strong>'+(a.poids||"—")+' kg'+(prev?dv(a.poids,prev.poids):'')+'</strong></div>'+
-    '<div class="kv"><span>IMC</span><strong>'+(imc||"—")+'</strong></div>'+
-    '<div class="kv"><span>% Masse grasse</span><strong>'+(a.mg||"—")+' %'+(prev?dv(a.mg,prev.mg):'')+'</strong></div>'+
+    '<div class="kv"><span>IMC</span><strong>'+(imc?blValCol("imc",imc,sxR,String(imc).replace(".",",")):"—")+'</strong></div>'+
+    '<div class="kv"><span>% Masse grasse</span><strong>'+(a.mg?blValCol("mg",a.mg,sxR,a.mg+' %'):"— %")+(prev?dv(a.mg,prev.mg):'')+'</strong></div>'+
     '<div class="kv"><span>% Masse musculaire</span><strong>'+(a.mm||"—")+' %'+(prev?dv(a.mm,prev.mm):'')+'</strong></div>'+
-    '<div class="kv"><span>Graisse viscérale</span><strong>'+(a.gv||"—")+(prev?dv(a.gv,prev.gv):'')+'</strong></div>'+
+    '<div class="kv"><span>Graisse viscérale</span><strong>'+(a.gv?blValCol("gv",a.gv,sxR,String(a.gv)):"—")+(prev?dv(a.gv,prev.gv):'')+'</strong></div>'+
     '<div class="kv"><span>Métabolisme</span><strong>'+(a.kcal||"—")+' kcal</strong></div>'+
     '</div>'+
+    '<div style="display:flex;gap:12px;flex-wrap:wrap;font-size:10.5px;font-weight:800;margin:8px 0 2px">'+BL_NIV.map(function(C){return '<span style="color:'+C[0]+'">● '+C[2]+'</span>';}).join("")+'</div>'+
+    (zonesH?'<div class="zones">'+zonesH+'</div>':'')+
     (function(){
       var p0=parseFloat(a.poids),mga=parseFloat(a.mg),mgcV=parseFloat(a.mgc);
       var tll=parseFloat(a.taille),ag=parseFloat(a.age);
@@ -18475,10 +18608,13 @@ function bilanReport(slug,idx,mode,listeAutre,nomAutre){
     '<h2>Mesures corporelles (cm)</h2><div class="grid2">';
   for(var mm2=0;mm2<BILAN_MESURES.length;mm2++){
     var k2=BILAN_MESURES[mm2][0],val=(a.mesures||{})[k2],dst=(a.mdist||{})[k2];
-    kh+='<div class="kv"><span>'+BILAN_MESURES[mm2][1]+(dst?' <span style="color:var(--mute);font-size:11px">(à '+esc(dst)+' cm)</span>':'')+'</span><strong>'+(val||"—")+(prev&&val?dv(val,(prev.mesures||{})[k2]):'')+'</strong></div>';
+    var valC=(val&&(k2==="nombril"||k2==="ventre"))?blValCol("taille",val,sxR,String(val)):(val||"—");
+    kh+='<div class="kv"><span>'+BILAN_MESURES[mm2][1]+(dst?' <span style="color:var(--mute);font-size:11px">(à '+esc(dst)+' cm)</span>':'')+'</span><strong>'+valC+(prev&&val?dv(val,(prev.mesures||{})[k2]):'')+'</strong></div>';
   }
-  kh+='</div><h2>Barème AM Transfo</h2>';
-  for(var ss=0;ss<BILAN_SCORES.length;ss++){
+  kh+='</div>';
+  // Barème, pourquoi & contexte, habitudes alimentaires : pour Akli seulement.
+  if(!isClient)kh+='<h2>Barème AM Transfo</h2>';
+  for(var ss=0;ss<BILAN_SCORES.length&&!isClient;ss++){
     var ks=BILAN_SCORES[ss][0],vs=(a.scores||{})[ks];
     if(!vs)continue;
     kh+='<div class="blk"><strong>'+esc(BILAN_SCORES[ss][1])+'</strong><br>'+esc(vs)+'</div>';

@@ -1163,7 +1163,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "24/10c - Analyse client couleurs";
+var APP_VERSION = "24/10d - Fin de seance + marche";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -9253,7 +9253,7 @@ function training14HTML(name,start){
       '<span style="font-weight:900;font-size:13.5px">'+dayNames[d7]+(isToday?' <span style="color:var(--violet);font-size:11px;letter-spacing:1px">· AUJOURD\'HUI</span>':'')+'</span>'+
       ((!e7.v&&!e7.m)?'<span style="font-size:11px;color:var(--mute);font-weight:700">Vidéo bientôt dispo</span>':'')+'</div>';
     if(e7.v){h+='<a href="'+esc(e7.v)+'" target="_blank" rel="noopener" style="display:block;text-align:center;padding:12px 0;border-radius:11px;background:var(--violet);color:#fff;font-weight:900;font-size:13px;text-decoration:none;margin-bottom:8px">▶️ Vidéo muscu '+(week2?'10':'5')+' rép / 30 s · 5-10 min</a>';}
-    h+='<div style="font-size:12px;font-weight:700;color:#555;line-height:1.7">💪 Muscu 5 à 10 min <span style="color:var(--violet);font-weight:900">+</span> 🚶 '+esc(e7.m||"20 min à 1h de marche non-stop")+'</div>'+
+    h+='<div style="font-size:12px;font-weight:700;color:#555;line-height:1.7">💪 Muscu 5 à 10 min <span style="color:var(--violet);font-weight:900">+</span> 🚶 '+esc(e7.m?marcheTxt(e7.m):"20 min à 1h de marche non-stop")+'</div>'+
       '<div style="font-size:11px;color:var(--mute);margin-top:3px">Les deux, chaque jour — c\'est ça le deal.</div></div>';
   }
   h+='<div style="font-size:11px;color:var(--mute);text-align:center;line-height:1.7;margin-top:6px">La marche se fait <strong>non-stop</strong> : c\'est la régularité qui compte, pas la vitesse.</div>';
@@ -12919,7 +12919,8 @@ function carnetListeHTML(slug){
     var rm=rs.length?Math.round(rs.reduce(function(a,b){return a+b;},0)/rs.length*10)/10:null;
     h+='<button class="carnet-open" data-s="'+esc(slug)+'" data-c="'+esc(E.cid)+'" style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:11px 12px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);margin-bottom:7px">'+
       '<span style="font-size:20px">📓</span><span style="flex:1;min-width:0"><b style="display:block;font-size:13px;color:var(--ink)">'+esc(E.nom||"Séance")+'</b>'+
-      '<span style="font-size:11px;color:var(--mute);font-weight:700">'+frDate(E.d)+' · '+(E.exos||[]).length+' exos · '+ns+' séries'+(E.vol?' · '+E.vol+' kg':'')+(rm!=null?' · ressenti '+String(rm).replace(".",",")+'/10':'')+'</span></span>'+
+      '<span style="font-size:11px;color:var(--mute);font-weight:700">'+frDate(E.d)+' · '+(E.exos||[]).length+' exos · '+ns+' séries'+(E.vol?' · '+E.vol+' kg':'')+(E.diff?' · <b style="color:'+carnetDiffCol(E.diff)+'">difficulté '+E.diff+'/10</b>':(rm!=null?' · ressenti '+String(rm).replace(".",",")+'/10':''))+
+      (E.durN?'<br>🔥 Le plus dur : '+esc(E.durN):'')+'</span></span>'+
       '<span style="color:var(--mute);font-weight:900">›</span></button>';
   });
   return h;
@@ -13023,6 +13024,8 @@ function carnetPointHTML(slug){
   if(!R.lignes.length&&R.poids!=null)h+='<div style="font-size:11.5px;color:var(--mute);margin-top:4px">Sur les 7 derniers jours, rien à signaler.</div>';
   return h+'</div>';
 }
+function carnetDiffCol(n){return n>=9?"#D93A3A":n>=7?"#E0661B":n>=4?"#D9A00B":"#1E9E5A";}
+function carnetDiffMot(n){return n>=9?"Très difficile":n>=7?"Difficile":n>=4?"Moyenne":"Facile";}
 function viewCarnet(){
   var C=state.carnet, W=C.w, cc=coachClient(C.slug), nomC=(cc&&cc.name)||C.slug;
   if(C.pick)return viewCarnetPick();
@@ -13063,6 +13066,18 @@ function viewCarnet(){
       '<button class="prg-mini bad" data-cn-del="'+e+'">🗑</button></div></div>';
   });
   h+='<button id="cn-add" class="prg-mini" style="width:100%;padding:13px 0;margin:4px 0 12px">＋ Ajouter un exercice</button>'+
+    (W.exos.length?(function(){
+      // 🏁 FIN DE SÉANCE : l'exercice le plus dur du jour et la note de la séance.
+      var c='<div class="card" style="padding:13px 14px;margin-bottom:12px;border-left:4px solid var(--brand)"><div style="font-weight:900;font-size:13.5px;margin-bottom:9px">🏁 Fin de séance</div>'+
+        '<div class="card-label">EXERCICE LE PLUS DUR DU JOUR</div><select id="cn-dur" class="prg-sel" style="width:100%;padding:11px 8px;font-size:13px;margin-bottom:12px"><option value="">— Choisir —</option>'+
+        W.exos.map(function(X){return '<option value="'+esc(X.ref)+'"'+(W.dur===X.ref?' selected':'')+'>'+esc(X.n)+'</option>';}).join("")+'</select>'+
+        '<div class="card-label">DIFFICULTÉ DE LA SÉANCE · 10 = TRÈS DIFFICILE</div><div style="display:grid;grid-template-columns:repeat(10,1fr);gap:4px">';
+      for(var n=1;n<=10;n++){
+        var on=(+W.diff===n), col=carnetDiffCol(n);
+        c+='<button data-cn-diff="'+n+'" style="padding:10px 0;border-radius:9px;font-weight:900;font-size:13px;border:2px solid '+col+';background:'+(on?col:'#fff')+';color:'+(on?'#fff':col)+'">'+n+'</button>';
+      }
+      return c+'</div>'+(W.diff?'<div style="font-size:11.5px;font-weight:800;margin-top:7px;color:'+carnetDiffCol(+W.diff)+'">'+carnetDiffMot(+W.diff)+'</div>':'')+'</div>';
+    })():'')+
     '<div class="card-label">NOTE DE SÉANCE</div><textarea id="cn-note" class="num-input" rows="2" style="resize:vertical" placeholder="Forme du jour, douleur, consignes…">'+esc(W.note||"")+'</textarea>'+
     '</div><div class="prg-barre" style="display:flex;gap:8px">'+
     (C.edit?'<button id="cn-suppr" class="prg-mini bad" style="flex:0 0 auto;padding:0 14px">🗑</button>':'<button id="cn-vider" class="prg-mini" style="flex:0 0 auto;padding:0 14px">Vider</button>')+
@@ -13123,6 +13138,8 @@ function bindCarnet(){
   q("[data-cn-up]").forEach(function(el){el.addEventListener("click",function(){var e=+this.getAttribute("data-cn-up");if(e>0){var x=W.exos.splice(e,1)[0];W.exos.splice(e-1,0,x);maj();}});});
   q("[data-cn-down]").forEach(function(el){el.addEventListener("click",function(){var e=+this.getAttribute("data-cn-down");if(e<W.exos.length-1){var x=W.exos.splice(e,1)[0];W.exos.splice(e+1,0,x);maj();}});});
   q("[data-cn-del]").forEach(function(el){el.addEventListener("click",function(){var e=+this.getAttribute("data-cn-del");if(confirm("Retirer « "+W.exos[e].n+" » ?")){W.exos.splice(e,1);if(W.exos.length&&W.exos[W.exos.length-1].sup)W.exos[W.exos.length-1].sup=0;maj();}});});
+  var du=document.getElementById("cn-dur"); if(du)du.addEventListener("change",function(){W.dur=this.value;maj(false);});
+  q("[data-cn-diff]").forEach(function(el){el.addEventListener("click",function(){var n=+this.getAttribute("data-cn-diff");W.diff=(+W.diff===n)?null:n;maj();});});
   var ad=document.getElementById("cn-add"); if(ad)ad.addEventListener("click",function(){C.pick=true;C.q="";render();});
   var vd=document.getElementById("cn-vider");
   if(vd)vd.addEventListener("click",function(){if(!confirm("Vider cette séance et repartir de zéro ?"))return;C.w=carnetNouveau(C.slug);try{localStorage.removeItem(carnetCle(C.slug));}catch(e){}render();});
@@ -13149,6 +13166,8 @@ function bindCarnet(){
     if(!nbS){alert("Note au moins une série (répétitions ou charge).");return;}
     var E={d:W.d||isoLocal(),cid:W.cid,sid:W.sid||"coach",nom:(W.nom||"Séance coachée").trim(),vol:progVolume(exos),exos:exos,coach:1,note:W.note||"",
            rpe:rs.length?Math.round(rs.reduce(function(a,b){return a+b;},0)/rs.length*10)/10:null};
+    if(W.diff)E.diff=+W.diff;
+    if(W.dur){exos.forEach(function(X){if(X.ref===W.dur){E.dur=X.ref;E.durN=X.n;}});}
     var all=lsGet("amcoach_"+C.slug,{}), P=JSON.parse(JSON.stringify(all[520]||{}));
     P.journal=(P.journal||[]).filter(function(x){return x.cid!==E.cid;});
     P.journal.push(E);
@@ -13176,6 +13195,9 @@ function bindCarnet(){
   });
 }
 
+// La consigne de marche dit toujours « de marche », même si Akli a tapé
+// seulement la durée ce jour-là.
+function marcheTxt(m){m=String(m||"20 min à 1 h").trim();return /marche/i.test(m)?m:m+" de marche";}
 function seaGet() { return lsGet("amcoach_seances", []); }
 function seaSet(l) { lsSet("amcoach_seances", l); }
 function seaTrouve(id) { var l = seaGet(); for (var i = 0; i < l.length; i++) if (l[i].id === id) return l[i]; return null; }
@@ -13269,7 +13291,7 @@ function v14BlocHTML() {
     h += '<div class="v14-j" data-v14d="' + dv + '">' +
       '<b>' + jN[dv] + '</b>' +
       '<span class="' + (ev.v ? "ok" : "vide") + '">' + (ev.v ? "▶️ vidéo" : "sans vidéo") + '</span>' +
-      '<span class="v14-m">💪 ' + ((ev.e && ev.e.length) ? ev.e.length + " exo" : "aucun exo") + ' · 🚶 ' + esc(ev.m || "20 min à 1 h") + '</span>' +
+      '<span class="v14-m">💪 ' + ((ev.e && ev.e.length) ? ev.e.length + " exo" : "aucun exo") + ' · 🚶 ' + esc(marcheTxt(ev.m)) + '</span>' +
       '<span class="v14-c">›</span></div>';
   }
   return h + '</div>';
@@ -15152,7 +15174,7 @@ function viewCoachDetail(){
       h+='<div class="v14-j" data-v14d="'+dv+'">'+
         '<b>'+jN[dv]+'</b>'+
         '<span class="'+(ev.v?"ok":"vide")+'">'+(ev.v?"▶️ vidéo":"sans vidéo")+'</span>'+
-        '<span class="v14-m">💪 '+((ev.e&&ev.e.length)?ev.e.length+" exo":"aucun exo")+' · 🚶 '+esc(ev.m||"20 min à 1 h")+'</span>'+
+        '<span class="v14-m">💪 '+((ev.e&&ev.e.length)?ev.e.length+" exo":"aucun exo")+' · 🚶 '+esc(marcheTxt(ev.m))+'</span>'+
         '<span class="v14-c">›</span></div>';
     }
     h+='</div>';
@@ -19956,7 +19978,7 @@ function bindCoach(){
     var prog=(sx==="h"?"Homme":"Femme");
     var v=prompt("🎬 "+jN[d]+" — programme "+prog+"\nLien de la vidéo (vide pour retirer) :",cur.v||"");
     if(v===null)return;
-    var m=prompt("🚶 "+jN[d]+" — consigne de marche :",cur.m||"20 min à 1 h");
+    var m=prompt("🚶 "+jN[d]+" — consigne de marche :",cur.m||"20 min à 1 h de marche");
     if(m===null)return;
     // 💪 Les exercices du jour, un par ligne. Le Reset 14 jours n'a pas de
     // constructeur de séance : la consigne est courte et fixe, elle se tape

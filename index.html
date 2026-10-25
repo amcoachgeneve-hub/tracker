@@ -1163,7 +1163,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "24/10d - Fin de seance + marche";
+var APP_VERSION = "25/10b - Videos 6 semaines homme";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -2215,6 +2215,7 @@ function coachLoadAll(force){
         }
         lsSet("amcoach_"+s2,all);
       }
+      try{vid14Reparer();}catch(e){}
       __coachBusy=false;
       render();
     })
@@ -2343,6 +2344,17 @@ function getToday90(startDate){
 // ⏳ Jours restants avant la date de départ. 0 dès que le programme a
 // commencé. getToday90 plafonne à 0 pour un départ futur : sans ce test, un
 // client qui démarre le 5 décembre passait pour un client au jour 1.
+// 🔒 JOURS DE SILENCE pour le verrou. Avant le départ du programme, rien ne
+// se compte : un client qui a fait son bilan le 12 et démarre le 2 se
+// retrouvait verrouillé avant même son jour 1. Après le départ, le compteur
+// part du plus récent des deux : sa dernière ouverture ou son jour 1.
+function silJours(la,start){
+  var st=String(start||"").slice(0,10);
+  if(st&&joursAvantDepart(st)>0)return 0;
+  if(!la)return null;
+  var ref=(st&&st>String(la).slice(0,10))?st:String(la).slice(0,10);
+  return Math.max(0,Math.floor((new Date(isoLocal())-new Date(ref))/86400000));
+}
 function joursAvantDepart(startDate){
   if(!startDate)return 0;
   var ds=String(startDate).slice(0,10).split("-");
@@ -5382,7 +5394,7 @@ function renderView(){
   // quelqu'un qui décroche, pas assez pour punir un week-end chargé.
   var seuilSil=(acc0.silence===undefined?SIL_DEFAUT:acc0.silence);
   var joursSil=0;
-  if(lastAct&&lastAct.d)joursSil=Math.floor((new Date(todayIso)-new Date(lastAct.d))/86400000);
+  if(lastAct&&lastAct.d)joursSil=silJours(lastAct.d,start)||0;
   var verrouSil=!!(CLIENT&&seuilSil>0&&lastAct&&lastAct.d&&joursSil>seuilSil);
   // On n'enregistre la visite QUE si l'accès n'est pas verrouillé :
   // sinon le simple fait d'ouvrir l'app lèverait le verrou tout seul.
@@ -5649,6 +5661,29 @@ function vid14AppliquerA(slug){
   coachSaveSlot(slug,507,JSON.parse(JSON.stringify(jeu)));
   return true;
 }
+// 🩹 RÉPARATION : un client court qui porte le jeu de vidéos de l'AUTRE sexe
+// reçoit le sien. Cause d'origine : à la conversion, les vidéos étaient posées
+// AVANT le sexe — le jeu femme partait par défaut (Léo, 25/10). On ne touche
+// qu'à une copie conforme du mauvais jeu : un jeu retouché à la main reste.
+function vid14Canon(o){
+  if(o===null||typeof o!=="object")return JSON.stringify(o);
+  if(Array.isArray(o))return "["+o.map(vid14Canon).join(",")+"]";
+  return "{"+Object.keys(o).sort().map(function(k){return JSON.stringify(k)+":"+vid14Canon(o[k]);}).join(",")+"}";
+}
+function vid14Reparer(){
+  var L=lsGet("amcoach_clients",[]), V=vid14Lire(), nb=0;
+  for(var i=0;i<L.length;i++){
+    var c=L[i], all=lsGet("amcoach_"+c.slug,{});
+    var dur=90; try{dur=progLen(c.start_date,all)||90;}catch(e){}
+    if(dur>42)continue;
+    var sx=vid14Sexe(all), autre=(sx==="h"?"f":"h");
+    var bon=V[sx]||{}, mauvais=V[autre]||{}, a=all[507];
+    if(!a||!Object.keys(bon).length||!Object.keys(mauvais).length)continue;
+    var ca=vid14Canon(a);
+    if(ca===vid14Canon(mauvais)&&ca!==vid14Canon(bon)){if(vid14AppliquerA(c.slug))nb++;}
+  }
+  return nb;
+}
 // Après une modification du modèle : toutes les clientes Reset de ce sexe
 // reçoivent la nouvelle version. Renvoie le nombre de clientes mises à jour.
 function vid14Diffuser(sexe){
@@ -5827,6 +5862,8 @@ function progInstallerNouveau(slug,depart,n,sx){
     try{coachSaveSlot(slug,514,allS[514]);}catch(e){}
     try{coachSaveSlot(slug,520,P0);}catch(e){}
     try{prog3Sync(sx);}catch(e){}
+    // Le sexe est posé : les vidéos du programme court suivent le bon jeu.
+    if(n===14||n===42){try{vid14AppliquerA(slug);}catch(e){}}
   }
 }
 function progAppliquerChoix(slug,nom,n){
@@ -14837,12 +14874,14 @@ function viewCoachDetail(){
     var ac=allData[504]||{};
     var seuil=(ac.silence===undefined?SIL_DEFAUT:ac.silence);
     var la=allData[505]&&allData[505].d;
-    var sil=la?Math.floor((new Date(isoLocal())-new Date(la))/86400000):null;
+    var stV=lsGetStr("amcoach_start_"+state.coachDetail)||((coachClient(state.coachDetail)||{}).start_date)||"";
+    var sil=la?silJours(la,stV):null;
     var verrou=!!(seuil>0&&la&&sil>seuil);
     h+='<div class="card" style="padding:14px 15px'+(verrou?';border-left:4px solid var(--bad)':'')+'">'+
       '<div style="font-weight:800;font-size:13px;margin-bottom:7px">🔒 Verrou de silence</div>'+
       '<div style="font-size:12px;color:'+(verrou?"var(--bad)":"var(--mute)")+';font-weight:700;line-height:1.5;margin-bottom:10px">'+
       (verrou?'⛔ Accès verrouillé — '+sil+' jours sans ouvrir l\'app'
+             :(seuil>0&&joursAvantDepart(stV)>0)?'Pas encore démarré : le verrou compte à partir de son jour 1 ('+dateCourteFR(stV)+').'
              :(seuil>0?(la?'Dernière ouverture il y a '+sil+' jour'+(sil>1?'s':'')+' · verrouillage après '+seuil+' jours'
                           :'Jamais ouverte — le verrou s\'activera après la première visite')
                      :'Désactivé pour ce client'))+'</div>'+
@@ -15547,7 +15586,7 @@ function coachPouls(){
     var assidu=jours>0?Math.round(remplis/jours*100):0;
     // Silence : d'abord la dernière ouverture réelle, sinon le dernier jour rempli
     var la=d[505]&&d[505].d;
-    var sil=la?Math.floor((new Date(isoLocal())-new Date(la))/86400000):(last>=0?t90-last:jours);
+    var sil=la?silJours(la,c.start_date):(last>=0?t90-last:jours);
     var fini=t90>=dur-1;
     var avant=joursAvantDepart(c.start_date);
     var etat,motif;
@@ -16831,7 +16870,8 @@ function viewCoachDash(){
       var c=cl[i], dat=lsGet("amcoach_"+c.slug,{});
       var st=c.start_date||isoLocal();
       var t90=getToday90(st);
-      if(t90<0)continue;
+      // getToday90 plafonne à 0 : un départ futur se lit avec joursAvantDepart.
+      if(t90<0||joursAvantDepart(st)>0)continue;
       // MORAL : deux jours de suite sous « moyen ». MENTAL est stocké du
       // meilleur (0) au pire (4) : « sous moyen » signifie donc index >= 3.
       var bas=0, jours=[];
@@ -16858,7 +16898,7 @@ function viewCoachDash(){
       var silSeuil=SIL_DEFAUT;
       try{var accS=dat[504]||{};if(accS.silence!==undefined)silSeuil=accS.silence;}catch(e){}
       var vu505=dat[505]&&dat[505].d;
-      var joursOuv=vu505?Math.floor((new Date(isoLocal())-new Date(vu505))/86400000):null;
+      var joursOuv=vu505?silJours(vu505,st):null;
       if(silSeuil>0&&joursOuv!=null&&joursOuv>silSeuil){
         pts+=60;causes.push("🔒 accès fermé — "+joursOuv+" j sans ouvrir");
       }else if(silSeuil>0&&joursOuv!=null&&joursOuv===silSeuil){

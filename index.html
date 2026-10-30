@@ -1163,7 +1163,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "26/10b - Onglet Running";
+var APP_VERSION = "30/10 - Bloc suivant automatique";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -2271,6 +2271,65 @@ function brancherRetourAppli(){
     if(document.visibilityState==="visible")cloudRafraichir(false);
   });
   window.addEventListener("focus",function(){cloudRafraichir(false);});
+}
+// 🔄 DÉMARRAGE DU BLOC SUIVANT. Appelé par le bouton du client, et tout seul
+// (blocAuto) dès que le programme en cours est terminé ou que la date de
+// départ choisie par le coach est arrivée : le client n'a rien à faire.
+function blocDemarrer(name){
+    var __SB=getAllData()[533]||{};
+    var __dep=__SB.depart||isoLocal();
+    var __nP=__SB.prog||90;
+    var newBloc=BLOC+1;
+    var eff=BASE_CLIENT+"-b"+newBloc;
+    localStorage.setItem("amcoach_bloc_"+BASE_CLIENT,String(newBloc));
+    var today=__dep;
+    localStorage.setItem("amcoach_name_"+eff,name);
+    localStorage.setItem("amcoach_start_"+eff,today);
+    sbFetch("clients?on_conflict=slug",{method:"POST",prefer:"resolution=merge-duplicates",body:{slug:eff,name:name,start_date:today}}).catch(function(){});
+    // Le programme choisi par le coach est posé sur le nouveau bloc :
+    // accès, menus, vidéos, thème et superviseur suivent.
+    (function(){
+      var cur=getAllData(), nv={};
+      if(__nP<=42){
+        var e=new Date(today+"T12:00:00"); e.setDate(e.getDate()+__nP-1);
+        nv[504]={end:isoLocal(e),off:false};
+        nv[517]={on:true,reset:true,debut:today,phaseForcee:null,note:""};
+        if(cur[507])nv[507]=cur[507];
+      }else{
+        nv[517]={on:true,reset:false,debut:today,phaseForcee:null,note:""};
+      }
+      [503,514,518].forEach(function(k){if(cur[k])nv[k]=cur[k];});
+      if(cur[520]&&cur[520].sexe)nv[520]={sexe:cur[520].sexe,seances:[],journal:[],dernier:{},marches:{},socle:cur[520].socle||[],bonus:cur[520].bonus||[]};
+      try{lsSet("amcoach_"+eff,nv);}catch(e){}
+      Object.keys(nv).forEach(function(k){
+        sbFetch("tracking?on_conflict=client_slug,day_index",{method:"POST",prefer:"resolution=merge-duplicates",
+          body:{client_slug:eff,day_index:+k,data:nv[k]}}).catch(function(){});
+      });
+    })();
+    try{localStorage.setItem("amcoach_bloc_annonce",String(newBloc));}catch(e){}
+}
+function blocAuto(name,start){
+  if(IS_COACH||!CLIENT||BLOC>=4||window.__blocAutoFait)return false;
+  var all=getAllData(), SB=all[533]||{};
+  if(SB.ok!==BLOC+1)return false;
+  var brut=Math.floor((new Date(isoLocal()+"T12:00:00")-new Date(String(start).slice(0,10)+"T12:00:00"))/86400000);
+  var L=90; try{L=progLen(start,all)||90;}catch(e){}
+  var fini=brut>=L, departArrive=!!(SB.depart&&SB.depart<=isoLocal());
+  if(!fini&&!departArrive)return false;
+  window.__blocAutoFait=true;
+  blocDemarrer(name);
+  window.location.reload();
+  return true;
+}
+// Un autre téléphone a déjà démarré le bloc suivant : on s'y range tout seul.
+function blocCloudVerif(){
+  if(IS_COACH||!BASE_CLIENT||window.__blocCloudVu)return;
+  window.__blocCloudVu=true;
+  var L=[2,3,4].map(function(n){return '"'+BASE_CLIENT+'-b'+n+'"';}).join(",");
+  try{sbFetch("clients?slug=in.("+encodeURIComponent(L)+")&select=slug").then(function(r){return r.json();}).then(function(rows){
+    var max=1;(rows||[]).forEach(function(x){var m=String(x.slug).match(/-b(\d+)$/);if(m&&+m[1]>max)max=+m[1];});
+    if(max>BLOC){try{localStorage.setItem("amcoach_bloc_"+BASE_CLIENT,String(max));}catch(e){}window.location.reload();}
+  }).catch(function(){});}catch(e){}
 }
 function loadFromCloud(cb){
   if(!CLIENT){cb();return;}
@@ -5383,6 +5442,10 @@ function renderView(){
   var name=lsGetStr("amcoach_name_"+CLIENT);
   var start=lsGetStr("amcoach_start_"+CLIENT);
   if(!name||!start){root.innerHTML=viewOnboarding();bindOnboarding();return;}
+  // 🔄 Bloc suivant validé par le coach : il démarre tout seul.
+  try{if(blocAuto(name,start))return;}catch(e){}
+  try{blocCloudVerif();}catch(e){}
+  try{var __ba=localStorage.getItem("amcoach_bloc_annonce");if(__ba){localStorage.removeItem("amcoach_bloc_annonce");setTimeout(function(){feedback("🔄 Ton Bloc "+__ba+"/4 est en place","win");},600);}}catch(e){}
   // 🔑 Contrôle d'accès (slot 504)
   var lastAct=getAllData()[505];
   var todayIso=isoLocal();
@@ -5977,9 +6040,87 @@ function runSortieTxt(R,S){
     (S.fc?" · FC "+S.fc:"")+(S.rs?" · ressenti "+S.rs+"/10":"")+(S.coach?" · 🧑‍🏫 avec le coach":"");
 }
 function runRsCol(n){return n>=9?"#D93A3A":n>=7?"#E0661B":n>=4?"#D9A00B":"#1E9E5A";}
+// Lecture d'une capture de montre : texte OCR → {km, sec, fc, allure}
+function runLireTexte(txt){
+  var T=String(txt||"").replace(/\r/g,"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
+  T=T.replace(/[’‘`´]/g,"'").replace(/[“”″]/g,'"').replace(/[|]/g," ");
+  var L=T.split("\n").map(function(l){return l.trim();}).filter(Boolean);
+  var R={km:null,sec:null,fc:null,allure:null};
+  function num(s){return parseFloat(String(s).replace(",","."));}
+  function tsec(s){var p=String(s).split(":").map(function(x){return parseInt(x,10);});if(p.some(isNaN))return null;return p.length===3?p[0]*3600+p[1]*60+p[2]:p[0]*60+p[1];}
+  // Valeur collée à une étiquette : même ligne après l'étiquette, sinon ligne suivante, sinon ligne précédente (Garmin : chiffre AU-DESSUS de l'étiquette).
+  function pres(re,valRe,lisOrdre){
+    for(var i=0;i<L.length;i++){
+      if(!re.test(L[i]))continue;
+      var apres=L[i].replace(re,"\u0001").split("\u0001").slice(1).join(" ");
+      var c=[apres,L[i+1]||"",L[i-1]||""];
+      if(lisOrdre==="avant")c=[apres,L[i-1]||"",L[i+1]||""];
+      for(var j=0;j<c.length;j++){var m=c[j].match(valRe);if(m)return m;}
+    }
+    return null;
+  }
+  var reH=/(\d{1,2}:\d{2}:\d{2}|\d{1,3}:\d{2})/;
+  // Allure : 6'24" /km, 6:15 /km, ou étiquette allure
+  var mA=T.match(/(\d{1,2})\s*[':]\s*(\d{2})\s*"?\s*\/\s*km/);
+  if(mA)R.allure=+mA[1]*60+ +mA[2];
+  else{var a2=pres(/allure|pace|rythme/,/(\d{1,2})\s*[':]\s*(\d{2})/,"avant");if(a2)R.allure=+a2[1]*60+ +a2[2];}
+  // Distance
+  var d=pres(/distance/,/(\d{1,3}[.,]\d{1,2})/,"avant");
+  if(d)R.km=num(d[1]);
+  if(!R.km){var mk=T.match(/(\d{1,3}[.,]\d{1,2})\s*km\b(?!\s*\/)/);if(mk)R.km=num(mk[1]);}
+  if(!R.km){var mk2=T.match(/(\d{1,3}[.,]\d{1,2})\s*km/);if(mk2)R.km=num(mk2[1]);}
+  // Temps
+  var t=pres(/duree|temps|time|duration|chrono/,reH,"avant");
+  if(t){
+    // Évite « zone 3 : 21:40 » : la ligne d'étiquette ne doit pas parler de zone
+    R.sec=tsec(t[1]);
+  }
+  if(!R.sec){var all=T.match(/\b\d{1,2}:\d{2}:\d{2}\b/g);if(all)R.sec=Math.max.apply(null,all.map(tsec));}
+  // FC moyenne
+  var f=pres(/(fc|freq[^\n]{0,14}card[^\n]{0,10}|frequence cardiaque|avg hr|heart rate)[^\n]{0,6}moy|moy[^\n]{0,4}(fc|hr)|avg hr|fc moyenne/,/(\d{2,3})/,"avant");
+  if(f&&+f[1]>=60&&+f[1]<=220)R.fc=+f[1];
+  if(!R.fc){var b=T.match(/(\d{2,3})\s*bpm/);if(b&&+b[1]>=60&&+b[1]<=220)R.fc=+b[1];}
+  // Contrôles de vraisemblance, puis on complète ce qui manque
+  if(R.km&&(R.km<0.2||R.km>100))R.km=null;
+  if(R.sec&&(R.sec<120||R.sec>6*3600))R.sec=null;
+  if(R.allure&&(R.allure<150||R.allure>900))R.allure=null;
+  if(!R.sec&&R.km&&R.allure)R.sec=Math.round(R.km*R.allure);
+  if(!R.km&&R.sec&&R.allure)R.km=Math.round(R.sec/R.allure*100)/100;
+  // Temps incohérent avec l'allure : on préfère distance × allure
+  if(R.km&&R.sec&&R.allure&&Math.abs(R.sec/R.km-R.allure)>45)R.sec=Math.round(R.km*R.allure);
+  return R;
+}
+
+// 📸 LECTURE D'UNE CAPTURE DE MONTRE, gratuite et dans le téléphone :
+// reconnaissance de texte (Tesseract) chargée à la demande, aucune donnée
+// envoyée ailleurs, aucun coût d'API. Garmin Connect, app Forme d'Apple,
+// Strava, Polar… : il suffit que le résumé affiche distance, temps, FC.
+var RUN_OCR_URL="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
+function runOcrLib(cb){
+  if(window.Tesseract)return cb(null);
+  var sc=document.createElement("script"); sc.src=RUN_OCR_URL; sc.async=true;
+  sc.onload=function(){cb(window.Tesseract?null:"absent");};
+  sc.onerror=function(){cb("reseau");};
+  document.head.appendChild(sc);
+}
+function runOcrLire(file,cb){
+  runOcrLib(function(err){
+    if(err)return cb(err);
+    var w=null;
+    Tesseract.createWorker(["fra","eng"],1,{
+      workerPath:"https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js",
+      corePath:"https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1"
+    }).then(function(W){w=W;return W.recognize(file);})
+      .then(function(r){var t=(r&&r.data&&r.data.text)||"";try{w.terminate();}catch(e){}cb(null,runLireTexte(t),t);})
+      .catch(function(e){try{if(w)w.terminate();}catch(x){}cb("ocr");});
+  });
+}
 // Formulaire de saisie d'une sortie (client et coach).
 function runFormHTML(px,typeSel){
-  var h='<div class="run-form" style="margin-top:10px;padding:12px;border-radius:14px;background:rgba(127,127,127,.08)">';
+  var h='<div class="run-form" style="margin-top:10px;padding:12px;border-radius:14px;background:rgba(127,127,127,.08)">'+
+    '<label style="display:block;text-align:center;padding:12px 0;border-radius:12px;border:2px dashed #1E9E5A;color:#1E9E5A;font-weight:900;font-size:13px;margin-bottom:6px;cursor:pointer">📸 Remplir avec la capture de ma montre'+
+    '<input type="file" accept="image/*" data-run-photo="'+px+'" style="display:none"/></label>'+
+    '<div id="'+px+'-ocr" style="font-size:11.5px;font-weight:800;min-height:14px;margin-bottom:8px;opacity:.85">Capture du résumé dans Garmin Connect, l\'app Forme, Strava…</div>';
   if(typeSel)h+='<div style="font-size:11px;font-weight:900;opacity:.7;margin-bottom:4px">TYPE</div><select id="'+px+'-type" class="prg-sel" style="width:100%;padding:10px;margin-bottom:9px">'+
     RUN_ZONES.map(function(z){return '<option value="'+z.k+'">'+z.ico+' '+z.nom+'</option>';}).join("")+'<option value="test">⏱️ Test chrono</option></select>';
   h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px">'+
@@ -6014,6 +6155,22 @@ function runFormBind(onOk,onAnnul){
   document.querySelectorAll(".run-form input").forEach(function(inp){inp.addEventListener("input",function(){
     var px=this.id.split("-").slice(0,-1).join("-"), S=runFormLire(px), el=document.getElementById(px+"-allure");
     if(el)el.textContent=(S&&runAllure(S))?"⚡ Allure : "+runFmt(runAllure(S))+" /km":"";
+  });});
+  document.querySelectorAll("[data-run-photo]").forEach(function(inp){inp.addEventListener("change",function(){
+    var px=this.getAttribute("data-run-photo"), f=this.files&&this.files[0], msg=document.getElementById(px+"-ocr");
+    if(!f)return;
+    if(msg){msg.style.color="";msg.textContent="⏳ Lecture de ta capture… (quelques secondes, plus la première fois)";}
+    runOcrLire(f,function(err,R){
+      if(!msg)return;
+      if(err){msg.style.color="#D93A3A";msg.textContent=err==="reseau"?"Pas de connexion : remplis à la main.":"Je n'ai pas pu lire cette image : remplis à la main.";return;}
+      function pose(id,v){var e=document.getElementById(px+"-"+id);if(e&&v!=null&&v!==""){e.value=v;e.dispatchEvent(new Event("input",{bubbles:true}));}}
+      pose("km",R.km!=null?String(R.km):null); pose("t",R.sec?runFmt(R.sec):null); pose("fc",R.fc!=null?String(R.fc):null);
+      var lu=[R.km?"distance":null,R.sec?"temps":null,R.fc?"FC":null].filter(Boolean);
+      if(lu.length===3){msg.style.color="#1E9E5A";msg.textContent="✅ Lu : distance, temps et FC. Vérifie, ajoute ton ressenti, enregistre.";}
+      else if(lu.length){msg.style.color="#D9770B";msg.textContent="⚠️ Lu : "+lu.join(", ")+". Complète le reste à la main.";}
+      else{msg.style.color="#D93A3A";msg.textContent="Je n'ai rien trouvé de lisible : prends la capture du résumé (distance, temps, FC).";}
+    });
+    this.value="";
   });});
   document.querySelectorAll("[data-run-ok]").forEach(function(b){b.addEventListener("click",function(){onOk(this.getAttribute("data-run-ok"));});});
   document.querySelectorAll("[data-run-annul]").forEach(function(b){b.addEventListener("click",function(){onAnnul(this.getAttribute("data-run-annul"));});});
@@ -7214,9 +7371,20 @@ function viewCalendar(name,start){
   // 📱 ANDROID : le lien ouvert dans Chrome propose l'appli DISCIPLINE 90.
   // Rien dans l'appli elle-même, ni sur iPhone, ni une fois refusé.
   h+=apkBandeauHTML();
+  // ⏳ PAS ENCORE DÉMARRÉ : compte à rebours au lieu de « Remplir ma journée ».
+  // Remplir avant le jour 1 écrirait dans le jour 1 du programme.
+  var __avant=0; try{__avant=joursAvantDepart(start);}catch(e){}
+  if(__avant>0){
+    var __dl=new Date(String(start).slice(0,10)+"T12:00:00").toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"});
+    h+='<div class="card" style="margin:0 14px 18px;padding:18px 17px;border-left:4px solid var(--brand);background:var(--card)">'+
+      '<div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:28px;line-height:1">'+(__avant===1?'⏰':'🗓️')+'</span>'+
+      '<div style="flex:1"><div style="font-weight:900;font-size:16px;color:var(--ink)">'+(__avant===1?'Ton programme démarre demain !':'Ton programme démarre dans '+__avant+' jours')+'</div>'+
+      '<div style="font-size:12.5px;color:var(--mute);margin-top:4px;text-transform:capitalize">'+__dl+'</div>'+
+      '<div style="font-size:12.5px;color:var(--mute);line-height:1.55;margin-top:6px">D\'ici là : lis tes menus, fais tes courses, regarde tes séances. Le jour J, tu n\'auras plus qu\'à suivre.</div></div></div></div>';
+  }
   // ⚡ RACCOURCI — la journée du jour, avant tout le reste.
   (function(){
-    if(today90<0||today90>=progDays)return;
+    if(__avant>0||today90<0||today90>=progDays)return;
     var dj=allData[today90]||{}, hab=dj.habits||{}, faits=0;
     for(var q=0;q<HABITS.length;q++)if(hab[HABITS[q].id])faits++;
     var reste=HABITS.length-faits;
@@ -21796,33 +21964,7 @@ function bindMain(name,start){
     var __dep=__SB.depart||isoLocal();
     var __nP=__SB.prog||90, __TP=progType(__nP);
     if(!confirm("Démarrer le Bloc "+(BLOC+1)+"/4 ?\n\n"+__TP.ico+" "+__TP.lib+". Jour 1 : "+isoVersFr(__dep)+"."))return;
-    var newBloc=BLOC+1;
-    var eff=BASE_CLIENT+"-b"+newBloc;
-    localStorage.setItem("amcoach_bloc_"+BASE_CLIENT,String(newBloc));
-    var today=__dep;
-    localStorage.setItem("amcoach_name_"+eff,name);
-    localStorage.setItem("amcoach_start_"+eff,today);
-    sbFetch("clients?on_conflict=slug",{method:"POST",prefer:"resolution=merge-duplicates",body:{slug:eff,name:name,start_date:today}}).catch(function(){});
-    // Le programme choisi par le coach est posé sur le nouveau bloc :
-    // accès, menus, vidéos, thème et superviseur suivent.
-    (function(){
-      var cur=getAllData(), nv={};
-      if(__nP<=42){
-        var e=new Date(today+"T12:00:00"); e.setDate(e.getDate()+__nP-1);
-        nv[504]={end:isoLocal(e),off:false};
-        nv[517]={on:true,reset:true,debut:today,phaseForcee:null,note:""};
-        if(cur[507])nv[507]=cur[507];
-      }else{
-        nv[517]={on:true,reset:false,debut:today,phaseForcee:null,note:""};
-      }
-      [503,514,518].forEach(function(k){if(cur[k])nv[k]=cur[k];});
-      if(cur[520]&&cur[520].sexe)nv[520]={sexe:cur[520].sexe,seances:[],journal:[],dernier:{},marches:{},socle:cur[520].socle||[],bonus:cur[520].bonus||[]};
-      try{lsSet("amcoach_"+eff,nv);}catch(e){}
-      Object.keys(nv).forEach(function(k){
-        sbFetch("tracking?on_conflict=client_slug,day_index",{method:"POST",prefer:"resolution=merge-duplicates",
-          body:{client_slug:eff,day_index:+k,data:nv[k]}}).catch(function(){});
-      });
-    })();
+    blocDemarrer(name);
     window.location.reload();
   });
   // 📷 Photo de profil depuis l'en-tête

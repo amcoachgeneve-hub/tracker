@@ -453,6 +453,30 @@ function menuAuto(){
   return PHASE_ORDER[currentPhaseIdx()];
 }
 function phaseUnlocked(pi){return dayGlobal()>=UNLOCK_AT[pi];}
+// 🔒 6 SEMAINES EN DEUX BLOCS. Partie 2 (semaines 4 à 6, jours 22 à 42)
+// fermée jusqu'au MILIEU de la semaine 3 : le jeudi, jour 18. Le client a le
+// temps de lire la suite et de faire ses courses avant le jour 22, sans se
+// disperser sur la seconde partie dès le départ. Le coach (admin) voit tout.
+var SIX_P2=21, SIX_DEBLOCAGE=17;
+function sixP2Verrou(){
+  return MENU==="6semaines"&&!IS_ADMIN&&!!CLIENT&&!!state.clientStart&&(dayGlobal()-menuDecalage(MENU))<SIX_DEBLOCAGE;
+}
+function sixDateDeblocage(){
+  try{var d=new Date(String(state.clientStart).slice(0,10)+"T12:00:00");d.setDate(d.getDate()+SIX_DEBLOCAGE);
+    return d.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"});}catch(e){return "jour "+(SIX_DEBLOCAGE+1);}
+}
+// Annonce le jour du déblocage et les 3 jours qui suivent.
+function sixBanniereHTML(){
+  if(MENU!=="6semaines"||sixP2Verrou()||!CLIENT||!state.clientStart||IS_ADMIN)return "";
+  var j6=dayGlobal()-menuDecalage(MENU);
+  if(j6<SIX_DEBLOCAGE||j6>=SIX_P2)return "";
+  return '<div style="margin:6px 0 8px;padding:12px 14px;border-radius:14px;background:#E8F5E9;border:2px solid #2E7D32;font-size:12.5px;font-weight:800;color:#1B5E20">🔓 Partie 2 débloquée ! Tes semaines 4 à 6 sont prêtes : lis-les et prépare tes courses avant le jour 22.</div>';
+}
+function sixVerrouHTML(){
+  return '<div style="margin:10px 0 6px;padding:14px;border-radius:14px;background:#F4F4F6;border:2px dashed #C9C9D1;text-align:center">'+
+    '<div style="font-size:24px">🔒</div><div style="font-weight:900;font-size:14px;color:#333;margin-top:2px">Partie 2 · semaines 4 à 6</div>'+
+    '<div style="font-size:12px;color:#777;line-height:1.5;margin-top:4px">Elle se débloque le <b style="text-transform:capitalize">'+sixDateDeblocage()+'</b> (jour '+(SIX_DEBLOCAGE+1)+'), au milieu de ta semaine 3.<br>Concentre-toi sur la partie 1 d\'ici là.</div></div>';
+}
 function currentPhaseIdx(){return Math.min(Math.floor(dayGlobal()/28),2);}
 
 function loadRecipes(menu,cb){
@@ -918,6 +942,7 @@ function render(){
       var __dj=(estCourt(MENU)||MENU==="reequilibrage")?dayGlobal()-menuDecalage(MENU):dayGlobal()%28;
       state.selDay=Math.max(0,Math.min(MENU_DAYS(MENU)-1,__dj));
     }
+    if(sixP2Verrou()&&state.selDay>=SIX_P2)state.selDay=SIX_P2-1;
     var hh='<div class="app">'+viewClientHeader()+viewBanner()+viewPhaseNav()+viewTabs();
     if(state.tab==="menu")hh+=viewCalendar()+viewDayMeals();
     else if(state.tab==="frigo")hh+=viewFrigo();
@@ -1058,8 +1083,10 @@ function viewTabs(){
 function viewCalendar(){
   var DAYN=["L","M","M","J","V","S","D"];
   var h='<div style="padding:0 14px;margin-bottom:16px">';
-  var nbSem=Math.ceil(MENU_DAYS(MENU)/7);
+  var nbSem=Math.ceil(MENU_DAYS(MENU)/7), verrou6=sixP2Verrou();
+  h+=sixBanniereHTML();
   for(var w=0;w<nbSem;w++){
+    if(verrou6&&w*7>=SIX_P2){if(w*7===SIX_P2)h+=sixVerrouHTML();continue;}
     h+='<div style="display:flex;align-items:center;justify-content:space-between;margin:10px 0 6px">'+
       '<span style="font-weight:900;font-size:11px;color:#AAA;letter-spacing:1px;text-transform:uppercase">Semaine '+(w+1)+'</span>'+
       (cfgMenu.recettes?'<button class="week-courses" data-week="'+w+'" style="font-size:11px;font-weight:800;color:'+R+';padding:4px 10px;border:1.5px solid '+R+';border-radius:20px;background:#fff">🛒 Liste de courses</button>':'')+'</div>';
@@ -1275,8 +1302,10 @@ function reset14ProtocoleHTML(){
 
   // Le calendrier de la séquence : 2 semaines, lundi → dimanche.
   var noms=["L","M","M","J","V","S","D"];
-  h+='<div class="rs-cal-t">📅 Ta séquence de '+(six?'6 semaines':'14 jours')+'</div>';
+  h+='<div class="rs-cal-t">📅 Ta séquence de '+(six?'6 semaines':'14 jours')+'</div>'+(six?sixBanniereHTML():'');
+  var verrouP=six&&sixP2Verrou();
   for(var w=0;w<nbS;w++){
+    if(verrouP&&w*7>=SIX_P2){if(w*7===SIX_P2)h+=sixVerrouHTML();continue;}
     h+='<div class="rs-sem">'+(six?(w<3?'Partie 1 · ':'Partie 2 · '):'')+'Semaine '+(w+1)+'</div><div class="rs-cal">';
     for(var d=0;d<7;d++){
       var i=w*7+d, on=(jourTag(MENU,i)==="RA");
@@ -1639,7 +1668,7 @@ function bindMain(){
 // en arrière-plan. Sans ce contrôle, la cliente voyait l'ancien menu jusqu'à
 // la réouverture suivante. On relit la page quelques secondes après
 // l'ouverture : si la version a changé, on recharge une seule fois.
-var MENU_VERSION="15/10 - Reequilibrage offert";
+var MENU_VERSION="28/10 - 6 semaines en 2 blocs";
 (function(){
   function verifier(){
     try{

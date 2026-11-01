@@ -1154,6 +1154,18 @@ var PILIER_POIDS={sommeil:4,nutrition:3,sport:2,hydratation:1};
 // 67 %, c'est un jour sur trois hors menu — de quoi annuler la semaine sur
 // la balance. Les autres piliers sont tenus à deux jours sur trois.
 var PILIER_SEUIL={nutrition:80,sport:66,sommeil:66,hydratation:66};
+// 🧭 ORDRE DE PRIORITÉ ENTRE PILIERS (révisé le 01/11, cas Fayza : sport 57 %,
+// nutrition 71 % — le rapport poussait la nutrition d'abord). Règle :
+// l'hydratation passe toujours après sommeil, nutrition et sport ; entre ces
+// trois, c'est le PLUS BAS qui passe devant. Le poids ne départage qu'à
+// égalité. La règle d'avant (« le plus lourd d'abord ») servait surtout à ne
+// pas désigner l'hydratation : elle reste dernière.
+function pilierOrdre(ia,pa,ib,pb){
+  var ha=(ia==="hydratation")?1:0, hb=(ib==="hydratation")?1:0;
+  if(ha!==hb)return ha-hb;
+  if(Math.round(pa)!==Math.round(pb))return pa-pb;
+  return (PILIER_POIDS[ib]||0)-(PILIER_POIDS[ia]||0);
+}
 // Habitudes d'ÉQUILIBRE : elles comptent pour la vie, pas pour la balance.
 // Ne pas cocher « travail » un dimanche n'est pas un échec — les afficher
 // comme tel désignerait un faux coupable et brouillerait le vrai message.
@@ -1163,10 +1175,13 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "30/10 - Bloc suivant automatique";
+var APP_VERSION = "01/11d - Sport juge sur le programme";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
+var BILAN_ECHELLES=[["sportF","🏋️ SPORT"],["nutritionF","🥗 NUTRITION"],["sommeilF","😴 SOMMEIL"],["stressF","🧠 STRESS"]];
+// 10 = très facile → vert ; 0 = très difficile → rouge.
+function echelleCouleur(n){return SCALE_COLORS[Math.max(0,Math.min(9,Math.round((10-n)*9/10)))];}
 var SCALE_COLORS=["var(--ok)","var(--ok)","var(--ok-l)","#CDDC39","var(--amber)","var(--amber)","var(--warn)","#FF5722","var(--brand)","var(--bad)"];
 
 // ═══════════ NUTRITION / PROTÉINES (slot 510) ═══════════
@@ -4437,10 +4452,7 @@ function computeLoops(allData,period,offset){
   // Faiblesses : habitudes qui sautent le plus souvent.
   // Les compléments sont facultatifs — les compter masquerait la vraie boucle d'échec.
   var faibles=ratesA.filter(function(r){return r.cnt>=3&&r.rate<=0.45;})
-    .sort(function(a,b){
-      var ia=(a.hab&&PILIER_POIDS[a.hab.id])||0, ib=(b.hab&&PILIER_POIDS[b.hab.id])||0;
-      return (ib-ia)||(a.rate-b.rate);
-    });
+    .sort(function(a,b){return pilierOrdre(a.hab&&a.hab.id,a.rate*100,b.hab&&b.hab.id,b.rate*100);});
   // Enchaînements de jours manqués (un jour saute → le suivant aussi)
   var lastFilled=-1;
   for(var li=offset;li<offset+period;li++){if(allData[li]&&allData[li].habits)lastFilled=li;}
@@ -8204,15 +8216,20 @@ function viewDay(name,start){
     }
     if(state.showBilan){
       h+='<div class="card" style="padding:18px 16px"><div style="font-weight:900;font-size:14px;margin-bottom:16px;display:flex;align-items:center;gap:8px">'+
-        '<div class="bar bar-r"></div>Difficulté ressentie — Semaine '+weekNum+'</div>';
-      var scales=[["sportDiff","🏋️ SPORT"],["nutritionDiff","🥗 NUTRITION"],["sommeilDiff","😴 SOMMEIL"],["stress","🧠 STRESS"]];
+        '<div class="bar bar-r"></div>Ma semaine — Semaine '+weekNum+'</div>'+
+        '<div style="font-size:12px;color:var(--mute);margin:-8px 0 14px;line-height:1.5">Comment ça s\'est passé ? <b>10 = très facile</b>, <b>0 = très difficile</b>.</div>';
+      // 🧭 Échelle de FACILITÉ (Akli, 01/11) : 10 = très facile, 0 = très
+      // difficile. L'ancienne échelle de difficulté (1 facile → 10 difficile)
+      // se lisait à l'envers. Nouvelles clés *F : les anciennes réponses ne
+      // sont pas converties, le client avait pu les donner dans l'autre sens.
+      var scales=BILAN_ECHELLES;
       for(var s=0;s<scales.length;s++){
-        var key=scales[s][0], val=b[key]||null;
+        var key=scales[s][0], val=(b[key]!=null&&b[key]!=="")?b[key]:null;
         h+='<div style="font-weight:800;font-size:12px;margin-bottom:9px">'+scales[s][1]+'</div><div class="scale-row">';
-        for(var n2=1;n2<=10;n2++){
-          h+='<button class="scale-btn'+(val===n2?" active":"")+'" data-scale="'+key+'" data-val="'+n2+'" style="'+(val===n2?"background:"+SCALE_COLORS[n2-1]:"")+'">'+n2+'</button>';
+        for(var n2=0;n2<=10;n2++){
+          h+='<button class="scale-btn'+(val===n2?" active":"")+'" data-scale="'+key+'" data-val="'+n2+'" style="'+(val===n2?"background:"+echelleCouleur(n2):"")+'">'+n2+'</button>';
         }
-        h+='</div><div class="scale-hints"><span>← Facile</span><span>Difficile →</span></div>';
+        h+='</div><div class="scale-hints"><span>← Très difficile</span><span>Très facile →</span></div>';
       }
       h+='</div><div class="card" style="padding:18px 16px"><div style="font-weight:900;font-size:14px;margin-bottom:16px;display:flex;align-items:center;gap:8px">'+
         '<div class="bar bar-b"></div>Ressenti de la semaine</div>'+
@@ -8610,7 +8627,7 @@ function bindDay(name,start){
       var key=this.getAttribute("data-scale"), val=parseInt(this.getAttribute("data-val"));
       var d=cur();
       var b=d.bilan||{};
-      b[key]=b[key]===val?null:val;
+      b[key]=(b[key]===val)?null:val;
       persist({bilan:b});
       render();
     });
@@ -8641,10 +8658,13 @@ function bindDay(name,start){
     }
     var avg=sc.length?Math.round(sc.reduce(function(a,c){return a+c;},0)/sc.length):null;
     var wk=Math.floor(idx/7)+1;
+    var courtWA=false; try{courtWA=progLen(lsGetStr("amcoach_start_"+CLIENT),allData)<=42;}catch(e){}
     var t="📋 Mon bilan — Semaine "+wk+"\n"+
       (avg!=null?"📊 Score moyen : "+avg+"%\n":"")+
-      "🧱 Briques : "+briq+"/14 · ⚡ Missions : "+mw+"/7\n"+
-      (b.sportDiff?"🏋️ Sport "+b.sportDiff+"/10 · ":"")+(b.nutritionDiff?"🥗 Nutrition "+b.nutritionDiff+"/10 · ":"")+(b.sommeilDiff?"😴 Sommeil "+b.sommeilDiff+"/10 · ":"")+(b.stress?"🧠 Stress "+b.stress+"/10":"")+"\n"+
+      // Briques et mission du jour : facultatives, absentes des programmes courts.
+      (courtWA?"":"🧱 Briques : "+briq+"/14 · ⚡ Missions : "+mw+"/7\n")+
+      (function(){var L=BILAN_ECHELLES.filter(function(E){return b[E[0]]!=null&&b[E[0]]!=="";}).map(function(E){var n=b[E[0]];return E[1].split(" ")[0]+" "+E[1].split(" ")[1].charAt(0)+E[1].split(" ")[1].slice(1).toLowerCase()+" "+n+"/10";});
+        return L.length?"🎚️ Facilité (10 = très facile) :\n"+L.join(" · ")+"\n":"";})()+
       (b.victoire?"🏆 Victoire : "+b.victoire+"\n":"")+
       (b.blocage?"🤛 Difficulté : "+b.blocage+"\n":"")+
       (b.ressenti?"💬 Ressenti : "+b.ressenti+"\n":"")+
@@ -9282,9 +9302,34 @@ function openRapportSimple(name,start,period,dataOverride){
     for(var sp2=0;sp2<piliers.length;sp2++)sp+=piliers[sp2].pct;
     scorePil=Math.round(sp/piliers.length);
   }
+  // 🚶 LE SPORT SE JUGE SUR LE PROGRAMME, pas sur 7 jours sur 7 (Akli, 01/11,
+  // cas Fayza). En 90 jours : mois 1 = 2 marches par semaine, mois 2 = 3,
+  // mois 3 = 4 (plus les séances du socle s'il y en a). Atteindre ce quota,
+  // c'est avoir suivi le programme : le rapport ne doit pas dire le contraire.
+  var sportProg=null;
+  try{
+    var __len=progLen(start,allData)||90;
+    var __it=null; for(var si=0;si<piliers.length;si++)if(piliers[si].id==="sport")__it=piliers[si];
+    if(__it&&__len>42){
+      var __m="m"+Math.min(3,Math.floor(fin/28)+1), __pl=((progGet(allData).plan)||{})[__m]||PROG3_DEF[__m]||{};
+      var __objS=(parseInt(__pl.marches,10)||0)+((__pl.sea||[]).length||0);
+      if(__objS>0&&__objS<7){
+        var __objP=Math.max(1,Math.round(__objS*nbJours/7));
+        sportProg={it:__it,obj:__objP,objSem:__objS,tenu:__it.n>=__objP};
+        __it.tenuProg=sportProg.tenu;
+        // Le pourcentage devient celui du PROGRAMME : 3 sorties sur 3 = 100 %.
+        __it.pct=Math.min(100,Math.round(__it.n/__objP*100));
+        __it.labAff=__it.lab+" · "+__it.n+" sortie"+(__it.n>1?"s":"")+" ("+__objP+" prévue"+(__objP>1?"s":"")+")"+(sportProg.tenu?" ✓":"");
+      }
+    }
+  }catch(e){}
   // Combien de piliers sont réellement décrochés
   var pilFaibles=[];
-  for(var pf=0;pf<piliers.length;pf++){if(piliers[pf].pct<(PILIER_SEUIL[piliers[pf].id]||66))pilFaibles.push(piliers[pf]);}
+  for(var pf=0;pf<piliers.length;pf++){
+    if(piliers[pf].tenuProg)continue;
+    if(sportProg&&piliers[pf]===sportProg.it){if(!sportProg.tenu)pilFaibles.push(piliers[pf]);continue;}
+    if(piliers[pf].pct<(PILIER_SEUIL[piliers[pf].id]||66))pilFaibles.push(piliers[pf]);
+  }
   // ⚖️ Le poids ne bouge pas (objectif perte) : la nutrition passe devant,
   // même à 85 %. C'est l'assiette qui fait l'essentiel du résultat.
   var dPoidsRef=(dPeriode!=null?dPeriode:dPoids);
@@ -9293,10 +9338,7 @@ function openRapportSimple(name,start,period,dataOverride){
   var pilNutr=null;
   for(var pn2=0;pn2<piliers.length;pn2++)if(piliers[pn2].id==="nutrition")pilNutr=piliers[pn2];
   if(poidsBloque&&pilNutr&&pilNutr.pct<90&&pilFaibles.indexOf(pilNutr)<0)pilFaibles.push(pilNutr);
-  pilFaibles.sort(function(a,b){
-    var d=(PILIER_POIDS[b.id]||0)-(PILIER_POIDS[a.id]||0);
-    return d?d:a.pct-b.pct;
-  });
+  pilFaibles.sort(function(a,b){return pilierOrdre(a.id,a.pct,b.id,b.pct);});
   var priorite=pilFaibles[0]||null;
 
   // 🔄 LES DEUX BOUCLES.
@@ -9308,6 +9350,7 @@ function openRapportSimple(name,start,period,dataOverride){
   for(var b2=0;b2<liste.length;b2++){
     var it2=liste[b2];
     if(it2.pilier&&pilFaibles.indexOf(it2)>=0){echec.push(it2);continue;}
+    if(it2.tenuProg){vertu.push(it2);continue;}
     if(it2.pct>=66){vertu.push(it2);continue;}
     // Seuls les PILIERS entrent dans la boucle d'échec. Reprocher « travail
     // 29 % » à quelqu'un qui ne coche pas cette case le week-end noie le vrai
@@ -9317,10 +9360,7 @@ function openRapportSimple(name,start,period,dataOverride){
     // à 50 % n'apparaissait NULLE PART — ni tenu, ni décroché.
     if(it2.pilier)echec.push(it2);
   }
-  echec.sort(function(a,b){
-    var d=(PILIER_POIDS[b.id]||0)-(PILIER_POIDS[a.id]||0);
-    return d?d:a.pct-b.pct;
-  });
+  echec.sort(function(a,b){return pilierOrdre(a.id,a.pct,b.id,b.pct);});
 
   // Le verdict : une phrase, choisie sur l'assiduité, qui dit quoi penser.
   // 🎯 LE VERDICT croise DEUX choses : la présence (assiduité) et le CONTENU
@@ -9379,17 +9419,25 @@ function openRapportSimple(name,start,period,dataOverride){
     var ACT={
       nutrition:"Cocher « Nutrition » chaque jour : suivre ton menu midi et soir, sans écart. L'assiette fait 70 % du résultat — le sport ne rattrape pas une assiette ratée."+
         (poidsBloque?" Ton poids a bougé de "+(dPoidsRef>0?"+":"")+String(dPoidsRef).replace(".",",")+" kg : c'est là que ça se joue.":""),
-      sport:"Cocher « Sport » chaque jour : ta séance ou ta marche, même courte. Sans mouvement, le corps garde ses réserves.",
+      sport:(sportProg?"Faire tes "+sportProg.objSem+" sorties sport de la semaine, comme prévu dans ton programme : marche d'une heure ou séance. Cette semaine : "+sportProg.it.n+" sur "+sportProg.obj+".":"Cocher « Sport » chaque jour : ta séance ou ta marche, même courte. Sans mouvement, le corps garde ses réserves."),
       sommeil:"Cocher « Sommeil » chaque jour : te coucher 30 minutes plus tôt. C'est la nuit que le corps transforme.",
       hydratation:"Cocher « Hydratation » chaque jour : 2 litres d'eau, une bouteille le matin, une l'après-midi."
     };
     action=ACT[priorite.id]||("Cocher « "+priorite.lab+" » chaque jour. Sans ce pilier, aucun programme ne donne de résultat — le reste ne compensera pas.");
+    // La suite, en une phrase : le pilier suivant, 7 jours sur 7.
+    var __p2=pilFaibles[1];
+    if(__p2)action+=" Ensuite : « "+__p2.lab+" » "+(__p2.id==="sport"&&sportProg?sportProg.objSem+" fois par semaine, comme prévu":"7 jours sur 7")+(__p2.id==="nutrition"&&poidsBloque?" (ton poids a bougé de "+(dPoidsRef>0?"+":"")+String(dPoidsRef).replace(".",",")+" kg)":"")+".";
   }
   else if(assidu<65)action="Remplir ta journée dans l'appli, tous les jours. Même une journée imparfaite compte — c'est le geste qui construit l'habitude.";
   else if(moySom!=null&&moySom<7)action="Te coucher 30 minutes plus tôt. Ton sommeil est à "+moySom+" h de moyenne : c'est la nuit que le corps transforme.";
   else if(echec.length)action="Reprendre « "+echec[0].lab+" », et rien d'autre. C'est la case qui casse ta boucle — le reste tient déjà.";
   else if(bas&&bas.pct<50)action="Te concentrer sur « "+bas.lab+" ». C'est la seule case qui traîne — le reste est déjà en place.";
   else action="Garder exactement ce rythme. Il n'y a rien à changer, seulement à continuer.";
+  // Programme sport suivi mais poids bloqué : on ne reproche rien, on propose
+  // d'aller plus loin — être actif aussi les autres jours.
+  if(sportProg&&sportProg.tenu&&poidsBloque&&action){
+    action+=" Ton sport suit le programme ("+sportProg.it.n+" sorties pour "+sportProg.obj+" prévues, bravo). Pour relancer la balance, bouge aussi les autres jours : une marche, même courte.";
+  }
 
   var kh='<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8">'+
     '<meta name="viewport" content="width=device-width,initial-scale=1">'+
@@ -9450,7 +9498,7 @@ function openRapportSimple(name,start,period,dataOverride){
     kh+='<div class="s"><h2>🔄 Ta boucle vertueuse</h2>'+
       '<div style="font-size:12.5px;color:#7A8698;margin:-4px 0 8px;line-height:1.5">Ce que tu tiens déjà. Chaque case cochée en entraîne une autre — c\'est ça qui construit le résultat.</div>';
     for(var v1=0;v1<vertu.length;v1++){
-      kh+='<div class="li"><span style="font-size:20px">'+vertu[v1].e+'</span><span class="lab">'+esc(vertu[v1].lab)+'</span>'+
+      kh+='<div class="li"><span style="font-size:20px">'+vertu[v1].e+'</span><span class="lab">'+esc(vertu[v1].labAff||vertu[v1].lab)+'</span>'+
         '<span class="pc" style="color:#2FBF71">'+vertu[v1].pct+'%</span></div>';
     }
     kh+='</div>';
@@ -9460,7 +9508,7 @@ function openRapportSimple(name,start,period,dataOverride){
     kh+='<div class="s" style="background:#FDF6F3"><h2>⚠️ Ta boucle d\'échec</h2>'+
       '<div style="font-size:12.5px;color:#7A8698;margin:-4px 0 8px;line-height:1.5">Ce qui décroche. Une case laissée de côté en entraîne une autre le lendemain : c\'est comme ça qu\'une semaine se perd.</div>';
     for(var e1=0;e1<echec.length;e1++){
-      kh+='<div class="li"><span style="font-size:20px">'+echec[e1].e+'</span><span class="lab">'+esc(echec[e1].lab)+'</span>'+
+      kh+='<div class="li"><span style="font-size:20px">'+echec[e1].e+'</span><span class="lab">'+esc(echec[e1].labAff||echec[e1].lab)+'</span>'+
         '<span class="pc" style="color:#C75B4A">'+echec[e1].pct+'%</span></div>';
     }
     kh+='<div style="font-size:12.5px;color:#7A8698;margin-top:7px;line-height:1.5">On n\'en reprend qu\'UNE cette semaine. La première de la liste suffit.</div></div>';
@@ -15820,7 +15868,9 @@ function coachAnalytics(){
   var auj=new Date();
   for(var i=0;i<cl.length;i++){
     var c=cl[i], d=lsGet("amcoach_"+c.slug,{});
-    var dur=progLen(c.start_date,lsGet("amcoach_"+c.slug,{}))||90;
+    // 🎁 Le rééquilibrage offert après un Reset est une quête BONUS facultative :
+    // les statistiques jugent le Reset sur ses 14 jours, pas sur les 28 offerts.
+    var dur=progBase(c.start_date,lsGet("amcoach_"+c.slug,{}))||90;
     var t90=getToday90(c.start_date);
     // Dernier jour renseigné + nombre de jours remplis
     var last=-1,remplis=0;
@@ -17563,9 +17613,10 @@ function viewCoachDash(){
             'Cette semaine · '+nd+' jour'+(nd>1?'s':'')+' écoulé'+(nd>1?'s':'')+
             (nd<7?' (lundi → '+__J[jourSem]+')':' (semaine complète)')+'</div>'+
             '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px">'+
-            chip("🧱",briq,nd*2,"Briques identité posées (2/jour) — cette semaine (depuis lundi)")+
+            // Programmes courts : briques et mission du jour sont facultatives, on ne les compte pas.
+            ((progLen(c.start_date,cd)||90)<=42?"":chip("🧱",briq,nd*2,"Briques identité posées (2/jour) — cette semaine (depuis lundi)"))+
             chip("⚡",mind,nd,"Les 3 questions du journal remplies — cette semaine (même éclair que le calendrier)")+
-            (miss>0?chip("🎯",miss,nd,"Missions du jour gagnées — cette semaine"):"")+
+            (miss>0&&(progLen(c.start_date,cd)||90)>42?chip("🎯",miss,nd,"Missions du jour gagnées — cette semaine"):"")+
             chip("🏋️",spo,nd,"Sport coché dans le calendrier — cette semaine")+
             chip("🦾",pgSea,2,"Séances du programme transfo terminées — cette semaine")+
             (pgMarObj?chip((prog3Sexe(cd)==="f"?"🏃‍♀️":"🏃‍♂️"),pgMar,pgMarObj,"Marches validées — cette semaine"):"")+

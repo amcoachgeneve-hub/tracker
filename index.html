@@ -1175,7 +1175,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "01/11d - Sport juge sur le programme";
+var APP_VERSION = "01/11e - Bloc suivant complet";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -2290,38 +2290,86 @@ function brancherRetourAppli(){
 // 🔄 DÉMARRAGE DU BLOC SUIVANT. Appelé par le bouton du client, et tout seul
 // (blocAuto) dès que le programme en cours est terminé ou que la date de
 // départ choisie par le coach est arrivée : le client n'a rien à faire.
-function blocDemarrer(name){
+// Slots repris d'un bloc à l'autre : superviseur, protéines, finance, thème,
+// anniversaire, photo, running. Le programme lui-même repart de zéro.
+var BLOC_REPRIS=[503,510,512,514,518,531,540];
+// Le sexe du client, lu partout où il a pu être posé.
+function blocSexe(cur){
+  try{var P=(cur[520]||{}).sexe;if(P==="h"||P==="f")return P;}catch(e){}
+  try{var n=(cur[510]||{}).sexe;if(n==="H")return "h";if(n==="F")return "f";}catch(e){}
+  try{var g=(cur[503]||{}).genre;if(g==="h"||g==="f")return g;}catch(e){}
+  try{var t=(cur[514]||{}).theme;if(t==="h"||t==="f")return t;}catch(e){}
+  return null;
+}
+function blocNouveauxSlots(cur,today,nP){
+  var nv={};
+  if(nP<=42){
+    var e=new Date(today+"T12:00:00"); e.setDate(e.getDate()+nP-1);
+    nv[504]={end:isoLocal(e),off:false};
+    nv[517]={on:true,reset:true,debut:today,phaseForcee:null,note:""};
+  }else{
+    nv[517]={on:true,reset:false,debut:today,phaseForcee:null,note:""};
+  }
+  BLOC_REPRIS.forEach(function(k){if(cur[k])nv[k]=JSON.parse(JSON.stringify(cur[k]));});
+  var sx=blocSexe(cur);
+  if(sx){
+    nv[514]={theme:sx};
+    var P0=cur[520]||{};
+    nv[520]={sexe:sx,seances:[],journal:[],dernier:{},marches:{},socle:P0.socle||[],bonus:P0.bonus||[],plan:P0.plan};
+    if(nP<=42){try{var V=vid14Lire(),jeu=V[sx]||{};if(Object.keys(jeu).length)nv[507]=JSON.parse(JSON.stringify(jeu));}catch(e){}}
+  }
+  if(nP<=42&&!nv[507]&&cur[507])nv[507]=cur[507];
+  return nv;
+}
+// 🔄 DÉMARRAGE DU BLOC SUIVANT. Appelé par le bouton du client, et tout seul
+// (blocAuto). La fiche client est créée D'ABORD dans la base, PUIS ses
+// données : la table tracking exige que le client existe. Avant, tout partait
+// en même temps et le rechargement de la page coupait les envois — le Bloc 2
+// d'Akli n'avait ni thème, ni sexe, ni accès 6 semaines dans la base.
+function blocDemarrer(name,cb){
     var __SB=getAllData()[533]||{};
-    var __dep=__SB.depart||isoLocal();
+    var today=__SB.depart||isoLocal();
     var __nP=__SB.prog||90;
     var newBloc=BLOC+1;
     var eff=BASE_CLIENT+"-b"+newBloc;
     localStorage.setItem("amcoach_bloc_"+BASE_CLIENT,String(newBloc));
-    var today=__dep;
     localStorage.setItem("amcoach_name_"+eff,name);
     localStorage.setItem("amcoach_start_"+eff,today);
-    sbFetch("clients?on_conflict=slug",{method:"POST",prefer:"resolution=merge-duplicates",body:{slug:eff,name:name,start_date:today}}).catch(function(){});
-    // Le programme choisi par le coach est posé sur le nouveau bloc :
-    // accès, menus, vidéos, thème et superviseur suivent.
-    (function(){
-      var cur=getAllData(), nv={};
-      if(__nP<=42){
-        var e=new Date(today+"T12:00:00"); e.setDate(e.getDate()+__nP-1);
-        nv[504]={end:isoLocal(e),off:false};
-        nv[517]={on:true,reset:true,debut:today,phaseForcee:null,note:""};
-        if(cur[507])nv[507]=cur[507];
-      }else{
-        nv[517]={on:true,reset:false,debut:today,phaseForcee:null,note:""};
-      }
-      [503,514,518].forEach(function(k){if(cur[k])nv[k]=cur[k];});
-      if(cur[520]&&cur[520].sexe)nv[520]={sexe:cur[520].sexe,seances:[],journal:[],dernier:{},marches:{},socle:cur[520].socle||[],bonus:cur[520].bonus||[]};
-      try{lsSet("amcoach_"+eff,nv);}catch(e){}
-      Object.keys(nv).forEach(function(k){
-        sbFetch("tracking?on_conflict=client_slug,day_index",{method:"POST",prefer:"resolution=merge-duplicates",
-          body:{client_slug:eff,day_index:+k,data:nv[k]}}).catch(function(){});
-      });
-    })();
+    var nv=blocNouveauxSlots(getAllData(),today,__nP);
+    try{lsSet("amcoach_"+eff,nv);}catch(e){}
     try{localStorage.setItem("amcoach_bloc_annonce",String(newBloc));}catch(e){}
+    var fini=false; function fin(){if(fini)return;fini=true;if(cb)cb();}
+    setTimeout(fin,6000);
+    sbFetch("clients?on_conflict=slug",{method:"POST",prefer:"resolution=merge-duplicates",body:{slug:eff,name:name,start_date:today}})
+      .catch(function(){})
+      .then(function(){
+        return Promise.all(Object.keys(nv).map(function(k){
+          return sbFetch("tracking?on_conflict=client_slug,day_index",{method:"POST",prefer:"resolution=merge-duplicates",
+            body:{client_slug:eff,day_index:+k,data:nv[k]}}).catch(function(){});
+        }));
+      }).then(fin,fin);
+}
+// Bloc déjà démarré mais incomplet dans la base (cas du 01/11) : on complète
+// ce qui manque depuis le bloc précédent, une fois, sans rien écraser.
+function blocCompleter(){
+  if(IS_COACH||BLOC<2||window.__blocComplete)return;
+  window.__blocComplete=true;
+  var cur=getAllData(), manque=BLOC_REPRIS.concat([520]).filter(function(k){return !cur[k];});
+  if(!manque.length&&(cur[520]||{}).sexe)return;
+  var prev=BLOC===2?BASE_CLIENT:BASE_CLIENT+"-b"+(BLOC-1);
+  try{sbFetch("tracking?client_slug=eq."+encodeURIComponent(prev)+"&day_index=in.("+BLOC_REPRIS.concat([520,507]).join(",")+")&select=day_index,data")
+    .then(function(r){return r.json();}).then(function(rows){
+      var old={};(rows||[]).forEach(function(x){old[x.day_index]=x.data;});
+      var start=lsGetStr("amcoach_start_"+CLIENT)||isoLocal(), all=getAllData();
+      var nP=90;try{nP=progLen(start,all)||90;}catch(e){}
+      var nv=blocNouveauxSlots(old,start,nP), n=0;
+      Object.keys(nv).forEach(function(k){
+        if(k==="504"||k==="517")return;          // l'accès et les menus du bloc restent les siens
+        if(k==="520"){var P=all[520]||{};if(!P.sexe&&nv[520].sexe){P.sexe=nv[520].sexe;if(!P.plan)P.plan=nv[520].plan;saveDay(520,P);n++;}return;}
+        if(!all[k]){saveDay(+k,nv[k]);n++;}
+      });
+      if(n)render();
+    }).catch(function(){});}catch(e){}
 }
 function blocAuto(name,start){
   if(IS_COACH||!CLIENT||BLOC>=4||window.__blocAutoFait)return false;
@@ -2332,8 +2380,9 @@ function blocAuto(name,start){
   var fini=brut>=L, departArrive=!!(SB.depart&&SB.depart<=isoLocal());
   if(!fini&&!departArrive)return false;
   window.__blocAutoFait=true;
-  blocDemarrer(name);
-  window.location.reload();
+  var root=document.getElementById("root");
+  if(root)root.innerHTML='<div class="dark-screen"><div class="dark-sub">🔄 Mise en place de ton Bloc '+(BLOC+1)+'…</div></div>';
+  blocDemarrer(name,function(){window.location.reload();});
   return true;
 }
 // Un autre téléphone a déjà démarré le bloc suivant : on s'y range tout seul.
@@ -5457,6 +5506,7 @@ function renderView(){
   // 🔄 Bloc suivant validé par le coach : il démarre tout seul.
   try{if(blocAuto(name,start))return;}catch(e){}
   try{blocCloudVerif();}catch(e){}
+  try{blocCompleter();}catch(e){}
   try{var __ba=localStorage.getItem("amcoach_bloc_annonce");if(__ba){localStorage.removeItem("amcoach_bloc_annonce");setTimeout(function(){feedback("🔄 Ton Bloc "+__ba+"/4 est en place","win");},600);}}catch(e){}
   // 🔑 Contrôle d'accès (slot 504)
   var lastAct=getAllData()[505];
@@ -22015,8 +22065,8 @@ function bindMain(name,start){
     var __dep=__SB.depart||isoLocal();
     var __nP=__SB.prog||90, __TP=progType(__nP);
     if(!confirm("Démarrer le Bloc "+(BLOC+1)+"/4 ?\n\n"+__TP.ico+" "+__TP.lib+". Jour 1 : "+isoVersFr(__dep)+"."))return;
-    blocDemarrer(name);
-    window.location.reload();
+    feedback("🔄 Mise en place du Bloc "+(BLOC+1)+"…","ok");
+    blocDemarrer(name,function(){window.location.reload();});
   });
   // 📷 Photo de profil depuis l'en-tête
   var ppB=document.getElementById("pp-btn"), ppF=document.getElementById("pp-file");

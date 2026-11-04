@@ -1175,7 +1175,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "04/11b - Date du bloc en cours";
+var APP_VERSION = "04/11d - Fiche montagne coach";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -7495,11 +7495,19 @@ function viewCalendar(name,start){
   // poids stagne, remonte, ou si le sommeil / la nutrition décrochent, il le
   // dit AVANT de féliciter. Cocher ses cases n'est pas obtenir un résultat.
   var __msg=supMessage(allData,today90,pct);
+  // Avant le jour 1 : rien à juger. Un message d'attente, pas un reproche.
+  if(__avant>0){
+    var __jr=__avant===1?"Demain":(function(){var d=new Date(String(start).slice(0,10)+"T12:00:00").toLocaleDateString("fr-FR",{weekday:"long"});return d.charAt(0).toUpperCase()+d.slice(1);})();
+    var __pre={normal:__jr+", on démarre. Prépare tes courses, le reste suivra.",commentateur:"Le coup d'envoi approche. Courses faites, menus lus : prêt pour le jour 1.",vulgaire:__jr+" on attaque. Fais tes courses, le reste on gère.",doux:"Ton départ approche. Prends le temps de préparer ta semaine, tout ira bien."};
+    __msg={texte:__pre[tonActif(allData)]||__pre.normal,alerte:false,cle:"avant"};
+  }
   var etat=__msg.texte;
   // La jauge parle désormais de LA SEMAINE EN COURS : longueur = avancement
   // sur les 7 jours, couleur = qualité de ce qui est déjà passé. Une semaine
   // qui démarre n'apparaît donc pas en rouge.
   var SEM=semaineAssiduite(allData,today90);
+  // Avant le jour 1 : aucun jour n'est encore passé, aucune case rouge.
+  if(__avant>0)SEM={deb:0,ecoules:0,valides:0,jours:[],semaine:1,pctSemaine:0,pctTenue:0};
   var semCol=gaugeCol(SEM.pctTenue);
   var jjours="";
   var LJ=["L","M","M","J","V","S","D"];
@@ -15252,6 +15260,118 @@ function ficheOnglets(h){
   return entete+barre+corps;
 }
 
+// 🏔️ FICHE RAPIDE — la montagne du client et ses trois piliers (Akli, 04/11 :
+// « cliquer sur le prénom et avoir la montagne et où il en est … combien de
+// fois il a fait le sport, nutrition et sommeil »). Même calcul que la carte
+// objectif côté client : même départ, même cible, même pourcentage.
+function coachMontagneHTML(c,allData){
+  var start=c.start_date, avant=joursAvantDepart(start)>0;
+  var t90=getToday90(start);
+  var progDays=progLen(start,allData)||90;
+  var reeqOn=progReeq(allData), progB=reeqOn?14:progDays, shortProg=progDays<90;
+  var month=goalMois(allData,start,t90), phaseReeq=(month===4);
+  var goal=getGoal(allData,month);
+  var curW=latestWeight(allData,t90);
+  var objLib=phaseReeq?'Objectif rééquilibrage':(shortProg?'Objectif '+progB+' jours':'Objectif du mois '+month);
+  // Pas encore d'objectif ce mois-ci : on montre le dernier fixé, en le disant.
+  if(!goal){for(var gm=Math.min(month,4);gm>=1;gm--){var __g=getGoal(allData,gm);if(__g){goal=__g;objLib=(gm===4?'Objectif rééquilibrage':shortProg?'Objectif '+progB+' jours':'Objectif du mois '+gm)+' (dernier fixé)';break;}}}
+  var depG=null;
+  try{var __PD=poidsDepart(allData,start);if(__PD)depG=__PD.v;}catch(e){}
+  if(phaseReeq){for(var wr=13;wr>=0;wr--){if(allData[wr]&&allData[wr].poids){var __w=parseFloat(String(allData[wr].poids).replace(",","."));if(!isNaN(__w)){depG=__w;break;}}}}
+  if(depG==null)for(var w=0;w<=t90;w++){if(allData[w]&&allData[w].poids){depG=parseFloat(allData[w].poids);break;}}
+  if(depG==null)depG=curW;
+  var pcG=0, reached=false;
+  if(goal&&depG!=null&&curW!=null&&goal.target){
+    var tt=depG-goal.target, ff=depG-curW;
+    if(tt<=0){tt=1;ff=1;}
+    pcG=Math.max(0,Math.min(100,Math.round(ff/tt*100)));
+    reached=(curW-goal.target)<=0;
+    if(reached)pcG=100;
+  }
+  var resteG=(goal&&curW!=null&&goal.target)?Math.max(0,Math.round((curW-goal.target)*10)/10):null;
+  var perduG=(depG!=null&&curW!=null)?Math.max(0,Math.round((depG-curW)*10)/10):0;
+  var c1=solid("var(--brand)"), c2=solid("var(--brand2)");
+
+  var h='<div class="card" style="padding:0;overflow:hidden;margin-bottom:14px">'+
+    '<div style="padding:15px 16px 16px;background:linear-gradient(135deg,'+c1+','+c2+')">'+
+    '<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px">'+
+    '<span style="flex:1;font-weight:900;font-size:11.5px;letter-spacing:1.3px;text-transform:uppercase;color:rgba(255,255,255,.92);padding-top:2px">🏔️ '+(goal?objLib:'Pas d\'objectif fixé')+'</span>'+
+    '<div style="text-align:right;line-height:1.35">'+
+    (!goal?'<div style="font-size:12px;font-weight:900;color:#fff">🎯 À fixer au bilan</div>':
+     resteG===null?'<div style="font-size:12px;font-weight:900;color:#fff">⚖️ Première pesée à faire</div>':
+     resteG>0?'<div style="font-size:12.5px;font-weight:900;color:#fff">Plus que '+resteG+' kg</div>':'<div style="font-size:12.5px;font-weight:900;color:#5DF2A0">🎉 Objectif atteint</div>')+
+    (perduG>0?'<div style="display:inline-block;margin-top:3px;background:rgba(255,255,255,.22);border-radius:100px;padding:2px 9px;font-size:11px;font-weight:800;color:#fff">−'+perduG+' kg</div>':'')+
+    '<div style="font-size:10.5px;font-weight:700;color:rgba(255,255,255,.65);margin-top:3px">départ '+(depG!=null?depG:'—')+' kg</div>'+
+    '</div></div>'+
+    '<div style="display:flex;align-items:flex-end;gap:6px">'+
+    '<div style="flex:1 1 0;min-width:0"><div style="font-weight:900;font-size:30px;line-height:.95;letter-spacing:-1px;color:#fff">'+(curW!=null?curW:'—')+'<span style="font-size:13px;opacity:.75">kg</span></div>'+
+    '<div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.7);margin-top:3px">aujourd\'hui</div></div>'+
+    '<div style="flex:0 0 128px;text-align:center">'+svgMontagne(pcG,"#5DF2A0")+
+    '<div style="font-weight:900;font-size:15px;color:#fff;margin-top:1px">'+pcG+'<span style="font-size:10px">% du chemin</span></div></div>'+
+    '<div style="flex:1 1 0;min-width:0;text-align:right">'+
+    (goal?'<div style="display:inline-block;background:#5DF2A0;border-radius:12px;padding:4px 8px 5px"><span style="font-weight:900;font-size:21px;line-height:.95;color:#06331F">'+goal.target+'<span style="font-size:11px">kg</span></span></div>':
+      '<div style="display:inline-block;background:rgba(255,255,255,.2);border-radius:12px;padding:4px 10px 5px;font-weight:900;font-size:21px;color:#fff">—</div>')+
+    '<div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.78);margin-top:4px">objectif</div></div>'+
+    '</div></div>';
+
+  // ── Les trois piliers
+  if(avant){
+    return h+'<div style="padding:14px 16px;font-size:12.5px;font-weight:700;color:var(--mute)">⏳ Démarre le '+dateCourteFR(start)+' · les compteurs partent au jour 1.</div></div>';
+  }
+  var fin=Math.min(t90,progDays-1);
+  // Semaine du lundi au dimanche (calendrier), pas la semaine du programme.
+  var dJour=new Date(start); dJour.setHours(12,0,0,0); dJour.setDate(dJour.getDate()+t90);
+  var lun=t90-((dJour.getDay()+6)%7);
+  // Quota sport : en 90 jours, celui du programme du mois (marches + séances).
+  var objSem=7;
+  try{
+    if(progDays>42&&!phaseReeq){
+      var __m="m"+Math.min(3,Math.floor(fin/28)+1), __pl=((progGet(allData).plan)||{})[__m]||PROG3_DEF[__m]||{};
+      var __o=(parseInt(__pl.marches,10)||0)+((__pl.sea||[]).length||0);
+      if(__o>0&&__o<7)objSem=__o;
+    }
+  }catch(e){}
+  var PIL=[["sport","🏋️","Sport"],["nutrition","🥗","Nutrition"],["sommeil","😴","Sommeil"]];
+  var JL=["L","M","M","J","V","S","D"];
+  var nbTot=fin+1;
+  h+='<div style="padding:13px 14px 6px">';
+  for(var p=0;p<PIL.length;p++){
+    var k=PIL[p][0], tot=0, sem=0, semJ=0, dots='', avS=0, avJ=0;
+    for(var a=lun-7;a<lun;a++){if(a<0||a>=progDays)continue;avJ++;var DA=allData[a];if(DA&&DA.habits&&DA.habits[k])avS++;}
+    if(k==="sport"&&objSem<7&&avJ)avJ=Math.min(objSem,avJ);
+    for(var d=0;d<=fin;d++){var D=allData[d];if(D&&D.habits&&D.habits[k])tot++;}
+    for(var j=0;j<7;j++){
+      var di=lun+j, D2=allData[di], ok=!!(D2&&D2.habits&&D2.habits[k]);
+      var futur=di>t90||di<0||di>=progDays, rempli=!!(D2&&D2.habits);
+      if(!futur){semJ++;if(ok)sem++;}
+      var bg=futur?'var(--soft2)':ok?solid("var(--ok)"):rempli?'#F87171':'#E5E7EB';
+      var col=futur?'var(--mute)':(ok||rempli)?'#fff':'#6B7280';
+      dots+='<span title="'+JL[j]+'" style="flex:1;height:22px;border-radius:7px;background:'+bg+';color:'+col+';font-size:10px;font-weight:900;display:flex;align-items:center;justify-content:center;opacity:'+(futur?.45:1)+'">'+JL[j]+'</span>';
+    }
+    var obj=(k==="sport"&&objSem<7)?objSem:semJ;
+    var pc=obj?Math.round(Math.min(sem,obj)/obj*100):0;
+    var pcT=nbTot?Math.round(tot/(k==="sport"&&objSem<7?Math.max(1,Math.round(objSem*nbTot/7)):nbTot)*100):0;
+    var extra='';
+    if(k==="sommeil"){
+      var sH=0,nH=0;for(var s=Math.max(0,lun);s<=t90;s++){var DS=allData[s];if(DS&&DS.sommeilH){var v=parseFloat(String(DS.sommeilH).replace(",","."));if(!isNaN(v)){sH+=v;nH++;}}}
+      if(nH)extra=' · moy. '+String(Math.round(sH/nH*10)/10).replace('.',',')+' h';
+    }
+    h+='<div style="margin-bottom:12px">'+
+      '<div style="display:flex;align-items:baseline;gap:6px;margin-bottom:6px">'+
+      '<span style="font-weight:900;font-size:13.5px">'+PIL[p][1]+' '+PIL[p][2]+'</span>'+
+      '<span style="font-size:11px;color:var(--mute);font-weight:700">'+(k==="sport"&&objSem<7?'objectif '+objSem+'/sem':'')+extra+'</span>'+
+      '<span style="margin-left:auto;font-weight:900;font-size:15px;color:'+gaugeCol(pc)+'">'+sem+'<span style="font-size:11px;color:var(--mute)">/'+obj+' cette sem.</span></span></div>'+
+      '<div style="display:flex;gap:4px">'+dots+'</div>'+
+      '<div style="display:flex;font-size:11px;color:var(--mute);font-weight:700;margin-top:5px"><span>Depuis le début : <b style="color:'+gaugeCol(Math.min(100,pcT))+'">'+tot+' jour'+(tot>1?'s':'')+'</b> sur '+nbTot+'</span>'+
+      (avJ?'<span style="margin-left:auto">sem. dernière <b style="color:'+gaugeCol(Math.round(Math.min(avS,avJ)/avJ*100))+'">'+avS+'/'+avJ+'</b></span>':'')+'</div>'+
+      '</div>';
+  }
+  h+='<div style="display:flex;gap:10px;flex-wrap:wrap;font-size:10.5px;color:var(--mute);font-weight:700;margin:-2px 0 8px">'+
+    '<span><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:'+solid("var(--ok)")+'"></span> fait</span>'+
+    '<span><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:#F87171"></span> pas fait</span>'+
+    '<span><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:#E5E7EB"></span> rien rempli</span></div>';
+  return h+'</div></div>';
+}
 function viewCoachDetail(){
   var clients=lsGet("amcoach_clients",[]);
   if(state.coachDetail)coachLoadClient(state.coachDetail); // rafraîchit au premier affichage
@@ -15273,7 +15393,7 @@ function viewCoachDetail(){
   var h='<div class="app" style="max-width:480px">'+
     '<div class="hdr"><div style="display:flex;align-items:center;gap:12px">'+
     '<button id="cd-back" class="day-back">←</button>'+
-    '<div style="flex:1"><div style="color:#fff;font-weight:900;font-size:16px">'+esc(c.name)+progChipHTML(c.slug,true)+'</div>'+
+    '<div style="flex:1"><div style="color:var(--ink);font-weight:900;font-size:16px">'+esc(c.name)+progChipHTML(c.slug,true)+'</div>'+
     '<div style="color:var(--mute);font-size:12px">'+(joursAvantDepart(c.start_date)>0
       ? '<b style="color:#3B6FD8">⏳ Démarre le '+dateCourteFR(c.start_date)+' · dans '+joursAvantDepart(c.start_date)+' j</b>'
       : 'Jour '+Math.min(t90+1,progLen(c.start_date,lsGet("amcoach_"+c.slug,{}))||90)+'/'+(progLen(c.start_date,lsGet("amcoach_"+c.slug,{}))||90)+' · départ '+new Date(c.start_date).toLocaleDateString("fr-FR")+' · 🔥 '+streak+'j')+'</div>'+
@@ -15281,6 +15401,7 @@ function viewCoachDetail(){
     '<div style="padding:16px 14px 0">';
 
   h+=GMK("apercu");
+  try{h+=coachMontagneHTML(c,allData);}catch(e){}
   h+=blocDemandesHTML(c.slug);
 
 
@@ -17751,7 +17872,7 @@ function retryCloudPurge(slug){
 // rechargement complet de la page.
 function ouvrirFiche(slug){
   if(!slug)return;
-  state.coachDetail=slug;
+  state.coachDetail=slug; state.cdTab="apercu";
   render();                       // on affiche tout de suite ce qu'on a
   coachLoadClient(slug,true);     // puis on redemande au nuage, sans attendre
 }

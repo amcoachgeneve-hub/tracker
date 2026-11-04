@@ -1175,7 +1175,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "01/11g - Point de depart poids + nombril";
+var APP_VERSION = "04/11b - Date du bloc en cours";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -7422,7 +7422,8 @@ function viewCalendar(name,start){
   // Pendant le rééquilibrage, on compte SES jours : « Jour 1 sur 28 », pas
   // « Jour 15 » d'un programme de 42 jours qui ne veut rien dire pour elle.
   var jAff=phaseReeq?today90-13:Math.min(today90+1,progB), durAff=phaseReeq?28:progB;
-  var objLib=phaseReeq?'Objectif rééquilibrage':objLib;
+  // Libellé de la carte objectif (la version précédente se référençait elle-même → « undefined »).
+  var objLib=phaseReeq?'Objectif rééquilibrage':(shortProg?'Objectif '+progB+' jours':'Objectif du mois '+month);
 
   var ppImg=photoProfil();
   var h='<div class="hdr" style="position:relative">'+
@@ -7650,7 +7651,8 @@ function viewCalendar(name,start){
         '<span style="flex:1;font-weight:900;font-size:12px;letter-spacing:1.4px;text-transform:uppercase;color:rgba(255,255,255,.92);padding-top:9px">'+objLib+'</span>'+
         // Repères compacts, calés en haut à droite
         '<div style="flex:0 0 auto;text-align:right;line-height:1.35">'+
-        (resteG!==null&&resteG>0?'<div style="font-size:12.5px;font-weight:900;color:#fff">Plus que '+resteG+' kg</div>':'<div style="font-size:12.5px;font-weight:900;color:#5DF2A0">🎉 Objectif atteint</div>')+
+        (resteG===null?'<div style="font-size:12.5px;font-weight:900;color:#fff">⚖️ Première pesée à faire</div>':
+         resteG>0?'<div style="font-size:12.5px;font-weight:900;color:#fff">Plus que '+resteG+' kg</div>':'<div style="font-size:12.5px;font-weight:900;color:#5DF2A0">🎉 Objectif atteint</div>')+
         (perduG>0?'<div style="display:inline-block;margin-top:4px;background:rgba(255,255,255,.22);border-radius:100px;padding:3px 9px;font-size:11px;font-weight:800;color:#fff;white-space:nowrap">−'+perduG+' kg 💪</div>':'')+
         '<div style="font-size:10.5px;font-weight:700;color:rgba(255,255,255,.62);margin-top:4px">départ '+(depG!=null?depG:'—')+' kg</div>'+
         '</div></div>'+
@@ -19733,12 +19735,27 @@ function bindCoach(){
     if(!nd)return;
     var slug=state.coachDetail;
     var cls=lsGet("amcoach_clients",[]);
-    var cName=slug;
-    for(var ci=0;ci<cls.length;ci++){if(cls[ci].slug===slug){cls[ci].start_date=nd;cName=cls[ci].name;break;}}
+    // 🔄 Un bloc plus récent existe (ex. test-b2) : c'est LUI qu'on décale.
+    // Le bloc terminé garde sa date : c'est son historique (cas Akli 04/11 :
+    // son 90 jours était passé au 09/11 et son 6 semaines restait au 02/11).
+    var base=String(slug).replace(/-b\d+$/,""), cur=String(slug).match(/-b(\d+)$/), nCur=cur?+cur[1]:1, cible=slug, nMax=nCur;
+    for(var bi=0;bi<cls.length;bi++){var mb=String(cls[bi].slug).match(/-b(\d+)$/);if(mb&&String(cls[bi].slug).replace(/-b\d+$/,"")===base&&+mb[1]>nMax){nMax=+mb[1];cible=cls[bi].slug;}}
+    var cName=cible, ancien=null;
+    for(var ci=0;ci<cls.length;ci++){if(cls[ci].slug===cible){ancien=cls[ci].start_date;cls[ci].start_date=nd;cName=cls[ci].name;break;}}
     lsSet("amcoach_clients",cls);
-    try{localStorage.setItem("amcoach_start_"+slug,nd);}catch(e){}
-    sbFetch("clients?on_conflict=slug",{method:"POST",prefer:"resolution=merge-duplicates",body:{slug:slug,name:cName,start_date:nd}}).catch(function(){});
-    feedback("📅 Date de départ mise à jour","ok");
+    try{localStorage.setItem("amcoach_start_"+cible,nd);}catch(e){}
+    sbFetch("clients?on_conflict=slug",{method:"POST",prefer:"resolution=merge-duplicates",body:{slug:cible,name:cName,start_date:nd}}).catch(function(){});
+    // Programme court : la fin d'accès et le début des menus suivent la date.
+    try{
+      var A=lsGet("amcoach_"+cible,{}), E=A[504];
+      if(E&&E.end&&ancien){
+        var dl=Math.round((new Date(nd+"T12:00:00")-new Date(String(ancien).slice(0,10)+"T12:00:00"))/86400000);
+        if(dl){var fe=new Date(E.end+"T12:00:00");fe.setDate(fe.getDate()+dl);var E2=JSON.parse(JSON.stringify(E));E2.end=isoLocal(fe);coachSaveSlot(cible,504,E2);}
+      }
+      if(A[517]&&A[517].debut){var M2=JSON.parse(JSON.stringify(A[517]));M2.debut=nd;coachSaveSlot(cible,517,M2);}
+    }catch(e){}
+    feedback(cible!==slug?"📅 Date appliquée au Bloc "+nMax+" (en cours) · le bloc terminé garde son historique":"📅 Date de départ mise à jour","ok");
+    if(cible!==slug)state.coachDetail=cible;
     render();
     });
   });

@@ -923,10 +923,35 @@ input,textarea{outline:none}
 .mg-onde{transform-box:fill-box;transform-origin:center;animation:mgOnde 1.8s 2.2s ease-out infinite}
 @keyframes objfIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 @keyframes objfConf{0%{transform:translateY(-20px) rotate(0);opacity:1}100%{transform:translateY(105vh) rotate(720deg);opacity:.9}}
-.objf-ov{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(8,14,32,.82);overflow:hidden}
+.objf-ov{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:safe center;justify-content:center;padding:18px;background:rgba(8,14,32,.82);overflow-x:hidden;overflow-y:auto}
 .objf-carte{position:relative;width:100%;max-width:360px;border-radius:26px;padding:22px 20px 20px;text-align:center;color:#fff;box-shadow:0 20px 60px rgba(0,0,0,.45)}
 .objf-tard{opacity:0;animation:objfIn .6s both}
 .objf-c{position:absolute;top:-20px;pointer-events:none;z-index:2;width:9px;height:14px;border-radius:2px;animation:objfConf 3.2s linear both}
+/* 🎆 Feux d'artifice : chaque gerbe éclate depuis un point, les étincelles filent vers --x/--y. */
+.objf-fw{position:absolute;width:0;height:0;pointer-events:none;z-index:3}
+.objf-fw i{position:absolute;left:-3px;top:-3px;width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 10px 2px currentColor;opacity:0;animation:objfFw 1.5s cubic-bezier(.15,.7,.3,1) both}
+.objf-fw b{position:absolute;left:-46px;top:-46px;width:92px;height:92px;border-radius:50%;background:radial-gradient(circle,currentColor 0,rgba(255,255,255,0) 65%);opacity:0;animation:objfFl .7s ease-out both}
+@keyframes objfFw{0%{opacity:0;transform:translate(0,0) scale(1.2)}2%{opacity:1}75%{opacity:1}100%{opacity:0;transform:translate(var(--x),calc(var(--y) + 26px)) scale(.3)}}
+@keyframes objfFl{0%{opacity:0;transform:scale(.2)}4%{opacity:.9}100%{opacity:0;transform:scale(1.4)}}
+@keyframes objfBravo{0%{transform:scale(.4);opacity:0}55%{transform:scale(1.15);opacity:1}75%{transform:scale(.96)}100%{transform:scale(1);opacity:1}}
+.objf-bravo{opacity:0;animation:objfBravo .8s cubic-bezier(.2,.9,.3,1.3) both}
+.objf-sup{display:flex;gap:10px;align-items:flex-start;text-align:left;margin-top:14px;background:rgba(255,255,255,.96);color:#1C1917;border-radius:16px;padding:11px 12px}
+.objf-sup .sup-av{width:40px;height:40px}
+.mq-ov{position:fixed;left:0;right:0;top:0;bottom:0;z-index:2147482000;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.mq-carte{pointer-events:auto;position:relative;min-width:230px;max-width:300px;border-radius:24px;padding:20px 20px 17px;text-align:center;color:#fff;box-shadow:0 18px 50px rgba(0,0,0,.35);animation:mqIn .5s cubic-bezier(.2,.9,.3,1.35) both}
+.mq-carte.mq-out{animation:mqOut .35s ease-in both}
+.mq-ico{font-size:54px;line-height:1;display:inline-block;animation:mqIco .9s .15s cubic-bezier(.2,.9,.3,1.4) both}
+.mq-fw{position:absolute;left:50%;top:44px;width:0;height:0}
+.mq-fw i{position:absolute;left:-4px;top:-4px;width:8px;height:8px;border-radius:50%;background:currentColor;box-shadow:0 0 8px currentColor;opacity:0;animation:objfFw 1s .25s cubic-bezier(.15,.7,.3,1) both}
+@keyframes mqIn{0%{opacity:0;transform:scale(.5) translateY(30px)}100%{opacity:1;transform:none}}
+@keyframes mqOut{to{opacity:0;transform:scale(.85) translateY(-20px)}}
+@keyframes mqIco{0%{transform:scale(.2) rotate(-25deg)}60%{transform:scale(1.25) rotate(8deg)}100%{transform:scale(1) rotate(0)}}
+.fin-kg{font-weight:900;font-size:46px;line-height:1;letter-spacing:-1.5px}
+.fin-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:7px;margin-top:12px}
+.fin-chips span{background:rgba(255,255,255,.18);border-radius:100px;padding:6px 11px;font-size:12px;font-weight:800}
+.fin-dip{margin-top:14px;border-radius:18px;padding:15px 14px;background:linear-gradient(135deg,#B8860B,#F4D35E 55%,#C9971A);color:#3A2A00;box-shadow:0 8px 26px rgba(0,0,0,.3)}
+.objf-son{position:absolute;top:10px;right:10px;z-index:4;border:0;border-radius:100px;background:rgba(255,255,255,.18);color:#fff;font-size:15px;width:34px;height:34px;cursor:pointer}
+@media (prefers-reduced-motion:reduce){.objf-fw{display:none}}
 .r14-pl{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:56px;height:56px;border-radius:50%;
   background:rgba(0,0,0,.6);border:2px solid #fff;color:#fff;font-size:22px;display:flex;align-items:center;justify-content:center;padding-left:4px}
 .r14-pic{display:flex;justify-content:center;padding:6px 0}
@@ -1175,7 +1200,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "04/11d - Fiche montagne coach";
+var APP_VERSION = "04/11g - Quêtes et finale";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -5329,23 +5354,448 @@ document.addEventListener("click",function(e){
   if(!b)return;
   try{localStorage.setItem(b.getAttribute("data-k"),"1");}catch(x){}
   var ov=document.getElementById("obj-fete"); if(ov)ov.parentNode.removeChild(ov);
+  objFeteStop();
+  // Une mini-fête mise en attente pendant la grande passe maintenant.
+  try{setTimeout(function(){if(!MQ.actif)miniFeteSuivante();},400);}catch(x){}
 });
-function objFeteHTML(cle,titre,detail,reward,TH){
+// 🔊 Rejouer le son (si le téléphone l'a bloqué au premier affichage)
+document.addEventListener("click",function(e){
+  var b=e.target&&e.target.closest&&e.target.closest("#objf-son");
+  if(!b)return;
+  objFeteSon(true);
+});
+// 👏 LE SON DE LA FÊTE — fabriqué sur place (aucun fichier à charger) :
+// un « ta-da » quand le drapeau passe au vert, un « boum » par gerbe de feu
+// d'artifice, puis des applaudissements qui montent et retombent.
+var OBJF={ctx:null,nodes:[],joue:false};
+function objFeteStop(){
+  try{OBJF.nodes.forEach(function(n){try{n.stop();}catch(e){}});}catch(e){}
+  OBJF.nodes=[]; OBJF.joue=false;
+}
+// La partition de la fête : ta-da, boums des gerbes, applaudissements.
+// Jouée vers les haut-parleurs, ou vers l'enregistreur de la story.
+function objFeteSonPlan(ctx,out,t0,liste){
+      var maitre=ctx.createGain(); maitre.gain.value=0.9; maitre.connect(out);
+      // Bruit blanc réutilisé pour claps et boums
+      var len=ctx.sampleRate*0.25, buf=ctx.createBuffer(1,len,ctx.sampleRate), d=buf.getChannelData(0);
+      for(var i=0;i<len;i++)d[i]=Math.random()*2-1;
+      function bruit(t,dur,f,q,vol,type){
+        var src=ctx.createBufferSource(); src.buffer=buf;
+        var fl=ctx.createBiquadFilter(); fl.type=type||"bandpass"; fl.frequency.value=f; fl.Q.value=q;
+        var g=ctx.createGain(); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+0.004); g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+        src.connect(fl); fl.connect(g); g.connect(maitre); src.start(t); src.stop(t+dur+0.02); liste.push(src);
+      }
+      // Ta-da : do-mi-sol puis do aigu
+      [[523.25,0],[659.25,0.11],[783.99,0.22],[1046.5,0.36]].forEach(function(n){
+        var o=ctx.createOscillator(), g=ctx.createGain(); o.type="triangle"; o.frequency.value=n[0];
+        var t=t0+n[1], fin=n[1]>0.3?1.3:0.35;
+        g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.22,t+0.02); g.gain.exponentialRampToValueAtTime(0.001,t+fin);
+        o.connect(g); g.connect(maitre); o.start(t); o.stop(t+fin+0.05); liste.push(o);
+      });
+      // Boums des feux d'artifice, calés sur les gerbes
+      for(var gb=0;gb<12;gb++){var tb=t0+gb*0.5+((gb*13)%4)/10; bruit(tb,0.45,180,0.7,0.55,"lowpass"); bruit(tb+0.03,0.25,3200,0.6,0.12);}
+      // Applaudissements : densité qui monte, tient, puis retombe (≈ 6 s)
+      var T=6.2;
+      for(var k=0;k<520;k++){
+        var u=Math.random(), tt=u*T, env=tt<1?tt:(tt>4.4?Math.max(0,(T-tt)/1.8):1);
+        if(Math.random()>env)continue;
+        bruit(t0+0.25+tt,0.05+Math.random()*0.05,900+Math.random()*1900,1.1,0.10+Math.random()*0.12);
+      }
+    }
+function objFeteSon(tout){
+  try{
+    if(OBJF.joue)return;
+    var AC=window.AudioContext||window.webkitAudioContext; if(!AC)return;
+    var ctx=(typeof SPT!=="undefined"&&SPT.ctx)||OBJF.ctx||new AC(); OBJF.ctx=ctx;
+    function lancer(){
+      if(OBJF.joue||ctx.state!=="running")return;
+      if(!document.getElementById("obj-fete"))return;
+      OBJF.joue=true;
+      var t0=ctx.currentTime+(tout?0.05:Math.max(0.05,2.1-(performance.now()-(OBJF.debut||performance.now()))/1000));
+      objFeteSonPlan(ctx,ctx.destination,t0,OBJF.nodes);
+    }
+    if(ctx.state==="running")lancer();
+    else{
+      try{var pr=ctx.resume();if(pr&&pr.then)pr.then(lancer,function(){});}catch(e){}
+      // Bloqué par le téléphone : le premier toucher sur l'écran lance le son.
+      var ov=document.getElementById("obj-fete");
+      if(ov&&!ov.__son){ov.__son=1;ov.addEventListener("pointerdown",function(){try{ctx.resume().then(function(){tout=true;lancer();});}catch(e){}},{once:true});}
+    }
+  }catch(e){}
+}
+
+// 📲 LA STORY — la même fête, filmée en 9:16 pour Instagram / WhatsApp /
+// TikTok. Fabriquée dans le téléphone (canvas + enregistreur), avec le son.
+// Aucun poids affiché : seulement les kilos perdus. La cliente partage sa
+// victoire, pas sa balance.
+var OBJS={etat:"vide",fichier:null,P:null};
+function objStoryEase(x){x=Math.max(0,Math.min(1,x));return 1-Math.pow(1-x,3);}
+function objStoryDessin(c,W,H,t,P){
+  var g=c.createLinearGradient(0,0,W,H); g.addColorStop(0,P.c1); g.addColorStop(1,P.c2);
+  c.fillStyle=g; c.fillRect(0,0,W,H);
+  c.textAlign="center"; c.textBaseline="alphabetic";
+  var F="-apple-system,'Helvetica Neue',Arial,sans-serif";
+  c.fillStyle="rgba(255,255,255,.85)"; c.font="800 26px "+F;
+  c.fillText("DISCIPLINE 90",W/2,200);
+  c.fillStyle="rgba(255,255,255,.7)"; c.font="700 22px "+F;
+  c.fillText(P.titre.toUpperCase(),W/2,236);
+  // Montagne (viewBox 170×150)
+  var sc=W*0.6/170, ox=(W-170*sc)/2, oy=265;
+  c.save(); c.translate(ox,oy); c.scale(sc,sc);
+  function tri(a,b,d,al){c.beginPath();c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);c.lineTo(d[0],d[1]);c.closePath();c.fillStyle="rgba(255,255,255,"+al+")";c.fill();}
+  tri([0,140],[38,62],[76,140],.12); tri([94,140],[132,55],[170,140],.12);
+  tri([18,140],[85,22],[152,140],.3); tri([85,22],[152,140],[85,140],.1);
+  c.beginPath();[[85,22],[99,50],[94,45],[89,53],[85,43],[80,53],[75,45],[71,50]].forEach(function(q,i){i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1]);});c.closePath();c.fillStyle="rgba(255,255,255,.92)";c.fill();
+  var SP=new Path2D(SENTIER_D);
+  c.lineCap="round"; c.strokeStyle="rgba(255,255,255,.28)"; c.lineWidth=5.5; c.stroke(SP);
+  var pr=objStoryEase(t/1.8), L=SENTIER_LEN*pr;
+  if(pr>0){c.save();c.setLineDash([L,SENTIER_LEN+10]);c.strokeStyle="#5DF2A0";c.lineWidth=6;c.shadowColor="#5DF2A0";c.shadowBlur=8;c.stroke(SP);c.restore();}
+  var vert=t>=1.9;
+  c.strokeStyle="#FFFFFF"; c.lineWidth=1.8; c.beginPath(); c.moveTo(85,24); c.lineTo(85,1); c.stroke();
+  c.beginPath(); c.moveTo(85.5,1.5); c.lineTo(101,6.5); c.lineTo(85.5,11.5); c.closePath();
+  c.fillStyle=vert?"#5DF2A0":"#FF4B4B"; if(vert){c.shadowColor="#5DF2A0";c.shadowBlur=10;} c.fill(); c.shadowBlur=0;
+  if(vert){var on=((t-1.9)%1.6)/1.6; c.beginPath(); c.arc(92,7,6+on*16,0,7); c.strokeStyle="rgba(93,242,160,"+(0.8*(1-on))+")"; c.lineWidth=1.6; c.stroke();}
+  c.restore();
+  var yT=oy+150*sc;
+  if(t>=1.9){
+    var k=objStoryEase((t-1.9)/0.45), sz=Math.round(96*(k<1?0.4+0.75*k:1));
+    c.save(); c.globalAlpha=Math.min(1,k*1.4); c.fillStyle="#FFD43B"; c.font="900 "+sz+"px "+F;
+    c.shadowColor="rgba(0,0,0,.3)"; c.shadowBlur=18; c.fillText("🎉 BRAVO !",W/2,yT+88); c.restore();
+  }
+  function apparait(t1,y,txt,font,col){if(t<t1)return;var a=objStoryEase((t-t1)/0.5);c.save();c.globalAlpha=a;c.fillStyle=col;c.font=font;c.fillText(txt,W/2,y+(1-a)*24);c.restore();}
+  apparait(2.4,yT+152,P.ligne||"J'ai atteint mon objectif","800 40px "+F,"#FFFFFF");
+  if(P.perdu>0)apparait(2.8,yT+262,"−"+String(P.perdu).replace(".",",")+" kg","900 112px "+F,"#FFFFFF");
+  // Récompense
+  if(t>=3.4&&P.reward){
+    var a2=objStoryEase((t-3.4)/0.5), yR=yT+(P.perdu>0?300:190);
+    c.save(); c.globalAlpha=a2;
+    var bw=W*0.8, bx=(W-bw)/2, bh=130, r=28;
+    c.beginPath(); c.moveTo(bx+r,yR); c.arcTo(bx+bw,yR,bx+bw,yR+bh,r); c.arcTo(bx+bw,yR+bh,bx,yR+bh,r); c.arcTo(bx,yR+bh,bx,yR,r); c.arcTo(bx,yR,bx+bw,yR,r); c.closePath();
+    c.fillStyle="rgba(0,0,0,.28)"; c.fill();
+    c.fillStyle="rgba(255,255,255,.85)"; c.font="800 26px "+F; c.fillText(P.emoji+"  Ma récompense",W/2,yR+46);
+    var rw=P.reward; c.font="900 44px "+F; while(c.measureText(rw).width>bw-40&&rw.length>4)rw=rw.slice(0,-2);
+    if(rw!==P.reward)rw=rw.replace(/\s*\S?$/,"")+"…";
+    c.fillStyle="#FFFFFF"; c.fillText(rw,W/2,yR+100); c.restore();
+  }
+  // Feux d'artifice (même calendrier que le son)
+  var FC=["#FFD43B","#FF6B9A","#5DF2A0","#4DABF7","#FFFFFF","#B197FC","#FF922B"];
+  var PTS=[[18,16],[80,12],[50,8],[12,48],[88,44],[30,24],[70,30],[22,80],[78,78],[50,20],[15,30],[85,22]];
+  for(var gb=0;gb<12;gb++){
+    var d0=1.9+gb*0.5+((gb*13)%4)/10, u=(t-d0)/1.5;
+    if(u<0||u>1)continue;
+    var cx=PTS[gb][0]/100*W, cy=PTS[gb][1]/100*H, rr=(110+((gb*23)%70))*objStoryEase(u);
+    c.fillStyle=FC[gb%FC.length]; c.globalAlpha=1-u; c.shadowColor=c.fillStyle; c.shadowBlur=12;
+    for(var q=0;q<18;q++){var an=q/18*Math.PI*2;c.beginPath();c.arc(cx+Math.cos(an)*rr,cy+Math.sin(an)*rr+u*u*40,5*(1-u*0.6),0,7);c.fill();}
+    if(u<0.3){c.globalAlpha=(0.3-u)*2;c.beginPath();c.arc(cx,cy,60*u/0.3,0,7);c.fill();}
+    c.globalAlpha=1; c.shadowBlur=0;
+  }
+  // Confettis
+  if(t>2){for(var i=0;i<46;i++){var tt=t-2-((i*37)%120)/100; if(tt<0)continue; var y=(tt/3.2)*H*1.05-20; if(y>H)continue;
+    c.save(); c.translate(((i*29)%100)/100*W,y); c.rotate(tt*4+i); c.fillStyle=FC[i%FC.length]; c.fillRect(-6,-9,12,18); c.restore();}}
+  // Signature
+  c.fillStyle="rgba(255,255,255,.9)"; c.font="800 28px "+F; c.fillText("AM Coach Genève",W/2,H-150);
+  c.fillStyle="rgba(255,255,255,.7)"; c.font="600 24px "+F; c.fillText("@amcoachsportif · La discipline devient automatique",W/2,H-112);
+}
+function objStoryMime(){
+  if(typeof MediaRecorder==="undefined")return null;
+  var L=["video/mp4;codecs=avc1.42E01E,mp4a.40.2","video/mp4;codecs=avc1","video/mp4","video/webm;codecs=vp9,opus","video/webm;codecs=vp8,opus","video/webm"];
+  for(var i=0;i<L.length;i++){try{if(MediaRecorder.isTypeSupported(L[i]))return L[i];}catch(e){}}
+  return null;
+}
+function objStoryMaj(){
+  [].slice.call(document.querySelectorAll(".objf-story")).forEach(function(b){
+    b.disabled=OBJS.etat==="prep";
+    b.innerHTML=OBJS.etat==="prep"?"⏳ Ta story se prépare…":OBJS.etat==="pret"?"📲 Partager en story":"📲 Partager ma victoire en story";
+  });
+}
+function objStoryPreparer(P,cb){
+  if(OBJS.etat==="prep")return;
+  if(OBJS.etat==="pret"&&OBJS.P===P){if(cb)cb();return;}
+  OBJS.etat="prep"; OBJS.P=P; OBJS.fichier=null; objStoryMaj();
+  var W=720,H=1280,DUR=8.2;
+  var cv=document.createElement("canvas"); cv.width=W; cv.height=H;
+  cv.style.cssText="position:fixed;left:-3000px;top:0;width:72px;height:128px;pointer-events:none";
+  document.body.appendChild(cv);
+  var c=cv.getContext("2d");
+  function finir(blob,ext,type){
+    try{cv.remove();}catch(e){}
+    if(!blob){OBJS.etat="vide";objStoryMaj();return;}
+    var __nf=(P.fichier||"ma-victoire-discipline90")+"."+ext;try{OBJS.fichier=new File([blob],__nf,{type:type});}catch(e){OBJS.fichier=blob;OBJS.fichier.name=__nf;}
+    OBJS.etat="pret"; objStoryMaj(); if(cb)cb();
+  }
+  var mime=objStoryMime();
+  if(!mime||!cv.captureStream){   // Pas d'enregistreur : l'image finale
+    (P.dessin||objStoryDessin)(c,W,H,7,P);
+    cv.toBlob(function(b){finir(b,"png","image/png");},"image/png");
+    return;
+  }
+  var flux=cv.captureStream(30), ctxA=null, sons=[];
+  try{
+    var AC=window.AudioContext||window.webkitAudioContext;
+    ctxA=OBJF.ctx||(typeof SPT!=="undefined"&&SPT.ctx)||new AC(); OBJF.ctx=ctxA;
+    if(ctxA.state==="running"&&ctxA.createMediaStreamDestination){
+      var dest=ctxA.createMediaStreamDestination();
+      objFeteSonPlan(ctxA,dest,ctxA.currentTime+1.9,sons);
+      dest.stream.getAudioTracks().forEach(function(tr){flux.addTrack(tr);});
+    }
+  }catch(e){}
+  var morceaux=[], rec;
+  try{rec=new MediaRecorder(flux,{mimeType:mime,videoBitsPerSecond:4000000});}catch(e){try{rec=new MediaRecorder(flux);}catch(e2){rec=null;}}
+  if(!rec){(P.dessin||objStoryDessin)(c,W,H,7,P);cv.toBlob(function(b){finir(b,"png","image/png");},"image/png");return;}
+  rec.ondataavailable=function(e){if(e.data&&e.data.size)morceaux.push(e.data);};
+  rec.onstop=function(){
+    sons.forEach(function(n){try{n.stop();}catch(e){}});
+    var typ=(rec.mimeType||mime).split(";")[0];
+    finir(morceaux.length?new Blob(morceaux,{type:typ}):null,/mp4/.test(typ)?"mp4":"webm",typ);
+  };
+  var t0=performance.now();
+  rec.start(250);
+  (function boucle(){
+    var t=(performance.now()-t0)/1000;
+    (P.dessin||objStoryDessin)(c,W,H,Math.min(t,DUR),P);
+    if(t<DUR)requestAnimationFrame(boucle); else {try{rec.stop();}catch(e){finir(null);}}
+  })();
+}
+function objStoryPartager(){
+  var f=OBJS.fichier; if(!f)return;
+  var data={files:[f],title:"Objectif atteint",text:"Objectif atteint avec DISCIPLINE 90 💪 @amcoachsportif"};
+  try{
+    if(navigator.canShare&&navigator.canShare({files:[f]})&&navigator.share){navigator.share(data).catch(function(){});return;}
+  }catch(e){}
+  // Pas de partage de fichier (ordinateur) : on le télécharge.
+  try{var u=URL.createObjectURL(f),a=document.createElement("a");a.href=u;a.download=f.name||"ma-victoire";document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(u);a.remove();},4000);
+    if(typeof feedback==="function")feedback("📥 Vidéo enregistrée : publie-la en story depuis ta galerie","ok");}catch(e){}
+}
+document.addEventListener("click",function(e){
+  var b=e.target&&e.target.closest&&e.target.closest(".objf-story");
+  if(!b||b.disabled||!OBJS.P)return;
+  e.preventDefault();
+  // Le partage doit suivre un toucher : une fois prête, c'est ce bouton qui l'ouvre.
+  if(OBJS.etat==="pret")objStoryPartager();
+  else objStoryPreparer(OBJS.P);
+});
+
+// ✨ MINI-FÊTE DES QUÊTES — courte (2,5 s), au centre, sans bloquer l'écran.
+// La grande fête reste réservée à l'objectif de poids et à la fin du programme.
+var MQ={file:[],actif:false};
+function miniFeteSon(){
+  try{
+    var AC=window.AudioContext||window.webkitAudioContext; if(!AC)return;
+    var ctx=OBJF.ctx||(typeof SPT!=="undefined"&&SPT.ctx)||new AC(); OBJF.ctx=ctx;
+    function jouer(){
+      var t0=ctx.currentTime+0.05, m=ctx.createGain(); m.gain.value=0.7; m.connect(ctx.destination);
+      [[783.99,0],[987.77,0.09],[1318.5,0.18]].forEach(function(n){
+        var o=ctx.createOscillator(),g=ctx.createGain(); o.type="sine"; o.frequency.value=n[0];
+        var t=t0+n[1]; g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.2,t+0.015); g.gain.exponentialRampToValueAtTime(0.001,t+(n[1]>0.15?0.7:0.25));
+        o.connect(g); g.connect(m); o.start(t); o.stop(t+0.8);
+      });
+      var len=ctx.sampleRate*0.1,buf=ctx.createBuffer(1,len,ctx.sampleRate),d=buf.getChannelData(0);
+      for(var i=0;i<len;i++)d[i]=Math.random()*2-1;
+      for(var k=0;k<60;k++){var tt=t0+0.25+Math.random()*1.1; if(Math.random()>1-(tt-t0)/1.6)continue;
+        var sr=ctx.createBufferSource(); sr.buffer=buf; var f=ctx.createBiquadFilter(); f.type="bandpass"; f.frequency.value=1000+Math.random()*1800; f.Q.value=1.1;
+        var g2=ctx.createGain(); g2.gain.setValueAtTime(0,tt); g2.gain.linearRampToValueAtTime(0.09+Math.random()*0.08,tt+0.004); g2.gain.exponentialRampToValueAtTime(0.001,tt+0.07);
+        sr.connect(f); f.connect(g2); g2.connect(m); sr.start(tt); sr.stop(tt+0.09);}
+    }
+    if(ctx.state==="running")jouer(); else {var pr=ctx.resume(); if(pr&&pr.then)pr.then(jouer,function(){});}
+  }catch(e){}
+}
+function miniFete(ico,titre,sous){
+  MQ.file.push([ico,titre,sous||""]);
+  if(!MQ.actif)miniFeteSuivante();
+}
+function miniFeteSuivante(){
+  var q=MQ.file.shift(); if(!q){MQ.actif=false;return;}
+  if(document.getElementById("obj-fete")){MQ.file.unshift(q);MQ.actif=false;return;} // la grande fête passe d'abord
+  MQ.actif=true;
+  var FC=["#FFD43B","#FF6B9A","#5DF2A0","#4DABF7","#FFFFFF","#B197FC"], fw='';
+  for(var i=0;i<14;i++){var a=i/14*Math.PI*2, r=86+(i%3)*14;fw+='<i style="color:'+FC[i%FC.length]+';--x:'+Math.round(Math.cos(a)*r)+'px;--y:'+Math.round(Math.sin(a)*r)+'px"></i>';}
+  var ov=document.createElement("div"); ov.className="mq-ov";
+  ov.innerHTML='<div class="mq-carte" style="background:linear-gradient(150deg,'+solid("var(--brand)")+','+solid("var(--brand2)")+')">'+
+    '<span class="mq-fw">'+fw+'</span>'+
+    '<div class="mq-ico">'+q[0]+'</div>'+
+    '<div style="font-weight:900;font-size:19px;line-height:1.15;margin-top:8px">'+esc(q[1])+'</div>'+
+    (q[2]?'<div style="font-size:12.5px;font-weight:700;opacity:.88;margin-top:5px;line-height:1.4">'+esc(q[2])+'</div>':'')+'</div>';
+  document.body.appendChild(ov);
+  try{if(navigator.vibrate)navigator.vibrate([30,30,60]);}catch(e){}
+  miniFeteSon();
+  var fini=false;
+  function fermer(){if(fini)return;fini=true;var c=ov.firstChild;if(c)c.classList.add("mq-out");setTimeout(function(){ov.remove();miniFeteSuivante();},340);}
+  ov.firstChild.addEventListener("click",fermer);
+  setTimeout(fermer,2600);
+}
+// 🔎 Détecteur de quêtes : à chaque affichage côté client, on compare l'état
+// des quêtes avec le dernier vu. Ce qui vient de tomber déclenche sa
+// mini-fête — où qu'on l'ait validé. Au tout premier passage, on mémorise
+// sans rien fêter (sinon un client ancien recevrait tout son historique).
+function quetesEtat(allData,t90){
+  var E={p:"",lvl:0,bd:0,lvlNom:"",lvlIco:"",bdNom:"",bdIco:"",prot:0};
+  try{var cfg=nutCfg(allData);if(cfg.on&&cfg.prot){var d=nutToday(cfg);if((d.tot||0)>=cfg.prot*0.8){E.p=nutDayKey();E.prot=d.tot||0;}}}catch(e){}
+  try{var c=qgConfig(allData);if(c&&c.identity){var ech=qgEchelle(allData),tot=qgRes(allData,t90).total,ix=0;
+    for(var i=0;i<ech.length;i++)if(tot>=ech[i].min)ix=i; E.lvl=ix; E.lvlNom=ech[ix].name; E.lvlIco=ech[ix].icon; E.lvlDernier=(ix===ech.length-1);}}catch(e){}
+  try{var B=chBadges(allData);E.bd=B.length;if(B[0]){E.bdNom=B[0].n;E.bdIco=B[0].e;}}catch(e){}
+  return E;
+}
+function quetesVerifier(){
+  try{
+    if(IS_COACH||!CLIENT)return;
+    var st=lsGetStr("amcoach_start_"+CLIENT); if(!st||joursAvantDepart(st)>0)return;
+    var A=getAllData(), E=quetesEtat(A,getToday90(st)), k="amcoach_quetes_"+CLIENT, P=null;
+    try{P=JSON.parse(localStorage.getItem(k)||"null");}catch(e){}
+    localStorage.setItem(k,JSON.stringify(E));
+    if(!P)return;
+    if(E.p&&E.p!==P.p)miniFete("🍗","Quête protéines accomplie !",E.prot+" g aujourd'hui · quota validé");
+    if(E.lvl>P.lvl)miniFete(E.lvlIco||"🏰",E.lvlDernier?"Identité atteinte !":"Nouveau palier : "+E.lvlNom,E.lvlDernier?"Tu es devenu ce que tu avais écrit.":"Ta forteresse monte d'un cran.");
+    if(E.bd>P.bd)miniFete(E.bdIco||"🏅","Challenge réussi !",(E.bdNom||"")+" · badge débloqué");
+  }catch(e){}
+}
+
+// 🎓 L'ANIMATION FINALE — fin du programme : la montagne se gravit du poids
+// de départ au poids d'arrivée, le compteur descend, puis le diplôme arrive.
+var OBJF_FIN={
+  normal:"Tu l'as fait. Du premier jour au dernier. Ce diplôme, personne ne te l'a donné : tu l'as construit.",
+  marseillais:"Oh bonne mère, quel parcours ! T'es un tigre, maintenant c'est officiel, avec le diplôme. Dégun peut rien te dire !",
+  italien:"Bravissimo ! Piano piano, sei arrivato in cima. Ce diplôme, c'est le tien : sois fier, molto fier !",
+  drole:"Ta balance a signé une demande de mutation. Toi, tu repars avec un diplôme. Qui l'eût cru ? Moi. Un peu.",
+  sarcastique:"Bon. Tu as tenu jusqu'au bout. Je suis obligé de l'écrire : bravo. Et ce diplôme, tu le mérites vraiment.",
+  vulgaire:"PUTAIN, T'ES ALLÉ AU BOUT ! Le diplôme, tu l'as arraché avec les dents. Encadre-le et montre-le à tout le monde !",
+  jeune:"Wesh, c'est le main character energy ça ! Programme plié, diplôme validé. T'es une dinguerie !",
+  commentateur:"ET C'EST TERMINÉ !!! Quelle course, quel final ! Le diplôme est pour toi, une performance historique !"
+};
+function finaleDonnees(allData,start,progB){
+  var fin=Math.min(getToday90(start),progB-1), dep=null, cur=null, n0=null, n1=null, rem=0;
+  try{var PD=poidsDepart(allData,start);if(PD)dep=PD.v;}catch(e){}
+  for(var i=0;i<=fin;i++){var D=allData[i]||{};
+    var w=parseFloat(String(D.poids||"").replace(",","."));if(w>20&&w<400){if(dep==null)dep=w;cur=w;}
+    var nb=parseFloat(String(D.nombril||"").replace(",","."));if(nb>30&&nb<250){if(n0==null)n0=nb;n1=nb;}
+    if(D&&dayScore(D)!=null)rem++;}
+  var kg=(dep!=null&&cur!=null)?Math.round((dep-cur)*10)/10:null, cm=(n0!=null&&n1!=null)?Math.round((n0-n1)*10)/10:null;
+  return {dep:dep,cur:cur,kg:kg,cm:cm,rem:rem,n:progB,lib:progB<=14?"Reset 14 jours":(progB<=42?"Programme 6 semaines":"Programme AM Transfo 90 jours")};
+}
+function finaleHTML(cle,F,allData,nom){
+  var S=supGet(allData), FC=["#FFD43B","#FF6B9A","#5DF2A0","#4DABF7","#FFFFFF","#B197FC","#FF922B"], fw='', conf='';
+  var PTS=[[18,16],[80,12],[50,8],[12,48],[88,44],[30,24],[70,30],[22,80],[78,78],[50,20],[15,30],[85,22]];
+  for(var g=0;g<PTS.length;g++){var d0=2.1+g*0.5+((g*13)%4)/10,rr=70+((g*23)%50);
+    fw+='<span class="objf-fw" style="left:'+PTS[g][0]+'%;top:'+PTS[g][1]+'%;color:'+FC[g%FC.length]+'"><b style="animation-delay:'+d0.toFixed(2)+'s"></b>';
+    for(var q=0;q<16;q++){var an=q/16*2*Math.PI;fw+='<i style="--x:'+Math.round(Math.cos(an)*rr)+'px;--y:'+Math.round(Math.sin(an)*rr)+'px;animation-delay:'+d0.toFixed(2)+'s"></i>';}
+    fw+='</span>';}
+  for(var i=0;i<34;i++)conf+='<span class="objf-c" style="left:'+((i*29)%100)+'%;background:'+FC[i%FC.length]+';animation-delay:'+(2.2+((i*37)%120)/100)+'s;transform:rotate('+(i*41%180)+'deg)"></span>';
+  var fmt=function(v){return String(v).replace(".",",");};
+  var prenom=String(nom||"").trim().split(/\s+/)[0]||"";
+  return '<div id="obj-fete" class="objf-ov">'+fw+
+    '<div class="objf-carte" style="background:linear-gradient(160deg,'+solid("var(--brand)")+','+solid("var(--brand2)")+')">'+
+    '<button id="objf-son" class="objf-son" aria-label="Son">🔊</button>'+
+    '<div style="font-size:11px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.8)">🎓 '+esc(F.lib)+' · terminé</div>'+
+    '<div style="width:160px;margin:8px auto 0">'+svgMontagne(100,"#5DF2A0",null,null,true)+'</div>'+
+    (F.dep!=null&&F.cur!=null?
+      '<div style="display:flex;align-items:flex-end;justify-content:center;gap:12px;margin-top:2px">'+
+      '<div style="opacity:.75;font-size:12px;font-weight:800;line-height:1.3">départ<br><span style="font-size:17px">'+fmt(F.dep)+' kg</span></div>'+
+      '<div class="fin-kg"><span id="fin-kg" data-a="'+F.dep+'" data-b="'+F.cur+'">'+fmt(F.dep)+'</span><span style="font-size:17px"> kg</span></div></div>':'')+
+    '<div class="objf-bravo" style="animation-delay:2.2s;font-weight:900;font-size:34px;line-height:1.05;letter-spacing:-1px;color:#FFD43B;text-shadow:0 3px 18px rgba(0,0,0,.35);margin-top:8px">🎉 BRAVO'+(prenom?' '+esc(prenom).toUpperCase():'')+' !</div>'+
+    '<div class="objf-tard fin-chips" style="animation-delay:2.6s">'+
+      (F.kg>0?'<span>⚖️ −'+fmt(F.kg)+' kg</span>':'')+(F.cm>0?'<span>📏 −'+fmt(F.cm)+' cm de tour de taille</span>':'')+
+      '<span>📅 '+F.rem+'/'+F.n+' journées remplies</span></div>'+
+    '<div class="objf-tard fin-dip" style="animation-delay:3.2s">'+
+      '<div style="font-size:30px;line-height:1">🎓</div>'+
+      '<div style="font-size:11px;font-weight:900;letter-spacing:1.6px;text-transform:uppercase;margin-top:5px">Ta récompense</div>'+
+      '<div style="font-weight:900;font-size:20px;line-height:1.15;margin-top:3px">Ton diplôme '+esc(F.lib)+'</div>'+
+      '<div style="font-size:12px;font-weight:700;margin-top:3px;opacity:.85">Nouvelle version de toi-même</div></div>'+
+    '<div class="objf-sup objf-tard" style="animation-delay:3.8s">'+supAvatar("moment",S.ton)+
+      '<div style="min-width:0"><div style="font-weight:900;font-size:12.5px;margin-bottom:2px">'+esc(S.prenom)+' 🎉</div>'+
+      '<div style="font-size:13px;line-height:1.45;font-weight:600">'+esc(OBJF_FIN[S.ton]||OBJF_FIN.normal)+'</div></div></div>'+
+    '<button id="fin-dip" class="objf-tard" style="animation-delay:4.2s;width:100%;margin-top:14px;padding:15px 0;border:0;border-radius:14px;background:#F4D35E;color:#3A2A00;font-weight:900;font-size:15px;cursor:pointer">🎓 Voir mon diplôme</button>'+
+    '<button class="objf-story objf-tard" style="animation-delay:4.3s;width:100%;margin-top:10px;padding:14px 0;border:2px solid rgba(255,255,255,.85);border-radius:14px;background:rgba(255,255,255,.14);color:#fff;font-weight:900;font-size:15px;cursor:pointer">'+(OBJS.etat==="pret"?"📲 Partager en story":OBJS.etat==="prep"?"⏳ Ta story se prépare…":"📲 Partager ma victoire en story")+'</button>'+
+    '<button id="objf-ok" data-k="'+esc(cle)+'" class="objf-tard" style="animation-delay:4.4s;width:100%;margin-top:10px;padding:12px 0;border:0;border-radius:14px;background:transparent;color:rgba(255,255,255,.8);font-weight:800;font-size:13px;cursor:pointer">Fermer</button>'+
+    '</div>'+conf+'</div>';
+}
+// Le compteur de poids descend pendant que le sentier monte (0,2 → 2 s).
+function finaleCompteur(){
+  var el=document.getElementById("fin-kg"); if(!el||el.__on)return; el.__on=1;
+  var a=parseFloat(el.getAttribute("data-a")), b=parseFloat(el.getAttribute("data-b")), t0=performance.now();
+  (function pas(){
+    var u=Math.max(0,Math.min(1,((performance.now()-t0)/1000-0.2)/1.8)), e=1-Math.pow(1-u,3);
+    var v=Math.round((a+(b-a)*e)*10)/10; if(!document.body.contains(el))return;
+    el.textContent=String(v.toFixed(1)).replace(".",",");
+    if(u<1)requestAnimationFrame(pas);
+  })();
+}
+document.addEventListener("click",function(e){
+  var b=e.target&&e.target.closest&&e.target.closest("#fin-dip"); if(!b)return;
+  var win=window.open("","_blank"); if(win)diplomeRemplir(win);
+});
+// La story de fin : même principe, version diplôme.
+function finaleStoryDessin(c,W,H,t,P){
+  var Q={c1:P.c1,c2:P.c2,titre:"DIPLÔME",perdu:0,reward:"",emoji:"",ligne:"Programme terminé"};
+  // On réutilise le décor de la story objectif (titre, montagne, gerbes, confettis, signature)…
+  objStoryDessin(c,W,H,t,Q);
+  var F="-apple-system,'Helvetica Neue',Arial,sans-serif", yT=265+150*(W*0.6/170);
+  function ap(t1,y,txt,font,col){if(t<t1)return;var a=objStoryEase((t-t1)/0.5);c.save();c.globalAlpha=a;c.fillStyle=col;c.font=font;c.textAlign="center";c.fillText(txt,W/2,y+(1-a)*24);c.restore();}
+  // …et on remplace « J'ai atteint mon objectif » par le récap du programme.
+  var lig=[]; if(P.kg>0)lig.push("−"+String(P.kg).replace(".",",")+" kg"); if(P.cm>0)lig.push("−"+String(P.cm).replace(".",",")+" cm");
+  if(lig.length)ap(2.8,yT+258,lig.join("  ·  "),"900 "+(lig.length>1?78:108)+"px "+F,"#FFFFFF");
+  if(t>=3.4){
+    var a2=objStoryEase((t-3.4)/0.5), yR=yT+(lig.length?300:190), bw=W*0.8, bx=(W-bw)/2, bh=130, r=28;
+    c.save(); c.globalAlpha=a2;
+    var gd=c.createLinearGradient(bx,0,bx+bw,0); gd.addColorStop(0,"#B8860B"); gd.addColorStop(.55,"#F4D35E"); gd.addColorStop(1,"#C9971A");
+    c.beginPath(); c.moveTo(bx+r,yR); c.arcTo(bx+bw,yR,bx+bw,yR+bh,r); c.arcTo(bx+bw,yR+bh,bx,yR+bh,r); c.arcTo(bx,yR+bh,bx,yR,r); c.arcTo(bx,yR,bx+bw,yR,r); c.closePath();
+    c.fillStyle=gd; c.fill(); c.textAlign="center";
+    c.fillStyle="#3A2A00"; c.font="800 26px "+F; c.fillText("🎓  Mon diplôme",W/2,yR+46);
+    var fz=40; c.font="900 "+fz+"px "+F; while(c.measureText(P.lib).width>bw-48&&fz>24){fz-=2;c.font="900 "+fz+"px "+F;} c.fillText(P.lib,W/2,yR+100); c.restore();
+  }
+}
+// 🗣️ Le superviseur félicite, chacun avec sa voix.
+var OBJF_SUP={
+  normal:"{kg}Objectif atteint, sans tricher. Ta récompense, tu l'as gagnée : profites-en.",
+  marseillais:"Oh fan de chichourle ! {kg}L'objectif, il est tombé. Va la chercher ta récompense, elle est à toi !",
+  italien:"Mamma mia ! {kg}Obiettivo raggiunto ! La récompense, tu la mérites : savoure-la.",
+  drole:"Ta balance vient de demander l'asile politique. {kg}Objectif atteint, ta récompense t'attend.",
+  sarcastique:"Bon. J'avoue, je ne pariais pas dessus. {kg}Objectif atteint, sincèrement. Va chercher ta récompense.",
+  vulgaire:"Putain ! {kg}Objectif explosé. Va claquer ta récompense, tu l'as méritée !",
+  jeune:"Wesh, c'est validé ! {kg}T'es une machine. Ta récompense, elle est méritée !",
+  commentateur:"ET C'EST LE SOMMET !!! {kg}Quelle performance ! La récompense est pour toi !"
+};
+function objFeteSupHTML(allData,perdu){
+  try{
+    var S=supGet(allData);
+    var m=OBJF_SUP[S.ton]||OBJF_SUP.normal;
+    m=m.replace("{kg}",perdu>0?"Bravo pour tes "+String(perdu).replace(".",",")+" kg en moins ! ":"Bravo ! ");
+    return '<div class="objf-sup objf-tard" style="animation-delay:3.8s">'+supAvatar("moment",S.ton)+
+      '<div style="min-width:0"><div style="font-weight:900;font-size:12.5px;margin-bottom:2px">'+esc(S.prenom)+' 🎉</div>'+
+      '<div style="font-size:13px;line-height:1.45;font-weight:600">'+esc(m)+'</div></div></div>';
+  }catch(e){return '';}
+}
+function objFeteHTML(cle,titre,detail,reward,TH,supH){
   var conf='', cols=["#5DF2A0","#FFD43B","#FF6B9A","#4DABF7","#FFFFFF","#B197FC"];
   for(var i=0;i<34;i++){
     conf+='<span class="objf-c" style="left:'+((i*29)%100)+'%;background:'+cols[i%cols.length]+';animation-delay:'+(2.2+((i*37)%120)/100)+'s;transform:rotate('+(i*41%180)+'deg)"></span>';
   }
-  return '<div id="obj-fete" class="objf-ov">'+
+  // 🎆 Les gerbes partent quand le drapeau passe au vert (≈ 2,1 s), puis
+  // s'enchaînent pendant six secondes, partout autour de la carte.
+  var fw='', FC=["#FFD43B","#FF6B9A","#5DF2A0","#4DABF7","#FFFFFF","#B197FC","#FF922B"];
+  var PTS=[[18,16],[80,12],[50,8],[12,48],[88,44],[30,24],[70,30],[22,80],[78,78],[50,20],[15,30],[85,22]];
+  for(var g=0;g<PTS.length;g++){
+    var d0=2.1+g*0.5+((g*13)%4)/10, col=FC[g%FC.length], n=16, rr=70+((g*23)%50);
+    fw+='<span class="objf-fw" style="left:'+PTS[g][0]+'%;top:'+PTS[g][1]+'%;color:'+col+'"><b style="animation-delay:'+d0.toFixed(2)+'s"></b>';
+    for(var q=0;q<n;q++){
+      var an=q/n*2*Math.PI, x=Math.round(Math.cos(an)*rr), y=Math.round(Math.sin(an)*rr);
+      fw+='<i style="--x:'+x+'px;--y:'+y+'px;animation-delay:'+d0.toFixed(2)+'s"></i>';
+    }
+    fw+='</span>';
+  }
+  return '<div id="obj-fete" class="objf-ov">'+fw+
     '<div class="objf-carte" style="background:linear-gradient(160deg,'+solid("var(--brand)")+','+solid("var(--brand2)")+')">'+
     '<div style="font-size:11px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.8)">'+esc(titre)+'</div>'+
-    '<div style="width:210px;margin:10px auto 4px">'+svgMontagne(100,"#5DF2A0",null,null,true)+'</div>'+
-    '<div class="objf-tard" style="animation-delay:2.3s;font-weight:900;font-size:27px;line-height:1.1;letter-spacing:-.5px">🏆 OBJECTIF<br>ATTEINT !</div>'+
+    '<button id="objf-son" class="objf-son" aria-label="Son">🔊</button>'+
+    '<div style="width:170px;margin:8px auto 2px">'+svgMontagne(100,"#5DF2A0",null,null,true)+'</div>'+
+    '<div class="objf-bravo" style="animation-delay:2.2s;font-weight:900;font-size:40px;line-height:1;letter-spacing:-1px;color:#FFD43B;text-shadow:0 3px 18px rgba(0,0,0,.35)">🎉 BRAVO !</div>'+
+    '<div class="objf-tard" style="animation-delay:2.5s;font-weight:900;font-size:21px;line-height:1.15;margin-top:6px">🏆 Objectif atteint</div>'+
     '<div class="objf-tard" style="animation-delay:2.6s;font-size:13px;font-weight:700;color:rgba(255,255,255,.85);margin-top:8px;line-height:1.5">'+detail+'</div>'+
     '<div class="objf-tard" style="animation-delay:3s;margin-top:16px;border-radius:18px;padding:14px 14px 15px;background:'+TH.g+';border:1.5px solid '+TH.c+'88">'+
       '<div style="font-size:30px;line-height:1">'+TH.e+'</div>'+
-      '<div style="font-size:13px;font-weight:800;margin-top:6px">Félicitations, tu as droit à ta récompense :</div>'+
+      '<div style="font-size:13px;font-weight:800;margin-top:6px">Tu as obtenu ta récompense :</div>'+
       '<div style="font-weight:900;font-size:22px;line-height:1.2;margin-top:4px;color:#fff">'+esc(reward||"ta récompense")+'</div></div>'+
-    '<button id="objf-ok" data-k="'+esc(cle)+'" class="objf-tard" style="animation-delay:3.4s;width:100%;margin-top:16px;padding:15px 0;border:0;border-radius:14px;background:#5DF2A0;color:#06331F;font-weight:900;font-size:15px;cursor:pointer">🎁 Je prends ma récompense</button>'+
+    (supH||'')+
+    '<button class="objf-story objf-tard" style="animation-delay:4.2s;width:100%;margin-top:14px;padding:14px 0;border:2px solid rgba(255,255,255,.85);border-radius:14px;background:rgba(255,255,255,.14);color:#fff;font-weight:900;font-size:15px;cursor:pointer">'+(OBJS.etat==="pret"?"📲 Partager en story":OBJS.etat==="prep"?"⏳ Ta story se prépare…":"📲 Partager ma victoire en story")+'</button>'+
+    '<button id="objf-ok" data-k="'+esc(cle)+'" class="objf-tard" style="animation-delay:4.4s;width:100%;margin-top:10px;padding:15px 0;border:0;border-radius:14px;background:#5DF2A0;color:#06331F;font-weight:900;font-size:15px;cursor:pointer">🎁 Je prends ma récompense</button>'+
     '</div>'+conf+'</div>';
 }
 // 🎁 Univers visuel de la récompense, déduit de ce que le coach a écrit.
@@ -5491,6 +5941,7 @@ function renderRestaure(G) {
 function render(){
   var __G = renderGarde();
   renderView();
+  try{if(!IS_COACH)setTimeout(quetesVerifier,350);}catch(e){}
   renderRestaure(__G);
   scrollTopIfRouteChanged();
   // Le geste de retour s'installe une seule fois, ici : bindNav ne tourne que
@@ -7696,7 +8147,13 @@ function viewCalendar(name,start){
             '<button id="goal-edit" style="flex:0 0 auto;border:0;background:rgba(255,255,255,.14);color:#fff;padding:9px 13px;border-radius:12px;font-weight:800;font-size:12.5px">✏️</button>'+
             '</div></div></div>';
         })()+
+        (reached&&!IS_COACH?'<button class="objf-story" style="width:100%;margin-top:12px;padding:13px 0;border:0;border-radius:14px;background:'+solid("var(--brand)")+';color:#fff;font-weight:900;font-size:14px;cursor:pointer">'+(OBJS.etat==="pret"?"📲 Partager en story":OBJS.etat==="prep"?"⏳ Ta story se prépare…":"📲 Partager ma victoire en story")+'</button>':'')+
         '<div style="font-size:13px;color:var(--mute);margin-top:13px;text-align:center;line-height:1.5">'+phrase+'</div>';
+      // 📲 Paramètres de la story de victoire (cliente seulement)
+      if(reached&&!IS_COACH){
+        var __TH=rewardTheme(goal.reward), __sk=String(goal.target)+"|"+perduG+"|"+(goal.reward||"");
+        if(!OBJS.P||OBJS.P.k!==__sk){OBJS.P={k:__sk,c1:solid("var(--brand)"),c2:solid("var(--brand2)"),titre:objLib,perdu:perduG,reward:goal.reward||"",emoji:__TH.e};OBJS.etat="vide";OBJS.fichier=null;}
+      }
       // 🎉 Première fois : la fête plein écran (cliente seulement)
       if(reached&&!IS_COACH){
         var __kF="amcoach_objfete_"+(CLIENT||"")+"_"+(phaseReeq?"r":shortProg?"p":month)+"_"+goal.target;
@@ -7704,8 +8161,11 @@ function viewCalendar(name,start){
         if(!__vu){
           h+=objFeteHTML(__kF,objLib,
             (depG!=null?depG+' kg → <b>'+curW+' kg</b>'+(perduG>0?' · −'+perduG+' kg':''):'Objectif '+goal.target+' kg atteint'),
-            goal.reward,rewardTheme(goal.reward));
+            goal.reward,rewardTheme(goal.reward),objFeteSupHTML(allData,perduG));
           try{if(navigator.vibrate)setTimeout(function(){navigator.vibrate([60,40,140]);},1500);}catch(x){}
+          if(!OBJF.joue){OBJF.debut=performance.now();setTimeout(function(){objFeteSon(false);},30);
+            // La story se fabrique pendant qu'elle lit : prête quand l'animation finit.
+            setTimeout(function(){if(OBJS.P&&OBJS.etat==="vide"&&document.getElementById("obj-fete"))objStoryPreparer(OBJS.P);},4600);}
         }
       }
     }
@@ -7725,11 +8185,28 @@ function viewCalendar(name,start){
   }
 
   // DIPLÔME (fin de programme) — au jour 14 pour un Reset, au jour 90 sinon.
+  if(today90>=progB-1&&!IS_COACH){
+    // 🎓 L'animation finale : vue une fois, automatiquement (après la fête de
+    // l'objectif si les deux tombent le même jour), puis revisible à volonté.
+    var __kFin="amcoach_finale_"+(CLIENT||"")+"_"+progB, __vuF=null;
+    try{__vuF=localStorage.getItem(__kFin);}catch(x){__vuF="1";}
+    if((!__vuF||state.finaleRejouer)&&h.indexOf('id="obj-fete"')<0){
+      var __FD=finaleDonnees(allData,start,progB);
+      var __skF="fin|"+progB+"|"+__FD.kg+"|"+__FD.cm;
+      if(!OBJS.P||OBJS.P.k!==__skF){OBJS.P={k:__skF,c1:solid("var(--brand)"),c2:solid("var(--brand2)"),titre:__FD.lib,kg:__FD.kg,cm:__FD.cm,lib:__FD.lib,dessin:finaleStoryDessin,fichier:"mon-diplome-discipline90"};OBJS.etat="vide";OBJS.fichier=null;}
+      h+=finaleHTML(__kFin,__FD,allData,name);
+      if(!OBJF.joue){OBJF.debut=performance.now();setTimeout(function(){objFeteSon(false);finaleCompteur();},30);
+        setTimeout(function(){if(OBJS.P&&OBJS.etat==="vide"&&document.getElementById("obj-fete"))objStoryPreparer(OBJS.P);},4600);}
+      else setTimeout(finaleCompteur,30);
+      state.finaleRejouer=false;
+    }
+  }
   if(today90>=progB-1){
     h+='<button id="diplome-btn" class="card" style="width:calc(100% - 28px);margin-bottom:18px;background:linear-gradient(135deg,var(--gold),#E8C547);border:none;text-align:center;padding:18px;cursor:pointer">'+
       '<div style="font-size:26px;margin-bottom:4px">🎓</div>'+
       '<div style="font-weight:900;font-size:15px;color:#fff;letter-spacing:1px;text-transform:uppercase">'+(progB<=14?'Mon Diplôme Reset 14':(progB<=42?'Mon Diplôme 6 semaines':'Mon Diplôme AM Transfo'))+'</div>'+
-      '<div style="font-size:11px;color:rgba(255,255,255,.85);margin-top:3px;font-weight:700">'+(function(){var r=0;for(var q=0;q<progB;q++){if(allData[q]&&dayScore(allData[q])!=null)r++;}return r+'/'+progB+' journées remplies';})()+' — Nouvelle version de toi-même</div></button>';
+      '<div style="font-size:11px;color:rgba(255,255,255,.85);margin-top:3px;font-weight:700">'+(function(){var r=0;for(var q=0;q<progB;q++){if(allData[q]&&dayScore(allData[q])!=null)r++;}return r+'/'+progB+' journées remplies';})()+' — Nouvelle version de toi-même</div></button>'+
+      (IS_COACH?'':'<button id="finale-revoir" style="display:block;width:calc(100% - 28px);margin:-10px auto 18px;padding:11px 0;border:0;border-radius:12px;background:var(--soft2);color:var(--ink2);font-weight:800;font-size:13px;cursor:pointer">▶️ Revoir mon animation de fin</button>');
     // 🥗 FIN DU RESET : cadeau et suite. Akli : 4 semaines de rééquilibrage
     // offertes si le Reset a été tenu (3 kg ou objectif atteint, ou 14 jours
     // remplis avec un superviseur content), et la proposition du 90 jours.
@@ -22250,6 +22727,8 @@ function bindMain(name,start){
   try{bindApkBandeau();}catch(e){}
   var rqm=document.getElementById("reeq-menus");
   if(rqm)rqm.addEventListener("click",function(){state.view="menus";render();});
+  var frv=document.getElementById("finale-revoir");
+  if(frv)frv.addEventListener("click",function(){state.finaleRejouer=true;OBJF.joue=false;render();});
   var dip=document.getElementById("diplome-btn");
   if(dip)dip.addEventListener("click",function(){
     var win=window.open("","_blank");
@@ -22313,7 +22792,7 @@ function bindMain(name,start){
       bd.unshift({e:ch.e,n:ch.n,jours:ch.jours,fin:isoLocal()});
       saveDay(516,bd);
       render();
-      feedback("🏅 "+ch.n+" — challenge réussi !","win");
+      buzz("win");
     }else if(E2.badgePerdu&&E2.valides===E2.seuilHonneur){
       // Le sans-faute est hors de portée, mais le seuil d'honneur vient de
       // tomber : on le dit, sinon la fin de challenge n'a plus aucun enjeu.

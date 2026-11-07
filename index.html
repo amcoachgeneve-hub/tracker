@@ -937,6 +937,13 @@ input,textarea{outline:none}
 .objf-bravo{opacity:0;animation:objfBravo .8s cubic-bezier(.2,.9,.3,1.3) both}
 .objf-sup{display:flex;gap:10px;align-items:flex-start;text-align:left;margin-top:14px;background:rgba(255,255,255,.96);color:#1C1917;border-radius:16px;padding:11px 12px}
 .objf-sup .sup-av{width:40px;height:40px}
+.objf-badge{margin-top:12px;border-radius:18px;padding:13px 13px 12px;background:linear-gradient(135deg,#F7D774,#F4C430 45%,#E8A317);box-shadow:0 6px 18px rgba(232,163,23,.35),inset 0 1px 0 rgba(255,255,255,.6)}
+.objf-medaille{width:48px;height:48px;flex:0 0 48px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#FFF6D5,#F4C430 70%);display:flex;align-items:center;justify-content:center;font-size:30px;box-shadow:0 2px 8px rgba(122,83,0,.35);animation:objfMed 2.6s ease-in-out infinite}
+@keyframes objfMed{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg) scale(1.06)}}
+.objf-badge button{flex:1;padding:11px 0;border:0;border-radius:12px;font:inherit;font-weight:900;font-size:13.5px;cursor:pointer}
+.objf-badge .objf-revoir{background:rgba(255,255,255,.7);color:#5C4300}
+.objf-badge .objf-story{background:#3A2A00;color:#FFE9A6}
+@media (prefers-reduced-motion:reduce){.objf-medaille{animation:none}}
 .mq-ov{position:fixed;left:0;right:0;top:0;bottom:0;z-index:2147482000;display:flex;align-items:center;justify-content:center;pointer-events:none}
 .mq-carte{pointer-events:auto;position:relative;min-width:230px;max-width:300px;border-radius:24px;padding:20px 20px 17px;text-align:center;color:#fff;box-shadow:0 18px 50px rgba(0,0,0,.35);animation:mqIn .5s cubic-bezier(.2,.9,.3,1.35) both}
 .mq-carte.mq-out{animation:mqOut .35s ease-in both}
@@ -1200,7 +1207,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "05/11 - Un seul bloc par client";
+var APP_VERSION = "07/11 - Badge objectif";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -5505,7 +5512,7 @@ function objStoryMime(){
 function objStoryMaj(){
   [].slice.call(document.querySelectorAll(".objf-story")).forEach(function(b){
     b.disabled=OBJS.etat==="prep";
-    b.innerHTML=OBJS.etat==="prep"?"⏳ Ta story se prépare…":OBJS.etat==="pret"?"📲 Partager en story":"📲 Partager ma victoire en story";
+    b.innerHTML=b.getAttribute("data-court")?(OBJS.etat==="prep"?"⏳ Préparation…":"📲 Partager"):(OBJS.etat==="prep"?"⏳ Ta story se prépare…":OBJS.etat==="pret"?"📲 Partager en story":"📲 Partager ma victoire en story");
   });
 }
 function objStoryPreparer(P,cb){
@@ -5742,6 +5749,12 @@ function finaleStoryDessin(c,W,H,t,P){
     var fz=40; c.font="900 "+fz+"px "+F; while(c.measureText(P.lib).width>bw-48&&fz>24){fz-=2;c.font="900 "+fz+"px "+F;} c.fillText(P.lib,W/2,yR+100); c.restore();
   }
 }
+// ▶️ Revoir la fête de l'objectif : on efface la marque « déjà vue » et on relance.
+document.addEventListener("click",function(e){
+  var b=e.target&&e.target.closest&&e.target.closest(".objf-revoir"); if(!b)return;
+  try{localStorage.removeItem(b.getAttribute("data-k"));}catch(x){}
+  objFeteStop(); OBJF.joue=false; window.scrollTo(0,0); render();
+});
 // 🗣️ Le superviseur félicite, chacun avec sa voix.
 var OBJF_SUP={
   normal:"{kg}Objectif atteint, sans tricher. Ta récompense, tu l'as gagnée : profites-en.",
@@ -8147,7 +8160,17 @@ function viewCalendar(name,start){
             '<button id="goal-edit" style="flex:0 0 auto;border:0;background:rgba(255,255,255,.14);color:#fff;padding:9px 13px;border-radius:12px;font-weight:800;font-size:12.5px">✏️</button>'+
             '</div></div></div>';
         })()+
-        (reached&&!IS_COACH?'<button class="objf-story" style="width:100%;margin-top:12px;padding:13px 0;border:0;border-radius:14px;background:'+solid("var(--brand)")+';color:#fff;font-weight:900;font-size:14px;cursor:pointer">'+(OBJS.etat==="pret"?"📲 Partager en story":OBJS.etat==="prep"?"⏳ Ta story se prépare…":"📲 Partager ma victoire en story")+'</button>':'')+
+        (reached&&!IS_COACH?'<div class="objf-badge">'+
+          '<div style="display:flex;align-items:center;gap:12px">'+
+            '<div class="objf-medaille">🥇</div>'+
+            '<div style="min-width:0;flex:1"><div style="font-size:10.5px;font-weight:900;letter-spacing:1.4px;color:#7A5300">BADGE DÉBLOQUÉ</div>'+
+            '<div style="font-weight:900;font-size:15.5px;line-height:1.2;color:#3A2A00">'+esc(objLib)+' atteint</div>'+
+            '<div style="font-size:12px;font-weight:700;color:#5C4300;margin-top:2px">'+(perduG>0?'−'+String(perduG).replace('.',',')+' kg · ':'')+'🎁 '+esc(goal.reward||'Récompense')+'</div></div>'+
+          '</div>'+
+          '<div style="display:flex;gap:8px;margin-top:11px">'+
+            '<button class="objf-revoir" data-k="'+esc("amcoach_objfete_"+(CLIENT||"")+"_"+(phaseReeq?"r":shortProg?"p":month)+"_"+goal.target)+'">▶️ Revoir</button>'+
+            '<button class="objf-story" data-court="1">'+(OBJS.etat==="prep"?"⏳ Préparation…":"📲 Partager")+'</button>'+
+          '</div></div>':'')+
         '<div style="font-size:13px;color:var(--mute);margin-top:13px;text-align:center;line-height:1.5">'+phrase+'</div>';
       // 📲 Paramètres de la story de victoire (cliente seulement)
       if(reached&&!IS_COACH){

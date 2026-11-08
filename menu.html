@@ -302,7 +302,7 @@ function mealRule(menu,mealId,dayTag){
     return {txt:"P + F",color:B};
   }
   // cyclage : SG = P + F uniquement / GB = GB + P + F
-  if(mealId==="pdej") return {txt:"PROTÉINE",color:"#7B1FA2"};
+  if(mealId==="pdej") return {txt:"P + FRUITS ROUGES",color:"#7B1FA2"};
   if(dayTag==="SG")   return {txt:"P + F",color:"#C62828"};
   return {txt:"GB + P + F",color:"#2E7D32"};
 }
@@ -1259,7 +1259,7 @@ function viewDayMeals(){
       // l'assiette de référence plutôt qu'une promesse de recette vide.
       h+='<div class="meal-body">'+
         (meal.id==="pdej"
-          ? '<div class="meal-txt">Une protéine au réveil. Choisis dans l\'onglet Méthode nutrition.</div>'
+          ? '<div class="meal-txt">Une protéine au réveil. Choisis dans l\'onglet Méthode nutrition.'+(MENU==="cyclage"?'<br>🍓 + fruits rouges (framboises, myrtilles…), même les jours SG.':'')+'</div>'
           : assietteHTML(MENU==="cyclage"?(dayTag==="SG"?"sg":"soir"):(meal.id==="dej"?"midi":(MENU==="equilibre"?"soir":"sg"))))+
         (cfgMenu.frigo?'<button class="meal-frigo" data-tab="frigo">🧊 Composer avec mon frigo</button>':'')+
         '</div>';
@@ -1310,11 +1310,11 @@ var PROTOCOLES={
     ["🌙","Soir","Protéines + fibres","Plus de glucides le soir. C'est ce qui accélère."]
   ],
   cyclage:[
-    ["🌅","Matin","Protéines","Inchangé, tous les jours."],
+    ["🌅","Matin","Protéines + fruits rouges","Tous les jours, même les jours SG."],
     ["🥛","Collation du matin","Protéines","Facultative."],
     ["🍽️","Midi","Selon le jour du calendrier","Jour GB : glucides bas + protéines + fibres. Jour SG : protéines + fibres."],
     ["🍓","Collation de l'après-midi","Fruits rouges — jours GB uniquement","Facultative. Les jours sans glucides : pas de fruits."],
-    ["🌙","Soir","Protéines + fibres","Jamais de glucides le soir sur cette phase."]
+    ["🌙","Soir","Selon le jour du calendrier","Jour GB : glucides bas + protéines + fibres. Jour SG : protéines + fibres."]
   ],
   retour:[
     ["🌅","Matin","Protéines (+ glucides possibles)","Le blé revient, les laitages aussi."],
@@ -1396,8 +1396,46 @@ function reset14ProtocoleHTML(){
   h+='<div class="proto-col-n">Les collations sont facultatives. Elles ne remplacent jamais un repas.</div>';
   return h+'</div>';
 }
+// 🟩🟥 PHASE 3 : DEUX JOURNÉES, DEUX PROTOCOLES. L'ancien protocole ne
+// montrait que la journée SG (soir sans glucides, pas de fruits) : la
+// journée GB n'apparaissait nulle part. Même présentation que le 6 semaines.
+// Fruits rouges du matin (framboises, myrtilles) : tous les jours, même SG.
+var CYC_GB = [
+  ["🌅","Matin","Protéines + fruits rouges"],
+  ["🥛","Collation du matin","Protéines · facultative"],
+  ["🍽️","Midi","Glucides bas + protéines + fibres"],
+  ["🍓","Collation de l'après-midi","Fruits rouges · facultative"],
+  ["🌙","Soir","Glucides bas + protéines + fibres"]
+];
+var CYC_SG = [
+  ["🌅","Matin","Protéines + fruits rouges"],
+  ["🥛","Collation du matin","Protéines · facultative"],
+  ["🍽️","Midi","Protéines + fibres"],
+  ["🚫","Collation de l'après-midi","Pas de fruits"],
+  ["🌙","Soir","Protéines + fibres"]
+];
+function cyclageProtocoleHTML(){
+  function colonne(titre,sous,coul,fond,L){
+    var h='<div class="rs-col" style="border-color:'+coul+';background:'+fond+'">'+
+      '<div class="rs-col-t" style="background:'+coul+'">'+titre+'</div>'+
+      '<div class="rs-col-s" style="color:'+coul+'">'+sous+'</div>';
+    for(var i=0;i<L.length;i++){
+      h+='<div class="rs-l"><span>'+L[i][0]+'</span><div><b>'+esc(L[i][1])+'</b><i>'+esc(L[i][2])+'</i></div></div>';
+    }
+    return h+'</div>';
+  }
+  var h='<div class="card proto-card"><div class="proto-t">🧭 Le protocole de ta journée<span class="proto-ph">Phase 3</span></div>';
+  h+='<div class="rs-2">'+
+    colonne("GB","Jour glucides bas","#2E7D32","#F1FAF3",CYC_GB)+
+    colonne("SG","Jour sans glucides","#C62828","#FFF4F4",CYC_SG)+
+    '</div>';
+  h+='<div class="food-note" style="margin:12px 0 0;border-color:#F8BBD0;background:#FFF5F8;color:#AD1457">🍓 Fruits rouges le matin (framboises, myrtilles…) : autorisés tous les jours, même les jours SG.</div>';
+  h+='<div class="proto-col-n">Le calendrier ci-dessous te dit si aujourd\'hui est un jour GB ou SG. Les collations sont facultatives : elles ne remplacent jamais un repas.</div>';
+  return h+'</div>';
+}
 function protocoleHTML(){
   if(estCourt(MENU))return reset14ProtocoleHTML();
+  if(MENU==="cyclage")return cyclageProtocoleHTML();
   var L=PROTOCOLES[MENU]||PROTOCOLES.equilibre;
   var P=MENUS[MENU]||{};
   var h='<div class="card proto-card"><div class="proto-t">🧭 Le protocole de ta journée'+
@@ -1744,7 +1782,7 @@ function bindMain(){
 // en arrière-plan. Sans ce contrôle, la cliente voyait l'ancien menu jusqu'à
 // la réouverture suivante. On relit la page quelques secondes après
 // l'ouverture : si la version a changé, on recharge une seule fois.
-var MENU_VERSION="08/11 - Complements D3 Mg Zn";
+var MENU_VERSION="08/11 - Protocole GB SG";
 (function(){
   function verifier(){
     try{

@@ -47,8 +47,9 @@ input,textarea,select{outline:none}
 .day-cell{aspect-ratio:1;border-radius:10px;background:#fff;border:2px solid transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;font-size:14px;box-shadow:0 1px 3px rgba(0,0,0,.05);position:relative}
 .day-cell.sel{border-color:#D52B1E}
 .day-cell .dc-tag{font-size:7px;font-weight:900;margin-top:2px;letter-spacing:.5px}
-.day-cell.sg{background:#E8F5E9}
-.day-cell.gb{background:#FFF8E1}
+.day-cell.sg{background:#C62828;color:#fff}
+.day-cell.gb{background:#2E7D32;color:#fff}
+.day-cell.sg.sel,.day-cell.gb.sel{border-color:#fff;box-shadow:0 0 0 2.5px #111}
 .day-cell .dc-dot{position:absolute;top:4px;right:5px;width:6px;height:6px;border-radius:50%;background:#4CAF50}
 
 .meal-card{background:#fff;border-radius:16px;margin:0 14px 12px;box-shadow:0 1px 6px rgba(0,0,0,.06);overflow:hidden}
@@ -72,6 +73,23 @@ input,textarea,select{outline:none}
 .food-grp{display:flex;align-items:flex-start;gap:10px;border-radius:10px;padding:6px 10px;margin-bottom:5px}
 .food-let{flex:0 0 24px;height:24px;margin-top:3px;border-radius:7px;color:#fff;font-weight:900;font-size:13px;display:flex;align-items:center;justify-content:center}
 .food-items{flex:1;min-width:0;line-height:1.75;color:#2A2F38;font-weight:600}
+.supp{border:2px solid #C62828;background:#FFF5F5;scroll-margin-top:96px}
+.supp-t{font-weight:900;font-size:17px;color:#B71C1C;line-height:1.3}
+.supp-s{font-size:13px;color:#7F1D1D;margin:6px 0 10px;line-height:1.5}
+.supp-l{display:flex;gap:10px;padding:9px 0;border-top:1px solid #FECACA;font-size:13.5px;line-height:1.45}
+.supp-l:first-of-type{border-top:0}
+.supp-l .e{flex:0 0 26px;font-size:20px;text-align:center}
+.supp-l b{display:block;font-size:14.5px;color:#1C1917}
+.supp-l .d{color:#B71C1C;font-weight:800}
+.supp-l .pr{display:block;color:#666;font-size:12.5px;margin-top:2px}
+.supp-opt{margin-top:10px;padding-top:10px;border-top:2px dashed #FECACA;font-size:11px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:#888}
+.supp-opt+.supp-l{border-top:0}
+.supp details{margin-top:8px;border-top:1px solid #FECACA;padding-top:8px}
+.supp summary{font-weight:900;font-size:14px;color:#B71C1C;cursor:pointer;padding:4px 0}
+.supp .txt{font-size:13.5px;color:#333;line-height:1.6;margin-top:6px}
+.supp .txt ul{margin:4px 0 8px 18px}
+.supp .warn{font-size:12px;color:#777;margin-top:10px;line-height:1.5}
+.supp-rappel{display:block;width:calc(100% - 28px);margin:0 14px 12px;padding:11px 12px;border:2px solid #C62828;background:#FFF5F5;border-radius:12px;font:inherit;font-size:12.5px;font-weight:800;color:#B71C1C;text-align:left;line-height:1.5;cursor:pointer}
 .food-note{background:#FFF8F0;border:2px solid #FFE0B2;border-radius:12px;padding:12px 14px;font-size:12px;color:#B45309;font-weight:700;line-height:1.6;margin:0 14px 16px}
 
 .plate{display:flex;gap:6px;margin-bottom:14px}
@@ -285,8 +303,8 @@ function mealRule(menu,mealId,dayTag){
   }
   // cyclage : SG = P + F uniquement / GB = GB + P + F
   if(mealId==="pdej") return {txt:"PROTÉINE",color:"#7B1FA2"};
-  if(dayTag==="SG")   return {txt:"P + F",color:"#2E7D32"};
-  return {txt:"GB + P + F",color:"#F59E0B"};
+  if(dayTag==="SG")   return {txt:"P + F",color:"#C62828"};
+  return {txt:"GB + P + F",color:"#2E7D32"};
 }
 
 // 📅 CALENDRIER DU RESET 14 JOURS (L→D), donné par Akli.
@@ -944,7 +962,7 @@ function render(){
     }
     if(sixP2Verrou()&&state.selDay>=SIX_P2)state.selDay=SIX_P2-1;
     var hh='<div class="app">'+viewClientHeader()+viewBanner()+viewPhaseNav()+viewTabs();
-    if(state.tab==="menu")hh+=viewCalendar()+viewDayMeals();
+    if(state.tab==="menu")hh+=suppRappelHTML()+viewCalendar()+viewDayMeals();
     else if(state.tab==="frigo")hh+=viewFrigo();
     else hh+=viewAliments();
     hh+='</div>';
@@ -1076,7 +1094,63 @@ function viewTabs(){
   return '<div class="tabs">'+
     '<button class="tab'+(state.tab==="aliments"?" active":"")+'" data-tab="aliments">🥗 Méthode nutrition</button>'+
     (cfgMenu.frigo?'<button class="tab'+(state.tab==="frigo"?" active":"")+'" data-tab="frigo">🧊 Mon frigo</button>':'')+
-    '<button class="tab'+(state.tab==="menu"?" active":"")+'" data-tab="menu">📅 Menu '+(MENU==="14jours"?"14 jours":(MENU==="6semaines"?"6 semaines":(MENU==="reequilibrage"?"4 semaines":"30 jours")))+'</button></div>';
+    '<button class="tab'+(state.tab==="menu"?" active":"")+'" data-tab="menu">📅 Calendrier</button></div>';
+}
+
+// 💊 LES COMPLÉMENTS DE LA PHASE 3. Texte d'Akli (semaine 6/12 du
+// challenge) : à ce stade le corps tire sur ses réserves. Les clients ne
+// les prennent pas d'eux-mêmes, d'où un encart rouge en tête de la phase,
+// et un rappel au-dessus du calendrier.
+function suppHTML(){
+  if(MENU!=="cyclage")return "";
+  function L(e,nom,dose,pourquoi,prod){
+    return '<div class="supp-l"><span class="e">'+e+'</span><div><b>'+nom+'</b><span class="d">'+dose+'</span><br>'+pourquoi+
+      (prod?'<span class="pr">🛒 '+prod+'</span>':'')+'</div></div>';
+  }
+  return '<div class="card supp" id="supp">'+
+    '<div class="supp-t">💊 Phase 3 : 3 compléments vivement recommandés</div>'+
+    '<div class="supp-s">Tu arrives au tournant du challenge. Ton corps tire sur ses réserves et ton système nerveux a besoin d\'être rechargé. Sans ces 3 compléments, tu bloques ta perte de gras.</div>'+
+    L("☀️","1. Vitamine D3 + K2","4000 UI / jour, le matin avec un peu de gras (œufs, avocat, huile d\'olive).",
+      "Testostérone, récupération, immunité et moral.","Vitamine D3 4000 UI · Nu U Nutrition (400 comprimés) · environ 15 €, cure d\'un an")+
+    L("😌","2. Magnésium bisglycinate ou citrate","300 à 400 mg le soir avant de dormir.",
+      "Régule le stress, améliore le sommeil, évite les crampes, aide la récupération musculaire. Choisis de préférence le bisglycinate ou le citrate.","Citrate de magnésium · Nutrimea (240 gélules) · environ 20 €")+
+    L("⚔️","3. Zinc bisglycinate","10 à 15 mg / jour le soir, à distance du magnésium.",
+      "Production hormonale, immunité, peau.","Zinc bisglycinate · Horbaach (400 comprimés) · environ 17 €")+
+    '<div class="supp-opt">Facultatifs</div>'+
+    L("🍊","Vitamine C naturelle","500 mg à 1 g / jour, le matin ou après l\'entraînement.",
+      "Protège l\'immunité, réduit le stress oxydatif, aide à absorber le fer.","Nutrimea, Nutriting ou Sunday Natural · 12 à 18 €")+
+    L("🩸","Fer bisglycinate","1 gélule / jour avec la vitamine C.",
+      "Seulement si fatigue constante, essoufflement ou teint pâle.","Fer bisglycinate 14 mg + vitamine C · Nutrimea · environ 18 €")+
+    '<details><summary>💬 Pourquoi c\'est essentiel maintenant</summary><div class="txt">'+
+      'À la moitié du challenge, beaucoup ressentent :<ul><li>😴 un sommeil plus léger</li><li>😤 du stress, de l\'irritabilité</li><li>🍫 des fringales, une baisse de motivation</li><li>⚖️ un poids qui stagne</li></ul>'+
+      'Ce n\'est pas un manque de volonté. C\'est ton système nerveux et hormonal qui crie stop.<br><br>'+
+      'Quand ton cortisol (l\'hormone du stress) est élevé, ton corps garde le gras abdominal en réserve, tu dors mal, tu récupères mal et tu as envie de sucre.<br><br>'+
+      '💥 Le magnésium et le zinc font redescendre le cortisol et relâchent la tension nerveuse.<br>'+
+      '💥 La vitamine D et le fer redonnent de l\'énergie, stabilisent l\'humeur et réactivent le métabolisme.<br><br>'+
+      '🧠 Moins de stress = meilleur sommeil = meilleure récupération = perte de gras, énergie et clarté mentale.<br><br>'+
+      '<b>🔥 Objectif :</b> recharger le système nerveux · réduire le cortisol · relancer la combustion du gras · dormir mieux et récupérer plus vite.<br><br>'+
+      '<b>💡 Ce que je prends moi-même :</b> D3 4000 UI (Nu U Nutrition) · magnésium citrate (Nutrimea) · zinc bisglycinate (Horbaach) · fer bisglycinate + vitamine C (Nutrimea).'+
+    '</div></details>'+
+    '<div class="warn">Si tu suis un traitement, si tu es enceinte ou en cas de doute, demande l\'avis de ton médecin ou de ton pharmacien.</div>'+
+  '</div>';
+}
+function suppRappelHTML(){
+  if(MENU!=="cyclage")return "";
+  return '<button class="supp-rappel" id="supp-go">💊 Phase 3, 3 compléments recommandés : vitamine D3 + K2 le matin · magnésium et zinc le soir. Touche ici pour comprendre pourquoi.</button>';
+}
+
+// 📅 LE CALENDRIER DANS « MÉTHODE NUTRITION ». Fayza, en phase 3, lisait
+// « selon le jour du calendrier » sans trouver le calendrier : il était
+// rangé dans l'autre onglet. Sur les diètes où le jour compte (cyclage,
+// Reset, 6 semaines), on le montre aussi ici, sous le protocole.
+// Toucher un jour ouvre le détail de ce jour dans l'onglet Calendrier.
+function calMethodeHTML(){
+  if(!jourTag(MENU,0))return "";
+  var leg=estCourt(MENU)
+    ?'<b style="color:#2E7D32">🟩 RA</b> = jour avec glucides · <b style="color:#C62828">🟥 SG</b> = jour sans glucides'
+    :'<b style="color:#2E7D32">🟩 GB</b> = jour glucides bas · <b style="color:#C62828">🟥 SG</b> = jour sans glucides';
+  return '<div style="padding:0 14px;margin:4px 0 6px"><div style="font-weight:900;font-size:17px">📅 Ton calendrier</div>'+
+    '<div style="font-size:12.5px;color:#666;margin-top:3px;line-height:1.5">'+leg+'<br>Touche un jour pour voir ses repas.</div></div>'+viewCalendar();
 }
 
 // ═══════════ CALENDRIER 30 JOURS ═══════════
@@ -1101,14 +1175,14 @@ function viewCalendar(){
       var t=jourTag(MENU,i);
       if(t){
         cls+=t==="SG"?" sg":" gb";
-        tag='<span class="dc-tag" style="color:'+(t==="SG"?"#2E7D32":"#B45309")+'">'+t+'</span>';
+        tag='<span class="dc-tag" style="color:#fff">'+t+'</span>';
       }
       // ⚖️ Le dernier dimanche du Reset : pesée et mensurations.
-      if(menuPesee(MENU,i))tag+='<span class="dc-tag" style="color:#0057A8">⚖️</span>';
+      if(menuPesee(MENU,i))tag+='<span class="dc-tag" style="color:'+(t?'#fff':'#0057A8')+'">⚖️</span>';
       var hasRecipe=cfgMenu.recettes&&(state.recipes[keyOf(MENU,i,"dej")]||state.recipes[keyOf(MENU,i,"pdej")]||state.recipes[keyOf(MENU,i,"diner")]);
       var phIdx=PHASE_ORDER.indexOf(MENU);
       var isToday=CLIENT&&state.clientStart&&(FORCED?(Math.max(0,dayGlobal()-menuDecalage(MENU))%MENU_DAYS(MENU))===i:(Math.floor(dayGlobal()/28)===phIdx&&(dayGlobal()%28)===i));
-      var todayStyle=isToday?'border-color:#D52B1E;border-width:2.5px;font-weight:900':'';
+      var todayStyle=isToday?(t?'border-color:#FFD600;border-width:3px;font-weight:900':'border-color:#D52B1E;border-width:2.5px;font-weight:900'):'';
       h+='<button class="'+cls+'" data-day="'+i+'" style="'+todayStyle+'">'+(i+1)+tag+(hasRecipe?'<span class="dc-dot"></span>':'')+'</button>';
     }
     h+='</div>';
@@ -1122,7 +1196,7 @@ function viewDayMeals(){
   var dayTag=jourTag(MENU,day);
   var h='<div style="padding:0 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px">'+
     '<div class="bar bar-r"></div><span style="font-weight:900;font-size:16px">Jour '+(day+1)+'</span>'+
-    (dayTag?'<span class="meal-rule" style="background:'+(dayTag==="SG"?"#2E7D32":"#F59E0B")+'">'+
+    (dayTag?'<span class="meal-rule" style="background:'+(dayTag==="SG"?"#C62828":"#2E7D32")+'">'+
       (estCourt(MENU)
         ?(dayTag==="SG"?"OFF · SANS GLUCIDES":"ON · AVEC GLUCIDES")
         :(dayTag==="SG"?"JOUR SANS GLUCIDES":"JOUR GLUCIDES BAS"))+'</span>':'')+'</div>';
@@ -1413,7 +1487,7 @@ function viewAliments(){
     var hr='<div class="food-note" style="border-color:#2E7D32;background:#F0FAF2">'+
       '✅ Jours ON : le blé et les produits laitiers sont autorisés, comme dans un rééquilibrage classique.<br>'+
       '⛔ Jours OFF : aucun glucide, midi et soir.</div>';
-    hr=protocoleHTML()+'<div class="card ass-card">'+assiettesDeLaPhase()+'</div>'+hr;
+    hr=protocoleHTML()+calMethodeHTML()+'<div class="card ass-card">'+assiettesDeLaPhase()+'</div>'+hr;
     hr+='<div class="card">'+col("Protéines","P","#7B1FA2",
       PROTEINES.concat(PROTEINES_RETOUR).sort(function(a,b){return a.localeCompare(b,"fr");}),true)+'</div>';
     // Jours ON : blé compris, comme au mois 4.
@@ -1427,7 +1501,7 @@ function viewAliments(){
     ? '<div class="food-note" style="border-color:#2E7D32;background:#F0FAF2">🎉 Phase de retour : le blé et les produits laitiers reviennent. Tu remanges de tout, en gardant les proportions de l\'assiette.</div>'
     : '')+'<div class="food-note"'+(__ret?' style="display:none"':'')+'>⚠️ Diète TransfoPhysique : SANS BLÉ · SANS PRODUITS LAITIERS pendant 90 jours.<br>Noix / cajou / pistaches / cacahuètes / noisettes / amandes : 1 poignée, 1× par semaine maximum.</div>';
   // Les assiettes de la phase en cours, avant toute liste.
-  h=protocoleHTML()+'<div class="card ass-card">'+assiettesDeLaPhase()+'</div>'+h;
+  h=suppHTML()+protocoleHTML()+calMethodeHTML()+'<div class="card ass-card">'+assiettesDeLaPhase()+'</div>'+h;
   var prot=__ret?PROTEINES.concat(PROTEINES_RETOUR).sort(function(a,b){return a.localeCompare(b,"fr");}):PROTEINES;
   h+='<div class="card">'+col("Protéines","P","#7B1FA2",prot,true)+'</div>';
   if(MENU!=="cyclage"){
@@ -1651,9 +1725,11 @@ function bindMain(){
   for(var f2=0;f2<mf.length;f2++)mf[f2].addEventListener("click",function(){state.tab="frigo";render();});
   var days=document.querySelectorAll("[data-day]");
   for(var d=0;d<days.length;d++){
-    days[d].addEventListener("click",function(){state.selDay=parseInt(this.getAttribute("data-day"));render();});
+    days[d].addEventListener("click",function(){state.selDay=parseInt(this.getAttribute("data-day"));if(state.tab!=="menu"){state.tab="menu";render();window.scrollTo(0,0);return;}render();});
   }
   try{if(state.tab==="frigo")bindFrigo();}catch(e){}
+  var sg=document.getElementById("supp-go");
+  if(sg)sg.addEventListener("click",function(){state.tab="aliments";render();var c=document.getElementById("supp");if(c)c.scrollIntoView({block:"start"});});
   var wc=document.querySelectorAll(".week-courses");
   for(var w2=0;w2<wc.length;w2++){
     wc[w2].addEventListener("click",function(e){
@@ -1668,7 +1744,7 @@ function bindMain(){
 // en arrière-plan. Sans ce contrôle, la cliente voyait l'ancien menu jusqu'à
 // la réouverture suivante. On relit la page quelques secondes après
 // l'ouverture : si la version a changé, on recharge une seule fois.
-var MENU_VERSION="28/10 - 6 semaines en 2 blocs";
+var MENU_VERSION="08/11 - Complements D3 Mg Zn";
 (function(){
   function verifier(){
     try{

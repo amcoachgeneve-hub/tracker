@@ -1207,7 +1207,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "14/11 - Prospects Tally";
+var APP_VERSION = "14/11 - Désistement";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -17485,6 +17485,42 @@ function pipeLierClient(prenom,nom,slug,mode,signe){
   pipeEcrire(L);
   return X;
 }
+// 🤝 ALIGNEMENT AVEC L'APPLI : un prospect qui est déjà client (ou l'a été)
+// n'a pas à être relancé. On le passe en « Gagné » et on le relie à sa fiche.
+// Prénom + nom d'abord ; prénom seul quand la fiche client n'a que le prénom
+// et qu'il n'y a aucune ambiguïté.
+function pipeAlignerClients(){
+  try{
+    var cl=(lsGet("amcoach_clients",[])||[]).concat(archLire()||[]).filter(function(c){return c&&c.slug&&String(c.slug).indexOf("__")!==0;});
+    var L=pipeLire(), chg=0;
+    if(!cl.length||!L.length)return 0;
+    function proche(a,b){return a&&b&&(a===b||(a.length>=4&&b.length>=4&&pipeLev(a,b)<=1));}
+    L.forEach(function(x){
+      if(!x||x.supprime||PIPE_ACTIVES.indexOf(x.etape)<0)return;
+      var xp=pipeNorm(x.prenom), xn=pipeNorm(x.nom); if(!xp&&!xn)return;
+      var exact=[], prenom=[];
+      cl.forEach(function(c){
+        var n=pipeNorm(c.name), sl=pipeNorm(c.slug);
+        if(x.clientSlug===c.slug){exact.push(c);return;}
+        if(xp&&xn&&(n===xp+xn||n===xn+xp||sl===xp+xn||sl===xn+xp)){exact.push(c);return;}
+        if(!xp||!xn){var seul=xp||xn; if(n===seul||sl===seul){exact.push(c);return;}}
+        if(proche(n,xp)||proche(sl,xp))prenom.push(c);
+      });
+      var C=exact.length?exact[0]:null;
+      if(!C&&prenom.length===1){
+        // Prénom seul : valable si aucun autre prospect actif ne porte ce prénom.
+        var memes=L.filter(function(y){return y&&!y.supprime&&PIPE_ACTIVES.indexOf(y.etape)>=0&&proche(pipeNorm(y.prenom),xp);});
+        if(memes.length===1)C=prenom[0];
+      }
+      if(!C)return;
+      x.clientSlug=C.slug; x.etape="gagne";
+      x.signe=x.signe||String(C.start_date||"").slice(0,10)||isoLocal();
+      x.maj=isoLocal(); x.ts=Date.now(); chg++;
+    });
+    if(chg)pipeEcrire(L);
+    return chg;
+  }catch(e){return 0;}
+}
 // Rattrapage : les bilans libres déjà convertis avant cette version.
 function pipeLierTous(){
   try{
@@ -17696,6 +17732,13 @@ function pipeEtat(p){
   var faites=p.relances||0;
   var due=null;
   if(actif&&faites<PIPE_RELANCES.length&&j>=PIPE_RELANCES[faites])due=PIPE_RELANCES[faites];
+  // ↩️ DÉSISTEMENT : le prospect a dit non après le bilan, on le relance quand
+  // même à la date choisie. Ce rappel remplace la règle J+3 / J+7 / J+15.
+  if(actif&&p.rappel){
+    var arrive=String(p.rappel)<=isoLocal();
+    return {jours:j, actif:true, bloque:false, relanceDue:arrive?Math.max(1,j):null, rappelDu:arrive, rappel:p.rappel,
+            relancesFaites:faites, prochaine:null};
+  }
   return {jours:j, actif:actif, bloque:actif&&j>=PIPE_SEUIL_BLOQUE, relanceDue:due,
           relancesFaites:faites, prochaine:actif&&faites<PIPE_RELANCES.length?PIPE_RELANCES[faites]:null};
 }
@@ -17763,6 +17806,8 @@ function pipeKPI(){
 function pipeAction(p){
   var E=pipeEtat(p);
   if(!E.actif)return "";
+  if(E.rappelDu)return "S'est désisté après le bilan : à relancer aujourd'hui";
+  if(E.rappel)return "S'est désisté : relance prévue le "+frDate(E.rappel);
   if(E.relanceDue)return "Relance "+(E.relancesFaites+1)+"/3 due (J+"+E.relanceDue+")";
   if(E.bloque)return "Bloqué depuis "+E.jours+" j — fais-le avancer ou sors-le";
   switch(p.etape){
@@ -18148,7 +18193,13 @@ function viewCoachKPI(){
           var last=ds.length?ds[ds.length-1]:null;
           var hh='<button class="pipe-relance" data-id="'+pr.id+'" style="width:100%;padding:9px 10px;margin-bottom:7px;border-radius:10px;border:1.5px solid '+
             (PE.relanceDue?'var(--warn-d);background:var(--warn-d);color:#fff':'var(--line);background:#fff;color:var(--ink2)')+';font-size:12px;font-weight:800">'+
-            '📞 J\'ai relancé'+(PE.relanceDue?' · relance '+(PE.relancesFaites+1)+'/3 due':'')+'</button>';
+            '📞 J\'ai relancé'+(PE.rappelDu?' · à relancer aujourd\'hui':PE.relanceDue?' · relance '+(PE.relancesFaites+1)+'/3 due':'')+'</button>';
+          // ↩️ Désistement : un appui pose la relance à aujourd'hui, la date se change à côté.
+          hh+='<div style="display:flex;gap:6px;align-items:center;margin-bottom:7px">'+
+            '<button class="pipe-desiste" data-id="'+pr.id+'" style="flex:1;padding:9px 8px;border-radius:10px;border:1.5px solid '+(pr.rappel?'#D9A00B;background:#FFF6E0;color:#7A5A00':'var(--line);background:#fff;color:var(--ink2)')+';font-size:12px;font-weight:800">'+
+            (pr.rappel?'↩️ Désisté · à relancer le':'↩️ S\'est désisté · à relancer')+'</button>'+
+            (pr.rappel?'<input type="date" class="pipe-rappel" data-id="'+pr.id+'" value="'+esc(pr.rappel)+'" style="flex:0 0 auto;padding:8px 6px;border-radius:10px;border:1.5px solid #D9A00B;font-size:12px;font-weight:800;background:#fff"/>'+
+              '<button class="pipe-rappel-x" data-id="'+pr.id+'" style="flex:0 0 auto;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:#fff;font-size:12px;font-weight:900;color:var(--mute)">✕</button>':'')+'</div>';
           if(ds.length){
             var liste='';
             for(var z=0;z<ds.length;z++){
@@ -18315,6 +18366,7 @@ function viewCoachDash(){
   var clients=lsGet("amcoach_clients",[]);
   coachLoadAll(false); // télécharge les données de tous les clients au premier affichage
   try{pipeTallyImporter();}catch(e){}
+  try{pipeAlignerClients();}catch(e){}
   try{coachSnapshotSiBesoin();}catch(e){} // 📚 une photo datée par jour
   var h='<div class="app" style="max-width:480px">'+
     '<div class="hdr"><div class="hdr-brand"><div class="bar bar-r"></div>'+
@@ -21440,10 +21492,25 @@ function bindCoach(){
     p.relances=(p.relances||0)+1;
     p.relanceDates=(p.relanceDates||[]).concat([isoLocal()]);
     p.maj=isoLocal();
+    // Relance faite après un désistement : le rappel repart à dans 7 jours.
+    if(p.rappel){var __d=new Date();__d.setDate(__d.getDate()+7);p.rappel=isoLocal(__d);}
     pipeSauver(p); render();
     feedback(p.relances>=3?"3ᵉ relance faite — décide maintenant":"Relance "+p.relances+"/3 notée","ok");
   });
 
+  document.querySelectorAll(".pipe-desiste").forEach(function(b){b.addEventListener("click",function(){
+    var p=pipeTrouver(this.getAttribute("data-id")); if(!p||p.rappel)return;
+    p.desiste=isoLocal(); p.rappel=isoLocal();
+    pipeSauver(p); render(); feedback("↩️ Désistement noté · à relancer aujourd'hui","ok");
+  });});
+  document.querySelectorAll(".pipe-rappel").forEach(function(i){i.addEventListener("change",function(){
+    var p=pipeTrouver(this.getAttribute("data-id")); if(!p||!this.value)return;
+    p.rappel=this.value; pipeSauver(p); render(); feedback("Relance prévue le "+frDate(p.rappel),"ok");
+  });});
+  document.querySelectorAll(".pipe-rappel-x").forEach(function(b){b.addEventListener("click",function(){
+    var p=pipeTrouver(this.getAttribute("data-id")); if(!p)return;
+    delete p.rappel; delete p.desiste; pipeSauver(p); render();
+  });});
   // 📂 Mémoriser quelles sections le coach laisse ouvertes
   var secs=document.querySelectorAll(".cd-sec");
   for(var sec0=0;sec0<secs.length;sec0++){

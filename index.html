@@ -1207,7 +1207,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "14/11 - Désistement";
+var APP_VERSION = "14/11 - Raccourcis";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -11726,8 +11726,8 @@ function progCoachListeHTML(slug, all) {
     for (var e = 0; e < nEx; e++) nSer += (S.exos[e].series || []).length;
     h += '<div style="display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);' +
       'border-left:4px solid ' + (S.coul || "var(--brand)") + ';border-radius:13px;padding:12px;margin-bottom:8px">' +
-      '<div style="flex:1;min-width:0">' +
-      '<div style="font-weight:900;font-size:14px">' + esc(S.nom) + '</div>' +
+      '<div data-prg-edit="' + S.id + '" style="flex:1;min-width:0;cursor:pointer">' +
+      '<div style="font-weight:900;font-size:14px">' + esc(S.nom) + ' <span style="color:var(--mute);font-weight:900">›</span></div>' +
       '<div style="font-size:11.5px;color:var(--mute);font-weight:700;margin-top:2px">' +
       nEx + ' exercice' + (nEx > 1 ? 's' : '') + ' · ' + nSer + ' série' + (nSer > 1 ? 's' : '') +
       (S.maj ? ' · màj ' + frDate(S.maj) : '') + '</div></div>' +
@@ -14702,6 +14702,30 @@ function ncFormHTML(){
 // 🏋️ ÉCRAN « MES SÉANCES TYPES » et 💪 « MES EXERCICES » : chacun sa vignette
 // sur le tableau de bord. Créer un exercice ne passe plus par une séance.
 function pxfSt() { return state.cdProg || state.coachExos; }
+// 🛟 EXERCICES RETROUVÉS. Un exercice créé puis utilisé dans une séance peut
+// manquer dans la bibliothèque (autre appareil, copie plus ancienne revenue du
+// serveur). La séance en garde une copie complète : on le remet à sa place.
+function bibRecuperer() {
+  try {
+    var b = bibGet(), ids = {}, n = 0;
+    b.forEach(function (x) { if (x && x.id) ids[x.id] = 1; });
+    function voir(E) {
+      (E || []).forEach(function (X) {
+        if (!X || !X.ref || ids[X.ref] || !X.n) return;
+        ids[X.ref] = 1; n++;
+        b.unshift({ id: X.ref, n: X.n, m: X.m || "complet", mat: X.mat || "", v: X.v || "", g: X.g || "", f: 1, priv: 1 });
+      });
+    }
+    seaGet().forEach(function (S) { voir(S.exos); });
+    (lsGet("amcoach_clients", []) || []).forEach(function (c) {
+      if (!c || !c.slug) return;
+      var P = (lsGet("amcoach_" + c.slug, {}) || {})[520] || {};
+      (P.seances || []).forEach(function (S) { if (S && S.id !== "sx_express" && S.id !== "sx_refait") voir(S.exos); });
+    });
+    if (n) bibSet(b);
+    return n;
+  } catch (e) { return 0; }
+}
 function viewCoachSea() {
   return '<div class="prg-top"><button id="csea-back" class="prg-back">‹</button>' +
     '<div style="flex:1;min-width:0"><div class="prg-titre">🏋️ Mes séances types</div>' +
@@ -14711,6 +14735,7 @@ function viewCoachSea() {
 function viewCoachExos() {
   var st = state.coachExos;
   if (st.edit) return viewProgExoForm();
+  bibRecuperer();
   var b = bibGet(), nP = b.filter(function (x) { return x.priv; }).length;
   st.q = st.q || ""; st.tab = st.tab || (nP ? "priv" : "tous");
   var q = st.q.toLowerCase();
@@ -14798,7 +14823,7 @@ function seaDashHTML(mode) {
   for (var i = 0; i < l.length; i++) {
     var S = l[i], qui = seaClients(S.id);
     h += '<div style="display:flex;align-items:center;gap:9px;background:var(--soft);border-radius:13px;padding:11px 12px;margin-bottom:8px">' +
-      '<div style="flex:1;min-width:0"><div style="font-weight:900;font-size:14px">' + esc(S.nom) + '</div>' +
+      '<div data-sea-edit="' + S.id + '" style="flex:1;min-width:0;cursor:pointer"><div style="font-weight:900;font-size:14px">' + esc(S.nom) + ' <span style="color:var(--mute);font-weight:900">›</span></div>' +
       '<div style="font-size:11.5px;color:var(--mute);font-weight:700;margin-top:2px">' + seaResume(S) +
       (qui.length ? ' · 👥 ' + qui.length + ' client' + (qui.length > 1 ? 's' : '') : ' · non attribuée') + '</div></div>' +
       '<button data-sea-att="' + S.id + '" style="padding:9px 11px;border-radius:10px;background:var(--ok-d);color:#fff;font-weight:900;font-size:12px">👥</button>' +
@@ -17494,23 +17519,33 @@ function pipeAlignerClients(){
     var cl=(lsGet("amcoach_clients",[])||[]).concat(archLire()||[]).filter(function(c){return c&&c.slug&&String(c.slug).indexOf("__")!==0;});
     var L=pipeLire(), chg=0;
     if(!cl.length||!L.length)return 0;
+    // Akli note souvent la provenance dans le nom (« Fayza insta ») : ces mots
+    // ne font pas partie du nom de la personne.
+    var VIDES={insta:1,instagram:1,ig:1,salle:1,whatsapp:1,wa:1,linkedin:1,google:1,fb:1,facebook:1,tiktok:1,tally:1,site:1,vsl:1,bilan:1,prospect:1};
+    function mots(t){return String(t||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").split(/[^a-z0-9]+/).filter(function(m){return m&&!VIDES[m];});}
     function proche(a,b){return a&&b&&(a===b||(a.length>=4&&b.length>=4&&pipeLev(a,b)<=1));}
+    function cleP(x){return mots((x.prenom||"")+" "+(x.nom||""));}
     L.forEach(function(x){
       if(!x||x.supprime||PIPE_ACTIVES.indexOf(x.etape)<0)return;
-      var xp=pipeNorm(x.prenom), xn=pipeNorm(x.nom); if(!xp&&!xn)return;
-      var exact=[], prenom=[];
+      var M=cleP(x); if(!M.length)return;
+      var tout=M.join(""), inv=M.slice().reverse().join(""), exact=[], prenom=[];
       cl.forEach(function(c){
-        var n=pipeNorm(c.name), sl=pipeNorm(c.slug);
+        var N=mots(c.name), S=mots(c.slug), n=N.join(""), sl=S.join("");
         if(x.clientSlug===c.slug){exact.push(c);return;}
-        if(xp&&xn&&(n===xp+xn||n===xn+xp||sl===xp+xn||sl===xn+xp)){exact.push(c);return;}
-        if(!xp||!xn){var seul=xp||xn; if(n===seul||sl===seul){exact.push(c);return;}}
-        if(proche(n,xp)||proche(sl,xp))prenom.push(c);
+        if(n===tout||n===inv||sl===tout||sl===inv){exact.push(c);return;}
+        // Fiche client au prénom seul : on compare le premier mot.
+        if((N.length===1&&proche(N[0],M[0]))||(S.length===1&&proche(S[0],M[0])))prenom.push(c);
       });
       var C=exact.length?exact[0]:null;
       if(!C&&prenom.length===1){
-        // Prénom seul : valable si aucun autre prospect actif ne porte ce prénom.
-        var memes=L.filter(function(y){return y&&!y.supprime&&PIPE_ACTIVES.indexOf(y.etape)>=0&&proche(pipeNorm(y.prenom),xp);});
-        if(memes.length===1)C=prenom[0];
+        // Valable si tous les prospects actifs de ce prénom sont la même personne
+        // (doublons compris) : deux « Léo » différents restent en relance.
+        var noms={};
+        L.forEach(function(y){
+          if(!y||y.supprime||PIPE_ACTIVES.indexOf(y.etape)<0)return;
+          var My=cleP(y); if(My.length&&proche(My[0],M[0]))noms[My.slice().sort().join("")]=1;
+        });
+        if(Object.keys(noms).length===1)C=prenom[0];
       }
       if(!C)return;
       x.clientSlug=C.slug; x.etape="gagne";
@@ -18154,7 +18189,7 @@ function viewCoachKPI(){
       h+='<div style="padding:12px 14px;border-top:1px solid var(--line)">'+
         '<div style="display:flex;align-items:flex-start;gap:9px;margin-bottom:9px">'+
         '<div style="flex:1;min-width:0">'+
-        '<div style="font-weight:800;font-size:13.5px">'+esc(pipeNomComplet(pr))+
+        '<div class="pipe-edit" data-id="'+pr.id+'" style="font-weight:800;font-size:13.5px;cursor:pointer">'+esc(pipeNomComplet(pr))+
         (PE.bloque?' <span style="color:var(--warn-d);font-size:11px">⚠️ '+PE.jours+' j</span>':'')+'</div>'+
         // 📞 Téléphone cliquable : saisir un numéro n'a d'intérêt que si on
         // peut appeler depuis la fiche. Le code postal dit la zone — utile
@@ -18367,6 +18402,7 @@ function viewCoachDash(){
   coachLoadAll(false); // télécharge les données de tous les clients au premier affichage
   try{pipeTallyImporter();}catch(e){}
   try{pipeAlignerClients();}catch(e){}
+  try{bibRecuperer();}catch(e){}
   try{coachSnapshotSiBesoin();}catch(e){} // 📚 une photo datée par jour
   var h='<div class="app" style="max-width:480px">'+
     '<div class="hdr"><div class="hdr-brand"><div class="bar bar-r"></div>'+

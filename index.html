@@ -1207,7 +1207,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "14/11 - Vignettes coach";
+var APP_VERSION = "14/11 - Prospects Tally";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -17645,6 +17645,42 @@ function pipeLire(){
   return l;
 }
 function pipeEcrire(l){lsSet("amcoach_pipeline",l);}
+// 📥 PROSPECTS TALLY → MON COMMERCIAL. Chaque questionnaire Tally arrive dans
+// Supabase (webhook), l'appli le range ici toute seule. Pas de doublon : on
+// compare le téléphone et le nom avec les fiches déjà présentes.
+function pipeTallyImporter(){
+  if(window.__ptT&&Date.now()-window.__ptT<120000)return;
+  window.__ptT=Date.now();
+  sbFetch("rpc/prospects_tally_lire",{method:"POST",body:{h:COACH_PASS_HASH}})
+  .then(function(r){return r.ok?r.json():[];}).then(function(rows){
+    if(!Array.isArray(rows)||!rows.length)return;
+    var vus=lsGet("amcoach_pipe_tally",[]), L=pipeLire(), n=0;
+    if(!Array.isArray(vus))vus=[];
+    function tl(t){return String(t||"").replace(/\D/g,"").slice(-8);}
+    function nm(a,b){return (String(a||"")+" "+String(b||"")).replace(/\s+/g," ").trim().toLowerCase();}
+    rows.slice().reverse().forEach(function(R){
+      if(vus.indexOf(R.id)>=0)return;
+      vus.push(R.id);
+      var t=tl(R.tel), k=nm(R.prenom,R.nom), dup=false;
+      for(var i=0;i<L.length;i++){
+        if((t.length>=6&&tl(L[i].tel)===t)||(k&&nm(L[i].prenom,L[i].nom)===k)){dup=true;break;}
+      }
+      if(dup)return;
+      var c=String(R.connu||"").toLowerCase(), j=String(R.recu||"").slice(0,10)||isoLocal();
+      var src=/insta/.test(c)?"insta":/google/.test(c)?"google":/linkedin/.test(c)?"linkedin":/bouche|recomm|ami/.test(c)?"bouche":(R.form_id==="obq7AX"?"vsl":"autre");
+      var note=["📥 Tally"+(R.form_nom?" · "+R.form_nom:""),R.objectif?"Objectif : "+R.objectif:"",R.note||"",R.ville||"",R.email||""].filter(Boolean).join(" · ");
+      L.unshift({id:"p"+Date.now().toString(36)+n,prenom:R.prenom||"",nom:R.nom||"",tel:R.tel||"",cp:R.cp||"",
+        etape:"qualifie",maj:j,cree:j,relances:0,relanceDates:[],douleurs:[],source:src,note:note,bilans:[],tally:R.id});
+      n++;
+    });
+    lsSet("amcoach_pipe_tally",vus);
+    if(n){
+      pipeEcrire(L);
+      try{feedback("📥 "+n+" prospect"+(n>1?"s":"")+" Tally ajouté"+(n>1?"s":"")+" dans Mon commercial","ok");}catch(e){}
+      if(!state.showForm&&!state.coachDetail&&!state.carnet&&!state.cdProg&&!state.coachExos)render();
+    }
+  }).catch(function(){});
+}
 function pipeEtape(k){for(var i=0;i<PIPE_ETAPES.length;i++){if(PIPE_ETAPES[i].k===k)return PIPE_ETAPES[i];}return PIPE_ETAPES[0];}
 function pipeJoursDepuis(iso){
   if(!iso)return 0;
@@ -18278,6 +18314,7 @@ function viewCoachKPI(){
 function viewCoachDash(){
   var clients=lsGet("amcoach_clients",[]);
   coachLoadAll(false); // télécharge les données de tous les clients au premier affichage
+  try{pipeTallyImporter();}catch(e){}
   try{coachSnapshotSiBesoin();}catch(e){} // 📚 une photo datée par jour
   var h='<div class="app" style="max-width:480px">'+
     '<div class="hdr"><div class="hdr-brand"><div class="bar bar-r"></div>'+

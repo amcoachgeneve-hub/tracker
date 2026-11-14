@@ -1207,7 +1207,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "14/11 - Raccourcis";
+var APP_VERSION = "14/11 - Multi-muscles";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -11217,11 +11217,14 @@ var PROG_TYPES = [
 ];
 var PROG_UNITES = ["—", "kg", "lbs", "%1RM", "%FC", "km/h", "m/s", "rpm", "bpm", "lvl", "%"];
 var PROG_MUSCLES = [
-  ["pecs", "Pectoraux", "#E5484D"], ["dos", "Dos", "#0EA5C6"], ["epaules", "Épaules", "#E9A23B"],
+  ["pecs", "Pectoraux", "#E5484D"], ["dos", "Dos", "#0EA5C6"], ["lombaires", "Lombaires", "#0B7A93"], ["epaules", "Épaules", "#E9A23B"],
   ["biceps", "Biceps", "#7C4DEF"], ["triceps", "Triceps", "#A78BFA"], ["jambes", "Jambes", "#12A66B"],
   ["fessiers", "Fessiers", "#E85D95"], ["abdos", "Abdos", "#C98A12"], ["cardio", "Cardio", "#F2604D"],
   ["mobilite", "Mobilité", "#5B7CFA"], ["complet", "Corps entier", "#12A66B"]
 ];
+// Un exercice peut viser jusqu'à 3 muscles (X.ms) ; X.m reste le principal.
+function progMusclesListe(X) { return (X && X.ms && X.ms.length) ? X.ms : [(X && X.m) || "complet"]; }
+function progMusclesTxt(X) { return progMusclesListe(X).map(function (k) { return progMuscle(k)[1]; }).join(" · "); }
 function progMuscle(k) { for (var i = 0; i < PROG_MUSCLES.length; i++) if (PROG_MUSCLES[i][0] === k) return PROG_MUSCLES[i]; return ["complet", "Corps entier", "#9AE6B4"]; }
 function progTypeNom(t) { for (var i = 0; i < PROG_TYPES.length; i++) if (PROG_TYPES[i][0] === t) return PROG_TYPES[i][1]; return "Répétitions"; }
 // Une cible en pourcentage (%1RM, %FC, %) ne dit rien du poids soulevé.
@@ -11952,10 +11955,11 @@ function viewProgExoForm() {
     '<div id="pxf-prev" class="spt-card" style="display:flex;gap:14px;align-items:center">' + pxfApercuHTML(src) + '</div>' +
     '<div class="prg-flab">Nom de l\'exercice</div>' +
     '<input id="pxf-n" class="prg-search" style="margin-bottom:12px" value="' + esc(X.n) + '" placeholder="Développé couché barre"/>' +
-    '<div class="prg-flab">Muscle travaillé</div>' +
-    corpsPickerHTML(X.m) +
+    '<div class="prg-flab">Muscles travaillés (jusqu\'à 3)</div>' +
+    corpsPickerHTML(id === "new" ? [] : progMusclesListe(X)) +
+    '<input type="hidden" id="pxf-ms" value="' + (id === "new" ? "" : esc(progMusclesListe(X).join(","))) + '"/>' +
     '<div style="display:flex;gap:9px;margin-bottom:12px">' +
-    '<div style="flex:1"><div class="prg-flab">Muscle</div>' +
+    '<div style="flex:1"><div class="prg-flab">Muscle principal</div>' +
     '<select id="pxf-m" class="prg-sel" style="width:100%;padding:12px 8px;font-size:13px">' + opts + '</select></div>' +
     '<div style="flex:1"><div class="prg-flab">Matériel</div>' +
     '<input id="pxf-mat" class="prg-search" style="margin:0" value="' + esc(X.mat || "") + '" placeholder="Machine, haltères, TRX..."/></div></div>' +
@@ -12024,6 +12028,10 @@ function bindProgExoForm() {
     if (!X) { X = { id: progId("b"), f: 1, priv: 1 }; b.unshift(X); }
     X.n = nom;
     X.m = document.getElementById("pxf-m").value;
+    var __ms = (document.getElementById("pxf-ms").value || "").split(",").filter(Boolean);
+    if (__ms.indexOf(X.m) < 0) __ms = [X.m];
+    else __ms = [X.m].concat(__ms.filter(function (k) { return k !== X.m; }));
+    if (__ms.length > 1) X.ms = __ms; else delete X.ms;
     X.mat = (document.getElementById("pxf-mat").value || "").trim();
     X.v = (document.getElementById("pxf-v").value || "").trim();
     X.g = (document.getElementById("pxf-g").value || "").trim();
@@ -12755,6 +12763,8 @@ function corpsMuscles(sx, face) {
       '<path d="M100 116 C' + (P.armI - 4) + ' 110 ' + (P.armI - 1) + ' 114 ' + (P.armI - 2) + ' 126 ' +
       'C' + (P.armI - 6) + ' 148 ' + (P.taille + 3) + ' 164 ' + (P.taille + 1) + ' 182 ' +
       'C' + (P.taille - 4) + ' 192 ' + (P.taille - 10) + ' 196 100 196 Z"/>');
+    add("lombaires", '<path d="M100 166 C' + (P.taille - 8) + ' 166 ' + (P.taille - 1) + ' 172 ' + P.taille + ' 184 ' +
+      'C' + (P.taille - 3) + ' 194 ' + (P.taille - 10) + ' 199 100 199 Z"/>');
     add("triceps", corpsE((P.armO + P.armI) / 2 + 1, 132, 8.5, 25, -4));
     add("fessiers", '<path d="M100 210 C' + (P.hanche - 12) + ' 208 ' + (P.hanche - 1) + ' 216 ' + (P.hanche - 1) + ' 234 ' +
       'C' + (P.hanche - 1) + ' 250 ' + (P.hanche - 12) + ' 258 100 258 Z"/>');
@@ -12782,13 +12792,15 @@ function corpsMuscles(sx, face) {
 // exercice à l'autre, sinon le coach retourne le bonhomme à chaque fiche.
 function corpsPickerHTML(sel) {
   var sx = state.cpsSexe || "h", face = state.cpsFace || "face";
-  var M = progMuscle(sel);
-  var horsCorps = (["cardio", "mobilite", "complet"].indexOf(sel) >= 0);
+  var SEL = Array.isArray(sel) ? sel.filter(Boolean) : (sel ? [sel] : []);
+  var vide = !SEL.length;
+  var M = vide ? ["", "Touche un muscle", "#8a94a6"] : progMuscle(SEL[0]);
+  var horsCorps = vide || (["cardio", "mobilite", "complet"].indexOf(SEL[0]) >= 0);
   var chips = "";
   for (var i = 0; i < PROG_MUSCLES.length; i++) {
     var K = PROG_MUSCLES[i];
     if (["cardio", "mobilite", "complet"].indexOf(K[0]) < 0) continue;
-    chips += '<button class="cps-chip' + (K[0] === sel ? ' on' : '') + '" data-cps="' + K[0] + '">' + K[1] + '</button>';
+    chips += '<button class="cps-chip' + (SEL.indexOf(K[0]) >= 0 ? ' on' : '') + '" data-cps="' + K[0] + '">' + K[1] + '</button>';
   }
   return '<div class="cps-box">' +
     '<div class="cps-bar">' +
@@ -12796,10 +12808,10 @@ function corpsPickerHTML(sel) {
     '<button class="cps-t' + (sx === "f" ? ' on' : '') + '" data-cps-sx="f">Femme</button></div>' +
     '<div class="cps-seg"><button class="cps-t' + (face === "face" ? ' on' : '') + '" data-cps-face="face">Face</button>' +
     '<button class="cps-t' + (face === "dos" ? ' on' : '') + '" data-cps-face="dos">Dos</button></div></div>' +
-    corpsSVG(sx, face, horsCorps ? null : sel, "pk", 1) +
-    '<div class="cps-nom" style="color:' + M[2] + '">' + M[1] + '</div>' +
+    corpsSVG(sx, face, horsCorps ? null : SEL, "pk", 1) +
+    '<div class="cps-nom" style="color:' + M[2] + '">' + (vide ? M[1] : SEL.map(function (k) { return progMuscle(k)[1]; }).join(" + ")) + '</div>' +
     '<div class="cps-chips">' + chips + '</div>' +
-    '<div class="cps-aide">Touche le muscle sur le corps. Les trois cases du bas servent aux exercices qui n\'en visent aucun.</div>' +
+    '<div class="cps-aide">Touche jusqu\'à 3 muscles sur le corps (les lombaires sont sur la face Dos). Retouche un muscle pour l\'enlever. Les trois cases du bas servent aux exercices qui n\'en visent aucun.</div>' +
     '</div>';
 }
 
@@ -12810,6 +12822,25 @@ function bindCorpsPicker(apres) {
   var zones = box.querySelectorAll("[data-cps]");
   for (var i = 0; i < zones.length; i++) zones[i].addEventListener("click", function () {
     var m = this.getAttribute("data-cps");
+    // Fiche d'exercice : jusqu'à 3 muscles, le premier touché reste le principal.
+    var ms = document.getElementById("pxf-ms");
+    if (ms) {
+      var HC = ["cardio", "mobilite", "complet"], L = ms.value ? ms.value.split(",") : [];
+      if (HC.indexOf(m) >= 0) L = [m];
+      else {
+        L = L.filter(function (x) { return HC.indexOf(x) < 0; });
+        var ix = L.indexOf(m);
+        if (ix >= 0) { if (L.length > 1) L.splice(ix, 1); }
+        else if (L.length < 3) L.push(m);
+        else { try { feedback("3 muscles au maximum. Retouche-en un pour l'enlever.", "warn"); } catch (e) { } }
+      }
+      ms.value = L.join(",");
+      if (apres) apres(L[0]);
+      box.outerHTML = corpsPickerHTML(L);
+      bindCorpsPicker(apres);
+      try { buzz("tap"); } catch (e) { }
+      return;
+    }
     if (apres) apres(m);
     // On redessine la boîte seule : recharger tout l'écran ferait perdre
     // ce que le coach a déjà tapé dans les autres champs.
@@ -12820,15 +12851,15 @@ function bindCorpsPicker(apres) {
   var sxs = box.querySelectorAll("[data-cps-sx]");
   for (var s = 0; s < sxs.length; s++) sxs[s].addEventListener("click", function () {
     state.cpsSexe = this.getAttribute("data-cps-sx");
-    var sel = document.getElementById("pxf-m");
-    box.outerHTML = corpsPickerHTML(sel ? sel.value : null);
+    var sel = document.getElementById("pxf-m"), msA = document.getElementById("pxf-ms");
+    box.outerHTML = corpsPickerHTML(msA && msA.value ? msA.value.split(",") : (sel ? sel.value : null));
     bindCorpsPicker(apres);
   });
   var fs = box.querySelectorAll("[data-cps-face]");
   for (var f = 0; f < fs.length; f++) fs[f].addEventListener("click", function () {
     state.cpsFace = this.getAttribute("data-cps-face");
-    var sel2 = document.getElementById("pxf-m");
-    box.outerHTML = corpsPickerHTML(sel2 ? sel2.value : null);
+    var sel2 = document.getElementById("pxf-m"), msB = document.getElementById("pxf-ms");
+    box.outerHTML = corpsPickerHTML(msB && msB.value ? msB.value.split(",") : (sel2 ? sel2.value : null));
     bindCorpsPicker(apres);
   });
 }
@@ -12860,7 +12891,7 @@ function corpsSVG(sx, face, sel, id, cliquable) {
 
   var mus = "", touche = "";
   for (var i = 0; i < R.muscles.length; i++) {
-    var X = R.muscles[i], on = (X.m === sel);
+    var X = R.muscles[i], on = Array.isArray(sel) ? sel.indexOf(X.m) >= 0 : (X.m === sel);
     var st = on
       ? 'fill="url(#cs' + id + ')" stroke="#cbf1ff" stroke-width="1.1" filter="url(#cg' + id + ')"'
       : 'fill="rgba(255,255,255,.09)" stroke="rgba(255,255,255,.30)" stroke-width=".85"';
@@ -14742,7 +14773,7 @@ function viewCoachExos() {
   var liste = b.filter(function (x) {
     if (st.tab === "fav" && !x.f) return false;
     if (st.tab === "priv" && !x.priv) return false;
-    if (q && (x.n + " " + progMuscle(x.m)[1] + " " + (x.mat || "")).toLowerCase().indexOf(q) < 0) return false;
+    if (q && (x.n + " " + progMusclesTxt(x) + " " + (x.mat || "")).toLowerCase().indexOf(q) < 0) return false;
     return true;
   });
   var h = '<div class="prg-top"><button id="cex-back" class="prg-back">‹</button>' +
@@ -14762,7 +14793,7 @@ function viewCoachExos() {
     var X = liste[i], M = progMuscle(X.m);
     h += '<div class="prg-bx" data-cex-mod="' + X.id + '">' + progVignette(X, 42) +
       '<div style="flex:1;min-width:0"><div class="prg-bx-n">' + esc(X.n) + '</div>' +
-      '<div class="prg-bx-m">' + M[1] + (X.mat ? ' · ' + esc(X.mat) : '') + (X.v ? ' · 🎬' : ' · sans vidéo') + '</div></div>' +
+      '<div class="prg-bx-m">' + progMusclesTxt(X) + (X.mat ? ' · ' + esc(X.mat) : '') + (X.v ? ' · 🎬' : ' · sans vidéo') + '</div></div>' +
       '<button class="prg-star' + (X.f ? ' on' : '') + '" data-cex-fav="' + X.id + '">' + (X.f ? '★' : '☆') + '</button>' +
       '<span class="prg-plus">✏️</span></div>';
   }

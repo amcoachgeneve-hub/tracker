@@ -1207,7 +1207,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "14/11 - Détection par le nom";
+var APP_VERSION = "14/11 - Rép ou secondes";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -14505,11 +14505,11 @@ function viewCarnet(){
       (D?'<div style="font-size:11.5px;color:var(--ink2);background:var(--soft);border-radius:9px;padding:6px 9px;margin-top:8px">🕘 Dernière fois ('+frDate(D.d)+') : '+esc(D.txt)+'</div>':'')+
       carnetProgresHTML(C.slug,X,e,W)+
       '<div style="display:grid;grid-template-columns:26px 1fr 1fr 1.4fr 26px;gap:6px;align-items:center;margin-top:9px;font-size:10.5px;font-weight:900;color:var(--mute)">'+
-      '<span></span><span>'+(X.series[0]&&X.series[0].t==="duree"?'SECONDES':'RÉP.')+'</span><button class="prg-mini'+(X.u==="lvl"?' on':'')+'" data-cn-u="'+e+'" style="padding:5px 2px;font-size:10.5px;font-weight:900">'+(X.u==="lvl"?'NIVEAU':'KG')+' ⇄</button><span>RESSENTI</span><span></span></div>';
+      '<span></span><button class="prg-mini'+(X.series[0]&&X.series[0].t==="duree"?' on':'')+'" data-cn-t="'+e+'" style="padding:5px 2px;font-size:10.5px;font-weight:900">'+(X.series[0]&&X.series[0].t==="duree"?'SEC.':'RÉP.')+' ⇄</button><button class="prg-mini'+(X.u==="lvl"?' on':'')+'" data-cn-u="'+e+'" style="padding:5px 2px;font-size:10.5px;font-weight:900">'+(X.u==="lvl"?'NIVEAU':'KG')+' ⇄</button><span>RESSENTI</span><span></span></div>';
     X.series.forEach(function(s,k){
       h+='<div style="display:grid;grid-template-columns:26px 1fr 1fr 1.4fr 26px;gap:6px;align-items:center;margin-top:5px">'+
         '<span style="font-weight:900;font-size:12px;color:'+(enCirc?'var(--violet)':'var(--mute)')+'">'+(enCirc?'T':'S')+(k+1)+'</span>'+
-        '<input class="num-input" style="margin:0;padding:9px 6px;text-align:center" type="number" inputmode="decimal" data-cn-v="'+e+'.'+k+'" value="'+esc(s.v==null?"":String(s.v))+'"/>'+
+        '<input class="num-input" style="margin:0;padding:9px 6px;text-align:center" type="number" inputmode="decimal" placeholder="'+(s.t==="duree"?'sec':'rép')+'" data-cn-v="'+e+'.'+k+'" value="'+esc(s.v==null?"":String(s.v))+'"/>'+
         '<input class="num-input" style="margin:0;padding:9px 6px;text-align:center" type="number" step="'+(X.u==="lvl"?'1':'0.5')+'" inputmode="decimal" placeholder="'+(X.u==="lvl"?'niv':'kg')+'" data-cn-kg="'+e+'.'+k+'" value="'+esc(s.kg==null?"":String(s.kg))+'"/>'+
         '<select class="prg-sel" style="padding:9px 4px;font-size:12px" data-cn-r="'+e+'.'+k+'">'+CARNET_RESSENTI.map(function(o){return '<option value="'+o[0]+'"'+(String(s.r||"")===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join("")+'</select>'+
         '<button class="prg-x" data-cn-delser="'+e+'.'+k+'">✕</button></div>';
@@ -14546,14 +14546,23 @@ function viewCarnetPick(){
   if(q)rechTrier(L,q);
   L.sort(function(a,c){return (c.f?1:0)-(a.f?1:0);});
   var h='<div class="app" style="max-width:640px"><div class="prg-top"><button id="cn-pick-back" class="prg-back">‹</button>'+
-    '<div style="flex:1"><div class="prg-titre">Ajouter un exercice</div><div class="prg-sous">Touche pour l\'ajouter à la séance · ⭐ en premier</div></div></div>'+
-    '<div style="padding:12px 13px 40px"><input id="cn-q" class="prg-search" placeholder="Rechercher un exercice, un muscle…" value="'+esc(C.q||"")+'"/>';
+    '<div style="flex:1"><div class="prg-titre">Ajouter des exercices</div><div class="prg-sous">Touche-en un ou plusieurs, puis « Ajouter » · ⭐ en premier</div></div></div>'+
+    '<div style="padding:12px 13px 110px"><input id="cn-q" class="prg-search" placeholder="Rechercher un exercice, un muscle…" value="'+esc(C.q||"")+'"/>';
+  // Plusieurs exercices d'un coup : chaque appui coche ou décoche, le numéro
+  // donne l'ordre dans lequel ils entreront dans la séance.
+  var SEL=C.sel||(C.sel=[]);
   L.slice(0,80).forEach(function(X){
-    h+='<div class="prg-bx" data-cn-pick="'+esc(X.id)+'">'+progVignette(X,42)+
-      '<div style="flex:1;min-width:0"><div class="prg-bx-n">'+(X.f?'⭐ ':'')+esc(X.n)+'</div><div class="prg-bx-m">'+progMuscle(X.m)[1]+(X.mat?' · '+esc(X.mat):'')+'</div></div>'+
-      '<span class="prg-plus">＋</span></div>';
+    var k=SEL.indexOf(X.id), on=k>=0;
+    h+='<div class="prg-bx" data-cn-pick="'+esc(X.id)+'"'+(on?' style="border:2px solid var(--brand);background:var(--soft)"':'')+'>'+progVignette(X,42)+
+      '<div style="flex:1;min-width:0"><div class="prg-bx-n">'+(X.f?'⭐ ':'')+esc(X.n)+'</div><div class="prg-bx-m">'+progMusclesTxt(X)+(X.mat?' · '+esc(X.mat):'')+'</div></div>'+
+      (on?'<span style="flex:0 0 auto;width:28px;height:28px;border-radius:50%;background:var(--brand);color:#fff;font-weight:900;font-size:13px;display:flex;align-items:center;justify-content:center">'+(k+1)+'</span>'
+         :'<span class="prg-plus">＋</span>')+'</div>';
   });
-  return h+'</div></div>';
+  if(!L.length)h+='<div class="spt-txt" style="padding:18px 4px">Aucun exercice ne correspond.</div>';
+  h+='</div>';
+  if(SEL.length)h+='<div style="position:fixed;left:0;right:0;bottom:0;padding:10px 13px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(180deg,rgba(255,255,255,0),#fff 35%);z-index:60">'+
+    '<button id="cn-pick-ok" class="big-btn" style="max-width:614px;margin:0 auto;display:block;width:100%;padding:15px 0">✅ Ajouter '+SEL.length+' exercice'+(SEL.length>1?'s':'')+'</button></div>';
+  return h+'</div>';
 }
 function bindCarnet(){
   var C=state.carnet; if(!C)return;
@@ -14562,12 +14571,20 @@ function bindCarnet(){
   function q(sel){return document.querySelectorAll(sel);}
   function cle(el,a){var p=String(el.getAttribute(a)).split(".");return [parseInt(p[0],10),parseInt(p[1],10)];}
   if(C.pick){
-    var bk0=document.getElementById("cn-pick-back"); if(bk0)bk0.addEventListener("click",function(){C.pick=false;render();});
+    var bk0=document.getElementById("cn-pick-back"); if(bk0)bk0.addEventListener("click",function(){C.pick=false;C.sel=[];render();});
+    var okp=document.getElementById("cn-pick-ok");
+    if(okp)okp.addEventListener("click",function(){
+      var bb=bibGet(), n=0;
+      (C.sel||[]).forEach(function(id){for(var i=0;i<bb.length;i++)if(bb[i].id===id){W.exos.push(carnetExoDe(bb[i],C.slug));n++;break;}});
+      C.sel=[];C.pick=false;C.q="";maj();
+      try{feedback("✅ "+n+" exercice"+(n>1?"s":"")+" ajouté"+(n>1?"s":""),"ok");}catch(e){}
+    });
     var qi=document.getElementById("cn-q");
     if(qi){qi.addEventListener("input",function(){C.q=this.value;var p=this.selectionStart;render();var n=document.getElementById("cn-q");if(n){n.focus();try{n.setSelectionRange(p,p);}catch(e){}}});}
     q("[data-cn-pick]").forEach(function(el){el.addEventListener("click",function(){
-      var id=this.getAttribute("data-cn-pick"),B=null;bibGet().forEach(function(x){if(x.id===id)B=x;});
-      if(B){W.exos.push(carnetExoDe(B,C.slug));C.pick=false;C.q="";maj();}
+      var id=this.getAttribute("data-cn-pick"), S2=C.sel||(C.sel=[]), k=S2.indexOf(id), y=window.pageYOffset;
+      if(k>=0)S2.splice(k,1); else S2.push(id);
+      render(); try{window.scrollTo(0,y);}catch(e){}
     });});
     return;
   }
@@ -14595,6 +14612,11 @@ function bindCarnet(){
   q("[data-cn-appl]").forEach(function(el){el.addEventListener("click",function(){
     var e=+this.getAttribute("data-cn-appl"), X=W.exos[e], S=carnetProgresEtat(C.slug,X,W);
     if(S&&S.G.cible!=null){X.series.forEach(function(s){s.kg=S.G.cible;});maj();}
+  });});
+  // RÉP. ⇄ SEC. : un appui bascule tout l'exercice en répétitions ou en secondes.
+  q("[data-cn-t]").forEach(function(el){el.addEventListener("click",function(){
+    var e=+this.getAttribute("data-cn-t"), X=W.exos[e], n=(X.series[0]&&X.series[0].t==="duree")?"reps":"duree";
+    X.series.forEach(function(s){s.t=n;}); maj();
   });});
   q("[data-cn-u]").forEach(function(el){el.addEventListener("click",function(){
     var e=+this.getAttribute("data-cn-u"), X=W.exos[e], n=(X.u==="lvl")?"kg":"lvl";

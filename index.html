@@ -1207,7 +1207,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "14/11 - Brouillon exercice";
+var APP_VERSION = "14/11 - Recherche & matériel";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -11222,6 +11222,32 @@ var PROG_MUSCLES = [
   ["fessiers", "Fessiers", "#E85D95"], ["abdos", "Abdos", "#C98A12"], ["cardio", "Cardio", "#F2604D"],
   ["mobilite", "Mobilité", "#5B7CFA"], ["complet", "Corps entier", "#12A66B"]
 ];
+// 🔎 Recherche souple : sans accents ni majuscules, chaque mot tapé doit se
+// retrouver quelque part. « deve » trouve « Développé couché ».
+function rechTxt(t) { return String(t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, ""); }
+// Le nom qui COMMENCE par ce qu'on tape passe devant, puis un mot qui commence
+// ainsi, puis le reste.
+function rechRang(nom, q) {
+  var n = rechTxt(nom), k = rechTxt(q).trim();
+  if (!k) return 3;
+  if (n.indexOf(k) === 0) return 0;
+  if ((" " + n).indexOf(" " + k) >= 0) return 1;
+  return n.indexOf(k) >= 0 ? 2 : 3;
+}
+function rechTrier(L, q) {
+  var i = 0; L.forEach(function (x) { x.__o = i++; });
+  L.sort(function (a, b) { return (rechRang(a.n, q) - rechRang(b.n, q)) || (a.__o - b.__o); });
+  L.forEach(function (x) { delete x.__o; });
+  return L;
+}
+function rechOK(texte, q) {
+  var m = rechTxt(q).split(/\s+/).filter(Boolean); if (!m.length) return true;
+  var t = rechTxt(texte);
+  for (var i = 0; i < m.length; i++) if (t.indexOf(m[i]) < 0) return false;
+  return true;
+}
+var PROG_MATERIELS = ["Poids du corps", "Haltères", "Barre", "Banc", "Machine", "Poulie", "Élastique", "TRX", "Kettlebell",
+  "Swiss ball", "Médecine-ball", "Tapis de sol", "Step", "Corde à sauter", "Tapis de course", "Vélo", "Rameur", "Elliptique"];
 // Un exercice peut viser jusqu'à 3 muscles (X.ms) ; X.m reste le principal.
 function progMusclesListe(X) { return (X && X.ms && X.ms.length) ? X.ms : [(X && X.m) || "complet"]; }
 function progMusclesTxt(X) { return progMusclesListe(X).map(function (k) { return progMuscle(k)[1]; }).join(" · "); }
@@ -11954,7 +11980,8 @@ function viewProgExoForm() {
     '<div style="padding:12px 13px 100px">' +
     '<div id="pxf-prev" class="spt-card" style="display:flex;gap:14px;align-items:center">' + pxfApercuHTML(src) + '</div>' +
     '<div class="prg-flab">Nom de l\'exercice</div>' +
-    '<input id="pxf-n" class="prg-search" style="margin-bottom:12px" value="' + esc(X.n) + '" placeholder="Développé couché barre"/>' +
+    '<input id="pxf-n" class="prg-search" style="margin-bottom:12px" value="' + esc(X.n) + '" placeholder="Développé couché barre" autocomplete="off"/>' +
+    '<div id="pxf-sug" style="margin:-6px 0 12px"></div>' +
     '<div class="prg-flab">Muscles travaillés (jusqu\'à 3)</div>' +
     corpsPickerHTML(id === "new" ? [] : progMusclesListe(X)) +
     '<input type="hidden" id="pxf-ms" value="' + (id === "new" ? "" : esc(progMusclesListe(X).join(","))) + '"/>' +
@@ -11962,7 +11989,10 @@ function viewProgExoForm() {
     '<div style="flex:1"><div class="prg-flab">Muscle principal</div>' +
     '<select id="pxf-m" class="prg-sel" style="width:100%;padding:12px 8px;font-size:13px">' + opts + '</select></div>' +
     '<div style="flex:1"><div class="prg-flab">Matériel</div>' +
-    '<input id="pxf-mat" class="prg-search" style="margin:0" value="' + esc(X.mat || "") + '" placeholder="Machine, haltères, TRX..."/></div></div>' +
+    '<select id="pxf-matsel" class="prg-sel" style="width:100%;padding:12px 8px;font-size:13px"><option value="">Aucun</option>' +
+    PROG_MATERIELS.map(function (m) { return '<option value="' + esc(m) + '">' + esc(m) + '</option>'; }).join("") +
+    '<option value="__autre">Autre (à écrire)</option></select>' +
+    '<input id="pxf-mat" class="prg-search" style="margin:7px 0 0;display:none" value="' + esc(X.mat || "") + '" placeholder="Écris le matériel"/></div></div>' +
     '<div class="prg-flab">🎬 Lien vidéo (YouTube)</div>' +
     '<input id="pxf-v" class="prg-search" style="margin-bottom:6px" value="' + esc(X.v || "") + '" placeholder="https://youtu.be/..." inputmode="url"/>' +
     '<div class="spt-txt" style="margin-bottom:12px">Colle simplement le lien de la vidéo. L\'image de la vidéo servira automatiquement de vignette, et ton client pourra l\'ouvrir d\'un tap pendant sa séance.</div>' +
@@ -12012,6 +12042,44 @@ function bindProgExoForm() {
   })();
   CH.forEach(function (k) { var e = document.getElementById(k); if (e) { e.addEventListener("input", pxfGarder); e.addEventListener("change", pxfGarder); } });
   document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden" && document.getElementById("pxf-n")) pxfGarder(); });
+  // 🧰 Matériel : une liste, et « Autre » pour écrire le sien.
+  (function () {
+    var ms = document.getElementById("pxf-matsel"), mt = document.getElementById("pxf-mat");
+    if (!ms || !mt) return;
+    var v = (mt.value || "").trim(), trouve = "";
+    PROG_MATERIELS.forEach(function (m) { if (rechTxt(m) === rechTxt(v) || rechTxt(m) === rechTxt(v).replace(/s$/, "") || rechTxt(m).replace(/s$/, "") === rechTxt(v)) trouve = m; });
+    if (trouve) { ms.value = trouve; mt.value = trouve; mt.style.display = "none"; }
+    else if (v) { ms.value = "__autre"; mt.style.display = ""; }
+    else { ms.value = ""; mt.style.display = "none"; }
+    ms.addEventListener("change", function () {
+      if (this.value === "__autre") { mt.value = ""; mt.style.display = ""; try { mt.focus(); } catch (e) { } }
+      else { mt.value = this.value; mt.style.display = "none"; }
+      pxfGarder();
+    });
+  })();
+  // 🔎 Dès 2 lettres dans le nom : les exercices qui existent déjà. Un appui
+  // ouvre le sien, ce qui évite de créer un doublon.
+  (function () {
+    var nm = document.getElementById("pxf-n"), bx = document.getElementById("pxf-sug");
+    if (!nm || !bx) return;
+    function maj() {
+      var q = (nm.value || "").trim();
+      if (q.length < 2) { bx.innerHTML = ""; return; }
+      var L = bibGet().filter(function (x) { return x.id !== id && rechOK(x.n + " " + progMusclesTxt(x) + " " + (x.mat || ""), q); });
+      L = rechTrier(L, q).filter(function (x) { return rechRang(x.n, q) < 3; }).slice(0, 6);
+      if (!L.length) { bx.innerHTML = ""; return; }
+      bx.innerHTML = '<div style="font-size:11px;font-weight:900;color:var(--mute);margin:0 0 5px">EXISTE DÉJÀ · TOUCHE POUR L\'OUVRIR</div>' +
+        L.map(function (x) {
+          return '<button data-pxf-va="' + x.id + '" style="display:flex;width:100%;align-items:center;gap:8px;text-align:left;padding:9px 11px;margin-bottom:5px;border-radius:10px;border:1px solid var(--line);background:#fff">' +
+            '<span style="flex:1;min-width:0"><b style="display:block;font-size:13px;color:var(--ink)">' + esc(x.n) + '</b>' +
+            '<span style="font-size:11px;color:var(--mute);font-weight:700">' + progMusclesTxt(x) + (x.mat ? ' · ' + esc(x.mat) : '') + '</span></span><span style="font-weight:900;color:var(--mute)">›</span></button>';
+        }).join("");
+      bx.querySelectorAll("[data-pxf-va]").forEach(function (b) {
+        b.addEventListener("click", function () { pxfOublier(); pxfSt().edit = this.getAttribute("data-pxf-va"); render(); window.scrollTo(0, 0); });
+      });
+    }
+    nm.addEventListener("input", maj);
+  })();
   // Sortir sans enregistrer GARDE le brouillon (7 jours) : il revient à la réouverture.
   function retour() {
     var nmr = document.getElementById("pxf-n"), avait = false;
@@ -12080,11 +12148,13 @@ function viewProgBiblio(S) {
   st.q = st.q || ""; st.tab = st.tab || "fav"; st.sel = st.sel || [];
   var q = st.q.toLowerCase();
   var liste = b.filter(function (x) {
-    if (st.tab === "fav" && !x.f) return false;
-    if (st.tab === "priv" && !x.priv) return false;
-    if (q && (x.n + " " + progMuscle(x.m)[1] + " " + (x.mat || "")).toLowerCase().indexOf(q) < 0) return false;
+    // Une recherche fouille TOUTE la bibliothèque, quel que soit l'onglet.
+    if (!q && st.tab === "fav" && !x.f) return false;
+    if (!q && st.tab === "priv" && !x.priv) return false;
+    if (q && !rechOK(x.n + " " + progMusclesTxt(x) + " " + (x.mat || ""), q)) return false;
     return true;
   });
+  if (q) rechTrier(liste, q);
   var h = '<div class="prg-top"><button id="prg-bib-close" class="prg-back">‹</button>' +
     '<div style="flex:1"><div class="prg-titre">' + (st.remp != null ? '🔄 Remplacer' : 'Exercices') + '</div>' +
     '<div class="prg-sous">' + (st.remp != null && S.exos[st.remp] ? 'Remplace « ' + esc(S.exos[st.remp].n) + ' » · séries, repos et note gardés' : 'Pour « ' + esc(S.nom) + ' »') + '</div></div></div>' +
@@ -14440,7 +14510,8 @@ function viewCarnet(){
 }
 function viewCarnetPick(){
   var C=state.carnet, q=(C.q||"").toLowerCase(), b=bibGet();
-  var L=b.filter(function(x){return !q||(x.n+" "+progMuscle(x.m)[1]+" "+(x.mat||"")).toLowerCase().indexOf(q)>=0;});
+  var L=b.filter(function(x){return !q||rechOK(x.n+" "+progMusclesTxt(x)+" "+(x.mat||""),q);});
+  if(q)rechTrier(L,q);
   L.sort(function(a,c){return (c.f?1:0)-(a.f?1:0);});
   var h='<div class="app" style="max-width:640px"><div class="prg-top"><button id="cn-pick-back" class="prg-back">‹</button>'+
     '<div style="flex:1"><div class="prg-titre">Ajouter un exercice</div><div class="prg-sous">Touche pour l\'ajouter à la séance · ⭐ en premier</div></div></div>'+
@@ -14789,11 +14860,13 @@ function viewCoachExos() {
   st.q = st.q || ""; st.tab = st.tab || (nP ? "priv" : "tous");
   var q = st.q.toLowerCase();
   var liste = b.filter(function (x) {
-    if (st.tab === "fav" && !x.f) return false;
-    if (st.tab === "priv" && !x.priv) return false;
-    if (q && (x.n + " " + progMusclesTxt(x) + " " + (x.mat || "")).toLowerCase().indexOf(q) < 0) return false;
+    // Une recherche fouille TOUTE la bibliothèque, quel que soit l'onglet.
+    if (!q && st.tab === "fav" && !x.f) return false;
+    if (!q && st.tab === "priv" && !x.priv) return false;
+    if (q && !rechOK(x.n + " " + progMusclesTxt(x) + " " + (x.mat || ""), q)) return false;
     return true;
   });
+  if (q) rechTrier(liste, q);
   var h = '<div class="prg-top"><button id="cex-back" class="prg-back">‹</button>' +
     '<div style="flex:1;min-width:0"><div class="prg-titre">💪 Mes exercices</div>' +
     '<div class="prg-sous">' + b.length + ' exercices · ' + nP + ' créé' + (nP > 1 ? 's' : '') + ' par toi</div></div></div>' +

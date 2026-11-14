@@ -1207,7 +1207,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "14/11 - Créer depuis la recherche";
+var APP_VERSION = "14/11 - Détection par le nom";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -12057,6 +12057,35 @@ function bindProgExoForm() {
       pxfGarder();
     });
   })();
+  // ✨ Nouvel exercice : muscles et matériel se règlent d'après le nom, tant que
+  // le coach n'y a pas touché lui-même. Sa main garde toujours le dernier mot.
+  (function () {
+    if (id !== "new") return;
+    var nm = document.getElementById("pxf-n"), ms = document.getElementById("pxf-ms"), sel = document.getElementById("pxf-m");
+    var mt = document.getElementById("pxf-mat"), msel = document.getElementById("pxf-matsel");
+    if (!nm || !ms || !sel || !mt || !msel) return;
+    var mMan = !!ms.value, matMan = !!(mt.value || "").trim();
+    var bx0 = document.querySelector(".cps-box");
+    if (bx0 && bx0.parentNode) bx0.parentNode.addEventListener("click", function (ev) {
+      var c = ev.target && ev.target.closest ? ev.target.closest("[data-cps]") : null; if (c) mMan = true;
+    }, true);
+    sel.addEventListener("change", function () { mMan = true; });
+    msel.addEventListener("change", function () { matMan = true; });
+    mt.addEventListener("input", function () { matMan = true; });
+    function lire() {
+      var D = pxfDetecter(nm.value), touche = false;
+      if (!mMan && D.ms.length && ms.value !== D.ms.join(",")) {
+        ms.value = D.ms.join(","); sel.value = D.ms[0]; touche = true;
+        state.cpsFace = (["dos", "lombaires", "fessiers", "triceps"].indexOf(D.ms[0]) >= 0) ? "dos" : "face";
+        var bx = document.querySelector(".cps-box");
+        if (bx) { bx.outerHTML = corpsPickerHTML(D.ms); bindCorpsPicker(function (m) { var s2 = document.getElementById("pxf-m"); if (s2) s2.value = m; }); }
+      }
+      if (!matMan && D.mat && mt.value !== D.mat) { msel.value = D.mat; mt.value = D.mat; mt.style.display = "none"; touche = true; }
+      if (touche) pxfGarder();
+    }
+    nm.addEventListener("input", lire);
+    if ((nm.value || "").trim()) lire();
+  })();
   // 🔎 Dès 2 lettres dans le nom : les exercices qui existent déjà. Un appui
   // ouvre le sien, ce qui évite de créer un doublon.
   (function () {
@@ -12902,7 +12931,7 @@ function corpsPickerHTML(sel) {
     corpsSVG(sx, face, horsCorps ? null : SEL, "pk", 1) +
     '<div class="cps-nom" style="color:' + M[2] + '">' + (vide ? M[1] : SEL.map(function (k) { return progMuscle(k)[1]; }).join(" + ")) + '</div>' +
     '<div class="cps-chips">' + chips + '</div>' +
-    '<div class="cps-aide">Touche jusqu\'à 3 muscles sur le corps (les lombaires sont sur la face Dos). Retouche un muscle pour l\'enlever. Les trois cases du bas servent aux exercices qui n\'en visent aucun.</div>' +
+    '<div class="cps-aide">Le nom de l\'exercice règle déjà les muscles et le matériel : corrige si besoin. Touche jusqu\'à 3 muscles sur le corps (les lombaires sont sur la face Dos). Retouche un muscle pour l\'enlever. Les trois cases du bas servent aux exercices qui n\'en visent aucun.</div>' +
     '</div>';
 }
 
@@ -14825,6 +14854,48 @@ function ncFormHTML(){
 // 🏋️ ÉCRAN « MES SÉANCES TYPES » et 💪 « MES EXERCICES » : chacun sa vignette
 // sur le tableau de bord. Créer un exercice ne passe plus par une séance.
 function pxfSt() { return state.cdProg || state.coachExos; }
+// ✨ LE NOM DIT DÉJÀ PRESQUE TOUT. « Développé incliné haltères » : pectoraux,
+// haltères. On lit les mots-clés du nom, sans accents, et on propose jusqu'à
+// 3 muscles (dans l'ordre où ils apparaissent) et un matériel.
+var PXF_MUSCLES = [
+  [/souleve de terre|deadlift/, ["lombaires", "fessiers", "jambes"]],
+  [/good ?morning|hyperextension|extension(s)? lombaire|banc a lombaire|lombaire|superman/, ["lombaires"]],
+  [/leg curl|curl ischio|ischio|leg extension|extension(s)? de(s)? jambe|quadriceps|squat|presse|fente|mollet|cuisse|adducteur|jambe|\bleg\b/, ["jambes"]],
+  [/hip ?thrust|fessier|glute|pont |abducteur|donkey|kick ?back fess/, ["fessiers"]],
+  [/militaire|epaule|shoulder|elevation(s)? (laterale|frontale)|deltoide|coiffe|rotateur|rotation (externe|interne)|face ?pull|oiseau|arnold/, ["epaules"]],
+  [/dips/, ["triceps", "pecs"]],
+  [/triceps|barre au front|kick ?back|extension(s)? (nuque|poulie haute)/, ["triceps"]],
+  [/biceps|curl|marteau/, ["biceps"]],
+  [/tirage|rowing|row\b|traction|pull ?(up|down|over)|lat\b|dorsa|trapeze|tire(r)? /, ["dos"]],
+  [/pec|pompe|push ?up|ecarte|butterfly|chest|developpe/, ["pecs"]],
+  [/abdo|crunch|gainage|planche|releve(s)? de (jambe|buste)|russian|oblique|mountain climber|sit ?up/, ["abdos"]],
+  [/course|sprint|\bvelo\b|rameur|corde a sauter|burpee|jumping|elliptique|hiit|cardio/, ["cardio"]],
+  [/mobilite|etirement|stretch|yoga|assouplissement/, ["mobilite"]]
+];
+var PXF_MATERIELS = [
+  [/trx|sangle/, "TRX"], [/kettlebell|kettle/, "Kettlebell"], [/elastique|bande/, "Élastique"],
+  [/corde a sauter/, "Corde à sauter"], [/tapis de course/, "Tapis de course"], [/rameur/, "Rameur"], [/elliptique/, "Elliptique"], [/\bvelo\b|bike/, "Vélo"],
+  [/poulie|cable|vis a vis/, "Poulie"], [/swiss ?ball|ballon/, "Swiss ball"], [/medecine|medicine|med ?ball/, "Médecine-ball"],
+  [/machine|presse|pec ?deck|guide|smith|leg (curl|extension|press)|butterfly|matrix|technogym/, "Machine"],
+  [/haltere|marteau/, "Haltères"], [/barre/, "Barre"], [/step/, "Step"], [/banc/, "Banc"],
+  [/poids (du|de) corps|pompe|push ?up|traction|dips|gainage|planche|burpee|jumping|crunch|squat saute/, "Poids du corps"],
+  [/tapis|au sol/, "Tapis de sol"]
+];
+function pxfDetecter(nom) {
+  var t = rechTxt(nom) + " ", vus = [], mat = "";
+  PXF_MUSCLES.forEach(function (R) {
+    var m = t.match(R[0]); if (!m) return;
+    // « Développé militaire » vise les épaules, « leg curl » les jambes : la règle
+    // générale se tait quand une règle plus précise a déjà parlé.
+    if (R[1][0] === "pecs" && /developpe/.test(m[0]) && vus.some(function (v) { return v.k === "epaules"; })) return;
+    if (R[1][0] === "biceps" && /curl/.test(m[0]) && /leg curl|curl ischio/.test(t)) return;
+    if (R[1][0] === "jambes" && /^jambe/.test(m[0]) && /releve(s)? de(s)? jambe/.test(t)) return;
+    R[1].forEach(function (k, i) { if (!vus.some(function (v) { return v.k === k; })) vus.push({ k: k, p: m.index + i / 10 }); });
+  });
+  vus.sort(function (a, b) { return a.p - b.p; });
+  for (var i = 0; i < PXF_MATERIELS.length; i++) if (PXF_MATERIELS[i][0].test(t)) { mat = PXF_MATERIELS[i][1]; break; }
+  return { ms: vus.slice(0, 3).map(function (v) { return v.k; }), mat: mat };
+}
 // 🔎→＋ Ce qu'on vient de chercher sans le trouver devient le nom du nouvel
 // exercice : pas besoin de le retaper.
 function pxfCreerDepuis(q) {

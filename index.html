@@ -1207,7 +1207,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "14/11 - Progression & forme";
+var APP_VERSION = "14/11 - Vignettes coach";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -5965,7 +5965,7 @@ function renderView(){
   try{themeRacine(getAllData());}catch(e){}
   setTimeout(function(){try{applyTheme(getAllData());ancrerNav();}catch(e){}},0);
   var root=document.getElementById("root");
-  if(IS_COACH){root.innerHTML=state.coachAuthed?(state.carnet?viewCarnet():(state.blProspect||state.blLibre)?viewCoachBilan():state.coachBilans?viewCoachBilans():state.coachKPI?viewCoachKPI():state.coachStats?viewCoachStats():state.coachCalc?viewCoachCalc():(state.prog3?viewProg3():state.cdAssign?viewProgAssign():state.cdProg?viewProgBuilder():(state.coachDetail?(state.cdTab==="bilan"?viewCoachBilan():viewCoachDetail()):viewCoachDash()))):viewCoachLogin();bindCoach();return;}
+  if(IS_COACH){root.innerHTML=state.coachAuthed?(state.carnet?viewCarnet():(state.blProspect||state.blLibre)?viewCoachBilan():state.coachBilans?viewCoachBilans():state.coachKPI?viewCoachKPI():state.coachStats?viewCoachStats():state.coachCalc?viewCoachCalc():(state.prog3?viewProg3():state.cdAssign?viewProgAssign():state.cdProg?viewProgBuilder():(state.coachDetail?(state.cdTab==="bilan"?viewCoachBilan():viewCoachDetail()):(state.coachExos?viewCoachExos():state.coachSea?viewCoachSea():viewCoachDash())))):viewCoachLogin();bindCoach();return;}
   if(!CLIENT){root.innerHTML=viewNoClient();bindNoClient();return;}
   var name=lsGetStr("amcoach_name_"+CLIENT);
   var start=lsGetStr("amcoach_start_"+CLIENT);
@@ -11938,7 +11938,7 @@ function viewProgBuilder() {
 // des champs visibles, parce qu'une file de fenêtres surgissantes ne montre
 // jamais ce qu'on est en train de remplir.
 function viewProgExoForm() {
-  var id = state.cdProg.edit, b = bibGet(), X = null;
+  var id = pxfSt().edit, b = bibGet(), X = null;
   if (id !== "new") { for (var i = 0; i < b.length; i++) if (b[i].id === id) X = b[i]; }
   if (!X) X = { id: "new", n: "", m: "pecs", mat: "", v: "", g: "", f: 1, priv: 1 };
   var opts = "";
@@ -11980,7 +11980,7 @@ function pxfApercuHTML(src) {
       : "Colle un lien YouTube ou un GIF plus bas : l'image apparaîtra ici.") + '</div>';
 }
 function bindProgExoForm() {
-  var id = state.cdProg.edit;
+  var id = pxfSt().edit;
   // 💾 Brouillon de l'exercice : l'iPhone peut recharger la page pendant qu'on
   // est parti copier le lien YouTube. On garde ce qui est tapé, à chaque frappe.
   var CLE_PXF = "amcoach_pxf_brouillon", CH = ["pxf-n", "pxf-m", "pxf-mat", "pxf-v", "pxf-g"];
@@ -11997,7 +11997,7 @@ function bindProgExoForm() {
   })();
   CH.forEach(function (k) { var e = document.getElementById(k); if (e) { e.addEventListener("input", pxfGarder); e.addEventListener("change", pxfGarder); } });
   document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden" && document.getElementById("pxf-n")) pxfGarder(); });
-  function retour() { pxfOublier(); state.cdProg.edit = null; render(); }
+  function retour() { pxfOublier(); pxfSt().edit = null; render(); }
   var bk = document.getElementById("pxf-back");
   if (bk) bk.addEventListener("click", retour);
   // L'aperçu se met à jour dès qu'on colle un lien, sans quitter le champ.
@@ -12028,7 +12028,7 @@ function bindProgExoForm() {
     X.v = (document.getElementById("pxf-v").value || "").trim();
     X.g = (document.getElementById("pxf-g").value || "").trim();
     bibSet(b);
-    state.cdProg.edit = null;
+    pxfSt().edit = null;
     render();
     feedback(id === "new" ? "Exercice créé" : "Mise à jour en cours…", "ok");
     // On va chercher les dossiers clients avant de propager : c'est ce qui
@@ -12044,7 +12044,7 @@ function bindProgExoForm() {
   if (del) del.addEventListener("click", function () {
     if (!confirm("Supprimer cet exercice de ta bibliothèque ? Les séances déjà construites le gardent.")) return;
     bibSet(bibGet().filter(function (z) { return z.id !== id; }));
-    state.cdProg.edit = null;
+    pxfSt().edit = null;
     render();
   });
 }
@@ -14699,14 +14699,98 @@ function ncFormHTML(){
 }
 
 // Le bloc en haut du dashboard
-function seaDashHTML() {
+// 🏋️ ÉCRAN « MES SÉANCES TYPES » et 💪 « MES EXERCICES » : chacun sa vignette
+// sur le tableau de bord. Créer un exercice ne passe plus par une séance.
+function pxfSt() { return state.cdProg || state.coachExos; }
+function viewCoachSea() {
+  return '<div class="prg-top"><button id="csea-back" class="prg-back">‹</button>' +
+    '<div style="flex:1;min-width:0"><div class="prg-titre">🏋️ Mes séances types</div>' +
+    '<div class="prg-sous">Construis une fois, attribue à tes clients</div></div></div>' +
+    '<div style="padding:14px 13px 60px">' + seaDashHTML() + '</div>';
+}
+function viewCoachExos() {
+  var st = state.coachExos;
+  if (st.edit) return viewProgExoForm();
+  var b = bibGet(), nP = b.filter(function (x) { return x.priv; }).length;
+  st.q = st.q || ""; st.tab = st.tab || (nP ? "priv" : "tous");
+  var q = st.q.toLowerCase();
+  var liste = b.filter(function (x) {
+    if (st.tab === "fav" && !x.f) return false;
+    if (st.tab === "priv" && !x.priv) return false;
+    if (q && (x.n + " " + progMuscle(x.m)[1] + " " + (x.mat || "")).toLowerCase().indexOf(q) < 0) return false;
+    return true;
+  });
+  var h = '<div class="prg-top"><button id="cex-back" class="prg-back">‹</button>' +
+    '<div style="flex:1;min-width:0"><div class="prg-titre">💪 Mes exercices</div>' +
+    '<div class="prg-sous">' + b.length + ' exercices · ' + nP + ' créé' + (nP > 1 ? 's' : '') + ' par toi</div></div></div>' +
+    '<div style="padding:12px 13px 60px">' +
+    '<button id="cex-new" class="big-btn" style="margin:0 0 12px;padding:14px 0">＋ Créer un exercice</button>' +
+    '<div class="prg-tabs">' +
+    '<button class="prg-tab' + (st.tab === "priv" ? " on" : "") + '" data-cex-tab="priv">🔒 Mes créations</button>' +
+    '<button class="prg-tab' + (st.tab === "fav" ? " on" : "") + '" data-cex-tab="fav">⭐ Favoris</button>' +
+    '<button class="prg-tab' + (st.tab === "tous" ? " on" : "") + '" data-cex-tab="tous">🔎 Tous</button></div>' +
+    '<input id="cex-q" class="prg-search" placeholder="Rechercher un exercice, un muscle..." value="' + esc(st.q) + '"/>';
+  if (!liste.length) h += '<div class="spt-txt" style="padding:18px 4px">' +
+    (st.tab === "priv" ? "Tu n'as pas encore créé d'exercice. Le bouton du haut ajoute le tien, avec son lien vidéo."
+      : st.tab === "fav" ? "Aucun favori. Mets une ⭐ sur les exercices que tu prescris souvent." : "Aucun exercice ne correspond.") + '</div>';
+  for (var i = 0; i < liste.length; i++) {
+    var X = liste[i], M = progMuscle(X.m);
+    h += '<div class="prg-bx" data-cex-mod="' + X.id + '">' + progVignette(X, 42) +
+      '<div style="flex:1;min-width:0"><div class="prg-bx-n">' + esc(X.n) + '</div>' +
+      '<div class="prg-bx-m">' + M[1] + (X.mat ? ' · ' + esc(X.mat) : '') + (X.v ? ' · 🎬' : ' · sans vidéo') + '</div></div>' +
+      '<button class="prg-star' + (X.f ? ' on' : '') + '" data-cex-fav="' + X.id + '">' + (X.f ? '★' : '☆') + '</button>' +
+      '<span class="prg-plus">✏️</span></div>';
+  }
+  return h + '</div>';
+}
+function bindCoachSeaExos() {
+  var bk = document.getElementById("csea-back");
+  if (bk) bk.addEventListener("click", function () { state.coachSea = false; render(); });
+  var st = state.coachExos;
+  if (!st) return;
+  if (st.edit) { bindProgExoForm(); return; }
+  var b2 = document.getElementById("cex-back");
+  if (b2) b2.addEventListener("click", function () { state.coachExos = null; render(); });
+  var nw = document.getElementById("cex-new");
+  if (nw) nw.addEventListener("click", function () { st.edit = "new"; st.tab = "priv"; st.q = ""; render(); window.scrollTo(0, 0); });
+  var qi = document.getElementById("cex-q");
+  if (qi) qi.addEventListener("input", function () {
+    st.q = this.value; var p = this.selectionStart; render();
+    var n = document.getElementById("cex-q"); if (n) { n.focus(); try { n.setSelectionRange(p, p); } catch (e) { } }
+  });
+  document.querySelectorAll("[data-cex-tab]").forEach(function (el) {
+    el.addEventListener("click", function () { st.tab = this.getAttribute("data-cex-tab"); render(); });
+  });
+  document.querySelectorAll("[data-cex-fav]").forEach(function (el) {
+    el.addEventListener("click", function (ev) {
+      ev.stopPropagation();
+      var id = this.getAttribute("data-cex-fav"), b = bibGet();
+      b.forEach(function (x) { if (x.id === id) x.f = x.f ? 0 : 1; });
+      bibSet(b); render();
+    });
+  });
+  document.querySelectorAll("[data-cex-mod]").forEach(function (el) {
+    el.addEventListener("click", function () { st.edit = this.getAttribute("data-cex-mod"); render(); window.scrollTo(0, 0); });
+  });
+}
+function seaDashHTML(mode) {
   var l = seaGet(), attribuees = 0;
   for (var q = 0; q < l.length; q++) if (seaClients(l[q].id).length) attribuees++;
-  var h = '<details class="sea-tiroir"' + (l.length ? '' : ' open') + '>' +
-    '<summary><span class="sea-sum-t">🏋️ Mes séances types</span>' +
-    '<span class="sea-sum-n">' + (l.length ? l.length + ' séance' + (l.length > 1 ? 's' : '') +
-      ' · ' + attribuees + ' attribuée' + (attribuees > 1 ? 's' : '') : 'aucune') + '</span>' +
-    '<span class="sea-sum-c">⌄</span></summary><div class="sea-corps">';
+  if (mode === "sauv") return '<details class="sea-tiroir"><summary><span class="sea-sum-t">💾 Sauvegarde</span>' +
+    '<span class="sea-sum-c">⌄</span></summary><div class="sea-corps">' +
+    // ─── SAUVEGARDE ───
+    '<button id="sea-restore" class="prg-mini sea-b" style="border-color:var(--brand);color:var(--brand-d)">☁️ Récupérer mes clients depuis le serveur <small>si ton tableau de bord paraît vide</small></button>' +
+    '<div style="display:flex;gap:8px;margin-top:8px">' +
+    '<button id="sea-export" class="prg-mini" style="flex:1;padding:12px 0">💾 Exporter</button>' +
+    '<button id="sea-import" class="prg-mini" style="flex:1;padding:12px 0">📂 Restaurer</button></div>' +
+    '<input id="sea-file" type="file" accept="application/json,.json" style="display:none"/>' +
+    '<div style="font-size:11.5px;color:var(--mute);line-height:1.55;margin-top:7px">Un fichier de secours à garder chez toi, le seul qui ne dépende ni de ton téléphone ni du réseau. Une fois par semaine suffit.</div>' +
+    // Le repère de version, à portée de regard côté coach : quand quelque
+    // chose « ne marche pas », la première question est toujours de savoir
+    // quelle version tourne réellement sur le téléphone.
+    '<div style="text-align:center;font-size:10.5px;color:var(--mute);opacity:.7;font-weight:700;margin-top:12px">v' + APP_VERSION + '</div>' +
+    '</div></details>';
+  var h = '<div>';
   if (!l.length) {
     h += '<div style="font-size:12.5px;color:var(--mute);line-height:1.6;margin-bottom:10px">' +
       'Construis une séance une fois, attribue-la ensuite à autant de clients que tu veux.</div>';
@@ -14733,20 +14817,7 @@ function seaDashHTML() {
     // ─── DIFFUSION ───
     '<div class="sea-sec">Diffusion</div>' +
     '<button id="sea-resync" class="prg-mini sea-b">🔄 Remettre toutes les séances à jour <small>après avoir modifié des exercices</small></button>' +
-
-    // ─── SAUVEGARDE ───
-    '<div class="sea-sec">Sauvegarde</div>' +
-    '<button id="sea-restore" class="prg-mini sea-b" style="border-color:var(--brand);color:var(--brand-d)">☁️ Récupérer mes clients depuis le serveur <small>si ton tableau de bord paraît vide</small></button>' +
-    '<div style="display:flex;gap:8px;margin-top:8px">' +
-    '<button id="sea-export" class="prg-mini" style="flex:1;padding:12px 0">💾 Exporter</button>' +
-    '<button id="sea-import" class="prg-mini" style="flex:1;padding:12px 0">📂 Restaurer</button></div>' +
-    '<input id="sea-file" type="file" accept="application/json,.json" style="display:none"/>' +
-    '<div style="font-size:11.5px;color:var(--mute);line-height:1.55;margin-top:7px">Un fichier de secours à garder chez toi, le seul qui ne dépende ni de ton téléphone ni du réseau. Une fois par semaine suffit.</div>' +
-    // Le repère de version, à portée de regard côté coach : quand quelque
-    // chose « ne marche pas », la première question est toujours de savoir
-    // quelle version tourne réellement sur le téléphone.
-    '<div style="text-align:center;font-size:10.5px;color:var(--mute);opacity:.7;font-weight:700;margin-top:12px">v' + APP_VERSION + '</div>' +
-    '</div></details>';
+    '</div>';
   return h;
 }
 
@@ -18213,7 +18284,6 @@ function viewCoachDash(){
     '<span class="hdr-title">Coach Dashboard</span><div class="bar bar-b"></div></div>'+
     '<div class="hdr-sub" style="color:var(--mute);font-weight:400;font-size:12px">AM Coach Genève · TransfoPhysique</div></div>'+
     '<div style="padding:16px 14px 0">'+
-    seaDashHTML()+
     // 🧰 Les quatre actions du matin, à poids égal : plus un seul pavé qui
     // écrase les autres. Mes bilans et les séances types vivent dans leurs
     // propres tiroirs, en dessous.
@@ -18225,8 +18295,12 @@ function viewCoachDash(){
         '<button id="calc-open" class="act-calc"><span class="icon">🧮</span><span class="lib">Calculateur bilan</span></button>'+
         '<button id="stats-open" class="act-stats"><span class="icon">📊</span><span class="lib">Mes statistiques</span></button>'+
         '<button id="kpi-open" class="act-com"><span class="icon">🤝</span><span class="lib">Mon commercial</span>'+
-        (n?'<span class="act-badge">'+n+'<small>à faire</small></span>':'')+'</button></div>'+
-        '<button id="blv-open" class="prg-mini sea-b" style="margin:0 0 14px">📋 Mes bilans <small>tous les gens vus en rendez-vous</small></button>';
+        (n?'<span class="act-badge">'+n+'<small>à faire</small></span>':'')+'</button>'+
+        '<button id="blv-open" style="background:linear-gradient(135deg,#f7971e,#e0661b)"><span class="icon">📋</span><span class="lib">Mes bilans</span></button>'+
+        '<button id="sea-open" style="background:linear-gradient(135deg,#11998e,#1e9e5a)"><span class="icon">🏋️</span><span class="lib">Séances types</span></button>'+
+        '<button id="exo-open" style="background:linear-gradient(135deg,#e53935,#b71c5a)"><span class="icon">💪</span><span class="lib">Mes exercices</span></button>'+
+        '<button id="sauv-open" style="background:#5b6675"><span class="icon">💾</span><span class="lib">Sauvegarde</span></button></div>'+
+        (state.sauvOuvert?seaDashHTML("sauv").replace('<details class="sea-tiroir">','<details class="sea-tiroir" open>'):'');
     })()+
     // Le formulaire s'ouvre SOUS son bouton. Il vivait en bas de page, après
     // le pouls et les raccourcis : Akli tapait « Nouveau client » et ne voyait
@@ -20143,6 +20217,12 @@ function bindCoach(){
   if(state.coachAuthed&&state.coachDetail){try{bindProgFiche(state.coachDetail);}catch(e){}}
   // Le bloc « Mes séances types » en haut du tableau de bord
   if(state.coachAuthed&&!state.coachDetail){try{bindProgDash();}catch(e){}}
+  if(state.coachAuthed&&!state.coachDetail&&(state.coachSea||state.coachExos)){try{bindCoachSeaExos();}catch(e){}}
+  (function(){
+    var a=document.getElementById("sea-open"); if(a)a.addEventListener("click",function(){state.coachSea=true;render();window.scrollTo(0,0);});
+    var b=document.getElementById("exo-open"); if(b)b.addEventListener("click",function(){state.coachExos={};render();window.scrollTo(0,0);});
+    var c=document.getElementById("sauv-open"); if(c)c.addEventListener("click",function(){state.sauvOuvert=!state.sauvOuvert;render();});
+  })();
   var cp=document.getElementById("coach-pass"), cg=document.getElementById("coach-go");
   if(cp&&cg){
     function tryLogin(){
@@ -22126,7 +22206,7 @@ function estZoome(){
 // 👈 Glisser depuis le bord gauche = revenir en arrière, comme sur iOS.
 // On ne réinvente pas la destination : on clique le bouton retour de l'écran,
 // celui qui existe déjà. Si l'écran n'en a pas, le geste ne fait rien.
-var SWIPE_RETOURS=["stx-back","prg-run-back","xp-back","part-back","pes-back","pxf-back","prg-bib-close","prg-ass-back","p3-back","prg-back","cd-back"];
+var SWIPE_RETOURS=["cex-back","csea-back","stx-back","prg-run-back","xp-back","part-back","pes-back","pxf-back","prg-bib-close","prg-ass-back","p3-back","prg-back","cd-back"];
 function retourEcran(){
   for(var i=0;i<SWIPE_RETOURS.length;i++){
     var b=document.getElementById(SWIPE_RETOURS[i]);

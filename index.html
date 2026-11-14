@@ -1207,7 +1207,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "14/11 - Multi-muscles";
+var APP_VERSION = "14/11 - Brouillon exercice";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -11987,21 +11987,39 @@ function bindProgExoForm() {
   var id = pxfSt().edit;
   // 💾 Brouillon de l'exercice : l'iPhone peut recharger la page pendant qu'on
   // est parti copier le lien YouTube. On garde ce qui est tapé, à chaque frappe.
-  var CLE_PXF = "amcoach_pxf_brouillon", CH = ["pxf-n", "pxf-m", "pxf-mat", "pxf-v", "pxf-g"];
+  var CLE_PXF = "amcoach_pxf_brouillon", CH = ["pxf-n", "pxf-m", "pxf-ms", "pxf-mat", "pxf-v", "pxf-g"];
+  var pxfFini = false;   // enregistré ou supprimé : plus rien à garder
   function pxfGarder() {
+    if (pxfFini) return;
     var d = { id: id, t: Date.now(), v: {} };
     CH.forEach(function (k) { var e = document.getElementById(k); if (e) d.v[k] = e.value; });
     try { localStorage.setItem(CLE_PXF, JSON.stringify(d)); } catch (e) { }
   }
-  function pxfOublier() { try { localStorage.removeItem(CLE_PXF); } catch (e) { } }
+  function pxfOublier() { pxfFini = true; try { localStorage.removeItem(CLE_PXF); } catch (e) { } }
   (function () {
     var d = null; try { d = JSON.parse(localStorage.getItem(CLE_PXF) || "null"); } catch (e) { }
-    if (!d || d.id !== id || Date.now() - d.t > 6 * 3600 * 1000) return;
-    CH.forEach(function (k) { var e = document.getElementById(k); if (e && d.v[k] != null && d.v[k] !== "") e.value = d.v[k]; });
+    if (!d || d.id !== id || Date.now() - d.t > 7 * 24 * 3600 * 1000) return;
+    var repris = false;
+    CH.forEach(function (k) { var e = document.getElementById(k); if (e && d.v[k] != null && d.v[k] !== "" && e.value !== d.v[k]) { e.value = d.v[k]; repris = true; } });
+    if (!repris) return;
+    // Le corps reprend les muscles du brouillon, et on dit d'où viennent les champs.
+    var bx = document.querySelector(".cps-box"), ms = document.getElementById("pxf-ms");
+    if (bx && ms && ms.value) bx.outerHTML = corpsPickerHTML(ms.value.split(","));
+    var nm = document.getElementById("pxf-n");
+    if (nm) nm.insertAdjacentHTML("beforebegin", '<div id="pxf-br" style="font-size:12px;font-weight:800;color:#7A5A00;background:#FFF6E0;border:1.5px solid #D9A00B;border-radius:10px;padding:8px 10px;margin-bottom:8px;display:flex;align-items:center;gap:8px"><span style="flex:1">📝 Brouillon repris</span><button id="pxf-zero" class="prg-mini">Repartir de zéro</button></div>');
+    var z = document.getElementById("pxf-zero");
+    if (z) z.addEventListener("click", function () { pxfOublier(); render(); });
   })();
   CH.forEach(function (k) { var e = document.getElementById(k); if (e) { e.addEventListener("input", pxfGarder); e.addEventListener("change", pxfGarder); } });
   document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden" && document.getElementById("pxf-n")) pxfGarder(); });
-  function retour() { pxfOublier(); pxfSt().edit = null; render(); }
+  // Sortir sans enregistrer GARDE le brouillon (7 jours) : il revient à la réouverture.
+  function retour() {
+    var nmr = document.getElementById("pxf-n"), avait = false;
+    try { avait = !!localStorage.getItem(CLE_PXF); } catch (e) { }
+    if (nmr && (nmr.value || "").trim()) { pxfGarder(); try { feedback("📝 Brouillon gardé", "ok"); } catch (e) { } }
+    else if (!avait) pxfOublier();
+    pxfSt().edit = null; render();
+  }
   var bk = document.getElementById("pxf-back");
   if (bk) bk.addEventListener("click", retour);
   // L'aperçu se met à jour dès qu'on colle un lien, sans quitter le champ.

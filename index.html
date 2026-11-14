@@ -1207,7 +1207,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "14/11 - Recherche & matériel";
+var APP_VERSION = "14/11 - Créer depuis la recherche";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -11969,7 +11969,7 @@ function viewProgBuilder() {
 function viewProgExoForm() {
   var id = pxfSt().edit, b = bibGet(), X = null;
   if (id !== "new") { for (var i = 0; i < b.length; i++) if (b[i].id === id) X = b[i]; }
-  if (!X) X = { id: "new", n: "", m: "pecs", mat: "", v: "", g: "", f: 1, priv: 1 };
+  if (!X) X = { id: "new", n: (id === "new" && state.pxfNom) || "", m: "pecs", mat: "", v: "", g: "", f: 1, priv: 1 };
   var opts = "";
   for (var k = 0; k < PROG_MUSCLES.length; k++)
     opts += '<option value="' + PROG_MUSCLES[k][0] + '"' + (X.m === PROG_MUSCLES[k][0] ? " selected" : "") + '>' + PROG_MUSCLES[k][1] + '</option>';
@@ -12025,7 +12025,7 @@ function bindProgExoForm() {
     CH.forEach(function (k) { var e = document.getElementById(k); if (e) d.v[k] = e.value; });
     try { localStorage.setItem(CLE_PXF, JSON.stringify(d)); } catch (e) { }
   }
-  function pxfOublier() { pxfFini = true; try { localStorage.removeItem(CLE_PXF); } catch (e) { } }
+  function pxfOublier() { pxfFini = true; state.pxfNom = null; try { localStorage.removeItem(CLE_PXF); } catch (e) { } }
   (function () {
     var d = null; try { d = JSON.parse(localStorage.getItem(CLE_PXF) || "null"); } catch (e) { }
     if (!d || d.id !== id || Date.now() - d.t > 7 * 24 * 3600 * 1000) return;
@@ -12086,6 +12086,7 @@ function bindProgExoForm() {
     try { avait = !!localStorage.getItem(CLE_PXF); } catch (e) { }
     if (nmr && (nmr.value || "").trim()) { pxfGarder(); try { feedback("📝 Brouillon gardé", "ok"); } catch (e) { } }
     else if (!avait) pxfOublier();
+    state.pxfNom = null;
     pxfSt().edit = null; render();
   }
   var bk = document.getElementById("pxf-back");
@@ -12165,7 +12166,8 @@ function viewProgBiblio(S) {
     '<button class="prg-tab' + (st.tab === "tous" ? " on" : "") + '" data-prg-tab="tous">🔎 Tous</button></div>' +
     '<input id="prg-q" class="prg-search" placeholder="Rechercher un exercice, un muscle..." value="' + esc(st.q) + '"/>';
 
-  if (!liste.length) {
+  if (!liste.length && st.q.trim()) h += pxfVideHTML(st.q.trim());
+  else if (!liste.length) {
     h += '<div class="spt-txt" style="padding:18px 4px">' +
       (st.tab === "fav" ? "Aucun favori pour l'instant. Mets une ⭐ sur les exercices que tu prescris souvent, ils remonteront ici."
         : st.tab === "priv" ? "Tu n'as pas encore créé d'exercice à toi. Le bouton en bas ajoute le tien, avec son lien vidéo."
@@ -12301,7 +12303,8 @@ function bindProgBuilder() {
       render();
     });
     var nw = document.getElementById("prg-bib-new");
-    if (nw) nw.addEventListener("click", function () { state.cdProg.edit = "new"; render(); });
+    if (nw) nw.addEventListener("click", function () { pxfCreerDepuis(state.cdProg.q); render(); window.scrollTo(0, 0); });
+    document.querySelectorAll(".pxf-creer-q").forEach(function (b) { b.addEventListener("click", function () { pxfCreerDepuis(state.cdProg.q); render(); window.scrollTo(0, 0); }); });
     var ok = document.getElementById("prg-bib-ok");
     if (ok) ok.addEventListener("click", function () {
       if (!st.sel.length) return;
@@ -14822,6 +14825,18 @@ function ncFormHTML(){
 // 🏋️ ÉCRAN « MES SÉANCES TYPES » et 💪 « MES EXERCICES » : chacun sa vignette
 // sur le tableau de bord. Créer un exercice ne passe plus par une séance.
 function pxfSt() { return state.cdProg || state.coachExos; }
+// 🔎→＋ Ce qu'on vient de chercher sans le trouver devient le nom du nouvel
+// exercice : pas besoin de le retaper.
+function pxfCreerDepuis(q) {
+  q = String(q || "").replace(/\s+/g, " ").trim();
+  state.pxfNom = q ? q.charAt(0).toUpperCase() + q.slice(1) : null;
+  if (q) { try { localStorage.removeItem("amcoach_pxf_brouillon"); } catch (e) { } }
+  var st = pxfSt(); st.edit = "new"; st.q = "";
+}
+function pxfVideHTML(q) {
+  return '<div class="spt-txt" style="padding:18px 4px 8px">Aucun exercice pour « ' + esc(q) + ' ».</div>' +
+    '<button class="pxf-creer-q big-btn" style="margin:0 0 10px;padding:14px 0">＋ Créer « ' + esc(q) + ' »</button>';
+}
 // 🛟 EXERCICES RETROUVÉS. Un exercice créé puis utilisé dans une séance peut
 // manquer dans la bibliothèque (autre appareil, copie plus ancienne revenue du
 // serveur). La séance en garde une copie complète : on le remet à sa place.
@@ -14877,7 +14892,8 @@ function viewCoachExos() {
     '<button class="prg-tab' + (st.tab === "fav" ? " on" : "") + '" data-cex-tab="fav">⭐ Favoris</button>' +
     '<button class="prg-tab' + (st.tab === "tous" ? " on" : "") + '" data-cex-tab="tous">🔎 Tous</button></div>' +
     '<input id="cex-q" class="prg-search" placeholder="Rechercher un exercice, un muscle..." value="' + esc(st.q) + '"/>';
-  if (!liste.length) h += '<div class="spt-txt" style="padding:18px 4px">' +
+  if (!liste.length && st.q.trim()) h += pxfVideHTML(st.q.trim());
+  else if (!liste.length) h += '<div class="spt-txt" style="padding:18px 4px">' +
     (st.tab === "priv" ? "Tu n'as pas encore créé d'exercice. Le bouton du haut ajoute le tien, avec son lien vidéo."
       : st.tab === "fav" ? "Aucun favori. Mets une ⭐ sur les exercices que tu prescris souvent." : "Aucun exercice ne correspond.") + '</div>';
   for (var i = 0; i < liste.length; i++) {
@@ -14899,7 +14915,8 @@ function bindCoachSeaExos() {
   var b2 = document.getElementById("cex-back");
   if (b2) b2.addEventListener("click", function () { state.coachExos = null; render(); });
   var nw = document.getElementById("cex-new");
-  if (nw) nw.addEventListener("click", function () { st.edit = "new"; st.tab = "priv"; st.q = ""; render(); window.scrollTo(0, 0); });
+  if (nw) nw.addEventListener("click", function () { st.tab = "priv"; pxfCreerDepuis(st.q); render(); window.scrollTo(0, 0); });
+  document.querySelectorAll(".pxf-creer-q").forEach(function (b) { b.addEventListener("click", function () { st.tab = "priv"; pxfCreerDepuis(st.q); render(); window.scrollTo(0, 0); }); });
   var qi = document.getElementById("cex-q");
   if (qi) qi.addEventListener("input", function () {
     st.q = this.value; var p = this.selectionStart; render();

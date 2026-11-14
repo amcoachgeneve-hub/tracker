@@ -1207,7 +1207,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "07/11 - Badge objectif";
+var APP_VERSION = "14/11 - Progression & forme";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -9315,11 +9315,13 @@ function statsExoSerie(allData, ref) {
         var SR = X.series[s];
         if (!SR.ok) continue;
         // Les kilos notés à part (cible en %) priment sur la valeur de cible.
-        var ch = serieCharge(SR), rp = parseFloat(SR.v) || 0;
-        if (!ch && !rp) continue;
-        if (!best || ch > best.ch || (ch === best.ch && rp > best.rp)) best = { ch: ch, rp: rp, t: SR.t || "reps" };
+        // Niveau de machine (u = "lvl") : sa propre échelle, comparée d'abord.
+        var lv = (SR.u === "lvl") ? (parseFloat(SR.c) || 0) : 0;
+        var ch = lv ? 0 : serieCharge(SR), rp = parseFloat(SR.v) || 0;
+        if (!lv && !ch && !rp) continue;
+        if (!best || lv > best.lv || (lv === best.lv && (ch > best.ch || (ch === best.ch && rp > best.rp)))) best = { lv: lv, ch: ch, rp: rp, t: SR.t || "reps" };
       }
-      if (best) pts.push({ d: J[j].d, ch: best.ch, rp: best.rp, t: best.t, vol: volSeance(X) });
+      if (best) pts.push({ d: J[j].d, lv: best.lv, ch: best.ch, rp: best.rp, t: best.t, vol: volSeance(X) });
     }
   }
   return { nom: nom, muscle: muscle, pts: pts };
@@ -9350,22 +9352,28 @@ function viewStatsExo(name) {
     '<div style="flex:1;min-width:0"><div class="prg-titre">' + esc(E.nom || "Exercice") + '</div>' +
     '<div class="prg-sous"><span style="color:' + M[2] + '">●</span> ' + M[1] + ' · ' + E.pts.length + ' séance' + (E.pts.length > 1 ? 's' : '') + '</div></div></div>' +
     '<div style="padding:12px 13px 26px">';
+  // Dernier relevé en niveau : on trace les niveaux, pas les kilos d'avant.
+  var modeLv = E.pts.length > 0 && E.pts[E.pts.length - 1].lv > 0;
+  if (modeLv) E.pts = E.pts.filter(function (p) { return p.lv > 0; });
   if (E.pts.length < 2) {
     h += '<div class="st-ins"><span class="st-ins-i">📈</span><div>Il faut au moins deux séances avec cet exercice pour tracer une courbe. Continue, elle apparaîtra toute seule.</div></div></div>';
     return h;
   }
   var p0 = E.pts[0], p1 = E.pts[E.pts.length - 1];
-  var avecCharge = E.pts.some(function (p) { return p.ch > 0; });
-  var vals = E.pts.map(function (p) { return avecCharge ? p.ch : p.rp; });
-  var dCh = Math.round((p1.ch - p0.ch) * 10) / 10, dRp = p1.rp - p0.rp;
-  var coul = (avecCharge ? dCh : dRp) > 0 ? "var(--st-ok)" : (avecCharge ? dCh : dRp) < 0 ? "var(--st-bad)" : "var(--st-dim)";
+  var avecCharge = !modeLv && E.pts.some(function (p) { return p.ch > 0; });
+  var vals = E.pts.map(function (p) { return modeLv ? p.lv : (avecCharge ? p.ch : p.rp); });
+  var dCh = Math.round((p1.ch - p0.ch) * 10) / 10, dRp = p1.rp - p0.rp, dLv = (p1.lv || 0) - (p0.lv || 0);
+  var dMain = modeLv ? dLv : (avecCharge ? dCh : dRp);
+  var coul = dMain > 0 ? "var(--st-ok)" : dMain < 0 ? "var(--st-bad)" : "var(--st-dim)";
   h += '<div class="chart-card">' +
     '<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px">' +
     '<div class="chart-dot" style="background:' + M[2] + '"></div>' +
-    '<div style="font-weight:900;font-size:15px;flex:1">' + (avecCharge ? "Charge de ma meilleure série" : "Répétitions de ma meilleure série") + '</div>' +
-    '<div style="font-weight:900;font-size:15px;color:' + coul + '">' + (avecCharge ? p1.ch + " kg" : p1.rp + " reps") + '</div></div>' +
+    '<div style="font-weight:900;font-size:15px;flex:1">' + (modeLv ? "Niveau de ma meilleure série" : avecCharge ? "Charge de ma meilleure série" : "Répétitions de ma meilleure série") + '</div>' +
+    '<div style="font-weight:900;font-size:15px;color:' + coul + '">' + (modeLv ? "niv " + p1.lv : avecCharge ? p1.ch + " kg" : p1.rp + " reps") + '</div></div>' +
     '<div class="st-note" style="margin:0 0 8px">' +
-    (avecCharge
+    (modeLv
+      ? (dLv > 0 ? "+" + dLv + " niveau" + (dLv > 1 ? "x" : "") + " depuis ta première séance" : dLv < 0 ? dLv + " niveau depuis ta première séance" : "même niveau qu'au début")
+      : avecCharge
       ? (dCh > 0 ? "+" + dCh + " kg depuis ta première séance" : dCh < 0 ? dCh + " kg depuis ta première séance" : "même charge qu'au début")
       : (dRp > 0 ? "+" + dRp + " répétitions depuis ta première séance" : dRp < 0 ? dRp + " répétitions depuis ta première séance" : "même nombre qu'au début")) + '</div>' +
     svgLineChart(vals, M[2], { txt: "#8A8FA3" }) + '</div>';
@@ -9373,13 +9381,13 @@ function viewStatsExo(name) {
   h += '<div class="st-h3"><div class="st-h3-bar" style="background:' + M[2] + '"></div><span>🗓️ Séance par séance</span></div>';
   for (var i = E.pts.length - 1; i >= 0; i--) {
     var p = E.pts[i], prec = i > 0 ? E.pts[i - 1] : null;
-    var ec = prec ? Math.round((p.ch - prec.ch) * 10) / 10 : null;
+    var ec = prec ? (modeLv ? (p.lv - prec.lv) : Math.round((p.ch - prec.ch) * 10) / 10) : null;
     h += '<div class="st-exo" style="display:flex;align-items:center;gap:10px">' +
       '<div style="flex:1"><div class="st-exo-n">' + frDate(p.d) + '</div>' +
-      '<div class="st-exo-l">' + (p.ch ? p.ch + ' kg × ' + p.rp : p.rp + ' ' + progTypeCourt(p.t)) +
+      '<div class="st-exo-l">' + (p.lv ? 'niveau ' + p.lv + ' × ' + p.rp : p.ch ? p.ch + ' kg × ' + p.rp : p.rp + ' ' + progTypeCourt(p.t)) +
       (p.vol ? ' · ' + p.vol + ' kg soulevés' : '') + '</div></div>' +
       (ec != null && ec !== 0
-        ? '<div class="st-exo-d" style="color:' + (ec > 0 ? "var(--st-ok)" : "var(--st-bad)") + '">' + (ec > 0 ? "+" : "") + ec + ' kg</div>'
+        ? '<div class="st-exo-d" style="color:' + (ec > 0 ? "var(--st-ok)" : "var(--st-bad)") + '">' + (ec > 0 ? "+" : "") + ec + (modeLv ? ' niv' : ' kg') + '</div>'
         : '') + '</div>';
   }
   h += '</div>';
@@ -9620,26 +9628,30 @@ function viewStats(name){
         for(var s2=0;s2<X.series.length;s2++){
           var SR=X.series[s2];
           if(!SR.ok)continue;
-          var ch=serieCharge(SR), rp=parseFloat(SR.v)||0;
-          if(!ch&&!rp)continue;
-          // Meilleure série : la charge d'abord, les répétitions pour départager.
-          if(!best||ch>best.ch||(ch===best.ch&&rp>best.rp))best={ch:ch,rp:rp,t:SR.t||"reps"};
+          var lv=(SR.u==="lvl")?(parseFloat(SR.c)||0):0;
+          var ch=lv?0:serieCharge(SR), rp=parseFloat(SR.v)||0;
+          if(!lv&&!ch&&!rp)continue;
+          // Meilleure série : le niveau ou la charge d'abord, les répétitions pour départager.
+          if(!best||lv>best.lv||(lv===best.lv&&(ch>best.ch||(ch===best.ch&&rp>best.rp))))best={lv:lv,ch:ch,rp:rp,t:SR.t||"reps"};
         }
         if(!best)continue;
         if(!suivi[X.ref]){suivi[X.ref]={nom:X.n,m:X.m,pts:[]};ordre.push(X.ref);}
-        suivi[X.ref].pts.push({d:J[j].d,ch:best.ch,rp:best.rp,t:best.t});
+        suivi[X.ref].pts.push({d:J[j].d,lv:best.lv,ch:best.ch,rp:best.rp,t:best.t});
       }
     }
     var lignes="",n=0;
     for(var o=0;o<ordre.length;o++){
       var E=suivi[ordre[o]];
-      if(E.pts.length<2)continue;
-      var p0=E.pts[0], p1=E.pts[E.pts.length-1], M=progMuscle(E.m);
+      var enLv=E.pts[E.pts.length-1].lv>0, PTS=enLv?E.pts.filter(function(q){return q.lv>0;}):E.pts;
+      if(PTS.length<2)continue;
+      var p0=PTS[0], p1=PTS[PTS.length-1], M=progMuscle(E.m);
       var unite=(p1.t==="duree")?" s":(p1.t==="distm")?" m":"";
-      var maintenant=p1.ch?(p1.ch+" kg × "+p1.rp):(p1.rp+unite);
-      var dCh=Math.round((p1.ch-p0.ch)*10)/10, dRp=p1.rp-p0.rp;
+      var maintenant=enLv?("niv "+p1.lv+" × "+p1.rp):(p1.ch?(p1.ch+" kg × "+p1.rp):(p1.rp+unite));
+      var dCh=Math.round((p1.ch-p0.ch)*10)/10, dRp=p1.rp-p0.rp, dLv=(p1.lv||0)-(p0.lv||0);
       var txt,coul;
-      if(p1.ch&&dCh>0){txt="+"+dCh+" kg depuis la 1re fois";coul="var(--st-ok)";}
+      if(enLv&&dLv>0){txt="+"+dLv+" niveau"+(dLv>1?"x":"")+" depuis la 1re fois";coul="var(--st-ok)";}
+      else if(enLv&&dLv<0){txt=dLv+" niveau depuis la 1re fois";coul="var(--st-bad)";}
+      else if(p1.ch&&dCh>0){txt="+"+dCh+" kg depuis la 1re fois";coul="var(--st-ok)";}
       else if(p1.ch&&dCh<0){txt=dCh+" kg depuis la 1re fois";coul="var(--st-bad)";}
       else if(dRp>0){txt="+"+dRp+" répétition"+(dRp>1?"s":"")+" à charge égale";coul="var(--st-ok)";}
       else if(dRp<0){txt=dRp+" répétition"+(dRp<-1?"s":"")+" vs la 1re fois";coul="var(--st-bad)";}
@@ -11670,7 +11682,7 @@ function progSetCoach(slug, p) { coachSaveSlot(slug, PROG_SLOT, p); }
 function progSerieTexte(s) {
   var v = (s.v === "" || s.v == null) ? "?" : s.v;
   var t = progTypeCourt(s.t);
-  var ch = (s.c === "" || s.c == null || s.c === 0) ? "" : " @ " + s.c + (s.u && s.u !== "—" ? " " + s.u : "");
+  var ch = (s.c === "" || s.c == null || s.c === 0) ? "" : (s.u === "lvl" ? " @ niv " + s.c : " @ " + s.c + (s.u && s.u !== "—" ? " " + s.u : ""));
   return v + " " + t + ch;
 }
 function progRepos(sec) {
@@ -11692,7 +11704,7 @@ function progVolume(exos) {
       // par 60 « kilos » et annonçait 3 600 kg soulevés. Sans le maxi de la
       // cliente, ce volume ne se calcule pas — on ne compte donc que les
       // séries chargées en kilos.
-      if (s.u === "%") continue;
+      if (s.u === "%" || s.u === "lvl") continue;
       // Le poids réellement soulevé prime sur la cible du coach.
       var rep = parseFloat(s.v) || 0;
       var ch = parseFloat(s.kg != null && s.kg !== "" ? s.kg : s.c) || 0;
@@ -13980,12 +13992,26 @@ function carnetNouveau(slug){
 }
 function carnetSerieVide(prev){
   prev=prev||{};
-  return {t:prev.t||"reps",v:prev.v!=null?prev.v:"",kg:prev.kg!=null?prev.kg:"",r:""};
+  return {t:prev.t||"reps",v:prev.v!=null?prev.v:"",kg:prev.kg!=null?prev.kg:"",u:prev.u==="lvl"?"lvl":"kg",r:""};
 }
 // Exercice de la bibliothèque → ligne du carnet
-function carnetExoDe(B){
-  var cardio=(B.m==="cardio");
-  return {ref:B.id,n:B.n,m:B.m,mat:B.mat||"",v:B.v||"",g:B.g||"",sup:0,series:[{t:cardio?"duree":"reps",v:"",kg:"",r:""}]};
+// Kg ou niveau de la machine : on reprend ce qu'il avait choisi la dernière fois.
+function carnetUnite(slug,ref){
+  var J=carnetJournal(slug);
+  for(var i=0;i<J.length;i++){
+    var E=J[i].exos||[];
+    for(var k=0;k<E.length;k++){
+      if(E[k].ref!==ref)continue;
+      var S=E[k].series||[];
+      for(var q=0;q<S.length;q++)if(S[q]&&S[q].u)return S[q].u==="lvl"?"lvl":"kg";
+      return "kg";
+    }
+  }
+  return "kg";
+}
+function carnetExoDe(B,slug){
+  var cardio=(B.m==="cardio"), u=slug?carnetUnite(slug,B.id):"kg";
+  return {ref:B.id,n:B.n,m:B.m,mat:B.mat||"",v:B.v||"",g:B.g||"",sup:0,u:u,series:[{t:cardio?"duree":"reps",v:"",kg:"",u:u,r:""}]};
 }
 // Ce qu'il a fait la dernière fois sur cet exercice (séance seul ou coachée)
 function carnetDernier(slug,ref,saufCid){
@@ -13998,8 +14024,9 @@ function carnetDernier(slug,ref,saufCid){
       var t=[];
       (E[k].series||[]).forEach(function(s){
         if(!s||(!s.ok&&s.ok!==undefined&&!s.kg))return;
-        var ch=(s.kg!==""&&s.kg!=null)?s.kg:((s.u==="kg"||!s.u)?s.c:"");
-        t.push((s.v===""||s.v==null?"?":s.v)+(s.t==="duree"?" s":"")+(ch!==""&&ch!=null&&ch!==0?" × "+ch+" kg":"")+(s.r?" ("+s.r+"/10)":""));
+        var lv=(s.u==="lvl"&&s.c!==""&&s.c!=null);
+        var ch=lv?"":((s.kg!==""&&s.kg!=null)?s.kg:((s.u==="kg"||!s.u)?s.c:""));
+        t.push((s.v===""||s.v==null?"?":s.v)+(s.t==="duree"?" s":"")+(lv?" × niv "+s.c:(ch!==""&&ch!=null&&ch!==0?" × "+ch+" kg":""))+(s.r?" ("+s.r+"/10)":""));
       });
       if(t.length)return {d:J[i].d,txt:t.join(" · ")};
     }
@@ -14012,7 +14039,8 @@ function carnetOuvrir(slug,cid){
     var J=carnetJournal(slug);
     for(var i=0;i<J.length;i++)if(J[i].cid===cid){W=JSON.parse(JSON.stringify(J[i]));break;}
     if(W)W.exos=(W.exos||[]).map(function(X){
-      X.series=(X.series||[]).map(function(s){return {t:s.t||"reps",v:s.v,kg:(s.kg!==""&&s.kg!=null)?s.kg:(s.u==="kg"?s.c:""),r:s.r||""};});
+      X.series=(X.series||[]).map(function(s){return {t:s.t||"reps",v:s.v,kg:(s.kg!==""&&s.kg!=null)?s.kg:((s.u==="kg"||s.u==="lvl")?s.c:""),u:s.u==="lvl"?"lvl":"kg",r:s.r||""};});
+      X.u=(X.series[0]&&X.series[0].u)||"kg";
       return X;
     });
   }else{
@@ -14028,6 +14056,131 @@ function carnetOuvrir(slug,cid){
     if(el&&state.carnet&&state.carnet.slug===slug){var t=document.createElement("div");t.innerHTML=carnetPointHTML(slug);el.parentNode.replaceChild(t.firstChild,el);}
   });}catch(e){}
 }
+// 🎚️ LA RÈGLE DE PROGRESSION D'AKLI. Tout fait au même niveau (ou à la même
+// charge) la dernière fois : on monte. Niveau atteint sur une partie des tours
+// seulement : on vise ce niveau sur toute la série, ou au moins les 3 premiers tours.
+function carnetNb(v){return String(v).replace(".",",");}
+function carnetAu(u,v){return u==="lvl"?"au niveau "+carnetNb(v):"à "+carnetNb(v)+" kg";}
+function carnetValTxt(u,v){return u==="lvl"?"niveau "+carnetNb(v):carnetNb(v)+" kg";}
+function carnetProgres(slug,ref,saufCid){
+  var J=carnetJournal(slug);
+  for(var i=0;i<J.length;i++){
+    if(saufCid&&J[i].cid===saufCid)continue;
+    var E=J[i].exos||[];
+    for(var k=0;k<E.length;k++){
+      if(E[k].ref!==ref)continue;
+      var vals=[],u=null;
+      (E[k].series||[]).forEach(function(s){
+        if(!s||s.ok===0)return;
+        var lv=(s.u==="lvl"), val;
+        if(lv)val=parseFloat(s.c);
+        else if(parseFloat(s.kg)>0)val=parseFloat(s.kg);
+        else val=(s.u==="kg"||!s.u)?parseFloat(s.c):NaN;
+        if(!(val>0))return;
+        u=lv?"lvl":"kg"; vals.push(val);
+      });
+      if(!vals.length)continue;
+      var mx=Math.max.apply(null,vals), nMx=vals.filter(function(v){return v===mx;}).length, tous=(nMx===vals.length);
+      return {d:J[i].d,u:u,max:mx,n:vals.length,nMax:nMx,tous:tous,type:tous?"monter":"tenir",
+        cible:u==="lvl"?(tous?mx+1:mx):(tous?null:mx)};
+    }
+  }
+  return null;
+}
+// Où en est la saisie du jour par rapport à cet objectif.
+function carnetProgresEtat(slug,X,W){
+  var G=carnetProgres(slug,X.ref,W.cid); if(!G)return null;
+  var u=(X.u==="lvl")?"lvl":"kg"; if(G.u!==u)return null;
+  var seuil=(G.cible!=null)?G.cible:G.max, strict=(G.cible==null);
+  var fait=X.series.length>0&&X.series.every(function(s){var v=parseFloat(s.kg);return v>0&&(strict?v>seuil:v>=seuil);});
+  return {G:G,u:u,fait:fait};
+}
+function carnetProgresHTML(slug,X,e,W){
+  var S=carnetProgresEtat(slug,X,W); if(!S)return "";
+  var G=S.G, d=frDate(G.d), tx, vert=(G.type==="monter"||S.fait), btn="";
+  if(S.fait)tx="✅ Progression faite : "+(G.cible!=null?"tout "+carnetAu(S.u,G.cible):"au-dessus de "+carnetValTxt(S.u,G.max))+".";
+  else if(G.type==="monter")tx="⬆️ Tout fait "+carnetAu(S.u,G.max)+" le "+d+", sans baisser. "+(G.cible!=null?"Passe "+carnetAu(S.u,G.cible)+".":"Augmente la charge.");
+  else tx="🎯 "+carnetValTxt(S.u,G.max).replace(/^./,function(c){return c.toUpperCase();})+" tenu sur "+G.nMax+" tour"+(G.nMax>1?"s":"")+" sur "+G.n+" le "+d+". Vise "+(S.u==="lvl"?"le niveau "+carnetNb(G.max):carnetNb(G.max)+" kg")+" sur toute la série"+(G.n>3?", ou au moins les 3 premiers tours":"")+".";
+  if(!S.fait&&G.cible!=null)btn='<button class="prg-mini" data-cn-appl="'+e+'" style="display:block;margin-top:7px">Mettre '+carnetValTxt(S.u,G.cible)+' partout</button>';
+  return '<div style="font-size:12.5px;font-weight:800;line-height:1.45;border-radius:10px;padding:8px 10px;margin-top:8px;'+
+    (vert?'background:#E8F7EE;border:1.5px solid #1E9E5A;color:#136B3C':'background:#FFF6E0;border:1.5px solid #D9A00B;color:#7A5A00')+'">'+esc(tx)+btn+'</div>';
+}
+// Le rappel en haut de séance : ce qu'il faut pousser aujourd'hui.
+function carnetAugmenterHTML(slug,W){
+  var up=[],hold=[];
+  W.exos.forEach(function(X){
+    var S=carnetProgresEtat(slug,X,W); if(!S||S.fait)return;
+    var G=S.G;
+    if(G.type==="monter")up.push(X.n+" ("+(S.u==="lvl"?"niv "+carnetNb(G.max)+" → "+carnetNb(G.cible):carnetNb(G.max)+" kg → plus")+")");
+    else hold.push(X.n+" ("+(S.u==="lvl"?"niv "+carnetNb(G.max):carnetNb(G.max)+" kg")+")");
+  });
+  var h="";
+  if(up.length)h+='<div style="background:#E8F7EE;border:1.5px solid #1E9E5A;color:#136B3C;border-radius:12px;padding:10px 12px;margin-bottom:10px;font-size:12.5px;font-weight:800;line-height:1.5">⬆️ À augmenter aujourd\'hui : '+esc(up.join(" · "))+'</div>';
+  if(hold.length)h+='<div style="background:#FFF6E0;border:1.5px solid #D9A00B;color:#7A5A00;border-radius:12px;padding:10px 12px;margin-bottom:10px;font-size:12.5px;font-weight:800;line-height:1.5">🎯 À tenir sur toute la série : '+esc(hold.join(" · "))+'</div>';
+  return h;
+}
+// ⚡ La forme sur 10, demandée au tout début : elle règle la séance du jour.
+function carnetFormeCol(n){return carnetDiffCol(11-n);}
+function carnetRangee(att,val){
+  var c='<div style="display:grid;grid-template-columns:repeat(10,1fr);gap:4px">';
+  for(var n=1;n<=10;n++){
+    var on=(+val===n), col=carnetFormeCol(n);
+    c+='<button data-'+att+'="'+n+'" style="padding:10px 0;border-radius:9px;font-weight:900;font-size:13px;border:2px solid '+col+';background:'+(on?col:'#fff')+';color:'+(on?'#fff':col)+'">'+n+'</button>';
+  }
+  return c+'</div>';
+}
+function carnetFormeHTML(C,W){
+  var J=carnetJournal(C.slug), prev=null;
+  for(var i=0;i<J.length;i++){if(J[i].cid!==W.cid&&J[i].forme){prev=J[i];break;}}
+  var f=+W.forme||0;
+  var tip=!f?"":(f<=4?"😴 Forme basse : garde ou allège les charges aujourd'hui.":f<=6?"😐 Forme moyenne : suis le plan et surveille le ressenti.":"💪 Bonne forme : tu peux viser la progression.");
+  return '<div class="card" style="padding:13px 14px;margin-bottom:12px;border-left:4px solid var(--brand)">'+
+    '<div style="font-weight:900;font-size:13.5px;margin-bottom:3px">⚡ Forme du jour, à demander en début de séance</div>'+
+    '<div class="card-label" style="margin-bottom:8px">SA FORME SUR 10 · 10 = EN PLEINE FORME'+(prev?' · DERNIÈRE FOIS '+prev.forme+'/10 ('+frDate(prev.d)+')':'')+'</div>'+
+    carnetRangee("cn-forme",W.forme)+
+    (tip?'<div style="font-size:12px;font-weight:800;margin-top:8px;color:'+carnetFormeCol(f)+'">'+tip+'</div>':'')+'</div>';
+}
+function carnetFormeFinHTML(W){
+  return '<div class="card-label" style="margin:14px 0 8px">SA FORME EN FIN DE SÉANCE · FACULTATIF</div>'+carnetRangee("cn-formefin",W.formeFin);
+}
+// 🕘 Le récap sous « Où il en est » : dernière séance, note, rythme de la semaine.
+function carnetRecapHTML(slug){
+  var J=carnetJournal(slug).slice().sort(function(a,b){return String(b.d).localeCompare(String(a.d));});
+  if(!J.length)return "";
+  var L=J[0], today=isoLocal();
+  function jours(d){return Math.round((new Date(today+"T12:00:00")-new Date(String(d).slice(0,10)+"T12:00:00"))/86400000);}
+  var n7=J.filter(function(E){var j=jours(E.d);return j>=0&&j<=6;}).length, depuis=jours(L.d), warn=depuis>=8;
+  var h='<div style="border-top:1px solid var(--line);margin-top:9px;padding-top:8px">'+
+    '<div style="font-size:12px;line-height:1.5;color:var(--ink2)"><b>🕘 Dernière séance</b> : '+esc(L.nom||"Séance")+' · '+frDate(L.d)+
+    (L.forme?' · forme '+L.forme+'/10':'')+(L.diff?' · difficulté '+L.diff+'/10':'')+(L.formeFin?' · fin '+L.formeFin+'/10':'')+(L.durN?' · le plus dur : '+esc(L.durN):'')+'</div>';
+  if(L.note){var nt=String(L.note);h+='<div style="font-size:12px;line-height:1.45;margin-top:4px;color:var(--ink2)">📝 « '+esc(nt.length>140?nt.slice(0,138)+"…":nt)+' »</div>';}
+  h+='<div style="font-size:12px;margin-top:4px;font-weight:'+(warn?900:600)+';color:'+(warn?'var(--bad)':'var(--ink2)')+'">🏋️ '+n7+' séance'+(n7>1?'s':'')+' sur les 7 derniers jours'+(depuis>=1?' · dernière il y a '+depuis+' jour'+(depuis>1?'s':''):' · dernière aujourd\'hui')+'</div>';
+  return h+'</div>';
+}
+// 🔁 Même séance qu'une précédente : exercices, séries, répétitions et charges
+// repris (ou le niveau de la machine), ressenti et note remis à blanc, date du
+// jour. Il ne change que ce qui bouge.
+function carnetRefaire(slug,cid){
+  var J=carnetJournal(slug), E=null;
+  for(var i=0;i<J.length;i++)if(J[i].cid===cid){E=J[i];break;}
+  if(!E)return;
+  var br=lsGet(carnetCle(slug),null);
+  if(br&&br.exos&&br.exos.length&&!confirm("Une séance en cours de saisie sera remplacée. Continuer ?"))return;
+  var W=carnetNouveau(slug);
+  W.nom=E.nom||"Séance coachée"; W.sid=E.sid||"coach"; W.depuis=E.d;
+  W.exos=(E.exos||[]).map(function(X){
+    var u=((X.series||[])[0]||{}).u==="lvl"?"lvl":"kg";
+    return {ref:X.ref,n:X.n,m:X.m,mat:X.mat||"",v:X.v||"",g:X.g||"",sup:X.sup?1:0,u:u,
+      series:(X.series||[]).map(function(s){
+        var val=(s.kg!==""&&s.kg!=null)?s.kg:((s.u==="kg"||s.u==="lvl")?s.c:"");
+        return {t:s.t||"reps",v:(s.v==null?"":s.v),kg:(val==null?"":val),u:s.u==="lvl"?"lvl":"kg",r:""};
+      })};
+  });
+  state.carnet={slug:slug,edit:false,w:W,pick:false,q:""};
+  carnetGarder();
+  render();
+  try{window.scrollTo(0,0);}catch(e){}
+}
 function carnetGarder(){
   var C=state.carnet; if(!C||C.edit)return;
   try{lsSet(carnetCle(C.slug),C.w);}catch(e){}
@@ -14038,12 +14191,22 @@ function carnetListeHTML(slug){
     '<button class="carnet-new big-btn" data-s="'+esc(slug)+'" style="padding:13px 0;font-size:13.5px;margin-bottom:12px">📓 Noter une séance coachée</button>';
   if(lsGet(carnetCle(slug),null))h+='<div style="font-size:11.5px;color:var(--warn-d);font-weight:800;margin:-6px 0 10px">💾 Une séance en cours de saisie t\'attend : le bouton la rouvre.</div>';
   if(!J.length)return h+'<div style="font-size:12px;color:var(--mute)">Aucune séance notée pour l\'instant.</div>';
+  // 🔁 Les séances qui reviennent chaque semaine : une touche, mêmes exercices,
+  // mêmes charges, date du jour. Une seule ligne par nom de séance.
+  var vues={}, rf=[];
+  J.forEach(function(E){var k=String(E.nom||"").trim().toLowerCase(); if(!vues[k]&&rf.length<6){vues[k]=1;rf.push(E);}});
+  h+='<div class="card-label" style="margin:2px 0 7px">🔁 Refaire une séance, nouvelle date</div>'+
+    '<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">'+
+    rf.map(function(E){return '<button class="carnet-refaire" data-s="'+esc(slug)+'" data-c="'+esc(E.cid)+'" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:11px 12px;border-radius:12px;border:2px solid var(--brand);background:var(--card)">'+
+      '<span style="font-size:18px">🔁</span><span style="flex:1;min-width:0"><b style="display:block;font-size:13px;color:var(--ink)">'+esc(E.nom||"Séance")+'</b>'+
+      '<span style="font-size:11px;color:var(--mute);font-weight:700">dernière fois le '+frDate(E.d)+'</span></span><span style="font-weight:900;color:var(--brand)">›</span></button>';}).join("")+'</div>'+
+    '<div class="card-label" style="margin:2px 0 7px">Séances notées</div>';
   J.slice(0,12).forEach(function(E){
     var ns=0,rs=[];(E.exos||[]).forEach(function(X){(X.series||[]).forEach(function(s){ns++;if(s.r)rs.push(+s.r);});});
     var rm=rs.length?Math.round(rs.reduce(function(a,b){return a+b;},0)/rs.length*10)/10:null;
     h+='<button class="carnet-open" data-s="'+esc(slug)+'" data-c="'+esc(E.cid)+'" style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:11px 12px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);margin-bottom:7px">'+
       '<span style="font-size:20px">📓</span><span style="flex:1;min-width:0"><b style="display:block;font-size:13px;color:var(--ink)">'+esc(E.nom||"Séance")+'</b>'+
-      '<span style="font-size:11px;color:var(--mute);font-weight:700">'+frDate(E.d)+' · '+(E.exos||[]).length+' exos · '+ns+' séries'+(E.vol?' · '+E.vol+' kg':'')+(E.diff?' · <b style="color:'+carnetDiffCol(E.diff)+'">difficulté '+E.diff+'/10</b>':(rm!=null?' · ressenti '+String(rm).replace(".",",")+'/10':''))+
+      '<span style="font-size:11px;color:var(--mute);font-weight:700">'+frDate(E.d)+' · '+(E.exos||[]).length+' exos · '+ns+' séries'+(E.vol?' · '+E.vol+' kg':'')+(E.forme?' · forme '+E.forme+'/10':'')+(E.diff?' · <b style="color:'+carnetDiffCol(E.diff)+'">difficulté '+E.diff+'/10</b>':(rm!=null?' · ressenti '+String(rm).replace(".",",")+'/10':''))+
       (E.durN?'<br>🔥 Le plus dur : '+esc(E.durN):'')+'</span></span>'+
       '<span style="color:var(--mute);font-weight:900">›</span></button>';
   });
@@ -14111,6 +14274,7 @@ function carnetPoint(slug){
   }
   // Poids qui remonte sur 7 jours
   if(R.d7!=null&&R.d7>=0.5)R.lignes.unshift(["⚖️","Poids en hausse : +"+String(R.d7).replace(".",",")+" kg en 7 jours. Fais le point avec lui.",1]);
+  else if(R.d7!=null&&Math.abs(R.d7)<0.4&&R.dPoids!=null&&R.dPoids<=4)R.lignes.unshift(["⚖️","Poids stable depuis 7 jours ("+(R.d7>0?"+":"")+String(R.d7).replace(".",",")+" kg) : il stagne. Regarde les menus et le sommeil.",1]);
   // Son cycle (clientes) : la séance conseillée du moment
   try{var cy=cycGet(all); if(cy&&cy.on){var E=cycEtat(cy); if(E)R.lignes.push([E.def.icone,"Cycle jour "+E.jour+" · "+E.def.nom+" · énergie "+E.def.energie.toLowerCase()+". Séance conseillée : "+E.def.sport,0]);}}catch(e){}
   // Anniversaire : aujourd'hui, ou dans les 14 jours
@@ -14137,7 +14301,8 @@ function carnetPointHTML(slug){
     var dc=R.debut, col=dc<0?"var(--ok-d)":dc>0?"var(--warn-d)":"var(--mute)";
     h+='<div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:6px"><span style="font-size:22px;font-weight:900">'+String(R.poids).replace(".",",")+' kg</span>'+
       '<span style="font-size:11.5px;font-weight:800;color:var(--mute)">'+(R.dPoids===0?"pesé aujourd'hui":R.dPoids===1?"pesé hier":"pesé il y a "+R.dPoids+" j")+'</span>'+
-      (dc?'<span style="font-size:12px;font-weight:900;color:'+col+'">'+(dc>0?"+":"")+String(dc).replace(".",",")+' kg depuis le début</span>':'')+'</div>';
+      (dc?'<span style="font-size:12px;font-weight:900;color:'+col+'">'+(dc>0?"+":"")+String(dc).replace(".",",")+' kg depuis le début</span>':'')+
+      (R.d7!=null?'<span style="font-size:11.5px;font-weight:800;color:'+(R.d7<0?"var(--ok-d)":R.d7>=0.4?"var(--warn-d)":"var(--mute)")+'">'+(R.d7>0?"+":"")+String(R.d7).replace(".",",")+' kg sur 7 j</span>':'')+'</div>';
   }else h+='<div style="font-size:12px;color:var(--mute);margin-bottom:6px">⚖️ Aucune pesée notée pour l\'instant.</div>';
   if(R.bday)h+='<div style="font-size:12.5px;font-weight:900;color:var(--brand);background:var(--soft);border-radius:9px;padding:7px 9px;margin-bottom:6px">'+esc(R.bday)+'</div>';
   R.lignes.forEach(function(Li){
@@ -14146,6 +14311,7 @@ function carnetPointHTML(slug){
   });
   if(R.ok.length)h+='<div style="font-size:11px;color:var(--ok-d);font-weight:800;margin-top:7px">✅ '+esc(R.ok.join(" · "))+'</div>';
   if(!R.lignes.length&&R.poids!=null)h+='<div style="font-size:11.5px;color:var(--mute);margin-top:4px">Sur les 7 derniers jours, rien à signaler.</div>';
+  h+=carnetRecapHTML(slug);
   return h+'</div>';
 }
 // Indices des exercices du circuit qui contient e (lui seul s'il n'est pas enchaîné).
@@ -14164,7 +14330,9 @@ function viewCarnet(){
     '<div style="flex:1;min-width:0"><div class="prg-titre">📓 '+esc(nomC)+'</div><div class="prg-sous">'+(C.edit?'Modifier la séance':'Séance coachée')+' · tout est gardé pendant la saisie</div></div></div>'+
     '<div style="padding:12px 13px 120px">'+carnetPointHTML(C.slug)+
     '<div style="display:flex;gap:8px;margin-bottom:10px"><input id="cn-nom" class="prg-search" style="flex:1.6;margin:0" value="'+esc(W.nom)+'" placeholder="Nom de la séance"/>'+
-    '<input id="cn-d" type="date" class="prg-search" style="flex:1;margin:0" value="'+esc(W.d)+'"/></div>';
+    '<input id="cn-d" type="date" class="prg-search" style="flex:1;margin:0" value="'+esc(W.d)+'"/></div>'+
+    (W.depuis?'<div style="font-size:12px;font-weight:800;color:var(--brand);background:var(--soft);border-radius:10px;padding:9px 11px;margin:-2px 0 10px;line-height:1.45">🔁 Valeurs de la séance du '+frDate(W.depuis)+' reprises. Change seulement ce qui bouge : charge, niveau ou répétitions, puis la date si besoin.</div>':'');
+  h+=carnetFormeHTML(C,W)+carnetAugmenterHTML(C.slug,W);
   if(!W.exos.length){
     var L=seaGet();
     h+='<div class="card" style="padding:13px 14px;margin-bottom:12px"><div style="font-weight:800;font-size:13px;margin-bottom:8px">Partir d\'une séance type</div>'+
@@ -14184,17 +14352,19 @@ function viewCarnet(){
       '<div style="flex:1;min-width:0"><div style="font-weight:900;font-size:14.5px">'+esc(X.n)+'</div>'+
       '<div style="font-size:11px;color:var(--mute);font-weight:700">'+M[1]+(X.mat?' · '+esc(X.mat):'')+'</div></div></div>'+
       (D?'<div style="font-size:11.5px;color:var(--ink2);background:var(--soft);border-radius:9px;padding:6px 9px;margin-top:8px">🕘 Dernière fois ('+frDate(D.d)+') : '+esc(D.txt)+'</div>':'')+
+      carnetProgresHTML(C.slug,X,e,W)+
       '<div style="display:grid;grid-template-columns:26px 1fr 1fr 1.4fr 26px;gap:6px;align-items:center;margin-top:9px;font-size:10.5px;font-weight:900;color:var(--mute)">'+
-      '<span></span><span>'+(X.series[0]&&X.series[0].t==="duree"?'SECONDES':'RÉP.')+'</span><span>KG</span><span>RESSENTI</span><span></span></div>';
+      '<span></span><span>'+(X.series[0]&&X.series[0].t==="duree"?'SECONDES':'RÉP.')+'</span><button class="prg-mini'+(X.u==="lvl"?' on':'')+'" data-cn-u="'+e+'" style="padding:5px 2px;font-size:10.5px;font-weight:900">'+(X.u==="lvl"?'NIVEAU':'KG')+' ⇄</button><span>RESSENTI</span><span></span></div>';
     X.series.forEach(function(s,k){
       h+='<div style="display:grid;grid-template-columns:26px 1fr 1fr 1.4fr 26px;gap:6px;align-items:center;margin-top:5px">'+
         '<span style="font-weight:900;font-size:12px;color:'+(enCirc?'var(--violet)':'var(--mute)')+'">'+(enCirc?'T':'S')+(k+1)+'</span>'+
         '<input class="num-input" style="margin:0;padding:9px 6px;text-align:center" type="number" inputmode="decimal" data-cn-v="'+e+'.'+k+'" value="'+esc(s.v==null?"":String(s.v))+'"/>'+
-        '<input class="num-input" style="margin:0;padding:9px 6px;text-align:center" type="number" step="0.5" inputmode="decimal" data-cn-kg="'+e+'.'+k+'" value="'+esc(s.kg==null?"":String(s.kg))+'"/>'+
+        '<input class="num-input" style="margin:0;padding:9px 6px;text-align:center" type="number" step="'+(X.u==="lvl"?'1':'0.5')+'" inputmode="decimal" placeholder="'+(X.u==="lvl"?'niv':'kg')+'" data-cn-kg="'+e+'.'+k+'" value="'+esc(s.kg==null?"":String(s.kg))+'"/>'+
         '<select class="prg-sel" style="padding:9px 4px;font-size:12px" data-cn-r="'+e+'.'+k+'">'+CARNET_RESSENTI.map(function(o){return '<option value="'+o[0]+'"'+(String(s.r||"")===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join("")+'</select>'+
         '<button class="prg-x" data-cn-delser="'+e+'.'+k+'">✕</button></div>';
     });
     h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:9px">'+
+      '<button class="prg-mini'+(W.dur===X.ref?' on':'')+'" data-cn-dur="'+e+'">🔥 '+(W.dur===X.ref?'Le plus dur ✓':'Le plus dur')+'</button>'+
       '<button class="prg-mini" data-cn-addser="'+e+'">'+(enCirc?'＋ Tour (tout le circuit)':'＋ Série')+'</button>'+
       (e<W.exos.length-1?'<button class="prg-mini'+(X.sup?' on':'')+'" data-cn-sup="'+e+'">⛓️ '+(X.sup?'Circuit activé':'Enchaîner au suivant')+'</button>':'')+
       '<button class="prg-mini" data-cn-up="'+e+'">↑</button><button class="prg-mini" data-cn-down="'+e+'">↓</button>'+
@@ -14211,7 +14381,7 @@ function viewCarnet(){
         var on=(+W.diff===n), col=carnetDiffCol(n);
         c+='<button data-cn-diff="'+n+'" style="padding:10px 0;border-radius:9px;font-weight:900;font-size:13px;border:2px solid '+col+';background:'+(on?col:'#fff')+';color:'+(on?'#fff':col)+'">'+n+'</button>';
       }
-      return c+'</div>'+(W.diff?'<div style="font-size:11.5px;font-weight:800;margin-top:7px;color:'+carnetDiffCol(+W.diff)+'">'+carnetDiffMot(+W.diff)+'</div>':'')+'</div>';
+      return c+'</div>'+(W.diff?'<div style="font-size:11.5px;font-weight:800;margin-top:7px;color:'+carnetDiffCol(+W.diff)+'">'+carnetDiffMot(+W.diff)+'</div>':'')+carnetFormeFinHTML(W)+'</div>';
     })():'')+
     '<div class="card-label">NOTE DE SÉANCE</div><textarea id="cn-note" class="num-input" rows="2" style="resize:vertical" placeholder="Forme du jour, douleur, consignes…">'+esc(W.note||"")+'</textarea>'+
     '</div><div class="prg-barre" style="display:flex;gap:8px">'+
@@ -14245,7 +14415,7 @@ function bindCarnet(){
     if(qi){qi.addEventListener("input",function(){C.q=this.value;var p=this.selectionStart;render();var n=document.getElementById("cn-q");if(n){n.focus();try{n.setSelectionRange(p,p);}catch(e){}}});}
     q("[data-cn-pick]").forEach(function(el){el.addEventListener("click",function(){
       var id=this.getAttribute("data-cn-pick"),B=null;bibGet().forEach(function(x){if(x.id===id)B=x;});
-      if(B){W.exos.push(carnetExoDe(B));C.pick=false;C.q="";maj();}
+      if(B){W.exos.push(carnetExoDe(B,C.slug));C.pick=false;C.q="";maj();}
     });});
     return;
   }
@@ -14260,12 +14430,24 @@ function bindCarnet(){
     W.nom=S.nom; W.sid=S.id;
     W.exos=(S.exos||[]).map(function(X){
       return {ref:X.ref,n:X.n,m:X.m,mat:X.mat||"",v:X.v||"",g:X.g||"",sup:X.sup?1:0,
-        series:(X.series||[{t:"reps"}]).map(function(s){return {t:s.t||"reps",v:(s.v!=null?s.v:""),kg:(s.u==="kg"&&s.c!==""&&s.c!=null)?s.c:"",r:""};})};
+        u:(X.series&&X.series[0]&&X.series[0].u==="lvl")?"lvl":carnetUnite(C.slug,X.ref),
+        series:(X.series||[{t:"reps"}]).map(function(s){var lv=(s.u==="lvl");return {t:s.t||"reps",v:(s.v!=null?s.v:""),kg:((s.u==="kg"||lv)&&s.c!==""&&s.c!=null)?s.c:"",u:lv?"lvl":carnetUnite(C.slug,X.ref),r:""};})};
     });
     maj();
   });
   q("[data-cn-v]").forEach(function(el){el.addEventListener("input",function(){var k=cle(this,"data-cn-v");W.exos[k[0]].series[k[1]].v=this.value===""?"":parseFloat(this.value);maj(false);});});
   q("[data-cn-kg]").forEach(function(el){el.addEventListener("input",function(){var k=cle(this,"data-cn-kg");W.exos[k[0]].series[k[1]].kg=this.value===""?"":parseFloat(this.value);maj(false);});});
+  q("[data-cn-forme]").forEach(function(el){el.addEventListener("click",function(){var n=+this.getAttribute("data-cn-forme");W.forme=(+W.forme===n)?null:n;maj();});});
+  q("[data-cn-formefin]").forEach(function(el){el.addEventListener("click",function(){var n=+this.getAttribute("data-cn-formefin");W.formeFin=(+W.formeFin===n)?null:n;maj();});});
+  q("[data-cn-dur]").forEach(function(el){el.addEventListener("click",function(){var e=+this.getAttribute("data-cn-dur"),r=W.exos[e].ref;W.dur=(W.dur===r)?"":r;maj();});});
+  q("[data-cn-appl]").forEach(function(el){el.addEventListener("click",function(){
+    var e=+this.getAttribute("data-cn-appl"), X=W.exos[e], S=carnetProgresEtat(C.slug,X,W);
+    if(S&&S.G.cible!=null){X.series.forEach(function(s){s.kg=S.G.cible;});maj();}
+  });});
+  q("[data-cn-u]").forEach(function(el){el.addEventListener("click",function(){
+    var e=+this.getAttribute("data-cn-u"), X=W.exos[e], n=(X.u==="lvl")?"kg":"lvl";
+    X.u=n; X.series.forEach(function(s){s.u=n;}); maj();
+  });});
   q("[data-cn-r]").forEach(function(el){el.addEventListener("change",function(){var k=cle(this,"data-cn-r");W.exos[k[0]].series[k[1]].r=this.value;maj(false);});});
   q("[data-cn-delser]").forEach(function(el){el.addEventListener("click",function(){var k=cle(this,"data-cn-delser");var S=W.exos[k[0]].series;if(S.length>1){S.splice(k[1],1);maj();}});});
   q("[data-cn-addser]").forEach(function(el){el.addEventListener("click",function(){
@@ -14302,7 +14484,8 @@ function bindCarnet(){
         var a=(s.v!==""&&s.v!=null), b=(s.kg!==""&&s.kg!=null);
         if(!a&&!b)return;
         nbS++; if(s.r)rs.push(+s.r);
-        S.push({t:s.t||"reps",v:a?s.v:"",c:b?s.kg:"",u:b?"kg":"—",kg:b?s.kg:"",r:s.r||"",ok:1});
+        var lv=(s.u==="lvl");
+        S.push({t:s.t||"reps",v:a?s.v:"",c:b?s.kg:"",u:b?(lv?"lvl":"kg"):"—",kg:(b&&!lv)?s.kg:"",r:s.r||"",ok:1});
       });
       if(S.length)exos.push({ref:X.ref,n:X.n,m:X.m,mat:X.mat,v:X.v,g:X.g,sup:X.sup?1:0,repos:0,note:"",series:S});
     });
@@ -14310,6 +14493,8 @@ function bindCarnet(){
     var E={d:W.d||isoLocal(),cid:W.cid,sid:W.sid||"coach",nom:(W.nom||"Séance coachée").trim(),vol:progVolume(exos),exos:exos,coach:1,note:W.note||"",
            rpe:rs.length?Math.round(rs.reduce(function(a,b){return a+b;},0)/rs.length*10)/10:null};
     if(W.diff)E.diff=+W.diff;
+    if(W.forme)E.forme=+W.forme;
+    if(W.formeFin)E.formeFin=+W.formeFin;
     if(W.dur){exos.forEach(function(X){if(X.ref===W.dur){E.dur=X.ref;E.durN=X.n;}});}
     var all=lsGet("amcoach_"+C.slug,{}), P=JSON.parse(JSON.stringify(all[520]||{}));
     P.journal=(P.journal||[]).filter(function(x){return x.cid!==E.cid;});
@@ -19946,6 +20131,7 @@ function bilanReport(slug,idx,mode,listeAutre,nomAutre){
 function bindCoach(){
   if(state.carnet){try{bindCarnet();}catch(e){}return;}
   document.querySelectorAll(".carnet-new").forEach(function(b){b.addEventListener("click",function(){carnetOuvrir(this.getAttribute("data-s"));});});
+  document.querySelectorAll(".carnet-refaire").forEach(function(b){b.addEventListener("click",function(){carnetRefaire(this.getAttribute("data-s"),this.getAttribute("data-c"));});});
   document.querySelectorAll(".carnet-open").forEach(function(b){b.addEventListener("click",function(){carnetOuvrir(this.getAttribute("data-s"),this.getAttribute("data-c"));});});
   try{runCoachBind();}catch(e){}
   // 🏋️ Le constructeur de séance est un écran à part entière : il a ses

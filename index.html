@@ -1207,7 +1207,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "15/11 - Écart de poids exact";
+var APP_VERSION = "15/11 - Remplacer un exercice";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -14769,6 +14769,7 @@ function viewCarnet(){
     });
     h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:9px">'+
       '<button class="prg-mini'+(W.dur===X.ref?' on':'')+'" data-cn-dur="'+e+'">🔥 '+(W.dur===X.ref?'Le plus dur ✓':'Le plus dur')+'</button>'+
+      '<button class="prg-mini" data-cn-remp="'+e+'">🔁 Remplacer</button>'+
       '<button class="prg-mini" data-cn-addser="'+e+'">'+(enCirc?'＋ Tour (tout le circuit)':'＋ Série')+'</button>'+
       (e<W.exos.length-1?'<button class="prg-mini'+(X.sup?' on':'')+'" data-cn-sup="'+e+'">⛓️ '+(X.sup?'Circuit activé':'Enchaîner au suivant')+'</button>':'')+
       '<button class="prg-mini" data-cn-up="'+e+'">↑</button><button class="prg-mini" data-cn-down="'+e+'">↓</button>'+
@@ -14799,7 +14800,7 @@ function viewCarnetPick(){
   if(q)rechTrier(L,q);
   L.sort(function(a,c){return (c.f?1:0)-(a.f?1:0);});
   var h='<div class="app" style="max-width:640px"><div class="prg-top"><button id="cn-pick-back" class="prg-back">‹</button>'+
-    '<div style="flex:1"><div class="prg-titre">Ajouter des exercices</div><div class="prg-sous">Touche-en un ou plusieurs, puis « Ajouter » · ⭐ en premier</div></div></div>'+
+    '<div style="flex:1"><div class="prg-titre">'+(C.remp!=null&&C.w.exos[C.remp]?'Remplacer l\'exercice':'Ajouter des exercices')+'</div><div class="prg-sous">'+(C.remp!=null&&C.w.exos[C.remp]?'À la place de « '+esc(C.w.exos[C.remp].n)+' » · il garde sa place, ses tours et ses répétitions':'Touche-en un ou plusieurs, puis « Ajouter » · ⭐ en premier')+'</div></div></div>'+
     '<div style="padding:12px 13px 110px"><input id="cn-q" class="prg-search" placeholder="Rechercher un exercice, un muscle…" value="'+esc(C.q||"")+'"/>';
   // Plusieurs exercices d'un coup : chaque appui coche ou décoche, le numéro
   // donne l'ordre dans lequel ils entreront dans la séance.
@@ -14824,7 +14825,7 @@ function bindCarnet(){
   function q(sel){return document.querySelectorAll(sel);}
   function cle(el,a){var p=String(el.getAttribute(a)).split(".");return [parseInt(p[0],10),parseInt(p[1],10)];}
   if(C.pick){
-    var bk0=document.getElementById("cn-pick-back"); if(bk0)bk0.addEventListener("click",function(){C.pick=false;C.sel=[];render();});
+    var bk0=document.getElementById("cn-pick-back"); if(bk0)bk0.addEventListener("click",function(){C.pick=false;C.sel=[];C.remp=null;render();});
     var okp=document.getElementById("cn-pick-ok");
     if(okp)okp.addEventListener("click",function(){
       var bb=bibGet(), n=0;
@@ -14835,7 +14836,22 @@ function bindCarnet(){
     var qi=document.getElementById("cn-q");
     if(qi){qi.addEventListener("input",function(){C.q=this.value;var p=this.selectionStart;render();var n=document.getElementById("cn-q");if(n){n.focus();try{n.setSelectionRange(p,p);}catch(e){}}});}
     q("[data-cn-pick]").forEach(function(el){el.addEventListener("click",function(){
-      var id=this.getAttribute("data-cn-pick"), S2=C.sel||(C.sel=[]), k=S2.indexOf(id), y=window.pageYOffset;
+      var id=this.getAttribute("data-cn-pick");
+      // 🔁 Remplacement : l'exercice change, la place dans le circuit, le nombre
+      // de tours et les répétitions restent. Les charges repartent à vide :
+      // celles de l'ancien exercice ne veulent rien dire pour le nouveau.
+      if(C.remp!=null&&W.exos[C.remp]){
+        var B=null; bibGet().forEach(function(x){if(x.id===id)B=x;});
+        if(!B)return;
+        var X=W.exos[C.remp], ancien=X.n, u=carnetUnite(C.slug,B.id);
+        if(W.dur===X.ref)W.dur="";
+        X.ref=B.id; X.n=B.n; X.m=B.m; X.mat=B.mat||""; X.v=B.v||""; X.g=B.g||""; X.u=u;
+        X.series.forEach(function(z){z.kg="";z.u=u;z.r="";});
+        C.remp=null;C.pick=false;C.q="";C.sel=[];maj();
+        try{feedback("🔁 « "+ancien+" » remplacé par « "+B.n+" »","ok");}catch(e){}
+        return;
+      }
+      var S2=C.sel||(C.sel=[]), k=S2.indexOf(id), y=window.pageYOffset;
       if(k>=0)S2.splice(k,1); else S2.push(id);
       render(); try{window.scrollTo(0,y);}catch(e){}
     });});
@@ -14859,6 +14875,7 @@ function bindCarnet(){
   });
   q("[data-cn-v]").forEach(function(el){el.addEventListener("input",function(){var k=cle(this,"data-cn-v");W.exos[k[0]].series[k[1]].v=this.value===""?"":parseFloat(this.value);maj(false);carnetCopieProposer(W,k[0],k[1],"v",maj);});});
   q("[data-cn-kg]").forEach(function(el){el.addEventListener("input",function(){var k=cle(this,"data-cn-kg");W.exos[k[0]].series[k[1]].kg=this.value===""?"":parseFloat(this.value);maj(false);carnetCopieProposer(W,k[0],k[1],"kg",maj);});});
+  q("[data-cn-remp]").forEach(function(el){el.addEventListener("click",function(){C.remp=+this.getAttribute("data-cn-remp");C.sel=[];C.q="";C.pick=true;render();window.scrollTo(0,0);});});
   q("[data-cn-forme]").forEach(function(el){el.addEventListener("click",function(){var n=+this.getAttribute("data-cn-forme");W.forme=(+W.forme===n)?null:n;maj();});});
   q("[data-cn-formefin]").forEach(function(el){el.addEventListener("click",function(){var n=+this.getAttribute("data-cn-formefin");W.formeFin=(+W.formeFin===n)?null:n;maj();});});
   q("[data-cn-dur]").forEach(function(el){el.addEventListener("click",function(){var e=+this.getAttribute("data-cn-dur"),r=W.exos[e].ref;W.dur=(W.dur===r)?"":r;maj();});});
@@ -14892,7 +14909,7 @@ function bindCarnet(){
   q("[data-cn-del]").forEach(function(el){el.addEventListener("click",function(){var e=+this.getAttribute("data-cn-del");if(confirm("Retirer « "+W.exos[e].n+" » ?")){W.exos.splice(e,1);if(W.exos.length&&W.exos[W.exos.length-1].sup)W.exos[W.exos.length-1].sup=0;maj();}});});
   var du=document.getElementById("cn-dur"); if(du)du.addEventListener("change",function(){W.dur=this.value;maj(false);});
   q("[data-cn-diff]").forEach(function(el){el.addEventListener("click",function(){var n=+this.getAttribute("data-cn-diff");W.diff=(+W.diff===n)?null:n;maj();});});
-  var ad=document.getElementById("cn-add"); if(ad)ad.addEventListener("click",function(){C.pick=true;C.q="";render();});
+  var ad=document.getElementById("cn-add"); if(ad)ad.addEventListener("click",function(){C.remp=null;C.pick=true;C.q="";render();});
   var vd=document.getElementById("cn-vider");
   if(vd)vd.addEventListener("click",function(){if(!confirm("Vider cette séance et repartir de zéro ?"))return;C.w=carnetNouveau(C.slug);try{localStorage.removeItem(carnetCle(C.slug));}catch(e){}render();});
   var sp=document.getElementById("cn-suppr");

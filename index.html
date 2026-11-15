@@ -1207,7 +1207,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "15/11 - Où il en est";
+var APP_VERSION = "15/11 - Écart de poids exact";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -14629,7 +14629,10 @@ function carnetPoint(slug){
   if(P.length){
     var der=P[P.length-1]; R.poids=der.w; R.dPoids=fin-der.i; R.debut=Math.round((der.w-P[0].w)*10)/10;
     var avant=null; for(var k=P.length-1;k>=0;k--){if(P[k].i<=der.i-6){avant=P[k];break;}}
-    if(avant)R.d7=Math.round((der.w-avant.w)*10)/10;
+    // L'écart « sur une semaine » se lit entre deux VRAIES pesées : on affiche
+    // le nombre de jours réel qui les sépare, pas un « 7 jours » arrondi.
+    if(avant){R.d7=Math.round((der.w-avant.w)*10)/10;R.d7j=der.i-avant.i;}
+    if(P.length>1){var pv=P[P.length-2];R.dPrec=Math.round((der.w-pv.w)*10)/10;R.dPrecJ=der.i-pv.i;}
   }
   if(t<0){R.lignes.push(["🗓️","Son programme démarre le "+isoVersFr(st)+".",0]);return R;}
   // Les 7 derniers jours terminés (aujourd'hui compte s'il est déjà rempli)
@@ -14673,8 +14676,8 @@ function carnetPoint(slug){
     }
   }
   // Poids qui remonte sur 7 jours
-  if(R.d7!=null&&R.d7>=0.5)R.lignes.unshift(["⚖️","Poids en hausse : +"+String(R.d7).replace(".",",")+" kg en 7 jours. Fais le point avec lui.",1]);
-  else if(R.d7!=null&&Math.abs(R.d7)<0.4&&R.dPoids!=null&&R.dPoids<=4)R.lignes.unshift(["⚖️","Poids stable depuis 7 jours ("+(R.d7>0?"+":"")+String(R.d7).replace(".",",")+" kg) : il stagne. Regarde les menus et le sommeil.",1]);
+  if(R.d7!=null&&R.d7>=0.5)R.lignes.unshift(["⚖️","Poids en hausse : +"+String(R.d7).replace(".",",")+" kg en "+(R.d7j||7)+" jours. Fais le point avec lui.",1]);
+  else if(R.d7!=null&&Math.abs(R.d7)<0.4&&R.dPoids!=null&&R.dPoids<=4)R.lignes.unshift(["⚖️","Poids stable depuis "+(R.d7j||7)+" jours ("+(R.d7>0?"+":"")+String(R.d7).replace(".",",")+" kg) : il stagne. Regarde les menus et le sommeil.",1]);
   // Son cycle (clientes) : la séance conseillée du moment
   try{var cy=cycGet(all); if(cy&&cy.on){var E=cycEtat(cy); if(E)R.lignes.push([E.def.icone,"Cycle jour "+E.jour+" · "+E.def.nom+" · énergie "+E.def.energie.toLowerCase()+". Séance conseillée : "+E.def.sport,0]);}}catch(e){}
   // Anniversaire : aujourd'hui, ou dans les 14 jours
@@ -14702,7 +14705,8 @@ function carnetPointHTML(slug){
     h+='<div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:6px"><span style="font-size:22px;font-weight:900">'+String(R.poids).replace(".",",")+' kg</span>'+
       '<span style="font-size:11.5px;font-weight:800;color:var(--mute)">'+(R.dPoids===0?"pesé aujourd'hui":R.dPoids===1?"pesé hier":"pesé il y a "+R.dPoids+" j")+'</span>'+
       (dc?'<span style="font-size:12px;font-weight:900;color:'+col+'">'+(dc>0?"+":"")+String(dc).replace(".",",")+' kg depuis le début</span>':'')+
-      (R.d7!=null?'<span style="font-size:11.5px;font-weight:800;color:'+(R.d7<0?"var(--ok-d)":R.d7>=0.4?"var(--warn-d)":"var(--mute)")+'">'+(R.d7>0?"+":"")+String(R.d7).replace(".",",")+' kg sur 7 j</span>':'')+'</div>';
+      (R.d7!=null?'<span style="font-size:11.5px;font-weight:800;color:'+(R.d7<0?"var(--ok-d)":R.d7>=0.4?"var(--warn-d)":"var(--mute)")+'">'+(R.d7>0?"+":"")+String(R.d7).replace(".",",")+' kg en '+(R.d7j||7)+' j</span>':'')+
+      (R.dPrec!=null&&R.dPrecJ!==R.d7j?'<span style="font-size:11.5px;font-weight:800;color:'+(R.dPrec<0?"var(--ok-d)":R.dPrec>0?"var(--warn-d)":"var(--mute)")+'">'+(R.dPrec>0?"+":"")+String(R.dPrec).replace(".",",")+' kg depuis la pesée d\'avant (il y a '+R.dPrecJ+' j)</span>':'')+'</div>';
   }else h+='<div style="font-size:12px;color:var(--mute);margin-bottom:6px">⚖️ Aucune pesée notée pour l\'instant.</div>';
   if(R.bday)h+='<div style="font-size:12.5px;font-weight:900;color:var(--brand);background:var(--soft);border-radius:9px;padding:7px 9px;margin-bottom:6px">'+esc(R.bday)+'</div>';
   R.lignes.forEach(function(Li){

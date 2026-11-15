@@ -1207,7 +1207,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "15/11 - Remplacer un exercice";
+var APP_VERSION = "15/11 - Sauvegarde en sortant";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -14313,11 +14313,30 @@ function cgNouvelle(slug,k){
   cgSauver(slug,function(P){P.journal.push(N);});
   return N;
 }
+// Les lignes du tableau. L'ordre est celui de la dernière date. Un exercice
+// remplacé en cours de route (fentes → presse à cuisses) garde SA ligne, placée
+// juste au-dessus de celui qui l'a remplacé, et dit depuis quand.
+function cgLignes(cols){
+  var L=cols[cols.length-1], rows=(L.exos||[]).filter(function(X){return X&&X.ref;}).slice(), meta=rows.map(function(){return {};}), vus={};
+  rows.forEach(function(X){vus[X.ref]=1;});
+  for(var c=cols.length-2;c>=0;c--){
+    (cols[c].exos||[]).forEach(function(X,idx){
+      if(!X||!X.ref||vus[X.ref])return;
+      vus[X.ref]=1;
+      // Qui occupe cette place à la date suivante ? C'est son remplaçant.
+      var suiv=cols[c+1], R=(suiv.exos||[])[idx], par=(R&&R.ref&&!cgExo(cols[c],R.ref))?R:null;
+      var pos=rows.length;
+      if(par){for(var i=0;i<rows.length;i++)if(rows[i].ref===par.ref){pos=i;break;}}
+      rows.splice(pos,0,X); meta.splice(pos,0,{ancien:1,par:par?par.n:"",le:suiv.d});
+      if(par&&meta[pos+1]){meta[pos+1].de=X.n;meta[pos+1].depuis=suiv.d;}
+    });
+  }
+  return {rows:rows,meta:meta};
+}
 function viewCarnetGrille(){
   var G=state.carnetG, cols=cgColonnes(G.slug,G.k);
   if(!cols.length){state.carnetG=null;return state.coachCG?viewCoachCoachees():viewCoachDash();}
-  var cl=coachClient(G.slug)||{}, L=cols[cols.length-1], rows=[], vus={};
-  cols.slice().reverse().forEach(function(E){(E.exos||[]).forEach(function(X){if(X&&X.ref&&!vus[X.ref]){vus[X.ref]=1;rows.push(X);}});});
+  var cl=coachClient(G.slug)||{}, L=cols[cols.length-1], LG=cgLignes(cols), rows=LG.rows, META=LG.meta;
   var JOURS=["dim.","lun.","mar.","mer.","jeu.","ven.","sam."];
   var ST='position:sticky;left:0;z-index:2;background:#fff;min-width:126px;max-width:126px;width:126px;text-align:left;padding:7px 8px;border-right:1px solid var(--line);border-bottom:1px solid var(--line)';
   var TD='padding:5px 4px;border-bottom:1px solid var(--line);text-align:center';
@@ -14347,14 +14366,16 @@ function viewCarnetGrille(){
     nb=Math.min(Math.max(nb,1),10);
     // La règle de progression, lue sur la dernière colonne.
     var vals=[]; for(var k0=0;k0<nb;k0++){var v0=parseFloat(cgVal(L,X.ref,k0));if(v0>0)vals.push(v0);}
-    var cons="";
-    if(vals.length){
+    var cons="", MT=META[ri]||{};
+    if(MT.ancien)cons='<span style="display:inline-block;margin-top:3px;padding:2px 7px;border-radius:20px;background:var(--soft2);color:var(--mute);font-size:10.5px;font-weight:900">↪ '+(MT.par?'remplacé par « '+esc(MT.par)+' »':'retiré')+' le '+frDate(MT.le)+'</span>';
+    else if(vals.length){
       var mx=Math.max.apply(null,vals), tous=vals.every(function(v){return v===mx;});
       cons=tous?'<span style="display:inline-block;margin-top:3px;padding:2px 7px;border-radius:20px;background:#E8F7EE;color:#136B3C;font-size:10.5px;font-weight:900">⬆️ à monter'+(lv?' → niv '+carnetNb(mx+1):'')+'</span>'
                :'<span style="display:inline-block;margin-top:3px;padding:2px 7px;border-radius:20px;background:#FFF6E0;color:#7A5A00;font-size:10.5px;font-weight:900">🎯 tenir '+(lv?'niv '+carnetNb(mx):carnetNb(mx)+' kg')+'</span>';
     }
+    if(MT.de)cons+=' <span style="display:inline-block;margin-top:3px;padding:2px 7px;border-radius:20px;background:var(--soft2);color:var(--ink2);font-size:10.5px;font-weight:900">↪ à la place de « '+esc(MT.de)+' » depuis le '+frDate(MT.depuis)+'</span>';
     h+='<tr><td colspan="'+(cols.length+1)+'" style="padding:0;border-bottom:1px solid var(--line);background:var(--soft)">'+
-      '<div style="position:sticky;left:0;display:inline-block;padding:8px 9px;max-width:300px"><b style="font-size:13px;color:var(--ink)">'+esc(X.n)+'</b> '+
+      '<div style="position:sticky;left:0;display:inline-block;padding:8px 9px;max-width:300px"><b style="font-size:13px;color:'+(MT.ancien?'var(--mute)':'var(--ink)')+'">'+esc(X.n)+'</b> '+
       '<span style="font-size:10.5px;font-weight:900;color:'+M[2]+'">'+M[1]+' · '+(lv?'NIVEAU':'KG')+'</span><br>'+cons+'</div></td></tr>';
     for(var k=0;k<nb;k++){
       var sr=null; for(var c=cols.length-1;c>=0&&!sr;c--){var Y=cgExo(cols[c],X.ref);if(Y&&Y.series&&Y.series[k])sr=Y.series[k];}
@@ -14362,6 +14383,8 @@ function viewCarnetGrille(){
       h+='<tr><td style="'+ST+'"><b>S'+(k+1)+'</b>'+(lab?' <span style="color:var(--mute);font-weight:700">· '+lab+'</span>':'')+'</td>';
       cols.forEach(function(E,i){
         var v=cgVal(E,X.ref,k), av=i>0?cgVal(cols[i-1],X.ref,k):"";
+        // Cet exercice n'était pas dans la séance de cette date : pas de case à remplir.
+        if(!cgExo(E,X.ref)){h+='<td style="'+TD+'"><span style="display:inline-block;width:56px;color:var(--mute);font-weight:900">—</span></td>';return;}
         h+='<td style="'+TD+'"><input type="number" inputmode="decimal" step="'+(lv?'1':'0.5')+'" data-cg="'+i+'|'+ri+'|'+k+'" value="'+esc(String(v))+'" placeholder="'+(lv?'niv':'kg')+'" style="width:56px;padding:8px 2px;border-radius:9px;text-align:center;font-weight:900;font-size:14px;'+cgCouleur(v,av)+'"/></td>';
       });
       h+='</tr>';
@@ -14372,8 +14395,7 @@ function viewCarnetGrille(){
 }
 function bindCarnetGrille(){
   var G=state.carnetG; if(!G)return;
-  var cols=cgColonnes(G.slug,G.k), rows=[], vus={};
-  cols.slice().reverse().forEach(function(E){(E.exos||[]).forEach(function(X){if(X&&X.ref&&!vus[X.ref]){vus[X.ref]=1;rows.push(X);}});});
+  var cols=cgColonnes(G.slug,G.k), rows=cols.length?cgLignes(cols).rows:[];
   var bk=document.getElementById("cg-back");
   if(bk)bk.addEventListener("click",function(){copieBarreOter();state.carnetG=null;if(G.from==="tuile")state.coachDetail=null;render();});
   var sc=document.getElementById("cg-scroll");
@@ -14386,9 +14408,26 @@ function bindCarnetGrille(){
     var N=cgNouvelle(G.slug,G.k); G.fin=true; render();
     if(N)try{feedback("＋ "+frDate(N.d)+" ajoutée · charges reprises","ok");}catch(e){}
   });
+  // 💾 Rien ne se perd : une case modifiée s'enregistre 0,7 s après la dernière
+  // frappe, et tout de suite si on sort (flèche, geste, appli mise en veille).
+  var att={}, tmA=null;
+  function vider(){
+    try{clearTimeout(tmA);}catch(e){}
+    Object.keys(att).forEach(function(k){var e=att[k];delete att[k];try{e.dispatchEvent(new Event("change",{bubbles:true}));}catch(x){}});
+  }
+  window.__cgVider=vider;
+  if(!window.__cgVeille){window.__cgVeille=1;
+    document.addEventListener("visibilitychange",function(){if(document.hidden&&window.__cgVider)try{window.__cgVider();}catch(e){}});
+    window.addEventListener("pagehide",function(){if(window.__cgVider)try{window.__cgVider();}catch(e){}});}
+  ["cg-back","cg-new"].forEach(function(i){var b=document.getElementById(i);if(b)b.addEventListener("click",vider,true);});
+  document.querySelectorAll("th .carnet-open").forEach(function(b){b.addEventListener("click",vider,true);});
+  document.querySelectorAll("[data-cg],[data-cgf]").forEach(function(el){
+    el.addEventListener("input",function(){att[this.getAttribute("data-cg")||("f"+this.getAttribute("data-cgf"))]=this;try{clearTimeout(tmA);}catch(e){}tmA=setTimeout(vider,700);});
+  });
   document.querySelectorAll("[data-cg]").forEach(function(el){
     el.addEventListener("change",function(){
       var p=this.getAttribute("data-cg").split("|"), ci=+p[0], X=rows[+p[1]], k=+p[2];
+      delete att[this.getAttribute("data-cg")];
       if(!cols[ci]||!X)return;
       cgEcrire(G.slug,cols[ci].cid,X.ref,k,this.value,X);
       // Les couleurs de cette case et de sa voisine de droite, sans tout redessiner.
@@ -14410,8 +14449,9 @@ function bindCarnetGrille(){
   document.querySelectorAll("[data-cgf]").forEach(function(el){
     el.addEventListener("change",function(){
       var ci=+this.getAttribute("data-cgf"), n=parseInt(this.value,10);
+      delete att["f"+ci];
       if(!cols[ci])return;
-      if(!(n>=1&&n<=10)){n=null;this.value="";}
+      if(!(n>=1&&n<=10)){n=null;if(document.activeElement!==this)this.value="";}
       var cid=cols[ci].cid;
       cgSauver(G.slug,function(P){P.journal.forEach(function(x){if(x.cid===cid){if(n)x.forme=n;else delete x.forme;}});});
     });
@@ -14731,7 +14771,7 @@ function viewCarnet(){
   var C=state.carnet, W=C.w, cc=coachClient(C.slug), nomC=(cc&&cc.name)||C.slug;
   if(C.pick)return viewCarnetPick();
   var h='<div class="app" style="max-width:640px"><div class="prg-top"><button id="cn-back" class="prg-back">‹</button>'+
-    '<div style="flex:1;min-width:0"><div class="prg-titre">📓 '+esc(nomC)+'</div><div class="prg-sous">'+(C.edit?'Modifier la séance':'Séance coachée')+' · tout est gardé pendant la saisie</div></div></div>'+
+    '<div style="flex:1;min-width:0"><div class="prg-titre">📓 '+esc(nomC)+'</div><div class="prg-sous">'+(C.edit?'Modifier la séance · enregistrée en sortant':'Séance coachée')+' · tout est gardé pendant la saisie</div></div></div>'+
     '<div style="padding:12px 13px 120px">'+carnetPointHTML(C.slug)+
     '<div style="display:flex;gap:8px;margin-bottom:10px"><input id="cn-nom" class="prg-search" style="flex:1.6;margin:0" value="'+esc(W.nom)+'" placeholder="Nom de la séance"/>'+
     '<input id="cn-d" type="date" class="prg-search" style="flex:1;margin:0" value="'+esc(W.d)+'"/></div>'+
@@ -14858,7 +14898,18 @@ function bindCarnet(){
     return;
   }
   var bk=document.getElementById("cn-back");
-  if(bk)bk.addEventListener("click",function(){carnetGarder();state.carnet=null;state.coachDetail=C.slug;render();});
+  if(bk)bk.addEventListener("click",function(){
+    copieBarreOter();
+    // Séance déjà enregistrée : sortir GARDE les changements. Avant, la flèche
+    // retour les jetait sans rien dire.
+    if(C.edit){
+      var svb=document.getElementById("cn-save");
+      if(svb){C.auto=true;svb.click();C.auto=false;}
+      if(state.carnet){state.carnet=null;state.coachDetail=C.slug;render();}
+      return;
+    }
+    carnetGarder();state.carnet=null;state.coachDetail=C.slug;render();
+  });
   var nm=document.getElementById("cn-nom"); if(nm)nm.addEventListener("input",function(){W.nom=this.value;maj(false);});
   var dd=document.getElementById("cn-d"); if(dd)dd.addEventListener("change",function(){W.d=this.value||isoLocal();maj(false);});
   var nt=document.getElementById("cn-note"); if(nt)nt.addEventListener("input",function(){W.note=this.value;maj(false);});
@@ -14933,7 +14984,7 @@ function bindCarnet(){
       });
       if(S.length)exos.push({ref:X.ref,n:X.n,m:X.m,mat:X.mat,v:X.v,g:X.g,sup:X.sup?1:0,repos:0,note:"",series:S});
     });
-    if(!nbS){alert("Note au moins une série (répétitions ou charge).");return;}
+    if(!nbS){if(!C.auto)alert("Note au moins une série (répétitions ou charge).");return;}
     var E={d:W.d||isoLocal(),cid:W.cid,sid:W.sid||"coach",nom:(W.nom||"Séance coachée").trim(),vol:progVolume(exos),exos:exos,coach:1,note:W.note||"",
            rpe:rs.length?Math.round(rs.reduce(function(a,b){return a+b;},0)/rs.length*10)/10:null};
     if(W.diff)E.diff=+W.diff;

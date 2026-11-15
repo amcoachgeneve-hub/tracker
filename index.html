@@ -1207,7 +1207,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "15/11 - Copier dessous";
+var APP_VERSION = "15/11 - Où il en est";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -14325,6 +14325,8 @@ function viewCarnetGrille(){
     '<div style="flex:1;min-width:0"><div class="prg-titre">'+esc(L.nom||"Séance")+'</div>'+
     '<div class="prg-sous">'+esc(cl.name||G.slug)+' · '+cols.length+' date'+(cols.length>1?'s':'')+'</div></div></div>'+
     '<div style="padding:10px 10px 90px">'+
+    // 📋 « Où il en est » : toujours au-dessus des séances, comme dans le détail.
+    (function(){try{return carnetPointHTML(G.slug);}catch(e){return "";}})()+
     '<div style="font-size:12px;color:var(--ink2);line-height:1.5;margin:0 2px 9px">Une colonne par date. Change seulement les charges. <b style="color:#136B3C">Vert</b> : plus que la fois d\'avant. <b style="color:#9B1C1C">Rouge</b> : moins. Touche une date pour ouvrir le détail (répétitions, date, note).</div>'+
     '<button id="cg-new" class="big-btn" style="margin:0 0 10px;padding:14px 0">＋ Nouvelle date · mêmes charges</button>'+
     '<div id="cg-scroll" style="overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:12px;border:1px solid var(--line);background:#fff">'+
@@ -14539,7 +14541,7 @@ function carnetRecapHTML(slug){
     '<div style="font-size:12px;line-height:1.5;color:var(--ink2)"><b>🕘 Dernière séance</b> : '+esc(L.nom||"Séance")+' · '+frDate(L.d)+
     (L.forme?' · forme '+L.forme+'/10':'')+(L.diff?' · difficulté '+L.diff+'/10':'')+(L.formeFin?' · fin '+L.formeFin+'/10':'')+(L.durN?' · le plus dur : '+esc(L.durN):'')+'</div>';
   if(L.note){var nt=String(L.note);h+='<div style="font-size:12px;line-height:1.45;margin-top:4px;color:var(--ink2)">📝 « '+esc(nt.length>140?nt.slice(0,138)+"…":nt)+' »</div>';}
-  h+='<div style="font-size:12px;margin-top:4px;font-weight:'+(warn?900:600)+';color:'+(warn?'var(--bad)':'var(--ink2)')+'">🏋️ '+n7+' séance'+(n7>1?'s':'')+' sur les 7 derniers jours'+(depuis>=1?' · dernière il y a '+depuis+' jour'+(depuis>1?'s':''):' · dernière aujourd\'hui')+'</div>';
+  h+='<div style="font-size:12px;margin-top:4px;font-weight:'+(warn?900:600)+';color:'+(warn?'var(--bad)':'var(--ink2)')+'">🏋️ '+n7+' séance'+(n7>1?'s':'')+' sur les 7 derniers jours'+(depuis>=1?' · dernière il y a '+depuis+' jour'+(depuis>1?'s':''):depuis<0?' · prochaine le '+frDate(L.d):' · dernière aujourd\'hui')+'</div>';
   return h+'</div>';
 }
 // 🔁 Même séance qu'une précédente : exercices, séries, répétitions et charges

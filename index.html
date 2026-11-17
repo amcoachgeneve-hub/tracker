@@ -28,6 +28,8 @@
   var t=localStorage.getItem("d90-theme");
   if(t==="f")document.documentElement.className+=" th-f";
   else if(t==="h")document.documentElement.className+=" th-h";
+  var cc=localStorage.getItem("d90-couleur");
+  if(/^(bleu|rose|vert|violet)$/.test(cc||""))document.documentElement.className+=" th-c-"+cc;
 }catch(e){}})();
 </script>
 <style>
@@ -72,6 +74,33 @@
   --shadow:0 4px 14px rgba(16,24,40,.07);
   --shadow-l:0 10px 26px rgba(16,24,40,.11);
 }
+
+/* 🎨 COULEURS AU CHOIX DU CLIENT (514.couleur). Elles passent APRÈS le thème
+   homme/femme : le sexe garde son rôle pour le programme, la couleur ne
+   change que l'habillage. */
+.th-c-bleu,.app.th-c-bleu,.dark-screen.th-c-bleu{--brand:#0EA5C6;--brand-d:#0A7FA0;--brand2:#8A3FFF;--b1:#12B5EA;--b2:#8A3FFF;--violet:#8A3FFF;--line:#E1E6F0;--soft:#F5F7FC;--soft2:#EDF1F9;--bg:#F5F7FC;
+  --sky:linear-gradient(180deg,#E4EEFA 0%,#EFF4FC 34%,#F5F8FD 70%)}
+.th-c-rose,.app.th-c-rose,.dark-screen.th-c-rose{--brand:#EC4899;--brand-d:#BE185D;--brand2:#A855F7;--b1:#EC4899;--b2:#A855F7;--violet:#A855F7;--line:#F3DBE7;--soft:#FDF2F8;--soft2:#FCE7F3;--bg:#FDF2F8;
+  --sky:linear-gradient(180deg,#FCE7F3 0%,#FDF2F8 34%,#FEF6FA 70%)}
+.th-c-vert,.app.th-c-vert,.dark-screen.th-c-vert{--brand:#10B981;--brand-d:#047857;--brand2:#0D9488;--b1:#10B981;--b2:#0D9488;--violet:#0D9488;--line:#CDEFE0;--soft:#F0FDF6;--soft2:#DCFCE9;--bg:#F0FDF6;
+  --sky:linear-gradient(180deg,#D7F7E8 0%,#EAFBF2 34%,#F3FDF8 70%)}
+.th-c-violet,.app.th-c-violet,.dark-screen.th-c-violet{--brand:#8B5CF6;--brand-d:#6D28D9;--brand2:#6366F1;--b1:#8B5CF6;--b2:#6366F1;--violet:#6366F1;--line:#E4DEFA;--soft:#F7F5FF;--soft2:#EDE9FE;--bg:#F7F5FF;
+  --sky:linear-gradient(180deg,#E9E3FD 0%,#F2EFFE 34%,#F8F6FF 70%)}
+.th-pick{display:flex;gap:8px;margin:0 0 12px}
+.th-pick button{flex:1;padding:10px 4px;border-radius:13px;border:2px solid var(--line);background:#fff;font-weight:900;font-size:12px;color:var(--ink2)}
+.th-pick button.on{color:#fff;border-color:transparent}
+.th-btn{position:absolute;right:92px;top:50%;transform:translateY(-50%);width:34px;height:34px;border-radius:50%;border:1.5px solid var(--line);background:#fff;font-size:16px;padding:0;z-index:3}
+/* 🏠 Accueil : la photo et le titre en grand, le bouton « Remplir » plus discret */
+.hdr-home{padding-top:18px!important;padding-bottom:18px!important;padding-right:136px!important;min-height:104px}
+.hdr-home .hdr-title{font-size:23px;letter-spacing:2.5px}
+.hdr-home .hdr-sub{font-size:15.5px;margin-top:4px}
+.hdr-home .pp-btn{width:72px;height:72px;border-width:3px}
+.hdr-home .pp-btn span{font-size:26px}
+.jour-raccourci{padding:10px 13px;border-radius:15px;gap:10px;margin-bottom:11px}
+.jour-raccourci .jr-ico{flex-basis:32px;height:32px;border-radius:10px;font-size:16px}
+.jour-raccourci .jr-t{font-size:14px}
+.jour-raccourci .jr-s{font-size:11px;margin-top:1px}
+.jour-raccourci .jr-fl{font-size:20px}
 
 /* ═══════════ 🏋️ ONGLET SPORT — clair, contours colorés ═══════════
    Akli : « fond blanc c'est plus joli ». On garde ce qui faisait l'identité
@@ -1207,7 +1236,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "17/11 - Bilan nouvelle formule";
+var APP_VERSION = "17/11 - Barre menu du jour";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -2513,6 +2542,11 @@ function silJours(la,start){
   var ref=(st&&st>String(la).slice(0,10))?st:String(la).slice(0,10);
   return Math.max(0,Math.floor((new Date(isoLocal())-new Date(ref))/86400000));
 }
+// « Semaine 2/6 · Jour 9/42 » : où en est le client, d'un coup d'œil.
+function semJourTxt(t90,len){
+  len=len||90; var j=Math.min(t90+1,len);
+  return 'Semaine '+Math.min(Math.ceil(j/7),Math.ceil(len/7))+'/'+Math.ceil(len/7)+' · Jour '+j+'/'+len;
+}
 function joursAvantDepart(startDate){
   if(!startDate)return 0;
   var ds=String(startDate).slice(0,10).split("-");
@@ -3092,17 +3126,25 @@ function themeRacine(allData){
   try{localStorage.setItem("d90-theme",h?"h":"f");}catch(e){}
   d.classList.toggle("th-h",h);
   d.classList.toggle("th-f",!h);
+  var cc=clientCouleur(allData);
+  ["bleu","rose","vert","violet"].forEach(function(k){d.classList.toggle("th-c-"+k,cc===k);});
+  try{if(cc)localStorage.setItem("d90-couleur",cc);else localStorage.removeItem("d90-couleur");}catch(e){}
   __cvarCache={}; // le thème a pu changer : on relit les couleurs
   var mt=document.querySelector('meta[name="theme-color"]');
-  if(mt)mt.setAttribute("content",h?"#12B5EA":"#EC4899");
+  if(mt)mt.setAttribute("content",{bleu:"#12B5EA",rose:"#EC4899",vert:"#10B981",violet:"#8B5CF6"}[cc]||(h?"#12B5EA":"#EC4899"));
   return h?"h":"f";
 }
+function clientCouleur(allData){
+  var c=(allData&&allData[514]&&allData[514].couleur)||"";
+  return /^(bleu|rose|vert|violet)$/.test(c)?c:"";
+}
 function applyTheme(allData){
-  var t=themeRacine(allData), h=(t==="h");
+  var t=themeRacine(allData), h=(t==="h"), cc=IS_COACH?"":clientCouleur(allData);
   var cl=document.querySelectorAll(".app,.dark-screen");
   for(var i=0;i<cl.length;i++){
     cl[i].classList.toggle("th-h",h);
     cl[i].classList.toggle("th-f",!h && !IS_COACH);
+    ["bleu","rose","vert","violet"].forEach(function(k){cl[i].classList.toggle("th-c-"+k,cc===k);});
   }
 }
 // ═══════════════ 🎭 TON SUPERVISEUR ═══════════════
@@ -7890,13 +7932,17 @@ function viewCalendar(name,start){
   var objLib=phaseReeq?'Objectif rééquilibrage':(shortProg?'Objectif '+progB+' jours':'Objectif du mois '+month);
 
   var ppImg=photoProfil();
-  var h='<div class="hdr" style="position:relative">'+
+  var __cc=clientCouleur(allData)||(clientTheme(allData)==="h"?"bleu":"rose");
+  var h='<div class="hdr hdr-home" style="position:relative">'+
+    '<button id="th-btn" class="th-btn" title="Mes couleurs">🎨</button>'+
     '<button id="pp-btn" class="pp-btn" title="Ma photo de profil">'+(ppImg?'<img src="'+ppImg+'" alt=""/>':'<span>📷</span>')+'</button>'+
     '<input id="pp-file" type="file" accept="image/*" style="display:none"/>'+
     '<div class="hdr-brand"><div class="bar bar-r"></div>'+
     '<span class="hdr-title">'+(reeqOn&&today90>=14?'RÉÉQUILIBRAGE':progB<=14?'RESET 14 JOURS':progB<=42?'6 SEMAINES':'DISCIPLINE 90')+'</span><div class="bar bar-b"></div></div>'+
     '<div class="hdr-sub">'+esc(name)+(phaseReeq?' · 4 semaines offertes':' · '+progB+' jours')+(BLOC>1?' · Bloc '+BLOC+'/4':'')+' <span id="sync-badge" style="font-size:11px"></span></div></div>'+
-    '<div style="padding:16px 14px 0">';
+    '<div style="padding:16px 14px 0">'+
+    (state.thPick?'<div class="th-pick">'+[["bleu","Bleu","#12B5EA,#8A3FFF"],["rose","Rose","#EC4899,#A855F7"],["vert","Vert","#10B981,#0D9488"],["violet","Violet","#8B5CF6,#6366F1"]].map(function(o){
+      var on=(__cc===o[0]);return '<button data-coul="'+o[0]+'" class="'+(on?'on':'')+'" style="'+(on?'background:linear-gradient(135deg,'+o[2]+')':'border-color:'+o[2].split(",")[0])+'">'+o[1]+'</button>';}).join("")+'</div>':'');
 
   // 📱 ANDROID : le lien ouvert dans Chrome propose l'appli DISCIPLINE 90.
   // Rien dans l'appli elle-même, ni sur iPhone, ni une fois refusé.
@@ -9815,7 +9861,8 @@ function bzSpark(v,col){
     P.map(function(p){return (n>1?p[0]/(n-1)*100:50).toFixed(1)+','+(21-(p[1]-mn)/r*18).toFixed(1);}).join(' ')+'"/></svg>';
 }
 function rapportBzHTML(o){
-  var F=(o.theme==="f"), C=F?{a:"#DB2777",d:"#9D1748",m:"#E25A8F",s:"#FDF0F5"}:{a:"#2563EB",d:"#0B2A6F",m:"#1D4ED8",s:"#EEF4FF"};
+  var PAL={bleu:{a:"#2563EB",d:"#0B2A6F",m:"#1D4ED8"},rose:{a:"#DB2777",d:"#9D1748",m:"#E25A8F"},vert:{a:"#059669",d:"#065F46",m:"#10B981"},violet:{a:"#7C3AED",d:"#4C1D95",m:"#8B5CF6"}};
+  var F=(o.theme==="f"), C=PAL[o.couleur]||(F?PAL.rose:PAL.bleu);
   var ok="#16A34A", ko="#DC6B2F";
   function nb(x){return String(x).replace(".",",");}
   function sg(x){return (x>0?"+":x<0?"−":"")+nb(Math.abs(x));}
@@ -10098,7 +10145,7 @@ function openRapportSimple(name,start,period,dataOverride,retour){
   else if(assidu<65)action="Remplir ta journée dans l'appli, tous les jours. Même une journée imparfaite compte — c'est le geste qui construit l'habitude.";
   else if(moySom!=null&&moySom<7)action="Te coucher 30 minutes plus tôt. Ton sommeil est à "+moySom+" h de moyenne : c'est la nuit que le corps transforme.";
   else if(echec.length)action="Reprendre « "+echec[0].lab+" », et rien d'autre. C'est la case qui casse ta boucle — le reste tient déjà.";
-  else if(bas&&bas.pct<50)action="Te concentrer sur « "+bas.lab+" ». C'est la seule case qui traîne — le reste est déjà en place.";
+  else if(bas&&bas.pilier&&bas.pct<50)action="Te concentrer sur « "+bas.lab+" ». C'est la seule case qui traîne — le reste est déjà en place.";
   else action="Garder exactement ce rythme. Il n'y a rien à changer, seulement à continuer.";
   // Programme sport suivi mais poids bloqué : on ne reproche rien, on propose
   // d'aller plus loin — être actif aussi les autres jours.
@@ -10121,7 +10168,7 @@ function openRapportSimple(name,start,period,dataOverride,retour){
   });
   var piliersAff=liste.filter(function(x){return x.pilier;});
   if(!piliersAff.length)piliersAff=liste.slice(0,4);
-  var corps=rapportBzHTML({theme:clientTheme(allData),name:name,salut:salut,nbJours:nbJours,period:period,
+  var corps=rapportBzHTML({theme:clientTheme(allData),couleur:clientCouleur(allData),name:name,salut:salut,nbJours:nbJours,period:period,
     titre:(function(){try{var __b=progBase(start,allData);if(__b<=14&&nbJours>=14)return 'Ton bilan du Reset 14 jours';}catch(e){}return 'Ton bilan après '+nbJours+' jours';})(),
     kg:(dPeriode!=null?dPeriode:dPoids), kgLab:(dPeriode!=null?'sur ces '+nbJours+' jours':'depuis le départ'), dPoids:dPoids, pDepart:pDepart, pActuel:pActuel,
     verdict:verdict, vcoul:vcoul, vemo:vemo, assidu:assidu, prevAssidu:prevAssidu, moySom:moySom, prevSom:pSomMoy, pDelta:pDelta,
@@ -16655,18 +16702,31 @@ function ficheOnglets(h){
 // le coach déplie ce bloc et voit les repas prévus ce jour-là, sans ouvrir
 // l'appli du client. Le contenu vient de menu.html (mode résumé), chargé
 // seulement quand on déplie.
+// Le type de jour, mêmes calendriers que menu.html (cyclage, Reset, 6 semaines).
+var MJ_CYC=[["SG","GB","SG","GB","SG","GB","SG"],["GB","SG","SG","GB","SG","SG","GB"],["SG","SG","SG","GB","SG","SG","SG"],["GB","SG","SG","SG","SG","SG","SG"]];
+var MJ_R14=[["RA","SG","RA","SG","RA","SG","RA"],["SG","RA","SG","SG","RA","SG","SG"]];
+function mjTag(cle,j){
+  if(cle==="cyclage")return MJ_CYC[Math.floor(j/7)%4][j%7];
+  if(cle==="14jours")return MJ_R14[Math.min(1,Math.floor(j/7))][j%7];
+  if(cle==="6semaines"){j=Math.max(0,Math.min(41,j));if(j<21)return j%2===0?"RA":"SG";if(j<28)return "SG";return [28,33,38].indexOf(j)>=0?"RA":"SG";}
+  return null;
+}
+// 🍽️ Une barre, lisible sans rien ouvrir : phase, jour, type de jour.
 function coachMenuJourHTML(c,allData){
+  // Le calcul des menus courts lit la date de départ en local : sur le
+  // téléphone du coach elle peut manquer, et un 6 semaines passait pour un Reset.
+  try{if(c.start_date&&lsGetStr("amcoach_start_"+c.slug)!==c.start_date)lsSetStr("amcoach_start_"+c.slug,c.start_date);}catch(e){}
   if(!menuActif(allData))return "";
   var av=menuAvantDebut(allData);
-  if(av>0)return '<div class="card" style="padding:12px 14px;margin-bottom:12px;font-size:12.5px;color:var(--ink2);font-weight:700">🍽️ Ses menus démarrent dans '+av+' jour'+(av>1?'s':'')+'.</div>';
+  if(av>0)return '<div style="margin-bottom:12px;padding:10px 13px;border-radius:13px;background:var(--soft);font-size:12.5px;font-weight:800;color:var(--ink2)">🍽️ Ses menus démarrent dans '+av+' jour'+(av>1?'s':'')+'.</div>';
   var P=menuPhase(allData); if(!P||!P.p)return "";
-  var url=location.origin+location.pathname.replace(/[^\/]*$/,"")+"menu.html?menu="+encodeURIComponent(P.p.cle)+"&resume=1&jour="+P.jour;
-  var ouvert=(state.mjOpen===c.slug);
-  return '<details class="sea-tiroir" id="mj-tiroir" data-slug="'+esc(c.slug)+'" data-src="'+esc(url)+'"'+(ouvert?' open':'')+' style="margin-bottom:12px">'+
-    '<summary><span class="sea-sum-t">🍽️ Son menu d\'aujourd\'hui</span>'+
-    '<span style="font-size:11px;font-weight:800;color:var(--mute);margin-left:auto;margin-right:8px">'+esc(P.p.num||"")+' · jour '+(P.jour+1)+'/'+P.total+'</span>'+
-    '<span class="sea-sum-c">⌄</span></summary>'+
-    '<div style="padding:0"><iframe id="mj-cadre" title="Menu du jour"'+(ouvert?' src="'+esc(url)+'"':'')+' style="display:block;width:100%;height:68vh;min-height:420px;border:0;border-top:1px solid var(--line);border-radius:0 0 14px 14px;background:#fff"></iframe></div></details>';
+  var cle=P.p.cle, t=mjTag(cle,P.jour), court=(cle==="14jours"||cle==="6semaines");
+  var lab=!t?"":t==="SG"?(court?"OFF · SANS GLUCIDES":"SANS GLUCIDES"):(court?"ON · AVEC GLUCIDES":"GLUCIDES BAS");
+  var col=t==="SG"?"#C62828":"#2E7D32";
+  return '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;padding:10px 13px;border-radius:13px;background:#fff;border:1.5px solid var(--line);box-shadow:var(--shadow)">'+
+    '<span style="font-size:18px">🍽️</span><b style="font-size:13.5px;color:var(--ink)">'+esc((P.p.num?P.p.num+' · ':'')+(P.p.nom||cle).replace(/^Phase \d+ · /,""))+'</b>'+
+    '<span style="font-size:12.5px;font-weight:800;color:var(--mute)">Jour '+(P.jour+1)+'/'+P.total+'</span>'+
+    (lab?'<span style="margin-left:auto;padding:4px 10px;border-radius:20px;background:'+col+';color:#fff;font-size:11px;font-weight:900;letter-spacing:.3px">'+lab+'</span>':'')+'</div>';
 }
 function coachMontagneHTML(c,allData){
   var start=c.start_date, avant=joursAvantDepart(start)>0;
@@ -16800,7 +16860,7 @@ function viewCoachDetail(){
     '<div style="flex:1"><div style="color:var(--ink);font-weight:900;font-size:16px">'+esc(c.name)+progChipHTML(c.slug,true)+'</div>'+
     '<div style="color:var(--mute);font-size:12px">'+(joursAvantDepart(c.start_date)>0
       ? '<b style="color:#3B6FD8">⏳ Démarre le '+dateCourteFR(c.start_date)+' · dans '+joursAvantDepart(c.start_date)+' j</b>'
-      : 'Jour '+Math.min(t90+1,progLen(c.start_date,lsGet("amcoach_"+c.slug,{}))||90)+'/'+(progLen(c.start_date,lsGet("amcoach_"+c.slug,{}))||90)+' · départ '+new Date(c.start_date).toLocaleDateString("fr-FR")+' · 🔥 '+streak+'j')+'</div>'+
+      : semJourTxt(t90,progLen(c.start_date,lsGet("amcoach_"+c.slug,{}))||90)+' · départ '+new Date(c.start_date).toLocaleDateString("fr-FR")+' · 🔥 '+streak+'j')+'</div>'+
     (function(){var la=lastActLabel(allData);return '<div style="font-size:12px;font-weight:800;margin-top:3px;color:'+la.c+'">📱 Dernière activité : '+la.t+'</div>';})()+'</div></div></div>'+
     '<div style="padding:16px 14px 0">';
 
@@ -19243,7 +19303,7 @@ function viewCoachDash(){
         '<div style="flex:1"><div style="font-weight:900;font-size:18px">'+esc(c.name)+progChipHTML(c.slug,true)+'</div>'+
         '<div style="font-size:12px;color:var(--mute);margin-top:2px">'+(joursAvantDepart(c.start_date)>0
           ? '<b style="color:#3B6FD8">⏳ Démarre le '+dateCourteFR(c.start_date)+' · dans '+joursAvantDepart(c.start_date)+' j</b> · '
-          : '')+'Jour '+Math.min(t90+1,progLen(c.start_date,lsGet("amcoach_"+c.slug,{}))||90)+'/'+(progLen(c.start_date,lsGet("amcoach_"+c.slug,{}))||90)+' · départ '+new Date(c.start_date).toLocaleDateString("fr-FR")+'</div>'+
+          : '')+'<b style="color:var(--ink2)">'+semJourTxt(t90,progLen(c.start_date,lsGet("amcoach_"+c.slug,{}))||90)+'</b> · départ '+new Date(c.start_date).toLocaleDateString("fr-FR")+'</div>'+
         (function(){var la=lastActLabel(lsGet("amcoach_"+c.slug,{}));return '<div style="font-size:11px;font-weight:800;margin-top:3px;color:'+la.c+'">📱 Dernière activité : '+la.t+'</div>';})()+'</div></div>'+
         // 📊 Indicateurs 7 derniers jours : briques identité · missions du jour · journal
         (function(){
@@ -22957,13 +23017,17 @@ function ancrerNav(){
   var nav=document.querySelector(".nav");
   if(!nav)return;
   var ech=vv.scale||1;
+  // iOS garde parfois une hauteur d'écran périmée (après une vidéo YouTube en
+  // plein écran, le clavier, une rotation) : la barre « fixe » se retrouve au
+  // milieu de l'écran. On compare au bas RÉELLEMENT visible et on recale.
+  var H=document.documentElement.clientHeight||window.innerHeight;
+  var dy=(vv.height+vv.offsetTop)-H;
   if(ech<=1.02){
-    nav.style.transform="translateX(-50%)";
+    nav.style.transform=Math.abs(dy)>30?"translateX(-50%) translateY("+dy.toFixed(0)+"px)":"translateX(-50%)";
     nav.style.width="";
     return;
   }
   // Zoomé : on replace la barre dans la zone réellement visible et on la remet à l'échelle
-  var dy=(vv.height+vv.offsetTop)-window.innerHeight;
   nav.style.transformOrigin="bottom center";
   nav.style.transform="translateX(-50%) translateY("+dy.toFixed(0)+"px) scale("+(1/ech).toFixed(3)+")";
 }
@@ -22971,6 +23035,14 @@ if(window.visualViewport){
   window.visualViewport.addEventListener("resize",ancrerNav);
   window.visualViewport.addEventListener("scroll",ancrerNav);
 }
+(function(){
+  var tk=null;function plus(){ancrerNav();clearTimeout(tk);tk=setTimeout(ancrerNav,350);}
+  window.addEventListener("resize",plus);window.addEventListener("orientationchange",plus);
+  window.addEventListener("scroll",function(){if(!tk)return;},{passive:true});
+  document.addEventListener("visibilitychange",plus);
+  ["fullscreenchange","webkitfullscreenchange"].forEach(function(e){document.addEventListener(e,function(){setTimeout(plus,300);setTimeout(plus,900);});});
+  document.addEventListener("webkitendfullscreen",function(){setTimeout(plus,300);setTimeout(plus,900);},true);
+})();
 // Remise à l'échelle : on rejoue la balise viewport, seule méthode qui marche sur iOS
 function dezoomer(){
   var m=document.querySelector('meta[name="viewport"]');
@@ -23799,6 +23871,14 @@ function bindMain(name,start){
     blocDemarrer(name,function(){window.location.reload();});
   });
   // 📷 Photo de profil depuis l'en-tête
+  var thB=document.getElementById("th-btn");
+  if(thB)thB.addEventListener("click",function(){state.thPick=!state.thPick;render();});
+  document.querySelectorAll("[data-coul]").forEach(function(b){b.addEventListener("click",function(){
+    var all=getAllData(), o=JSON.parse(JSON.stringify(all[514]||{}));
+    o.couleur=this.getAttribute("data-coul"); saveDay(514,o); state.thPick=false;
+    try{applyTheme(getAllData());}catch(e){}
+    render(); try{feedback("🎨 Couleurs enregistrées","ok");}catch(e){}
+  });});
   var ppB=document.getElementById("pp-btn"), ppF=document.getElementById("pp-file");
   if(ppB&&ppF){
     ppB.addEventListener("click",function(){ppF.click();});

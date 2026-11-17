@@ -1207,7 +1207,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "16/11 - Bonus programmes courts";
+var APP_VERSION = "17/11 - Bilan nouvelle formule";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -9425,6 +9425,13 @@ function viewStats(name){
     (function(){var __d=progLen(lsGetStr("amcoach_start_"+CLIENT))||90;
       return '<div class="hdr-sub">'+esc(name)+' · jour '+(Math.min(__d,today90+1))+' sur '+__d+'</div></div>';})()+
     '<div style="padding:14px 14px 0">';
+  // 🎨 Le bilan des 7 derniers jours, même présentation que celui du dimanche.
+  try{
+    if(start&&getToday90(start)>=1){
+      var __bz=openRapportSimple(String(name||"").split(" ")[0],start,7,allData,"html");
+      if(__bz)h+='<style>'+BZ_CSS+'</style><div style="margin-bottom:16px">'+__bz+'</div>';
+    }
+  }catch(e){}
 
   // ═══ 1. LE VERDICT ═══
   // Akli : « orangé quand c'est pas top, jusqu'au vert fluo quand tout est
@@ -9792,7 +9799,79 @@ function viewRapport(name,start){
 // était fait pour le coach, pas pour elle.
 // Ici : un verdict en une phrase, trois chiffres, ce qui marche, ce qui
 // coince, et UNE action pour la semaine. Rien d'autre.
-function openRapportSimple(name,start,period,dataOverride){
+var BZ_CSS='.bz{border-radius:22px;overflow:hidden;background:#F7F8FB;box-shadow:0 4px 22px rgba(15,23,42,.08);color:#16203A}'+
+  '.bz-hd{padding:20px 18px 62px;color:#fff;position:relative}.bz-hd h1{font-size:23px;font-weight:900;letter-spacing:-.4px}.bz-hd p{font-size:13px;opacity:.85;margin-top:2px}'+
+  '.bz-hero{margin:-50px 12px 10px;background:#fff;border-radius:18px;padding:14px;display:flex;align-items:center;gap:12px;box-shadow:0 4px 18px rgba(15,23,42,.10);position:relative}'+
+  '.bz-c{background:#fff;border-radius:16px;margin:10px 12px;padding:13px 14px;box-shadow:0 2px 10px rgba(15,23,42,.05)}'+
+  '.bz-t{font-size:14.5px;font-weight:900;margin-bottom:9px;display:flex;align-items:center;gap:7px}'+
+  '.bz-g3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.bz-g3>div{text-align:center}'+
+  '.bz-li{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #F0F2F6}.bz-li:last-child{border-bottom:0}'+
+  '.bz-bar{flex:1;height:8px;border-radius:8px;background:#EEF0F4;overflow:hidden}.bz-bar>i{display:block;height:100%;border-radius:8px}';
+function bzSpark(v,col){
+  var P=[],n=v.length;v.forEach(function(x,i){if(x!=null&&!isNaN(x))P.push([i,x]);});
+  if(P.length<2)return '<div style="height:22px"></div>';
+  var mn=Math.min.apply(null,P.map(function(p){return p[1];})),mx=Math.max.apply(null,P.map(function(p){return p[1];})),r=(mx-mn)||1;
+  return '<svg viewBox="0 0 100 24" preserveAspectRatio="none" style="width:100%;height:22px;margin-top:6px"><polyline fill="none" stroke="'+col+'" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" points="'+
+    P.map(function(p){return (n>1?p[0]/(n-1)*100:50).toFixed(1)+','+(21-(p[1]-mn)/r*18).toFixed(1);}).join(' ')+'"/></svg>';
+}
+function rapportBzHTML(o){
+  var F=(o.theme==="f"), C=F?{a:"#DB2777",d:"#9D1748",m:"#E25A8F",s:"#FDF0F5"}:{a:"#2563EB",d:"#0B2A6F",m:"#1D4ED8",s:"#EEF4FF"};
+  var ok="#16A34A", ko="#DC6B2F";
+  function nb(x){return String(x).replace(".",",");}
+  function sg(x){return (x>0?"+":x<0?"−":"")+nb(Math.abs(x));}
+  var kg=o.kg, bon=(o.vcoul==="#2FBF71");
+  var h='<div class="bz">'+
+    '<div class="bz-hd" style="background:linear-gradient(135deg,'+C.d+','+C.m+')"><h1>'+esc(o.salut)+' '+esc(o.name)+(o.salut==="Bravo"?' 👏':'')+'</h1><p>'+esc(o.titre)+'</p></div>'+
+    '<div class="bz-hero"><div style="flex:0 0 auto;width:52px;height:52px;border-radius:50%;background:'+(kg!=null&&kg<0?ok:C.a)+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:24px">'+(kg!=null&&kg<0?'⬇':'⚖️')+'</div>'+
+    '<div style="flex:1;min-width:0">'+(kg!=null?'<div style="font-size:30px;font-weight:900;letter-spacing:-1px;line-height:1;color:'+(kg<0?ok:'#16203A')+'">'+sg(kg)+' <span style="font-size:17px">kg</span></div>'+
+      '<div style="font-size:12px;font-weight:700;color:#667085;margin-top:3px">'+esc(o.kgLab)+(o.pActuel!=null?' · '+nb(o.pActuel)+' kg aujourd\'hui':'')+'</div>':'<div style="font-size:15px;font-weight:800">Pas encore de pesée</div>')+'</div>'+
+    '<div style="flex:0 0 auto;font-size:26px">'+o.vemo+'</div></div>'+
+    '<div class="bz-c" style="border-left:4px solid '+o.vcoul+'"><div style="font-size:14px;font-weight:800;line-height:1.45;color:'+(bon?'#15803D':'#16203A')+'">'+esc(o.verdict)+'</div>'+
+      (o.dPoids!=null&&o.kgLab.indexOf("départ")<0?'<div style="font-size:12px;color:#667085;margin-top:5px;font-weight:700">Depuis le départ : '+sg(o.dPoids)+' kg ('+nb(o.pDepart)+' → '+nb(o.pActuel)+' kg)</div>':'')+'</div>';
+  // 🏆 Comparaison
+  if(o.prevAssidu!=null||o.pDelta!=null||o.prevSom!=null){
+    function cell(ic,lab,val,vs,bien){return '<div><div style="font-size:18px">'+ic+'</div><div style="font-size:11px;font-weight:800;color:#667085">'+lab+'</div>'+
+      '<div style="font-size:18px;font-weight:900;margin-top:2px">'+val+'</div>'+(vs?'<div style="font-size:11.5px;font-weight:800;color:'+(bien==null?'#667085':bien?ok:ko)+'">'+vs+'</div>':'')+'</div>';}
+    h+='<div class="bz-c"><div class="bz-t">🏆 Comparé aux '+o.period+' jours d\'avant</div><div class="bz-g3">'+
+      cell('⚖️','Poids',kg!=null?sg(kg)+' kg':'—',o.pDelta!=null?'avant '+sg(o.pDelta)+' kg':'',(kg!=null&&o.pDelta!=null)?kg<=o.pDelta:null)+
+      cell('😴','Sommeil',o.moySom!=null?nb(o.moySom)+' h':'—',o.prevSom!=null?'avant '+nb(o.prevSom)+' h':'',(o.moySom!=null&&o.prevSom!=null)?o.moySom>=o.prevSom:null)+
+      cell('✅','Journées remplies',o.assidu+' %',o.prevAssidu!=null?'avant '+o.prevAssidu+' %':'',o.prevAssidu!=null?o.assidu>=o.prevAssidu:null)+
+      '</div></div>';
+  }
+  // 📊 Statistiques clés
+  function stat(ic,val,lab,ser,col){return '<div style="background:#fff;border-radius:14px;padding:11px 8px;box-shadow:0 2px 10px rgba(15,23,42,.05)"><div style="width:30px;height:30px;margin:0 auto;border-radius:50%;background:'+col+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px">'+ic+'</div>'+
+    '<div style="font-size:20px;font-weight:900;color:'+col+';margin-top:5px">'+val+'</div><div style="font-size:11px;font-weight:700;color:#475467">'+lab+'</div>'+bzSpark(ser,col)+'</div>';}
+  h+='<div style="margin:12px 12px 4px;font-size:15px;font-weight:900">Tes statistiques clés</div><div class="bz-g3" style="margin:0 12px 6px">'+
+    stat('📅',o.assidu+'%','journées remplies',o.serR,C.a)+
+    stat('⚖️',kg!=null?sg(kg)+' kg':'—','poids',o.serP,kg!=null&&kg<=0?ok:ko)+
+    stat('🌙',o.moySom!=null?nb(o.moySom)+' h':'—','sommeil moyen',o.serS,'#7C3AED')+'</div>';
+  // 🔄 Boucle vertueuse : les piliers en barres
+  var COL={nutrition:"#2563EB",sommeil:"#7C3AED",hydratation:"#0EA5C6",sport:"#F97316"};
+  if(o.piliers.length){
+    h+='<div class="bz-c"><div class="bz-t">🔄 Ta boucle vertueuse</div><div style="font-size:12px;color:#667085;margin:-5px 0 6px">Les habitudes qui créent tes résultats.</div>';
+    o.piliers.forEach(function(it){
+      var faible=o.faibles.indexOf(it)>=0, c=COL[it.id]||C.a;
+      h+='<div class="bz-li"><span style="flex:0 0 auto;width:32px;height:32px;border-radius:50%;background:'+c+'1A;display:flex;align-items:center;justify-content:center;font-size:16px">'+it.e+'</span>'+
+        '<span style="flex:0 0 112px;min-width:0"><b style="display:block;font-size:13.5px">'+esc(it.lab)+'</b>'+(it.labAff&&it.labAff!==it.lab?'<span style="font-size:10.5px;color:#667085;font-weight:700">'+esc(it.labAff.replace(it.lab+" · ",""))+'</span>':'')+'</span>'+
+        '<span class="bz-bar"><i style="width:'+Math.max(3,Math.min(100,it.pct))+'%;background:'+c+'"></i></span>'+
+        '<span style="flex:0 0 44px;text-align:right;font-weight:900;font-size:14px;color:'+(faible?ko:ok)+'">'+it.pct+'%</span></div>';
+    });
+    h+='</div>';
+  }
+  // 🔥 La priorité
+  if(o.action){
+    var pr=o.priorite;
+    h+='<div class="bz-c" style="background:#FFF7ED;border:1.5px solid #FED7AA"><div style="display:flex;gap:11px;align-items:flex-start">'+
+      '<span style="flex:0 0 auto;width:40px;height:40px;border-radius:50%;background:#F97316;color:#fff;display:flex;align-items:center;justify-content:center;font-size:19px">🔥</span>'+
+      '<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:900;color:#C2410C">Ta priorité cette semaine</div>'+
+      '<div style="font-size:13.5px;font-weight:700;line-height:1.45;margin-top:3px">'+o.action+'</div>'+
+      (pr?'<div style="display:flex;align-items:center;gap:8px;margin-top:8px"><span class="bz-bar" style="background:#FED7AA"><i style="width:'+Math.max(3,pr.pct)+'%;background:#F97316"></i></span><b style="font-size:12.5px;color:#C2410C">'+esc(pr.lab)+' '+pr.pct+'%</b></div>':'')+
+      '</div></div></div>';
+  }
+  h+='<div style="text-align:center;padding:10px 12px 16px"><div style="font-size:14px;font-weight:900;color:'+C.a+'">'+(F?'❤️':'🛡️')+' Coach Akli</div><div style="font-size:11.5px;color:#667085">AM Coach Genève · ton coach, à tes côtés chaque semaine</div></div></div>';
+  return h;
+}
+function openRapportSimple(name,start,period,dataOverride,retour){
   var allData=dataOverride||getAllData();
   var t90=start?getToday90(start):89;
   // FENÊTRE GLISSANTE : les `period` DERNIERS jours, pas les premiers.
@@ -10027,98 +10106,46 @@ function openRapportSimple(name,start,period,dataOverride){
     action+=" Ton sport suit le programme ("+sportProg.it.n+" sorties pour "+sportProg.obj+" prévues, bravo). Pour relancer la balance, bouge aussi les autres jours : une marche, même courte.";
   }
 
+  // 🎨 LE BILAN NOUVELLE FORMULE (Akli, 17/11) : bleu pour les hommes, rose
+  // pour les femmes, aux couleurs de l'appli. Le même corps sert au rapport du
+  // dimanche et au haut de l'onglet Stats.
+  var pPoids=[], pSomMoy=null;
+  if(prevA>=0)for(var q2=prevA;q2<=prevB;q2++){var dq2=allData[q2]||{};if(dq2.poids!=null&&dq2.poids!==""){var w2=parseFloat(String(dq2.poids).replace(",","."));if(!isNaN(w2))pPoids.push(w2);}}
+  var pDelta=pPoids.length>=2?Math.round((pPoids[pPoids.length-1]-pPoids[0])*10)/10:null;
+  if(pSomm.length)pSomMoy=Math.round(pSomm.reduce(function(a,b){return a+b;},0)/pSomm.length*10)/10;
+  var serP=[],serS=[],serR=[];
+  jours.forEach(function(d){
+    var w=parseFloat(String(d.poids==null?"":d.poids).replace(",","."));serP.push(isNaN(w)?null:w);
+    var sv=parseFloat(d.sommeilH);serS.push(sv>=2&&sv<=14?sv:null);
+    serR.push(d.habits?Object.keys(d.habits).filter(function(k){return d.habits[k];}).length:0);
+  });
+  var piliersAff=liste.filter(function(x){return x.pilier;});
+  if(!piliersAff.length)piliersAff=liste.slice(0,4);
+  var corps=rapportBzHTML({theme:clientTheme(allData),name:name,salut:salut,nbJours:nbJours,period:period,
+    titre:(function(){try{var __b=progBase(start,allData);if(__b<=14&&nbJours>=14)return 'Ton bilan du Reset 14 jours';}catch(e){}return 'Ton bilan après '+nbJours+' jours';})(),
+    kg:(dPeriode!=null?dPeriode:dPoids), kgLab:(dPeriode!=null?'sur ces '+nbJours+' jours':'depuis le départ'), dPoids:dPoids, pDepart:pDepart, pActuel:pActuel,
+    verdict:verdict, vcoul:vcoul, vemo:vemo, assidu:assidu, prevAssidu:prevAssidu, moySom:moySom, prevSom:pSomMoy, pDelta:pDelta,
+    piliers:piliersAff, faibles:pilFaibles, priorite:priorite, action:action, serP:serP, serS:serS, serR:serR});
+  if(retour==="html")return remplis?corps:"";
+
   var kh='<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8">'+
     '<meta name="viewport" content="width=device-width,initial-scale=1">'+
     '<title>Mon bilan '+esc(name)+' — J'+period+'</title><style>'+
     '*{box-sizing:border-box;margin:0;padding:0}'+
-    'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#F2F4F7;color:#1B2430;padding:16px;line-height:1.5}'+
-    '.p{max-width:520px;margin:0 auto;background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 2px 18px rgba(0,0,0,.07)}'+
-    '.hd{background:linear-gradient(135deg,#2E4560,#4A6C8F);color:#fff;padding:22px 20px}'+
-    '.hd h1{font-size:22px;font-weight:900;letter-spacing:-.4px}'+
-    '.hd p{font-size:12.5px;opacity:.8;margin-top:3px}'+
-    '.v{padding:20px;border-bottom:1px solid #EDF0F4}'+
-    '.v .e{font-size:30px}'+
-    '.v .t{font-size:15px;font-weight:800;line-height:1.45;margin-top:6px}'+
-    '.k{display:flex;border-bottom:1px solid #EDF0F4}'+
-    '.k>div{flex:1;padding:18px 8px;text-align:center;border-right:1px solid #EDF0F4}'+
-    '.k>div:last-child{border-right:0}'+
-    '.k .n{font-size:26px;font-weight:900;letter-spacing:-1px;line-height:1}'+
-    '.k .l{font-size:10.5px;font-weight:700;color:#7A8698;margin-top:5px}'+
-    '.s{padding:18px 20px;border-bottom:1px solid #EDF0F4}'+
-    '.s h2{font-size:11px;font-weight:900;letter-spacing:1.2px;text-transform:uppercase;color:#7A8698;margin-bottom:10px}'+
-    '.li{display:flex;align-items:center;gap:11px;padding:8px 0}'+
-    '.li .lab{flex:1;font-size:14px;font-weight:700}'+
-    '.li .pc{font-size:15px;font-weight:900}'+
-    '.act{background:#FFF8EC;border-left:4px solid #E0A03C;padding:18px 20px}'+
-    '.act h2{font-size:11px;font-weight:900;letter-spacing:1.2px;text-transform:uppercase;color:#B27A1E;margin-bottom:7px}'+
-    '.act p{font-size:14.5px;font-weight:700;line-height:1.5}'+
-    '.ft{padding:16px 20px;text-align:center;font-size:11px;color:#98A2B3}'+
+    'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#F2F4F7;color:#1B2430;padding:16px;line-height:1.45}'+
+    '.p{max-width:520px;margin:0 auto}'+
     '.pb{position:fixed;bottom:14px;left:0;right:0;text-align:center}'+
-    '.pb button{background:#2E4560;color:#fff;border:0;padding:12px 22px;border-radius:100px;font-size:13px;font-weight:800;box-shadow:0 3px 14px rgba(0,0,0,.2)}'+
-    '@media print{body{background:#fff;padding:0}.p{box-shadow:none}.pb{display:none}}'+
-    '</style></head><body><div class="p">'+
-    // Le titre suit le verdict. « Bravo » sur un rapport qui annonce ensuite
-    // que rien ne va est contre-productif : la cliente cesse de croire les
-    // félicitations, y compris celles qu'elle mérite vraiment.
-    '<div class="hd"><h1>'+esc(salut)+' '+esc(name)+(salut==="Bravo"?' 👏':'')+'</h1>'+
-    '<p>'+(function(){try{var __b=progBase(start,allData);if(__b<=14&&nbJours>=14)return 'Ton bilan du Reset 14 jours';}catch(e){}return 'Ton bilan après '+nbJours+' jour'+(nbJours>1?'s':'');})()+'</p></div>'+
-    '<div class="v"><div class="e">'+vemo+'</div><div class="t" style="color:'+vcoul+'">'+verdict+'</div>'+
-    // La comparaison passe AVANT les chiffres : « as-tu rectifié depuis la
-    // dernière fois » compte plus que le niveau absolu.
-    (deltaAssidu!=null?'<div style="margin-top:11px;padding:11px 13px;border-radius:12px;background:'+
-      (deltaAssidu>0?'#EAF8F0':(deltaAssidu<0&&!gros)?'#FDF1EC':'#F2F4F7')+'">'+
-      '<div style="font-size:11px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:#7A8698">Par rapport aux '+period+' jours d\'avant</div>'+
-      '<div style="font-size:14px;font-weight:800;margin-top:3px;color:'+(deltaAssidu>0?'#2FBF71':(deltaAssidu<0&&!gros)?'#C75B4A':'#1B2430')+'">'+
-      (deltaAssidu>0?'▲ +'+deltaAssidu+' points d\'assiduité — tu as rectifié 👏':
-       deltaAssidu<0?(gros?'▼ '+deltaAssidu+' points de régularité — les résultats sont là, garde le rythme':'▼ '+deltaAssidu+' points — le rythme a baissé'):'▬ Même niveau qu\'avant')+'</div>'+
-      '<div style="font-size:12px;color:#7A8698;margin-top:3px">'+prevAssidu+' % avant → '+assidu+' % maintenant</div></div>':'')+
-    '</div>'+
-    '<div class="k">'+
-    '<div><div class="n" style="color:'+vcoul+'">'+assidu+'%</div><div class="l">de tes journées<br>remplies</div></div>'+
-    (dPoids!=null?'<div><div class="n" style="color:'+(dPoids<0?'#2FBF71':'#1B2430')+'">'+(dPoids>0?'+':'')+dPoids+'</div>'+
-      '<div class="l">kg depuis<br>le départ ('+pDepart+' kg)'+(pActuel!=null?'<br><span style="font-weight:800;color:#1B2430">'+pActuel+' kg aujourd\'hui</span>':'')+
-      (dPeriode!=null?'<br><span style="font-weight:900;color:'+(dPeriode<0?'#2FBF71':'#C75B4A')+'">'+(dPeriode>0?'+':'')+dPeriode+' kg sur ces '+nbJours+' jours</span>':'')+'</div></div>':'')+
-    (moySom!=null?'<div><div class="n">'+moySom+'</div><div class="l">heures de<br>sommeil / nuit</div></div>':'')+
-    '</div>';
-
-  // 🔄 Boucle vertueuse — ce qui lui fait gagner des points
-  if(vertu.length){
-    kh+='<div class="s"><h2>🔄 Ta boucle vertueuse</h2>'+
-      '<div style="font-size:12.5px;color:#7A8698;margin:-4px 0 8px;line-height:1.5">Ce que tu tiens déjà. Chaque case cochée en entraîne une autre — c\'est ça qui construit le résultat.</div>';
-    for(var v1=0;v1<vertu.length;v1++){
-      kh+='<div class="li"><span style="font-size:20px">'+vertu[v1].e+'</span><span class="lab">'+esc(vertu[v1].labAff||vertu[v1].lab)+'</span>'+
-        '<span class="pc" style="color:#2FBF71">'+vertu[v1].pct+'%</span></div>';
-    }
-    kh+='</div>';
-  }
-  // ⚠️ Boucle d'échec — ce qui lui en fait perdre
-  if(echec.length){
-    kh+='<div class="s" style="background:#FDF6F3"><h2>⚠️ Ta boucle d\'échec</h2>'+
-      '<div style="font-size:12.5px;color:#7A8698;margin:-4px 0 8px;line-height:1.5">Ce qui décroche. Une case laissée de côté en entraîne une autre le lendemain : c\'est comme ça qu\'une semaine se perd.</div>';
-    for(var e1=0;e1<echec.length;e1++){
-      kh+='<div class="li"><span style="font-size:20px">'+echec[e1].e+'</span><span class="lab">'+esc(echec[e1].labAff||echec[e1].lab)+'</span>'+
-        '<span class="pc" style="color:#C75B4A">'+echec[e1].pct+'%</span></div>';
-    }
-    kh+='<div style="font-size:12.5px;color:#7A8698;margin-top:7px;line-height:1.5">On n\'en reprend qu\'UNE cette semaine. La première de la liste suffit.</div></div>';
-  }
-  if(!vertu.length&&!echec.length&&top&&top.n>0){
-    kh+='<div class="s"><h2>Ce que tu tiens le mieux</h2>'+
-      '<div class="li"><span style="font-size:20px">'+top.e+'</span><span class="lab">'+esc(top.lab)+'</span>'+
-      '<span class="pc" style="color:#2FBF71">'+top.pct+'%</span></div></div>';
-  }
-  kh+='<div class="act"><h2>Ta priorité cette semaine</h2><p>'+action+'</p></div>'+
-    '<div class="ft">AM Coach Genève · Akli<br>Ton coach reste disponible pour en parler.</div>'+
+    '.pb button{background:#1B2430;color:#fff;border:0;padding:12px 22px;border-radius:100px;font-size:13px;font-weight:800;box-shadow:0 3px 14px rgba(0,0,0,.2)}'+
+    '@media print{body{background:#fff;padding:0}.pb{display:none}}'+
+    BZ_CSS+'</style></head><body><div class="p">'+corps+
     '</div><div class="pb"><button onclick="window.print()">📄 Enregistrer en PDF</button></div>'+
     // 📄 UNE SEULE PAGE À L'IMPRESSION. La feuille A4 fait 281 mm utiles : on
     // mesure le rapport à la largeur d'impression et on le réduit juste ce
     // qu'il faut pour qu'il tienne, au lieu de laisser 3 lignes sur une page 2.
     '<style>@media print{html{zoom:var(--z,1)}body{padding:0!important;background:#fff!important}'+
     '.p{width:auto!important;max-width:none!important;margin:0!important;border-radius:0!important;box-shadow:none!important}'+
-    '.s,.act,.k,.v,.hd,.li{break-inside:avoid}'+
-    // Version serrée pour le papier : mêmes informations, moins de blanc.
-    '.hd{padding:14px 20px!important}.hd h1{font-size:20px!important}.v{padding:12px 20px!important}.v .e{font-size:22px!important}.v .t{font-size:14px!important;margin-top:3px!important}'+
-    '.k>div{padding:10px 6px!important}.k .n{font-size:22px!important}.s{padding:10px 20px!important}.s h2{margin-bottom:5px!important}'+
-    '.li{padding:3px 0!important}.li .lab{font-size:13px!important}.act{padding:11px 20px!important}.act p{font-size:13.5px!important;line-height:1.4!important}.ft{padding:8px 20px!important}}</style>'+
+    '.bz-c,.bz-hd,.bz-li{break-inside:avoid}.bz{box-shadow:none!important}'+
+    '.bz-hd{padding:16px 18px 54px!important}.bz-c{margin:8px 12px!important;padding:10px 12px!important}.bz-li{padding:4px 0!important}}</style>'+
     '<script>(function(){function fit(){try{var p=document.querySelector(".p");if(!p)return;var c=p.cloneNode(true);'+
     // Mesure prudente : feuille étroite (650 px utiles), marges larges comme sur iPhone.
     'c.className+=" mes";c.style.cssText="position:absolute;left:-9999px;top:0;width:650px;max-width:none;visibility:hidden";document.body.appendChild(c);'+
@@ -16624,6 +16651,23 @@ function ficheOnglets(h){
 // « cliquer sur le prénom et avoir la montagne et où il en est … combien de
 // fois il a fait le sport, nutrition et sommeil »). Même calcul que la carte
 // objectif côté client : même départ, même cible, même pourcentage.
+// 🍽️ SON MENU D'AUJOURD'HUI, dans la fiche. Le client envoie une assiette :
+// le coach déplie ce bloc et voit les repas prévus ce jour-là, sans ouvrir
+// l'appli du client. Le contenu vient de menu.html (mode résumé), chargé
+// seulement quand on déplie.
+function coachMenuJourHTML(c,allData){
+  if(!menuActif(allData))return "";
+  var av=menuAvantDebut(allData);
+  if(av>0)return '<div class="card" style="padding:12px 14px;margin-bottom:12px;font-size:12.5px;color:var(--ink2);font-weight:700">🍽️ Ses menus démarrent dans '+av+' jour'+(av>1?'s':'')+'.</div>';
+  var P=menuPhase(allData); if(!P||!P.p)return "";
+  var url=location.origin+location.pathname.replace(/[^\/]*$/,"")+"menu.html?menu="+encodeURIComponent(P.p.cle)+"&resume=1&jour="+P.jour;
+  var ouvert=(state.mjOpen===c.slug);
+  return '<details class="sea-tiroir" id="mj-tiroir" data-slug="'+esc(c.slug)+'" data-src="'+esc(url)+'"'+(ouvert?' open':'')+' style="margin-bottom:12px">'+
+    '<summary><span class="sea-sum-t">🍽️ Son menu d\'aujourd\'hui</span>'+
+    '<span style="font-size:11px;font-weight:800;color:var(--mute);margin-left:auto;margin-right:8px">'+esc(P.p.num||"")+' · jour '+(P.jour+1)+'/'+P.total+'</span>'+
+    '<span class="sea-sum-c">⌄</span></summary>'+
+    '<div style="padding:0"><iframe id="mj-cadre" title="Menu du jour"'+(ouvert?' src="'+esc(url)+'"':'')+' style="display:block;width:100%;height:68vh;min-height:420px;border:0;border-top:1px solid var(--line);border-radius:0 0 14px 14px;background:#fff"></iframe></div></details>';
+}
 function coachMontagneHTML(c,allData){
   var start=c.start_date, avant=joursAvantDepart(start)>0;
   var t90=getToday90(start);
@@ -16762,6 +16806,7 @@ function viewCoachDetail(){
 
   h+=GMK("apercu");
   try{h+=coachMontagneHTML(c,allData);}catch(e){}
+  try{h+=coachMenuJourHTML(c,allData);}catch(e){}
   h+=blocDemandesHTML(c.slug);
 
 
@@ -20914,6 +20959,12 @@ function bindCoach(){
   (function(){
     var b=document.getElementById("ccg-back"); if(b)b.addEventListener("click",function(){state.coachCG=false;state.coachDetail=null;render();});
     var t=document.getElementById("cg-tuile"); if(t)t.addEventListener("click",function(){state.coachCG=true;render();window.scrollTo(0,0);});
+    var mj=document.getElementById("mj-tiroir");
+    if(mj)mj.addEventListener("toggle",function(){
+      var f=document.getElementById("mj-cadre");
+      if(this.open){state.mjOpen=this.getAttribute("data-slug");if(f&&!f.getAttribute("src"))f.setAttribute("src",this.getAttribute("data-src"));}
+      else if(state.mjOpen===this.getAttribute("data-slug"))state.mjOpen=null;
+    });
     document.querySelectorAll(".cg-open").forEach(function(x){x.addEventListener("click",function(){
       state.carnetG={slug:this.getAttribute("data-s"),k:this.getAttribute("data-k"),from:this.getAttribute("data-from")||"fiche"};
       render();window.scrollTo(0,0);

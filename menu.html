@@ -383,6 +383,9 @@ var MENU=params.get("menu");
 var CLIENT=params.get("client");
 var FORCED=!!(CLIENT&&params.get("menu"));
 var IS_ADMIN=params.get("admin")==="1";
+// 👀 Mode résumé : le coach voit, dans sa fiche client, les repas du jour de ce
+// menu, sans calendrier ni onglets. menu.html?menu=<clé>&resume=1&jour=<n>
+var RESUME=params.get("resume")==="1";
 if(MENU&&!MENUS[MENU])MENU=null;
 var PHASE_ORDER=["equilibre","acceleration","cyclage"];
 // Déblocage anticipé : phase 2 au jour 25 (idx 24), phase 3 au jour 53 (idx 52)
@@ -935,8 +938,19 @@ function frGenerer(variante) {
 }
 
 // ═══════════ RENDER ═══════════
+function resumeTeteHTML(){
+  var M=MENUS[MENU]||{}, d=new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"});
+  return '<div style="padding:14px 14px 10px"><div style="font-size:11px;font-weight:900;color:#888;letter-spacing:.6px;text-transform:uppercase">Menu du jour · '+esc(d)+'</div>'+
+    '<div style="font-weight:900;font-size:17px;margin-top:2px">'+esc((M.num?M.num+" · ":"")+(M.name||MENU))+'</div></div>';
+}
 function render(){
   var root=document.getElementById("root");
+  if(RESUME&&MENU&&MENUS[MENU]){
+    if(!state.__rs){state.__rs=1;state.tab="menu";state.selDay=Math.max(0,Math.min(MENU_DAYS(MENU)-1,parseInt(params.get("jour"),10)||0));}
+    root.innerHTML='<div class="app">'+resumeTeteHTML()+viewDayMeals()+'</div>';
+    try{bindMain();}catch(e){}
+    return;
+  }
   if(CLIENT&&!IS_ADMIN){
     if(!state.clientLoaded){root.innerHTML='<div class="dark-screen"><div class="dark-sub">Chargement...</div></div>';return;}
     if(state.accessDenied){
@@ -1782,7 +1796,7 @@ function bindMain(){
 // en arrière-plan. Sans ce contrôle, la cliente voyait l'ancien menu jusqu'à
 // la réouverture suivante. On relit la page quelques secondes après
 // l'ouverture : si la version a changé, on recharge une seule fois.
-var MENU_VERSION="08/11 - Protocole GB SG";
+var MENU_VERSION="16/11 - Résumé du jour";
 (function(){
   function verifier(){
     try{

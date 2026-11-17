@@ -1236,7 +1236,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "17/11 - Barre du bas fixe";
+var APP_VERSION = "17/11 - Stats nouvelle formule";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -9473,7 +9473,7 @@ function viewStats(name){
     '<div style="padding:14px 14px 0">';
   // 🎨 Le bilan des 7 derniers jours, même présentation que celui du dimanche.
   try{
-    if(start&&getToday90(start)>=1){
+    if(start&&getToday90(start)>=0){
       var __bz=openRapportSimple(String(name||"").split(" ")[0],start,7,allData,"html");
       if(__bz)h+='<style>'+BZ_CSS+'</style><div style="margin-bottom:16px">'+__bz+'</div>';
     }
@@ -9654,8 +9654,10 @@ function viewStats(name){
     var bs=bestStreak(allData,Math.min(DERN,lastIdx));
     h+=titreSection("Ma régularité","var(--st-cy)")+
       '<div class="st-grid2">'+
-      '<div class="st-kpi"><div class="st-kpi-n" style="color:var(--st-cy)">'+rempli+'</div><div class="st-kpi-l">Jours remplis</div></div>'+
-      '<div class="st-kpi"><div class="st-kpi-n" style="color:var(--st-vi)">'+bs+'</div><div class="st-kpi-l">Meilleure série</div></div></div>'+
+      '<div class="st-kpi" style="display:flex;align-items:center;gap:10px;text-align:left;background:var(--soft)"><span style="flex:0 0 40px;height:40px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:20px">📅</span>'+
+        '<div><div class="st-kpi-l" style="margin:0;font-weight:900;color:var(--ink)">Jours remplis</div><div class="st-kpi-n" style="color:var(--brand);font-size:24px">'+rempli+'<span style="font-size:14px;color:var(--mute)"> / '+DUR+'</span></div><div style="font-size:11px;color:var(--mute);font-weight:700">'+(rempli?'Continue sur ta lancée !':'Ta 1re journée t\'attend')+'</div></div></div>'+
+      '<div class="st-kpi" style="display:flex;align-items:center;gap:10px;text-align:left;background:#FFF7ED"><span style="flex:0 0 40px;height:40px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:20px">🔥</span>'+
+        '<div><div class="st-kpi-l" style="margin:0;font-weight:900;color:var(--ink)">Meilleure série</div><div class="st-kpi-n" style="color:#EA580C;font-size:24px">'+bs+'<span style="font-size:14px"> jour'+(bs>1?'s':'')+'</span></div><div style="font-size:11px;color:var(--mute);font-weight:700">Objectif : 7 jours 🔥</div></div></div></div>'+
       '<div class="chart-card"><div class="chart-hdr"><div class="chart-dot" style="background:var(--st-cy)"></div>'+
       '<span class="chart-title">Score global</span>'+
       (avgScore!=null?'<span class="chart-avg">moy. '+avgScore+'%</span>':'')+'</div>'+
@@ -10166,6 +10168,13 @@ function openRapportSimple(name,start,period,dataOverride,retour){
     var sv=parseFloat(d.sommeilH);serS.push(sv>=2&&sv<=14?sv:null);
     serR.push(d.habits?Object.keys(d.habits).filter(function(k){return d.habits[k];}).length:0);
   });
+  // 🚀 Début de programme (onglet Stats) : pas encore de quoi juger. On
+  // encourage au lieu d'afficher un verdict sévère sur deux jours vides.
+  if(retour==="html"&&(remplis<2||t90<3)){
+    salut="C'est parti"; vemo="🚀"; vcoul="#5B8FC7";
+    verdict="Ton bilan se construit ici, jour après jour. Remplis ta journée et pèse-toi : dès 3 jours, tu vois ta progression.";
+    action="Remplir ta journée dans l'appli, tous les jours. Même une journée imparfaite compte : c'est le geste qui construit l'habitude.";
+  }
   var piliersAff=liste.filter(function(x){return x.pilier;});
   if(!piliersAff.length)piliersAff=liste.slice(0,4);
   var corps=rapportBzHTML({theme:clientTheme(allData),couleur:clientCouleur(allData),name:name,salut:salut,nbJours:nbJours,period:period,
@@ -10173,7 +10182,7 @@ function openRapportSimple(name,start,period,dataOverride,retour){
     kg:(dPeriode!=null?dPeriode:dPoids), kgLab:(dPeriode!=null?'sur ces '+nbJours+' jours':'depuis le départ'), dPoids:dPoids, pDepart:pDepart, pActuel:pActuel,
     verdict:verdict, vcoul:vcoul, vemo:vemo, assidu:assidu, prevAssidu:prevAssidu, moySom:moySom, prevSom:pSomMoy, pDelta:pDelta,
     piliers:piliersAff, faibles:pilFaibles, priorite:priorite, action:action, serP:serP, serS:serS, serR:serR});
-  if(retour==="html")return remplis?corps:"";
+  if(retour==="html")return corps;
 
   var kh='<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8">'+
     '<meta name="viewport" content="width=device-width,initial-scale=1">'+

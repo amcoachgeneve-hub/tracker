@@ -102,6 +102,11 @@
 .jour-raccourci .jr-s{font-size:11px;margin-top:1px}
 .jour-raccourci .jr-fl{font-size:20px}
 
+/* 🎨 La carte « tes 7 jours » de l'onglet Sport suit la couleur de l'appli. */
+.th-f,.app.th-f,.th-c-rose,.app.th-c-rose{--r14a:#EC4899;--r14b:#F472B6;--r14d1:#3B0A2A;--r14d2:#1E0718;--r14o:rgba(236,72,153,.28);--r14s:rgba(236,72,153,.13);--r14t:#FBD3E7}
+.th-c-bleu,.app.th-c-bleu{--r14a:#1FA2FF;--r14b:#4FC3FF;--r14d1:#0B2A4A;--r14d2:#0A1A33;--r14o:rgba(31,162,255,.25);--r14s:rgba(31,162,255,.12);--r14t:#BFE6FF}
+.th-c-vert,.app.th-c-vert{--r14a:#10B981;--r14b:#34D399;--r14d1:#06302A;--r14d2:#041C17;--r14o:rgba(16,185,129,.28);--r14s:rgba(16,185,129,.13);--r14t:#C8F5E3}
+.th-c-violet,.app.th-c-violet{--r14a:#8B5CF6;--r14b:#A78BFA;--r14d1:#22124A;--r14d2:#120A2B;--r14o:rgba(139,92,246,.28);--r14s:rgba(139,92,246,.13);--r14t:#E0D6FE}
 /* ═══════════ 🏋️ ONGLET SPORT — clair, contours colorés ═══════════
    Akli : « fond blanc c'est plus joli ». On garde ce qui faisait l'identité
    de l'écran — l'anneau lumineux, les dégradés cyan→violet des gros boutons,
@@ -996,30 +1001,30 @@ input,textarea{outline:none}
 .r14-exo-tx b{font-size:13.5px;font-weight:800;color:var(--ink);line-height:1.3}
 .r14-exo-tx span{font-size:11.5px;color:var(--mute);font-weight:700}
 .r14-start{width:100%;font-size:14px;padding:14px 0}
-.r14{background:linear-gradient(160deg,#0B2A4A,#0A1A33);border:2px solid #1FA2FF;border-radius:20px;
-  padding:16px 14px 12px;margin-bottom:16px;box-shadow:0 8px 26px rgba(31,162,255,.25)}
-.r14-t{color:#4FC3FF;font-weight:900;font-size:13px;letter-spacing:1.6px;text-transform:uppercase;margin-bottom:12px}
-.r14-consigne{display:flex;align-items:center;gap:8px;background:rgba(31,162,255,.12);border-radius:14px;padding:13px 11px}
+.r14{background:linear-gradient(160deg,var(--r14d1,#0B2A4A),var(--r14d2,#0A1A33));border:2px solid var(--r14a,#1FA2FF);border-radius:20px;
+  padding:16px 14px 12px;margin-bottom:16px;box-shadow:0 8px 26px var(--r14o,rgba(31,162,255,.25))}
+.r14-t{color:var(--r14b,#4FC3FF);font-weight:900;font-size:13px;letter-spacing:1.6px;text-transform:uppercase;margin-bottom:12px}
+.r14-consigne{display:flex;align-items:center;gap:8px;background:var(--r14s,rgba(31,162,255,.12));border-radius:14px;padding:13px 11px}
 .r14-c-l{flex:1;display:flex;flex-direction:column;align-items:center;text-align:center}
 .r14-big{font-size:28px;font-weight:900;color:#fff;line-height:1.1}
-.r14-c-d{font-size:13px;color:#BFE6FF;line-height:1.45;margin-top:4px}
-.r14-c-d b{color:#4FC3FF}
-.r14-c-plus{font-size:24px;font-weight:900;color:#4FC3FF}
-.r14-expl{font-size:14px;color:#D6EEFF;line-height:1.6;margin:12px 2px 0}
-.r14-suite{font-size:13px;color:#8FD3FF;margin:9px 2px 0}
+.r14-c-d{font-size:13px;color:var(--r14t,#BFE6FF);line-height:1.45;margin-top:4px}
+.r14-c-d b{color:var(--r14b,#4FC3FF)}
+.r14-c-plus{font-size:24px;font-weight:900;color:var(--r14b,#4FC3FF)}
+.r14-expl{font-size:14px;color:var(--r14t,#D6EEFF);line-height:1.6;margin:12px 2px 0}
+.r14-suite{font-size:13px;color:var(--r14t,#8FD3FF);margin:9px 2px 0}
 .r14-suite b{color:#fff}
-.r14-j{background:rgba(255,255,255,.05);border:1.5px solid rgba(79,195,255,.25);border-radius:14px;
+.r14-j{background:rgba(255,255,255,.05);border:1.5px solid var(--r14o,rgba(79,195,255,.25));border-radius:14px;
   padding:11px 13px;margin-top:10px}
-.r14-j.auj{border:2px solid #4FC3FF;background:rgba(79,195,255,.12)}
+.r14-j.auj{border:2px solid var(--r14b,#4FC3FF);background:var(--r14s,rgba(79,195,255,.12))}
 .r14-j-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
 .r14-j-h b{color:#fff;font-size:15.5px}
-.r14-j-a{font-size:10.5px;font-weight:900;letter-spacing:1.3px;color:#0A1A33;background:#4FC3FF;border-radius:6px;padding:3px 7px}
-.r14-j-l{font-size:13.5px;color:#BFE6FF;line-height:1.55}
-.r14-j-l b{color:#4FC3FF}
-.r14-video{display:block;text-align:center;margin-top:9px;padding:10px 0;border-radius:10px;background:#1FA2FF;
+.r14-j-a{font-size:10.5px;font-weight:900;letter-spacing:1.3px;color:var(--r14d2,#0A1A33);background:var(--r14b,#4FC3FF);border-radius:6px;padding:3px 7px}
+.r14-j-l{font-size:13.5px;color:var(--r14t,#BFE6FF);line-height:1.55}
+.r14-j-l b{color:var(--r14b,#4FC3FF)}
+.r14-video{display:block;text-align:center;margin-top:9px;padding:10px 0;border-radius:10px;background:var(--r14a,#1FA2FF);
   color:#fff;font-weight:900;font-size:13px;text-decoration:none}
 .r14-go{display:flex;gap:8px;margin-top:11px}
-.r14-bip{flex:1;padding:12px 0;border-radius:11px;border:0;background:#1FA2FF;color:#fff;font-weight:900;font-size:13.5px;min-height:44px}
+.r14-bip{flex:1;padding:12px 0;border-radius:11px;border:0;background:var(--r14a,#1FA2FF);color:#fff;font-weight:900;font-size:13.5px;min-height:44px}
 
 /* 🔁 Le réglage d'un circuit, en tête de chaîne. */
 .prg-circuit{background:var(--soft2);border:1px solid var(--line);border-radius:12px;padding:11px 12px;margin-bottom:10px}
@@ -1236,7 +1241,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "17/11 - Menus retour";
+var APP_VERSION = "17/11 - Sport aux couleurs";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];

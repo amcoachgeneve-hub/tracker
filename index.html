@@ -1236,7 +1236,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "17/11 - Menus intégrés";
+var APP_VERSION = "17/11 - Menus retour";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -7127,7 +7127,7 @@ function viewMenus(name,start){
             :'<div style="margin-top:14px"><div style="height:8px;border-radius:100px;background:rgba(255,255,255,.22);overflow:hidden">'+
               '<div style="height:100%;width:'+Math.round((P.jour+1)/P.total*100)+'%;background:#fff;border-radius:100px"></div></div>'+
               '<div style="font-size:11.5px;font-weight:700;color:rgba(255,255,255,.75);margin-top:5px">Jour '+(P.jour+1)+' sur '+P.total+' de cette phase</div></div>')+
-    '<a href="'+menuURL(P.p.cle)+'" style="display:block;text-align:center;margin-top:12px;background:rgba(255,255,255,.18);color:#fff;text-decoration:none;padding:9px 0;border-radius:100px;font-weight:800;font-size:12.5px">⤢ Ouvrir en plein écran</a>'+
+    '<a href="'+menuURL(P.p.cle)+'" target="_blank" rel="noopener" style="display:block;text-align:center;margin-top:12px;background:rgba(255,255,255,.18);color:#fff;text-decoration:none;padding:9px 0;border-radius:100px;font-weight:800;font-size:12.5px">⤢ Ouvrir en plein écran</a>'+
     '</div>';
 
   // 🍽️ LES MENUS DIRECTEMENT DANS L'APPLI (Akli, 17/11) : plus besoin de
@@ -23038,6 +23038,13 @@ function ancrerNav(){
   if(nav.style.transform&&nav.style.transform!=="translateX(-50%)")nav.style.transform="translateX(-50%)";
   nav.style.transformOrigin="";
 }
+// 🍽️ Le cadre des menus revient blanc après un aller-retour (Safari remet la
+// page de son cache sans relancer le cadre) : on le recharge au retour.
+(function(){
+  function recharger(){var f=document.getElementById("menu-cadre");if(f){var u=f.getAttribute("src");f.setAttribute("src","about:blank");setTimeout(function(){f.setAttribute("src",u);},30);}}
+  window.addEventListener("pageshow",function(e){if(e.persisted)recharger();});
+  var cache=0;document.addEventListener("visibilitychange",function(){if(document.hidden){cache=Date.now();}else if(cache&&Date.now()-cache>1500)recharger();});
+})();
 if(window.visualViewport){
   window.visualViewport.addEventListener("resize",ancrerNav);
   window.visualViewport.addEventListener("scroll",ancrerNav);

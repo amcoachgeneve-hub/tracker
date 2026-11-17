@@ -945,6 +945,8 @@ function resumeTeteHTML(){
 }
 function render(){
   var root=document.getElementById("root");
+  // Intégré dans l'appli : on ouvre directement sur le calendrier et le jour.
+  if(!state.__ong&&params.get("onglet")){state.__ong=1;state.tab=params.get("onglet");}
   if(RESUME&&MENU&&MENUS[MENU]){
     if(!state.__rs){state.__rs=1;state.tab="menu";state.selDay=Math.max(0,Math.min(MENU_DAYS(MENU)-1,parseInt(params.get("jour"),10)||0));}
     root.innerHTML='<div class="app">'+resumeTeteHTML()+viewDayMeals()+'</div>';
@@ -1796,7 +1798,7 @@ function bindMain(){
 // en arrière-plan. Sans ce contrôle, la cliente voyait l'ancien menu jusqu'à
 // la réouverture suivante. On relit la page quelques secondes après
 // l'ouverture : si la version a changé, on recharge une seule fois.
-var MENU_VERSION="16/11 - Résumé du jour";
+var MENU_VERSION="17/11 - Menus intégrés";
 (function(){
   function verifier(){
     try{

@@ -1798,7 +1798,7 @@ function bindMain(){
 // en arrière-plan. Sans ce contrôle, la cliente voyait l'ancien menu jusqu'à
 // la réouverture suivante. On relit la page quelques secondes après
 // l'ouverture : si la version a changé, on recharge une seule fois.
-var MENU_VERSION="17/11 - Menus intégrés";
+var MENU_VERSION="19/11 - Reset fermé";
 (function(){
   function verifier(){
     try{
@@ -1825,6 +1825,9 @@ var MENU_VERSION="17/11 - Menus intégrés";
     loadClient(function(){
       checkAccess(function(){
         if(state.clientStart&&!MENU)MENU=menuAuto();
+        // 🔒 Rééquilibrage commencé : le menu 14 jours est fermé, même par un
+        // ancien lien ou un favori. Seul le menu du rééquilibrage s'ouvre.
+        if(state.accReeq&&dayGlobal()>=14&&MENU==="14jours")MENU="reequilibrage";
         if(MENU)loadRecipes(MENU,function(){render();});
         render();
       });

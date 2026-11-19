@@ -1241,7 +1241,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "17/11 - Sport aux couleurs";
+var APP_VERSION = "19/11 - Circuits numérotés";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -14460,7 +14460,7 @@ function viewCarnetGrille(){
     '<div style="padding:10px 10px 90px">'+
     // 📋 « Où il en est » : toujours au-dessus des séances, comme dans le détail.
     (function(){try{return carnetPointHTML(G.slug);}catch(e){return "";}})()+
-    '<div style="font-size:12px;color:var(--ink2);line-height:1.5;margin:0 2px 9px">Une colonne par date. Change seulement les charges. <b style="color:#136B3C">Vert</b> : plus que la fois d\'avant. <b style="color:#9B1C1C">Rouge</b> : moins. Touche une date pour ouvrir le détail (répétitions, date, note).</div>'+
+    '<div style="font-size:12px;color:var(--ink2);line-height:1.5;margin:0 2px 9px">Une colonne par date. Grande case : la charge ou le niveau. Petite case : les répétitions. <b style="color:#136B3C">Vert</b> : plus que la fois d\'avant. <b style="color:#9B1C1C">Rouge</b> : moins. Touche une date pour ouvrir le détail (répétitions, date, note).</div>'+
     '<button id="cg-new" class="big-btn" style="margin:0 0 10px;padding:14px 0">＋ Nouvelle date · mêmes charges</button>'+
     '<div id="cg-scroll" style="overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:12px;border:1px solid var(--line);background:#fff">'+
     '<table style="border-collapse:separate;border-spacing:0;font-size:12px"><tr><th style="'+ST+';font-size:11px;color:var(--mute)">SÉRIE</th>';
@@ -14474,7 +14474,18 @@ function viewCarnetGrille(){
     h+='<td style="'+TD+'"><input type="number" inputmode="numeric" min="1" max="10" data-cgf="'+i+'" value="'+(E.forme||"")+'" style="width:56px;padding:8px 2px;border-radius:9px;border:1.5px solid var(--line);text-align:center;font-weight:900;font-size:14px;background:#fff"/></td>';
   });
   h+='</tr>';
+  // ⛓️ Les circuits de la dernière date, numérotés, pour s'y retrouver.
+  var LE=(L.exos||[]), CIRC={}, nC=0;
+  for(var ce=0;ce<LE.length;ce++){
+    if(LE[ce].sup&&(ce===0||!LE[ce-1].sup)){
+      var fin=ce; while(fin<LE.length-1&&LE[fin].sup)fin++;
+      nC++; CIRC[LE[ce].ref]={n:nC,k:fin-ce+1,t:Math.max.apply(null,LE.slice(ce,fin+1).map(function(z){return (z.series||[]).length;}))};
+      ce=fin;
+    }
+  }
   rows.forEach(function(X,ri){
+    var CC=CIRC[X.ref];
+    if(CC)h+='<tr><td colspan="'+(cols.length+1)+'" style="padding:0;background:var(--violet)"><div style="position:sticky;left:0;display:inline-block;padding:6px 10px;color:#fff;font-size:12px;font-weight:900">⛓️ Circuit '+CC.n+' · '+CC.k+' exercices · '+CC.t+' tours</div></td></tr>';
     var lv=((X.series||[])[0]||{}).u==="lvl", M=progMuscle(X.m), nb=0;
     cols.forEach(function(E){var Y=cgExo(E,X.ref);if(Y&&Y.series&&Y.series.length>nb)nb=Y.series.length;});
     nb=Math.min(Math.max(nb,1),10);
@@ -14490,22 +14501,26 @@ function viewCarnetGrille(){
     if(MT.de)cons+=' <span style="display:inline-block;margin-top:3px;padding:2px 7px;border-radius:20px;background:var(--soft2);color:var(--ink2);font-size:10.5px;font-weight:900">↪ à la place de « '+esc(MT.de)+' » depuis le '+frDate(MT.depuis)+'</span>';
     h+='<tr><td colspan="'+(cols.length+1)+'" style="padding:0;border-bottom:1px solid var(--line);background:var(--soft)">'+
       '<div style="position:sticky;left:0;display:inline-block;padding:8px 9px;max-width:300px"><b style="font-size:13px;color:'+(MT.ancien?'var(--mute)':'var(--ink)')+'">'+esc(X.n)+'</b> '+
-      '<span style="font-size:10.5px;font-weight:900;color:'+M[2]+'">'+M[1]+' · '+(lv?'NIVEAU':'KG')+'</span><br>'+cons+'</div></td></tr>';
+      '<span style="font-size:10.5px;font-weight:900;color:'+M[2]+'">'+M[1]+' · '+(lv?'NIVEAU':'KG')+'</span>'+
+      (cgExo(L,X.ref)?' <button class="prg-mini" data-cg-suppr="'+ri+'" style="padding:3px 8px;font-size:11px;margin-left:4px">✕ retirer</button>':'')+'<br>'+cons+'</div></td></tr>';
     for(var k=0;k<nb;k++){
       var sr=null; for(var c=cols.length-1;c>=0&&!sr;c--){var Y=cgExo(cols[c],X.ref);if(Y&&Y.series&&Y.series[k])sr=Y.series[k];}
       var lab=sr&&sr.v!==""&&sr.v!=null?(sr.v+(sr.t==="duree"?" s":" rép")):"";
-      h+='<tr><td style="'+ST+'"><b>S'+(k+1)+'</b>'+(lab?' <span style="color:var(--mute);font-weight:700">· '+lab+'</span>':'')+'</td>';
+      h+='<tr><td style="'+ST+'"><b>S'+(k+1)+'</b><div style="font-size:10.5px;color:var(--mute);font-weight:700;margin-top:2px">'+(lv?'niveau':'kg')+'<br>'+(sr&&sr.t==="duree"?'secondes':'répétitions')+' ↓</div></td>';
       cols.forEach(function(E,i){
         var v=cgVal(E,X.ref,k), av=i>0?cgVal(cols[i-1],X.ref,k):"";
         // Cet exercice n'était pas dans la séance de cette date : pas de case à remplir.
         if(!cgExo(E,X.ref)){h+='<td style="'+TD+'"><span style="display:inline-block;width:56px;color:var(--mute);font-weight:900">—</span></td>';return;}
-        h+='<td style="'+TD+'"><input type="number" inputmode="decimal" step="'+(lv?'1':'0.5')+'" data-cg="'+i+'|'+ri+'|'+k+'" value="'+esc(String(v))+'" placeholder="'+(lv?'niv':'kg')+'" style="width:56px;padding:8px 2px;border-radius:9px;text-align:center;font-weight:900;font-size:14px;'+cgCouleur(v,av)+'"/></td>';
+        var Ye=cgExo(E,X.ref), se=(Ye&&Ye.series&&Ye.series[k])||{}, rv=(se.v==null?"":se.v);
+        h+='<td style="'+TD+'"><input type="number" inputmode="decimal" step="'+(lv?'1':'0.5')+'" data-cg="'+i+'|'+ri+'|'+k+'" value="'+esc(String(v))+'" placeholder="'+(lv?'niv':'kg')+'" style="width:56px;padding:8px 2px;border-radius:9px;text-align:center;font-weight:900;font-size:14px;'+cgCouleur(v,av)+'"/>'+
+          '<input type="number" inputmode="numeric" data-cgr="'+i+'|'+ri+'|'+k+'" value="'+esc(String(rv))+'" placeholder="'+(se.t==="duree"?'sec':'rép')+'" style="display:block;width:56px;margin:3px auto 0;padding:3px 2px;border-radius:7px;border:1px solid var(--line);text-align:center;font-weight:800;font-size:11.5px;color:var(--ink2);background:var(--soft)"/></td>';
       });
       h+='</tr>';
     }
   });
   return h+'</table></div>'+
-    '<div style="font-size:11.5px;color:var(--mute);line-height:1.5;margin:10px 2px 0">Pour ajouter un exercice, une série ou changer les répétitions : touche la date en haut de la colonne.</div></div>';
+    '<button id="cg-ajout" class="prg-mini" style="width:100%;padding:12px 0;margin-top:10px;font-size:13px">＋ Ajouter un exercice à la séance du '+frDate(L.d)+'</button>'+
+    '<div style="font-size:11.5px;color:var(--mute);line-height:1.5;margin:10px 2px 0">Petite case sous la charge : les répétitions (ou secondes) de cette série. « ✕ retirer » enlève l\'exercice de la dernière date seulement. Pour ajouter une série : touche la date en haut de la colonne.</div></div>';
 }
 function bindCarnetGrille(){
   var G=state.carnetG; if(!G)return;
@@ -14535,8 +14550,39 @@ function bindCarnetGrille(){
     window.addEventListener("pagehide",function(){if(window.__cgVider)try{window.__cgVider();}catch(e){}});}
   ["cg-back","cg-new"].forEach(function(i){var b=document.getElementById(i);if(b)b.addEventListener("click",vider,true);});
   document.querySelectorAll("th .carnet-open").forEach(function(b){b.addEventListener("click",vider,true);});
-  document.querySelectorAll("[data-cg],[data-cgf]").forEach(function(el){
-    el.addEventListener("input",function(){att[this.getAttribute("data-cg")||("f"+this.getAttribute("data-cgf"))]=this;try{clearTimeout(tmA);}catch(e){}tmA=setTimeout(vider,700);});
+  // Répétitions d'une série, à la date de la colonne.
+  document.querySelectorAll("[data-cgr]").forEach(function(el){
+    el.addEventListener("change",function(){
+      var p=this.getAttribute("data-cgr").split("|"), ci=+p[0], X=rows[+p[1]], k=+p[2], v=this.value, n=parseFloat(String(v).replace(",","."));
+      delete att["r"+this.getAttribute("data-cgr")];
+      if(!cols[ci]||!X)return;
+      var cid=cols[ci].cid;
+      cgSauver(G.slug,function(P){P.journal.forEach(function(E){if(E.cid!==cid)return;var Y=cgExo(E,X.ref);if(!Y||!Y.series||!Y.series[k])return;Y.series[k].v=isNaN(n)?"":n;Y.series[k].ok=1;E.vol=progVolume(E.exos);});});
+    });
+    el.addEventListener("input",function(){
+      var p=this.getAttribute("data-cgr").split("|"), ci=+p[0], ri=p[1], k=+p[2], v=this.value, suiv=[];
+      for(var j=k+1;j<12;j++){var z=document.querySelector('[data-cgr="'+ci+'|'+ri+'|'+j+'"]');if(!z)break;suiv.push(z);}
+      if(!suiv.length||v===""){copieBarreOter();return;}
+      copieBarre("S"+(k+1)+" : "+v+" rép → S"+(k+2)+(suiv.length>1?" à S"+(k+1+suiv.length):""),function(){
+        suiv.forEach(function(z){z.value=v;z.dispatchEvent(new Event("change",{bubbles:true}));});
+      });
+    });
+  });
+  document.querySelectorAll("[data-cg-suppr]").forEach(function(b){b.addEventListener("click",function(){
+    var X=rows[+this.getAttribute("data-cg-suppr")], L=cols[cols.length-1]; if(!X||!L)return;
+    if(!confirm("Retirer « "+X.n+" » de la séance du "+frDate(L.d)+" ?"))return;
+    vider();
+    cgSauver(G.slug,function(P){P.journal.forEach(function(E){if(E.cid!==L.cid)return;E.exos=(E.exos||[]).filter(function(Y){return Y.ref!==X.ref;});E.vol=progVolume(E.exos);});});
+    render(); try{feedback("✕ « "+X.n+" » retiré du "+frDate(L.d),"ok");}catch(e){}
+  });});
+  var aj=document.getElementById("cg-ajout");
+  if(aj)aj.addEventListener("click",function(){
+    vider(); var L=cols[cols.length-1]; if(!L)return;
+    carnetOuvrir(G.slug,L.cid);
+    if(state.carnet){state.carnet.remp=null;state.carnet.pick=true;state.carnet.q="";render();window.scrollTo(0,0);}
+  });
+  document.querySelectorAll("[data-cg],[data-cgf],[data-cgr]").forEach(function(el){
+    el.addEventListener("input",function(){att[this.getAttribute("data-cg")||(this.getAttribute("data-cgr")?"r"+this.getAttribute("data-cgr"):"f"+this.getAttribute("data-cgf"))]=this;try{clearTimeout(tmA);}catch(e){}tmA=setTimeout(vider,700);});
   });
   document.querySelectorAll("[data-cg]").forEach(function(el){
     el.addEventListener("change",function(){
@@ -14898,12 +14944,14 @@ function viewCarnet(){
         L.map(function(S){return '<option value="'+esc(S.id)+'">'+esc(S.nom)+' · '+(S.exos||[]).length+' exos</option>';}).join("")+'</select>':
         '<div style="font-size:12px;color:var(--mute)">Aucune séance type. Ajoute les exercices un par un.</div>')+'</div>';
   }
+  var __nC=0;
   W.exos.forEach(function(X,e){
     var M=progMuscle(X.m), lie=(e>0&&W.exos[e-1].sup), D=carnetDernier(C.slug,X.ref,W.cid);
     // ⛓️ CIRCUIT : chaque ligne devient un TOUR. Le tour 2 de chaque exercice
     // du circuit se lit sur la même ligne, et « + Tour » en ajoute un à tous.
     var G=carnetCircuit(W,e), enCirc=G.length>1;
-    if(enCirc&&G[0]===e)h+='<div style="font-size:12px;font-weight:900;color:var(--violet);margin:6px 2px 6px">⛓️ Circuit · '+G.length+' exercices · '+Math.max.apply(null,G.map(function(i){return W.exos[i].series.length;}))+' tours · note le poids et les reps de chaque tour</div>';
+    if(enCirc&&G[0]===e)__nC++;
+    if(enCirc&&G[0]===e)h+='<div style="font-size:12px;font-weight:900;color:var(--violet);margin:6px 2px 6px">⛓️ Circuit '+__nC+' · '+G.length+' exercices · '+Math.max.apply(null,G.map(function(i){return W.exos[i].series.length;}))+' tours · note le poids et les reps de chaque tour</div>';
     h+='<div class="prg-exo'+(lie?' lie':'')+'" style="border-left-color:'+M[2]+';padding:12px">'+
       (lie?'<div style="font-size:11px;font-weight:900;color:var(--violet);margin-bottom:6px">⛓️ enchaîné avec le précédent</div>':'')+
       '<div style="display:flex;align-items:center;gap:10px">'+progVignette(X,40)+
@@ -14925,7 +14973,7 @@ function viewCarnet(){
       '<button class="prg-mini'+(W.dur===X.ref?' on':'')+'" data-cn-dur="'+e+'">🔥 '+(W.dur===X.ref?'Le plus dur ✓':'Le plus dur')+'</button>'+
       '<button class="prg-mini" data-cn-remp="'+e+'">🔁 Remplacer</button>'+
       '<button class="prg-mini" data-cn-addser="'+e+'">'+(enCirc?'＋ Tour (tout le circuit)':'＋ Série')+'</button>'+
-      (e<W.exos.length-1?'<button class="prg-mini'+(X.sup?' on':'')+'" data-cn-sup="'+e+'">⛓️ '+(X.sup?'Circuit activé':'Enchaîner au suivant')+'</button>':'')+
+      (e<W.exos.length-1?'<button class="prg-mini'+(X.sup?' on':'')+'" data-cn-sup="'+e+'">⛓️ '+(X.sup?'Lié au suivant ✓':(enCirc?'Lier au suivant (sinon fin du circuit)':'Enchaîner au suivant'))+'</button>':'')+
       '<button class="prg-mini" data-cn-up="'+e+'">↑</button><button class="prg-mini" data-cn-down="'+e+'">↓</button>'+
       '<button class="prg-mini bad" data-cn-del="'+e+'">🗑</button></div></div>';
   });
@@ -15096,6 +15144,9 @@ function bindCarnet(){
         var lv=(s.u==="lvl");
         S.push({t:s.t||"reps",v:a?s.v:"",c:b?s.kg:"",u:b?(lv?"lvl":"kg"):"—",kg:(b&&!lv)?s.kg:"",r:s.r||"",ok:1});
       });
+      // Exercice ajouté sans rien de saisi : on le garde avec ses séries vides,
+      // il apparaît dans le tableau et se remplit là-bas.
+      if(!S.length&&X.series.length)S=X.series.map(function(z){return {t:z.t||"reps",v:"",c:"",u:z.u==="lvl"?"lvl":"—",kg:"",r:"",ok:1};});
       if(S.length)exos.push({ref:X.ref,n:X.n,m:X.m,mat:X.mat,v:X.v,g:X.g,sup:X.sup?1:0,repos:0,note:"",series:S});
     });
     if(!nbS){if(!C.auto)alert("Note au moins une série (répétitions ou charge).");return;}

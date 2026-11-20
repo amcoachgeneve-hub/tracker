@@ -1241,7 +1241,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "19/11 - Circuits numérotés";
+var APP_VERSION = "20/11 - Date de la pesée";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -2548,6 +2548,18 @@ function silJours(la,start){
   return Math.max(0,Math.floor((new Date(isoLocal())-new Date(ref))/86400000));
 }
 // « Semaine 2/6 · Jour 9/42 » : où en est le client, d'un coup d'œil.
+// ⚖️ Quand a eu lieu la dernière pesée : « aujourd'hui », « hier », « il y a
+// 3 jours ». Au-delà de 3 jours, le texte passe en jaune : à relancer.
+function poidsQuandHTML(allData,t90){
+  for(var i=Math.max(0,t90);i>=0;i--){
+    var d=allData&&allData[i]; if(!d||d.poids==null||d.poids==="")continue;
+    if(isNaN(parseFloat(String(d.poids).replace(",","."))))continue;
+    var n=t90-i;
+    var txt=n<=0?"pesé aujourd'hui":n===1?"pesé hier":"pesé il y a "+n+" jours";
+    return n>=4?'<span style="color:#FDE68A;font-weight:900">⚠️ '+txt+'</span>':txt;
+  }
+  return "pas encore de pesée";
+}
 function semJourTxt(t90,len){
   len=len||90; var j=Math.min(t90+1,len);
   return 'Semaine '+Math.min(Math.ceil(j/7),Math.ceil(len/7))+'/'+Math.ceil(len/7)+' · Jour '+j+'/'+len;
@@ -8191,7 +8203,7 @@ function viewCalendar(name,start){
         '<div style="display:flex;align-items:flex-end;gap:6px">'+
         '<div style="flex:1 1 0;min-width:0">'+
         '<div style="font-weight:900;font-size:34px;line-height:.95;letter-spacing:-1.5px;color:#fff">'+(curW!=null?curW:'—')+'<span style="font-size:14px;opacity:.75;margin-left:1px">kg</span></div>'+
-        '<div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.7);margin-top:3px">aujourd\'hui</div></div>'+
+        '<div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.7);margin-top:3px">'+poidsQuandHTML(allData,today90)+'</div></div>'+
         '<div style="flex:1 1 186px;max-width:196px;min-width:112px;text-align:center">'+svgMontagne(pcG,"#5DF2A0")+
         '<div style="font-weight:900;font-size:16px;color:#fff;margin-top:1px">'+pcG+'<span style="font-size:10px">% du chemin</span></div></div>'+
         '<div style="flex:1 1 0;min-width:0;text-align:right">'+
@@ -16843,7 +16855,7 @@ function coachMontagneHTML(c,allData){
     '</div></div>'+
     '<div style="display:flex;align-items:flex-end;gap:6px">'+
     '<div style="flex:1 1 0;min-width:0"><div style="font-weight:900;font-size:30px;line-height:.95;letter-spacing:-1px;color:#fff">'+(curW!=null?curW:'—')+'<span style="font-size:13px;opacity:.75">kg</span></div>'+
-    '<div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.7);margin-top:3px">aujourd\'hui</div></div>'+
+    '<div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.7);margin-top:3px">'+poidsQuandHTML(allData,t90)+'</div></div>'+
     '<div style="flex:0 0 128px;text-align:center">'+svgMontagne(pcG,"#5DF2A0")+
     '<div style="font-weight:900;font-size:15px;color:#fff;margin-top:1px">'+pcG+'<span style="font-size:10px">% du chemin</span></div></div>'+
     '<div style="flex:1 1 0;min-width:0;text-align:right">'+

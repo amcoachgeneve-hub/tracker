@@ -348,6 +348,53 @@
 .act-calc{background:linear-gradient(135deg,#7b2ff7,#9b59b6)}
 .act-stats{background:#1a2332}
 .act-com{background:#0d5c63}
+/* 22/11 · Séances coachées (maquettes d'Akli) */
+.cg-hd{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;background:rgba(255,255,255,.96);backdrop-filter:blur(8px);border-bottom:1px solid #E2E8F0}
+.cg-back{flex:0 0 auto;width:40px;height:40px;border-radius:50%;border:0;background:#EFF4FF;color:#2563EB;font-size:24px;font-weight:700;line-height:1;cursor:pointer}
+.cg-hd-t{flex:1;text-align:center;font-weight:900;font-size:21px;line-height:1.15;color:#0F172A;letter-spacing:-.3px}
+.cg-hd-t i{display:block;width:44px;height:3px;border-radius:3px;background:#2563EB;margin:6px auto 0}
+.cg-page{padding:14px 14px 70px;background:#F4F7FB;min-height:100vh}
+.cg-card{background:#fff;border:1px solid #E6EBF2;border-radius:20px;padding:15px 16px;margin-bottom:12px;box-shadow:0 4px 18px rgba(15,23,42,.04)}
+.cg-lab{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:900;color:#2563EB;text-transform:uppercase;letter-spacing:.6px;margin-bottom:11px}
+.cg-lab-r{margin-left:auto;font-size:11px;color:#94A3B8;text-transform:none;letter-spacing:0;font-weight:800}
+.cg-ic{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;font-size:14px}
+.cg-mut{font-size:12px;color:#64748B;font-weight:600}
+.cg-big{font-size:38px;font-weight:900;color:#0F172A;letter-spacing:-1px;line-height:1.05}
+.cg-big small{font-size:20px;font-weight:800}
+.cg-fl{display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:50%;font-size:22px;font-weight:900}
+.cg-chip{font-size:11.5px;font-weight:800;background:#F1F5F9;border-radius:20px;padding:4px 9px}
+.cg-hab{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+.cg-hab>div{text-align:center;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 2px}
+.cg-hab>div+div{border-left:1px solid #EEF2F7}
+.cg-hb-i{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:21px;margin-bottom:4px}
+.cg-hab b{font-size:18px;font-weight:900;color:#0F172A}
+.cg-hab span:not(.cg-hb-i){font-size:11px;color:#475569;font-weight:700}
+.cg-hab i{font-style:normal;width:18px;height:18px;border-radius:50%;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;margin-top:2px}
+.cg-av{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;color:#fff;font-weight:900;letter-spacing:.5px;background:linear-gradient(135deg,#3B82F6,#1E3A8A);box-shadow:0 0 0 3px #fff,0 0 0 4px #DBE6FB}
+.cg-cli{display:flex;align-items:center;gap:14px}
+.cg-cli-n{font-size:19px;font-weight:900;color:#0F172A}
+.cg-sec{font-size:15px;font-weight:900;color:#0F172A;margin:16px 2px 9px}
+.cg-sea{display:flex;align-items:center;gap:13px;width:100%;text-align:left;background:#fff;border:1px solid #E6EBF2;border-radius:18px;padding:14px 12px 14px 14px;margin-bottom:10px;box-shadow:0 4px 16px rgba(15,23,42,.04);font-family:inherit;cursor:pointer}
+.cg-sea-ic{flex:0 0 auto;width:56px;height:56px;border-radius:50%;background:#EAF1FE;display:flex;align-items:center;justify-content:center}
+.cg-sea-n{display:block;font-size:15px;font-weight:900;color:#0F172A;margin-bottom:2px}
+.cg-bar{display:flex;align-items:center;gap:9px;margin:8px 0 6px}
+.cg-bar>span{flex:1;height:7px;border-radius:7px;background:#E5E9F0;overflow:hidden}
+.cg-bar i{display:block;height:100%;border-radius:7px;background:#2563EB}
+.cg-bar em{font-style:normal;font-size:13px;font-weight:900;color:#2563EB;min-width:36px;text-align:right}
+.cg-sea-d{display:block;margin-top:2px}
+.cg-go{flex:0 0 auto;width:36px;height:36px;border-radius:50%;background:#EFF4FF;color:#2563EB;font-size:22px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.cg-autre{width:100%;padding:13px 0;margin:2px 0 8px;border-radius:16px;border:1.5px solid #93B4F5;background:#fff;color:#2563EB;font-weight:800;font-size:15px;font-family:inherit;cursor:pointer}
+.cg-autres{margin-top:18px}
+.cg-autres>summary{list-style:none;cursor:pointer;display:flex;align-items:center;font-size:15px;font-weight:900;color:#0F172A;padding:4px 2px 10px;border-bottom:3px solid transparent}
+.cg-autres>summary::-webkit-details-marker{display:none}
+.cg-autres>summary span{margin-left:auto;font-size:12px;color:#64748B;font-weight:800}
+.cg-ac{display:flex;align-items:center;gap:12px;width:100%;background:#fff;border:1px solid #E6EBF2;border-radius:16px;padding:10px 12px;margin-bottom:8px;font-family:inherit;cursor:pointer;font-size:14px;color:#0F172A}
+.cg-leg{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:11.5px;color:#475569;font-weight:700;margin:0 2px 10px}
+.cg-leg span{display:inline-flex;align-items:center;gap:5px}
+.cg-leg i{width:13px;height:13px;border-radius:4px;border:1.5px solid}
+.cg-tab{border-radius:16px;border:1px solid #E6EBF2;background:#fff;box-shadow:0 4px 18px rgba(15,23,42,.04)}
+.cg-tab th button.carnet-open{border-radius:10px!important}
+.cg-lettre{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-size:12px;font-weight:900;margin-right:7px;vertical-align:middle}
 .fiches-tiroir{margin-bottom:14px}
 .fiches-tiroir>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px 15px;font-weight:900;font-size:13.5px;color:var(--ink);margin-bottom:12px;box-shadow:0 3px 12px rgba(16,24,40,.05)}
 .fiches-tiroir>summary::-webkit-details-marker{display:none}
@@ -1281,7 +1328,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "22/11 - KO en rouge";
+var APP_VERSION = "23/11 - Séances coachées design";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 // 22/11 · couleurs FIXES, jamais celles du thème : « KO » prenait la couleur
 // du client (vert pour un thème vert) au lieu du rouge.
@@ -14538,7 +14585,11 @@ function cgVal(E,ref,k){
 function cgCouleur(v,avant){
   var a=parseFloat(v), b=parseFloat(avant);
   if(!(a>0)||!(b>0)||a===b)return "background:#fff;border:1.5px solid var(--line)";
-  return a>b?"background:#E8F7EE;border:1.5px solid #1E9E5A;color:#136B3C":"background:#FDECEC;border:1.5px solid #D93A3A;color:#9B1C1C";
+  // 22/11 : petite flèche ↑ / ↓ dans la case, comme la maquette.
+  var up="url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 12'%3E%3Cpath d='M5 11V2M1.5 5L5 1.5 8.5 5' fill='none' stroke='%2316A34A' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")";
+  var dn="url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 12'%3E%3Cpath d='M5 1v9M1.5 7L5 10.5 8.5 7' fill='none' stroke='%23DC2626' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")";
+  return a>b?"background:#E8F7EE "+up+" no-repeat right 4px center/7px 9px;border:1.5px solid #86D1A3;color:#136B3C;padding-right:9px!important"
+           :"background:#FDECEC "+dn+" no-repeat right 4px center/7px 9px;border:1.5px solid #F2A7A7;color:#9B1C1C;padding-right:9px!important";
 }
 function cgSauver(slug,fn){
   var all=lsGet("amcoach_"+slug,{})||{}, P=JSON.parse(JSON.stringify(all[520]||{}));
@@ -14607,15 +14658,17 @@ function viewCarnetGrille(){
   var JOURS=["dim.","lun.","mar.","mer.","jeu.","ven.","sam."];
   var ST='position:sticky;left:0;z-index:2;background:#fff;min-width:126px;max-width:126px;width:126px;text-align:left;padding:7px 8px;border-right:1px solid var(--line);border-bottom:1px solid var(--line)';
   var TD='padding:5px 4px;border-bottom:1px solid var(--line);text-align:center';
-  var h='<div class="prg-top"><button id="cg-back" class="prg-back">‹</button>'+
-    '<div style="flex:1;min-width:0"><div class="prg-titre">'+esc(L.nom||"Séance")+'</div>'+
-    '<div class="prg-sous">'+esc(cl.name||G.slug)+' · '+cols.length+' date'+(cols.length>1?'s':'')+'</div></div></div>'+
-    '<div style="padding:10px 10px 90px">'+
+  var h='<div class="cg-hd"><button id="cg-back" class="cg-back">‹</button>'+
+    '<div style="flex:1;min-width:0"><div class="cg-hd-t" style="text-align:left;font-size:18px">'+esc(L.nom||"Séance")+'</div>'+
+    '<div class="cg-mut">'+cols.length+' date'+(cols.length>1?'s':'')+' · '+frDate(L.d)+'</div></div>'+
+    '<div style="display:flex;align-items:center;gap:8px;max-width:46%"><div style="text-align:right;min-width:0"><b style="display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(cl.name||G.slug)+'</b><span class="cg-mut">Client</span></div>'+cgAvatar(cl.name||G.slug,40)+'</div></div>'+
+    '<div class="cg-page" style="padding:12px 10px 90px">'+
     // 📋 « Où il en est » : toujours au-dessus des séances, comme dans le détail.
     (function(){try{return carnetPointHTML(G.slug);}catch(e){return "";}})()+
-    '<div style="font-size:12px;color:var(--ink2);line-height:1.5;margin:0 2px 9px">Une colonne par date. Grande case : la charge ou le niveau. Petite case : les répétitions. <b style="color:#136B3C">Vert</b> : plus que la fois d\'avant. <b style="color:#9B1C1C">Rouge</b> : moins. Touche une date pour ouvrir le détail (répétitions, date, note).</div>'+
+    '<div class="cg-sec" style="display:flex;align-items:center;gap:8px;margin-top:4px"><span class="cg-ic" style="background:#E8F0FF">🏋️</span>Séries &amp; performances</div>'+
+    '<div class="cg-leg"><span><i style="background:#E8F7EE;border-color:#16A34A"></i>plus que la fois d\'avant</span><span><i style="background:#FDECEC;border-color:#DC2626"></i>moins</span><span>Touche une date pour le détail</span></div>'+
     '<button id="cg-new" class="big-btn" style="margin:0 0 10px;padding:14px 0">＋ Nouvelle date · mêmes charges</button>'+
-    '<div id="cg-scroll" style="overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:12px;border:1px solid var(--line);background:#fff">'+
+    '<div id="cg-scroll" class="cg-tab" style="overflow-x:auto;-webkit-overflow-scrolling:touch">'+
     '<table style="border-collapse:separate;border-spacing:0;font-size:12px"><tr><th style="'+ST+';font-size:11px;color:var(--mute)">SÉRIE</th>';
   cols.forEach(function(E,i){
     var dt=new Date(String(E.d).slice(0,10)+"T12:00:00"), der=(i===cols.length-1);
@@ -14638,7 +14691,9 @@ function viewCarnetGrille(){
   }
   rows.forEach(function(X,ri){
     var CC=CIRC[X.ref];
-    if(CC)h+='<tr><td colspan="'+(cols.length+1)+'" style="padding:0;background:var(--violet)"><div style="position:sticky;left:0;display:inline-block;padding:6px 10px;color:#fff;font-size:12px;font-weight:900">⛓️ Circuit '+CC.n+' · '+CC.k+' exercices · '+CC.t+' tours</div></td></tr>';
+    if(CC)h+='<tr><td colspan="'+(cols.length+1)+'" style="padding:10px 0 6px;background:#F7F3FF;border-bottom:1px solid #E9DFFF"><div style="position:sticky;left:0;display:inline-flex;align-items:center;gap:8px;padding:0 10px">'+
+      '<span style="background:#7C3AED;color:#fff;font-size:11px;font-weight:900;letter-spacing:.6px;padding:4px 9px;border-radius:20px">⚡ CIRCUIT '+CC.n+'</span>'+
+      '<span style="font-size:12.5px;font-weight:800;color:#4C1D95">'+CC.k+' exercices · '+CC.t+' tours</span></div></td></tr>';
     var lv=((X.series||[])[0]||{}).u==="lvl", M=progMuscle(X.m), nb=0;
     cols.forEach(function(E){var Y=cgExo(E,X.ref);if(Y&&Y.series&&Y.series.length>nb)nb=Y.series.length;});
     nb=Math.min(Math.max(nb,1),10);
@@ -14653,7 +14708,7 @@ function viewCarnetGrille(){
     }
     if(MT.de)cons+=' <span style="display:inline-block;margin-top:3px;padding:2px 7px;border-radius:20px;background:var(--soft2);color:var(--ink2);font-size:10.5px;font-weight:900">↪ à la place de « '+esc(MT.de)+' » depuis le '+frDate(MT.depuis)+'</span>';
     h+='<tr><td colspan="'+(cols.length+1)+'" style="padding:0;border-bottom:1px solid var(--line);background:var(--soft)">'+
-      '<div style="position:sticky;left:0;display:inline-block;padding:8px 9px;max-width:300px"><b style="font-size:13px;color:'+(MT.ancien?'var(--mute)':'var(--ink)')+'">'+esc(X.n)+'</b> '+
+      '<div style="position:sticky;left:0;display:inline-block;padding:9px 9px 8px;max-width:310px"><span class="cg-lettre" style="background:'+M[2]+'1F;color:'+M[2]+'">'+esc(String(X.n||"?").trim().charAt(0).toUpperCase())+'</span><b style="font-size:13.5px;color:'+(MT.ancien?'var(--mute)':'var(--ink)')+'">'+esc(X.n)+'</b> '+
       '<span style="font-size:10.5px;font-weight:900;color:'+M[2]+'">'+M[1]+' · '+(lv?'NIVEAU':'KG')+'</span>'+
       (cgExo(L,X.ref)?' <button class="prg-mini" data-cg-suppr="'+ri+'" style="padding:3px 8px;font-size:11px;margin-left:4px">✕ retirer</button>':'')+'<br>'+cons+'</div></td></tr>';
     for(var k=0;k<nb;k++){
@@ -14772,27 +14827,51 @@ function bindCarnetGrille(){
 }
 // 📓 L'onglet « Séances coachées » : tous les clients suivis en salle, leurs
 // séances, et l'accès direct au tableau.
+// 22/11 · refonte (maquette d'Akli) : une carte par client, une carte par séance
+// avec icône, barre « en progression vs la 1re date » et date de la dernière.
+function cgProgres(slug,k){
+  var cols=cgColonnes(slug,k); if(cols.length<2)return null;
+  var A=cols[0],Z=cols[cols.length-1],plus=0,tot=0;
+  (Z.exos||[]).forEach(function(X){
+    if(!X||!X.ref)return; var Y=cgExo(A,X.ref); if(!Y)return;
+    var n=Math.max((X.series||[]).length,(Y.series||[]).length);
+    for(var i=0;i<n;i++){var a=parseFloat(cgVal(A,X.ref,i)),z=parseFloat(cgVal(Z,X.ref,i));if(a>0||z>0){tot++;if(z>a)plus++;}}
+  });
+  return tot?Math.round(plus/tot*100):null;
+}
+function cgIcone(nom){
+  var cardio=/cardio|hiit|endurance|course|tabata|v[ée]lo|rameur/i.test(nom||"");
+  return cardio?'<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#2563EB" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 1 0-7.8 7.8L12 21.2l8.8-8.8a5.5 5.5 0 0 0 0-7.8z"/><path d="M3.5 12h4l2-3 3 6 2-3h6"/></svg>'
+    :'<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#2563EB" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/></svg>';
+}
 function viewCoachCoachees(){
   var cl=(lsGet("amcoach_clients",[])||[]).filter(function(c){return c&&c.slug;}), avec=[], sans=[];
   cl.forEach(function(c){var S=cgSeances(c.slug);(S.length?avec:sans).push({c:c,S:S});});
   avec.sort(function(a,b){return String(b.S[0].d).localeCompare(String(a.S[0].d));});
-  var h='<div class="prg-top"><button id="ccg-back" class="prg-back">‹</button>'+
-    '<div style="flex:1;min-width:0"><div class="prg-titre">📓 Séances coachées</div>'+
-    '<div class="prg-sous">Un tableau par séance, une colonne par date</div></div></div><div style="padding:12px 13px 60px">';
-  if(!avec.length)h+='<div class="spt-txt" style="padding:6px 4px 14px">Aucune séance coachée pour l\'instant. Choisis un client ci-dessous pour noter sa première séance : elle deviendra son tableau.</div>';
+  var h='<div class="cg-hd"><button id="ccg-back" class="cg-back">‹</button><div class="cg-hd-t">Séances coachées<i></i></div><span style="width:40px"></span></div>'+
+    '<div class="cg-page">';
+  if(!avec.length)h+='<div class="cg-card cg-mut" style="line-height:1.5">Aucune séance coachée pour l\'instant. Choisis un client ci-dessous pour noter sa première séance : elle deviendra son tableau.</div>';
   avec.forEach(function(A){
-    h+='<div class="card" style="padding:13px 14px;margin-bottom:12px"><div style="font-weight:900;font-size:15px;margin-bottom:8px">'+esc(A.c.name||A.c.slug)+'</div>';
+    var nom=A.c.name||A.c.slug;
+    h+='<div class="cg-card cg-cli">'+cgAvatar(nom,58)+'<div style="flex:1;min-width:0"><div class="cg-cli-n">'+esc(nom)+'</div><div class="cg-mut">'+A.S.length+' séance'+(A.S.length>1?'s':'')+' suivie'+(A.S.length>1?'s':'')+'</div></div></div>'+
+      '<div class="cg-sec">Séances</div>';
     A.S.forEach(function(S){
-      h+='<button class="cg-open" data-from="tuile" data-s="'+esc(A.c.slug)+'" data-k="'+esc(S.k)+'" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:12px;margin-bottom:6px;border-radius:12px;border:2px solid var(--brand);background:var(--card)">'+
-        '<span style="font-size:18px">📊</span><span style="flex:1;min-width:0"><b style="display:block;font-size:13.5px;color:var(--ink)">'+esc(S.nom)+'</b>'+
-        '<span style="font-size:11px;color:var(--mute);font-weight:700">'+S.n+' date'+(S.n>1?'s':'')+' · dernière le '+frDate(S.d)+'</span></span><span style="font-weight:900;color:var(--brand)">›</span></button>';
+      var pc=cgProgres(A.c.slug,S.k);
+      h+='<button class="cg-open cg-sea" data-from="tuile" data-s="'+esc(A.c.slug)+'" data-k="'+esc(S.k)+'">'+
+        '<span class="cg-sea-ic">'+cgIcone(S.nom)+'</span>'+
+        '<span style="flex:1;min-width:0"><b class="cg-sea-n">'+esc(S.nom)+'</b>'+
+        '<span class="cg-mut" style="display:block">'+S.n+' date'+(S.n>1?'s':'')+(pc!=null?' · progression vs n°1':'')+'</span>'+
+        (pc!=null?'<span class="cg-bar"><span><i style="width:'+pc+'%"></i></span><em>'+pc+'%</em></span>':'')+
+        '<span class="cg-mut cg-sea-d">📅 Dernière séance : '+frDate(S.d)+'</span></span>'+
+        '<span class="cg-go">›</span></button>';
     });
-    h+='<button class="carnet-new prg-mini" data-s="'+esc(A.c.slug)+'" style="width:100%;padding:10px 0;margin-top:2px">＋ Autre séance pour '+esc(A.c.name||A.c.slug)+'</button></div>';
+    h+='<button class="carnet-new cg-autre" data-s="'+esc(A.c.slug)+'">＋ Autre séance</button>';
   });
   if(sans.length){
-    h+='<details class="sea-tiroir"'+(avec.length?'':' open')+'><summary><span class="sea-sum-t">Autres clients ('+sans.length+')</span><span class="sea-sum-c">⌄</span></summary><div class="sea-corps">';
-    sans.forEach(function(A){h+='<button class="carnet-new prg-mini sea-b" data-s="'+esc(A.c.slug)+'">＋ Première séance coachée · '+esc(A.c.name||A.c.slug)+'</button>';});
-    h+='</div></details>';
+    h+='<details class="cg-autres"'+(avec.length?'':' open')+'><summary>Autres clients<span>'+sans.length+' ⌄</span></summary>';
+    sans.forEach(function(A){var nom=A.c.name||A.c.slug;
+      h+='<button class="carnet-new cg-ac" data-s="'+esc(A.c.slug)+'">'+cgAvatar(nom,44)+'<span style="flex:1;min-width:0;text-align:left"><b>'+esc(nom)+'</b><span class="cg-mut" style="display:block">＋ Première séance coachée</span></span><span class="cg-go">›</span></button>';});
+    h+='</details>';
   }
   return h+'</div>';
 }
@@ -14986,6 +15065,7 @@ function carnetPoint(slug){
     // le nombre de jours réel qui les sépare, pas un « 7 jours » arrondi.
     if(avant){R.d7=Math.round((der.w-avant.w)*10)/10;R.d7j=der.i-avant.i;}
     if(P.length>1){var pv=P[P.length-2];R.dPrec=Math.round((der.w-pv.w)*10)/10;R.dPrecJ=der.i-pv.i;}
+    R.serie=P;
   }
   if(t<0){R.lignes.push(["🗓️","Son programme démarre le "+isoVersFr(st)+".",0]);return R;}
   // Les 7 derniers jours terminés (aujourd'hui compte s'il est déjà rempli)
@@ -15003,6 +15083,7 @@ function carnetPoint(slug){
     var moyH=hs.length?Math.round(hs.reduce(function(a,b){return a+b;},0)/hs.length*10)/10:null;
     var court=hs.filter(function(x){return x<6;}).length;
     var ns=cpt("sommeil");
+    R.hab={hydratation:[cpt("hydratation"),n],sommeil:[ns,n],nutrition:[cpt("nutrition"),n],sport:[cpt("sport"),n]};
     var txtH=moyH!=null?" · "+String(moyH).replace(".",",")+" h en moyenne":"";
     if(ns/n<0.66||(moyH!=null&&moyH<6.5)||court>=2)R.lignes.push(["😴","Sommeil : "+ns+" bonne"+(ns>1?"s":"")+" nuit"+(ns>1?"s":"")+" sur "+n+txtH+(court?" · "+court+" nuit"+(court>1?"s":"")+" sous 6 h":"")+". Rappel sommeil.",2]);
     else R.ok.push("😴 Sommeil"+txtH);
@@ -15048,27 +15129,60 @@ function carnetPoint(slug){
   }catch(e){}
   return R;
 }
+// 22/11 · refonte (maquette d'Akli) : carte « Résumé du poids » avec courbe,
+// carte « Habitudes » 4 colonnes, puis « À surveiller ». Mêmes données qu'avant.
+function cgInit(nom){var p=String(nom||"?").trim().split(/\s+/);return ((p[0]||"?")[0]+((p[1]||"")[0]||"")).toUpperCase();}
+function cgAvatar(nom,t){t=t||44;return '<span class="cg-av" style="width:'+t+'px;height:'+t+'px;font-size:'+Math.round(t*0.36)+'px">'+esc(cgInit(nom))+'</span>';}
+function cgSpark(P){
+  if(!P||P.length<2)return "";
+  var W=300,H=52,mn=Infinity,mx=-Infinity;P.forEach(function(p){mn=Math.min(mn,p.w);mx=Math.max(mx,p.w);});
+  var i0=P[0].i,i1=P[P.length-1].i||1,dx=Math.max(1,i1-i0),dy=Math.max(0.5,mx-mn);
+  var pts=P.map(function(p){return [Math.round((p.i-i0)/dx*(W-8)+4),Math.round(6+(mx-p.w)/dy*(H-14))];});
+  var d=pts.map(function(q,k){return (k?"L":"M")+q[0]+" "+q[1];}).join(" "), L=pts[pts.length-1];
+  return '<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" style="width:100%;height:52px;display:block;margin-top:8px">'+
+    '<path d="'+d+' L'+L[0]+' '+H+' L'+pts[0][0]+' '+H+' Z" fill="rgba(47,123,255,.10)"/>'+
+    '<path d="'+d+'" fill="none" stroke="#3B82F6" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>'+
+    '<circle cx="'+L[0]+'" cy="'+L[1]+'" r="4" fill="#2563EB"/></svg>';
+}
 function carnetPointHTML(slug){
-  var R=carnetPoint(slug);
-  var h='<div id="cn-point" class="card" style="padding:12px 14px;margin-bottom:12px;border-left:4px solid var(--brand)">'+
-    '<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px"><div style="font-weight:900;font-size:13px;flex:1">📋 Où il en est</div>'+
-    (R.jour!=null&&R.jour>=0?'<div style="font-size:11px;font-weight:800;color:var(--mute)">jour '+Math.min(R.jour+1,R.len)+' sur '+R.len+'</div>':'')+'</div>';
+  var R=carnetPoint(slug), h='<div id="cn-point">';
+  // ⚖️ Résumé du poids
+  h+='<div class="cg-card"><div class="cg-lab"><span class="cg-ic" style="background:#E8F0FF">⚖️</span>Résumé du poids'+
+    (R.jour!=null&&R.jour>=0?'<span class="cg-lab-r">jour '+Math.min(R.jour+1,R.len)+' sur '+R.len+'</span>':'')+'</div>';
   if(R.poids!=null){
-    var dc=R.debut, col=dc<0?"var(--ok-d)":dc>0?"var(--warn-d)":"var(--mute)";
-    h+='<div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:6px"><span style="font-size:22px;font-weight:900">'+String(R.poids).replace(".",",")+' kg</span>'+
-      '<span style="font-size:11.5px;font-weight:800;color:var(--mute)">'+(R.dPoids===0?"pesé aujourd'hui":R.dPoids===1?"pesé hier":"pesé il y a "+R.dPoids+" j")+'</span>'+
-      (dc?'<span style="font-size:12px;font-weight:900;color:'+col+'">'+(dc>0?"+":"")+String(dc).replace(".",",")+' kg depuis le début</span>':'')+
-      (R.d7!=null?'<span style="font-size:11.5px;font-weight:800;color:'+(R.d7<0?"var(--ok-d)":R.d7>=0.4?"var(--warn-d)":"var(--mute)")+'">'+(R.d7>0?"+":"")+String(R.d7).replace(".",",")+' kg en '+(R.d7j||7)+' j</span>':'')+
-      (R.dPrec!=null&&R.dPrecJ!==R.d7j?'<span style="font-size:11.5px;font-weight:800;color:'+(R.dPrec<0?"var(--ok-d)":R.dPrec>0?"var(--warn-d)":"var(--mute)")+'">'+(R.dPrec>0?"+":"")+String(R.dPrec).replace(".",",")+' kg depuis la pesée d\'avant (il y a '+R.dPrecJ+' j)</span>':'')+'</div>';
-  }else h+='<div style="font-size:12px;color:var(--mute);margin-bottom:6px">⚖️ Aucune pesée notée pour l\'instant.</div>';
-  if(R.bday)h+='<div style="font-size:12.5px;font-weight:900;color:var(--brand);background:var(--soft);border-radius:9px;padding:7px 9px;margin-bottom:6px">'+esc(R.bday)+'</div>';
-  R.lignes.forEach(function(Li){
-    var c=Li[2]===2?"var(--bad)":Li[2]===1?"var(--warn-d)":"var(--ink2)";
-    h+='<div style="display:flex;gap:7px;font-size:12px;line-height:1.45;margin-top:4px;color:'+c+';font-weight:'+(Li[2]?800:600)+'"><span>'+Li[0]+'</span><span>'+esc(Li[1])+'</span></div>';
+    var dc=R.debut, col=dc<0?"#16A34A":dc>0?"#DC2626":"#64748B";
+    h+='<div style="display:flex;align-items:flex-end;justify-content:space-between;gap:10px">'+
+      '<div><div class="cg-mut">Poids actuel</div><div class="cg-big">'+String(R.poids).replace(".",",")+'<small> kg</small></div>'+
+      '<div class="cg-mut" style="margin-top:2px">'+(R.dPoids===0?"pesé aujourd'hui":R.dPoids===1?"pesé hier":"pesé il y a "+R.dPoids+" j")+'</div></div>'+
+      (dc?'<div style="display:flex;align-items:center;gap:9px"><span class="cg-fl" style="background:'+(dc<0?'#E8F7EE':'#FDECEC')+';color:'+col+'">'+(dc<0?'↓':'↑')+'</span>'+
+        '<div style="text-align:right"><div class="cg-mut">Progression</div><div style="font-size:22px;font-weight:900;color:'+col+'">'+(dc>0?"+":"")+String(dc).replace(".",",")+' kg</div><div class="cg-mut">depuis le début</div></div></div>':'')+
+      '</div>'+cgSpark(R.serie);
+    var ch=[];
+    if(R.d7!=null)ch.push('<span class="cg-chip" style="color:'+(R.d7<0?"#15803D":R.d7>=0.4?"#C2410C":"#475569")+'">'+(R.d7>0?"+":"")+String(R.d7).replace(".",",")+' kg en '+(R.d7j||7)+' j</span>');
+    if(R.dPrec!=null&&R.dPrecJ!==R.d7j)ch.push('<span class="cg-chip" style="color:'+(R.dPrec<0?"#15803D":R.dPrec>0?"#C2410C":"#475569")+'">'+(R.dPrec>0?"+":"")+String(R.dPrec).replace(".",",")+' kg vs pesée d\'avant ('+R.dPrecJ+' j)</span>');
+    if(ch.length)h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'+ch.join("")+'</div>';
+  }else h+='<div class="cg-mut">Aucune pesée notée pour l\'instant.</div>';
+  h+='</div>';
+  // 🌿 Habitudes sur 7 jours
+  if(R.hab){
+    var HB=[["hydratation","💧","Hydratation","#E0F2FE",0.66],["sommeil","🌙","Sommeil","#EDE9FE",0.66],["nutrition","🥗","Nutrition","#DCFCE7",0.8],["sport","🏃","Sport","#FFEDD5",0.5]];
+    h+='<div class="cg-card"><div class="cg-lab"><span class="cg-ic" style="background:#E8F7EE">🌿</span>Habitudes<span class="cg-lab-r">'+R.hab.sport[1]+' derniers jours</span></div><div class="cg-hab">';
+    HB.forEach(function(x){var v=R.hab[x[0]],ok=v[1]&&v[0]/v[1]>=x[4];
+      h+='<div><span class="cg-hb-i" style="background:'+x[3]+'">'+x[1]+'</span><b>'+v[0]+'/'+v[1]+'</b><span>'+x[2]+'</span>'+
+        '<i style="background:'+(ok?'#16A34A':'#E2E8F0')+';color:'+(ok?'#fff':'#94A3B8')+'">'+(ok?'✓':'–')+'</i></div>';});
+    h+='</div></div>';
+  }
+  // ⚠️ À surveiller + dernière séance (mêmes alertes qu'avant)
+  var al=R.lignes;
+  var corps='';
+  if(R.bday)corps+='<div style="font-size:12.5px;font-weight:900;color:#2563EB;background:#EFF4FF;border-radius:10px;padding:8px 10px;margin-bottom:6px">'+esc(R.bday)+'</div>';
+  al.forEach(function(Li){
+    var c=Li[2]===2?"#B91C1C":Li[2]===1?"#C2410C":"#334155";
+    corps+='<div style="display:flex;gap:8px;font-size:12.5px;line-height:1.45;padding:5px 0;color:'+c+';font-weight:'+(Li[2]?800:600)+'"><span>'+Li[0]+'</span><span>'+esc(Li[1])+'</span></div>';
   });
-  if(R.ok.length)h+='<div style="font-size:11px;color:var(--ok-d);font-weight:800;margin-top:7px">✅ '+esc(R.ok.join(" · "))+'</div>';
-  if(!R.lignes.length&&R.poids!=null)h+='<div style="font-size:11.5px;color:var(--mute);margin-top:4px">Sur les 7 derniers jours, rien à signaler.</div>';
-  h+=carnetRecapHTML(slug);
+  if(!al.length&&R.poids!=null)corps+='<div class="cg-mut">Sur les 7 derniers jours, rien à signaler.</div>';
+  var rec=carnetRecapHTML(slug);
+  if(corps||rec)h+='<div class="cg-card"><div class="cg-lab"><span class="cg-ic" style="background:#FFF4E5">📋</span>À surveiller</div>'+corps+rec+'</div>';
   return h+'</div>';
 }
 // Indices des exercices du circuit qui contient e (lui seul s'il n'est pas enchaîné).
@@ -15083,9 +15197,10 @@ function carnetDiffMot(n){return n>=9?"Très difficile":n>=7?"Difficile":n>=4?"M
 function viewCarnet(){
   var C=state.carnet, W=C.w, cc=coachClient(C.slug), nomC=(cc&&cc.name)||C.slug;
   if(C.pick)return viewCarnetPick();
-  var h='<div class="app" style="max-width:640px"><div class="prg-top"><button id="cn-back" class="prg-back">‹</button>'+
-    '<div style="flex:1;min-width:0"><div class="prg-titre">📓 '+esc(nomC)+'</div><div class="prg-sous">'+(C.edit?'Modifier la séance · enregistrée en sortant':'Séance coachée')+' · tout est gardé pendant la saisie</div></div></div>'+
-    '<div style="padding:12px 13px 120px">'+carnetPointHTML(C.slug)+
+  var h='<div class="app" style="max-width:640px"><div class="cg-hd"><button id="cn-back" class="cg-back">‹</button>'+
+    '<div style="flex:1;min-width:0"><div class="cg-hd-t" style="text-align:left;font-size:18px">'+(C.edit?'Modifier la séance':'Nouvelle séance')+'</div><div class="cg-mut">Tout est gardé pendant la saisie</div></div>'+
+    '<div style="display:flex;align-items:center;gap:8px;max-width:46%"><div style="text-align:right;min-width:0"><b style="display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(nomC)+'</b><span class="cg-mut">Client</span></div>'+cgAvatar(nomC,40)+'</div></div>'+
+    '<div class="cg-page" style="padding:12px 13px 120px">'+carnetPointHTML(C.slug)+
     '<div style="display:flex;gap:8px;margin-bottom:10px"><input id="cn-nom" class="prg-search" style="flex:1.6;margin:0" value="'+esc(W.nom)+'" placeholder="Nom de la séance"/>'+
     '<input id="cn-d" type="date" class="prg-search" style="flex:1;margin:0" value="'+esc(W.d)+'"/></div>'+
     (W.depuis?'<div style="font-size:12px;font-weight:800;color:var(--brand);background:var(--soft);border-radius:10px;padding:9px 11px;margin:-2px 0 10px;line-height:1.45">🔁 Valeurs de la séance du '+frDate(W.depuis)+' reprises. Change seulement ce qui bouge : charge, niveau ou répétitions, puis la date si besoin.</div>':'');

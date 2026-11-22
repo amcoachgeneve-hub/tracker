@@ -1281,10 +1281,12 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "22/11 - Bilan en image 9:16";
+var APP_VERSION = "22/11 - KO en rouge";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
-var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
-var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
+// 22/11 · couleurs FIXES, jamais celles du thème : « KO » prenait la couleur
+// du client (vert pour un thème vert) au lieu du rouge.
+var MENTAL=[["Super","#16A34A"],["Bien","#22C55E"],["Moyen","#F59E0B"],["Dur","#F97316"],["KO","#DC2626"]];
+var ENERGIE=[["Vidé","#DC2626"],["Faible","#F97316"],["Moyen","#F59E0B"],["Bien","#22C55E"],["Top","#16A34A"]];
 var BILAN_ECHELLES=[["sportF","🏋️ SPORT"],["nutritionF","🥗 NUTRITION"],["sommeilF","😴 SOMMEIL"],["stressF","🧠 STRESS"]];
 // 10 = très facile → vert ; 0 = très difficile → rouge.
 function echelleCouleur(n){return SCALE_COLORS[Math.max(0,Math.min(9,Math.round((10-n)*9/10)))];}

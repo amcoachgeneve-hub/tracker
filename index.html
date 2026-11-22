@@ -348,15 +348,6 @@
 .act-calc{background:linear-gradient(135deg,#7b2ff7,#9b59b6)}
 .act-stats{background:#1a2332}
 .act-com{background:#0d5c63}
-/* 22/11 · tuiles du tableau de bord au style de la carte « AM Coach » :
-   bleu nuit, une touche bleue ou rouge par tuile, au lieu de 9 couleurs. */
-.coach-actions button{background:linear-gradient(160deg,#16213A 0%,#0B1222 100%)!important;border:1px solid rgba(255,255,255,.06);border-top:3px solid #2F7BFF}
-.coach-actions button:nth-child(odd){border-top-color:#E4252B}
-.coach-actions button .icon{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12)}
-.coach-actions button .lib{font-size:12.5px;letter-spacing:.6px}
-.coach-actions .act-new{background:linear-gradient(115deg,#1D5FD6 0%,#0E1A36 52%,#C81E2B 100%)!important}
-.coach-actions .act-new{border-top-color:transparent}
-.coach-actions .act-annul{background:#4B5563!important}
 .fiches-tiroir{margin-bottom:14px}
 .fiches-tiroir>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px 15px;font-weight:900;font-size:13.5px;color:var(--ink);margin-bottom:12px;box-shadow:0 3px 12px rgba(16,24,40,.05)}
 .fiches-tiroir>summary::-webkit-details-marker{display:none}
@@ -1290,7 +1281,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "22/11 - Refonte design";
+var APP_VERSION = "22/11 - Bilan en image 9:16";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -10317,7 +10308,45 @@ function openRapportSimple(name,start,period,dataOverride,retour){
     '.pb button{background:#1B2430;color:#fff;border:0;padding:12px 22px;border-radius:100px;font-size:13px;font-weight:800;box-shadow:0 3px 14px rgba(0,0,0,.2)}'+
     '@media print{body{background:#fff;padding:0}.pb{display:none}}'+
     BZ_CSS+'</style></head><body><div class="p">'+corps+
-    '</div><div class="pb"><button onclick="window.print()">📄 Enregistrer en PDF</button></div>'+
+    // 📲 22/11 · Akli : sur WhatsApp, le PDF donnait une page A4 en petits caractères.
+    // Le bouton principal crée des IMAGES au format vertical 9:16 (1080 × 1920, comme
+    // TikTok / story), avec le bilan à la taille de l'appli, coupé entre deux cartes.
+    '</div><div class="pb"><button id="bz-img" onclick="bzImages()" style="background:linear-gradient(135deg,#25D366,#128C7E)">📲 Envoyer en image</button> '+
+    '<button onclick="window.print()" style="background:#fff;color:#1B2430;border:1px solid #D0D5DD;margin-left:6px">📄 PDF</button></div>'+
+    '<script>'+
+    'var BZ_NOM='+JSON.stringify(String(name||""))+';'+
+    // html2canvas chargé à la demande : la page s'affiche même hors connexion.
+    'function bzImages(){'+
+    ' var btn=document.getElementById("bz-img");'+
+    ' if(!window.html2canvas){btn.textContent="⏳ Chargement…";var sc=document.createElement("script");'+
+    '  sc.src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";'+
+    '  sc.onload=function(){bzImages();};sc.onerror=function(){btn.textContent="📲 Envoyer en image";alert("Connexion nécessaire pour créer l\'image.");};'+
+    '  document.head.appendChild(sc);return;}'+
+    ' btn.textContent="⏳ Création…";'+
+    ' var p=document.querySelector(".p"),bz=p.querySelector(".bz")||p,W=390,S=1080/W,H=Math.floor(1920/S);'+
+    ' var anc=p.style.cssText;p.style.cssText="width:"+W+"px;max-width:none;margin:0";'+
+    ' var top0=bz.getBoundingClientRect().top,cuts=[0];'+
+    ' var kids=[].slice.call(bz.children).map(function(e){var r=e.getBoundingClientRect();return {t:r.top-top0,b:r.bottom-top0};});'+
+    ' var tot=bz.offsetHeight,y=0,PAD=34,FOOT=46,MAXH=H-PAD-FOOT;'+
+    ' while(tot-y>MAXH){var cut=y;for(var i=0;i<kids.length;i++){var fin=kids[i+1]?Math.max(kids[i].b+6,kids[i+1].t):kids[i].b;if(fin<=y+MAXH&&fin>cut)cut=fin;}if(cut<=y)cut=y+MAXH;cuts.push(cut);y=cut;}'+
+    ' cuts.push(tot);'+
+    ' html2canvas(bz,{scale:S,backgroundColor:"#F7F8FB",useCORS:true,windowWidth:W}).then(function(cv){'+
+    '  p.style.cssText=anc;var files=[],n=cuts.length-1,done=0;'+
+    '  for(var k=0;k<n;k++){(function(k){'+
+    '   var c=document.createElement("canvas");c.width=1080;c.height=1920;var g=c.getContext("2d");'+
+    '   g.fillStyle="#F2F4F7";g.fillRect(0,0,1080,1920);'+
+    '   var y0=cuts[k],h0=cuts[k+1]-cuts[k];'+
+    '   g.drawImage(cv,0,Math.round(y0*S),cv.width,Math.round(h0*S),0,Math.round(PAD*S),1080,Math.round(h0*S));'+
+    '   g.fillStyle="#667085";g.font="700 30px -apple-system,Segoe UI,Roboto,sans-serif";g.textAlign="center";'+
+    '   g.fillText("AM Coach Genève"+(n>1?"  ·  "+(k+1)+"/"+n:""),540,1920-44);'+
+    '   c.toBlob(function(bl){files[k]=new File([bl],"bilan-"+(k+1)+".png",{type:"image/png"});done++;if(done===n)fin();},"image/png");'+
+    '  })(k);}'+
+    '  function fin(){btn.textContent="📲 Envoyer en image";'+
+    '   if(navigator.canShare&&navigator.canShare({files:files})&&navigator.share){navigator.share({files:files,title:"Mon bilan "+BZ_NOM}).catch(function(){});return;}'+
+    '   files.forEach(function(f){var a=document.createElement("a");a.href=URL.createObjectURL(f);a.download=f.name;document.body.appendChild(a);a.click();a.remove();});}'+
+    ' }).catch(function(){p.style.cssText=anc;btn.textContent="📲 Envoyer en image";alert("Image impossible : fais une capture d\'écran.");});'+
+    '}'+
+    '<\/script>'+
     // 📄 UNE SEULE PAGE À L'IMPRESSION. La feuille A4 fait 281 mm utiles : on
     // mesure le rapport à la largeur d'impression et on le réduit juste ce
     // qu'il faut pour qu'il tienne, au lieu de laisser 3 lignes sur une page 2.

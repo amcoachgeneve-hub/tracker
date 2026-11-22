@@ -196,6 +196,15 @@
 .st-badge{background:#fff;border:2px solid var(--gold);border-radius:14px;padding:11px 8px;text-align:center}
 .st-badge-n{font-size:10px;font-weight:900;margin-top:4px;line-height:1.25;color:var(--ink)}
 .st-badge-j{font-size:9.5px;color:var(--mute);font-weight:700;margin-top:2px}
+/* 22/11 · bas de l'onglet Stats aligné sur le modèle « Ma progression » :
+   cartes blanches sans bordure, coins 20 px, chiffres et titres à la couleur du client. */
+.st-h3-bar{display:none}
+.st-h3{margin:24px 2px 10px}
+.st-h3 span{color:var(--b1);font-size:15px;letter-spacing:.2px;text-transform:none}
+.st-w,.st-kpi,.st-ins,.st-exo{border:0!important;border-radius:20px;box-shadow:0 4px 20px rgba(16,24,40,.06)}
+.st-w.cy .st-w-val,.st-w.vi .st-w-val,.st-w-val{color:var(--b1)}
+.st-w-val{font-size:30px}
+.st-kpi-n{color:var(--b1)!important}
 .st-tro{background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px 10px;text-align:center}
 .st-tro.on{border:2px solid var(--gold)}
 .st-tro:not(.on){opacity:.5}
@@ -339,6 +348,33 @@
 .act-calc{background:linear-gradient(135deg,#7b2ff7,#9b59b6)}
 .act-stats{background:#1a2332}
 .act-com{background:#0d5c63}
+/* 22/11 · tuiles du tableau de bord au style de la carte « AM Coach » :
+   bleu nuit, une touche bleue ou rouge par tuile, au lieu de 9 couleurs. */
+.coach-actions button{background:linear-gradient(160deg,#16213A 0%,#0B1222 100%)!important;border:1px solid rgba(255,255,255,.06);border-top:3px solid #2F7BFF}
+.coach-actions button:nth-child(odd){border-top-color:#E4252B}
+.coach-actions button .icon{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12)}
+.coach-actions button .lib{font-size:12.5px;letter-spacing:.6px}
+.coach-actions .act-new{background:linear-gradient(115deg,#1D5FD6 0%,#0E1A36 52%,#C81E2B 100%)!important}
+.coach-actions .act-new{border-top-color:transparent}
+.coach-actions .act-annul{background:#4B5563!important}
+.fiches-tiroir{margin-bottom:14px}
+.fiches-tiroir>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px 15px;font-weight:900;font-size:13.5px;color:var(--ink);margin-bottom:12px;box-shadow:0 3px 12px rgba(16,24,40,.05)}
+.fiches-tiroir>summary::-webkit-details-marker{display:none}
+.fiches-tiroir>summary span{margin-left:auto;font-size:12px;color:var(--mute);font-weight:800}
+.csh{position:relative;overflow:hidden;border-radius:20px;padding:18px 14px 8px;margin-bottom:16px;color:#fff;
+  background:radial-gradient(120% 70% at 50% 0%,#18264A 0%,#0B1222 60%,#070B14 100%);box-shadow:0 10px 30px rgba(7,11,20,.35)}
+.csh:before,.csh:after{content:"";position:absolute;top:22px;width:120px;height:2px;border-radius:2px}
+.csh:before{left:-24px;transform:rotate(22deg);background:linear-gradient(90deg,transparent,#2F7BFF,transparent);box-shadow:0 0 10px #2F7BFF}
+.csh:after{right:-24px;transform:rotate(-22deg);background:linear-gradient(90deg,transparent,#FF2D2D,transparent);box-shadow:0 0 10px #FF2D2D}
+.csh-t{text-align:center;font-weight:900;font-size:15px;letter-spacing:3px;margin-bottom:8px}
+.csh-t span{font-size:10px;letter-spacing:4px;color:#AEB9C8;margin-left:6px}
+.csh-g{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.csh-c{text-align:center;padding:12px 4px 12px}
+.csh-c.r{border-left:1px solid rgba(255,255,255,.09)}
+.csh-c.b{border-top:1px solid rgba(255,255,255,.09)}
+.csh-v{font-weight:900;font-size:34px;letter-spacing:-1px;line-height:1;text-shadow:0 0 14px rgba(255,255,255,.25)}
+.csh-l{font-size:10.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;margin-top:7px;color:#D5DCE6}
+.csh-c i{display:block;width:22px;height:2px;margin:7px auto 0;border-radius:2px}
 .act-badge{position:absolute;top:-6px;right:-6px;background:#e74c3c;color:#fff;border-radius:10px;
   padding:4px 8px;text-align:center;font-size:12px;font-weight:900;line-height:1;box-shadow:0 2px 8px rgba(0,0,0,.25)}
 .act-badge small{display:block;font-size:7.5px;font-weight:800;letter-spacing:.4px;margin-top:2px;text-transform:uppercase}
@@ -375,6 +411,7 @@
 .hab-grid .habit-name{font-size:10.5px;line-height:1.2;font-weight:800}
 .hab-grid .habit-check{width:20px;height:20px;font-size:12px}
 .hab-grid #perso-add{grid-column:span 2;min-height:92px}
+.habit.hab-th{background:linear-gradient(160deg,var(--b1),var(--b2))!important;border-color:transparent!important;box-shadow:0 4px 14px rgba(0,0,0,.12)!important;color:#fff}
 .hab-grid #perso-add .habit-name{font-size:10.5px}
 .ndj-tabs{display:flex;background:var(--soft2);border-radius:14px;padding:4px;margin:16px 0 4px}
 .ndj-tab{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px 4px;border-radius:11px;border:0;
@@ -548,7 +585,11 @@
 .sem-jours{display:flex;gap:6px;justify-content:center;margin-top:14px}
 .sem-j{width:30px;height:30px;border-radius:10px;background:var(--soft2);color:var(--mute);
   font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center}
-.sem-j.on{background:var(--ok);color:#fff}
+.sem-j.on{background:var(--b1);color:#fff}
+.bb-kpis>div{background:var(--soft2);border-radius:12px;padding:9px 2px 8px}
+.bb-tiroir summary::-webkit-details-marker{display:none}
+/* Anneau « Ma semaine » aux couleurs du client (22/11) : la CSS l'emporte sur l'attribut stroke. */
+.ring-th{stroke:var(--b1)}
 .sem-j.ko{background:#FFE2E2;color:#B23B3B}
 
 /* 🗓️ Le programme en trois mois, dans l'onglet Sport. */
@@ -762,6 +803,9 @@ input,textarea{outline:none}
 .hdr-brand{display:flex;align-items:center;gap:8px;margin-bottom:2px}
 .bar{width:3px;height:18px;border-radius:2px}
 .bar-r{background:var(--b1)}.bar-b{background:var(--b2)}
+/* Titres unifiés (22/11) : une seule barre en dégradé à gauche, jamais « | | » ni « … | ». */
+.hdr-brand .bar{display:none}
+.hdr-brand .bar-r:first-child{display:block;width:4px;height:20px;border-radius:3px;background:linear-gradient(180deg,var(--b1),var(--b2))}
 .hdr-title{color:var(--b1);font-weight:900;font-size:16px;letter-spacing:2px;text-transform:uppercase}
 .hdr-sub{color:#8A6BC8;font-size:13px;padding-left:11px;font-weight:700}
 
@@ -1017,6 +1061,11 @@ input,textarea{outline:none}
   padding:11px 13px;margin-top:10px}
 .r14-j.auj{border:2px solid var(--r14b,#4FC3FF);background:var(--r14s,rgba(79,195,255,.12))}
 .r14-j-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.r14-tabs{display:flex;gap:5px;margin:14px 0 10px;position:sticky;top:0;z-index:3;padding:6px 0;background:inherit}
+.r14-tab{flex:1;min-width:0;position:relative;border:1.5px solid var(--r14o,rgba(79,195,255,.25));background:rgba(255,255,255,.05);color:rgba(255,255,255,.75);border-radius:12px;padding:10px 0 9px;font-family:inherit;font-size:12px;cursor:pointer}
+.r14-tab b{font-weight:900}
+.r14-tab.on{background:var(--r14b,#4FC3FF);border-color:var(--r14b,#4FC3FF);color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+.r14-tab i{position:absolute;left:50%;bottom:3px;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:currentColor}
 .r14-j-h b{color:#fff;font-size:15.5px}
 .r14-j-a{font-size:10.5px;font-weight:900;letter-spacing:1.3px;color:var(--r14d2,#0A1A33);background:var(--r14b,#4FC3FF);border-radius:6px;padding:3px 7px}
 .r14-j-l{font-size:13.5px;color:var(--r14t,#BFE6FF);line-height:1.55}
@@ -1241,7 +1290,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "20/11 - Rappel pesée";
+var APP_VERSION = "22/11 - Refonte design";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 var MENTAL=[["Super","var(--ok)"],["Bien","var(--ok-l)"],["Moyen","var(--amber)"],["Dur","var(--warn)"],["KO","var(--brand)"]];
 var ENERGIE=[["Vidé","var(--brand)"],["Faible","var(--warn)"],["Moyen","var(--amber)"],["Bien","var(--ok-l)"],["Top","var(--ok)"]];
@@ -6785,7 +6834,7 @@ function viewRunning(name,start){
   var all=getAllData(), R=runGet(all), m=runFcMax(R.age), wNow=runSemaine(R);
   var w=state.runW||wNow; w=Math.max(1,Math.min(R.sem||8,w));
   var h='<div class="hdr"><div class="hdr-brand"><div class="bar bar-r"></div><div class="bar bar-b"></div>'+
-    '<span class="hdr-title">Discipline 90</span></div><div class="hdr-sub">🏃 Mon running · '+esc(name)+'</div></div><div style="padding:16px 14px 30px">';
+    '<span class="hdr-title">Mon running</span></div><div class="hdr-sub">'+esc(name)+'</div></div><div style="padding:16px 14px 30px">';
   if(R.debut&&joursAvantDepart(R.debut)>0)h+='<div class="card" style="padding:12px 14px;font-size:12.5px;font-weight:800">🗓️ Ton programme running démarre le '+isoVersFr(R.debut)+'. Tu peux déjà regarder ta première semaine.</div>';
   // Les zones
   h+='<div class="card" style="padding:14px 15px"><div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px"><div style="font-weight:900;font-size:14px;flex:1">❤️ Mes zones cardiaques</div>'+
@@ -6979,16 +7028,26 @@ function viewNutrition(name,start){
   var allData=getAllData();
   var cfg=nutCfg(allData);
   var day=nutToday(cfg);
-  var target=cfg.prot||0;
+  var target=cfg.prot||0, protAuto=false;
+  // 🧮 Pas d'objectif posé par le coach : on le calcule seul avec SA règle
+  // (femme 1,6 · homme 1,8 g/kg × poids de départ). Jamais « 0 g ».
+  if(!(target>0)){
+    try{
+      var pd0=poidsDepart(allData,start), sx0=blocSexe(allData);
+      var ref0=pd0?pd0.v:null;
+      if(!ref0){for(var q0=0;q0<90;q0++){var d0=allData[q0];if(d0&&d0.poids){var v0=parseFloat(String(d0.poids).replace(",","."));if(v0>30){ref0=v0;break;}}}}
+      if(ref0){var P0=NUT_PARAMS[sx0==="f"?"F":"H"]||NUT_PARAMS.H;target=Math.round(P0.protX*ref0);protAuto=true;}
+    }catch(e){}
+  }
   var tot=day.tot||0;
   var pct=target>0?Math.min(100,Math.round(tot/target*100)):0;
   var atteint=target>0&&tot>=target*0.8; // ✅ victoire dès 80% du quota
   var reste=Math.max(0,Math.round((target-tot)*10)/10);
   var barCol=gaugeCol(pct);
 
-  var h='<div class="hdr"><div class="hdr-brand"><div class="bar bar-r"></div><div class="bar bar-b"></div>'+
-    '<span class="hdr-title">Discipline 90</span></div>'+
-    '<div class="hdr-sub">🍗 Protéines · '+esc(name)+'</div></div>'+
+  var h='<div class="hdr"><div class="hdr-brand"><div class="bar bar-r"></div>'+
+    '<span class="hdr-title">Mes protéines</span></div>'+
+    '<div class="hdr-sub">'+esc(name)+'</div></div>'+
     '<div style="padding:16px 14px 0">';
 
   // 🔥 SÉRIE
@@ -7007,9 +7066,10 @@ function viewNutrition(name,start){
   }
 
   // ⚔️ QUÊTE DU JOUR (bandeau)
-  h+='<div class="card" style="background:linear-gradient(135deg,#12C98A,var(--brand));border:none;padding:15px 16px;margin-bottom:14px;box-shadow:0 8px 20px rgba(18,201,138,.28)">'+
+  h+='<div class="card" style="background:linear-gradient(135deg,var(--b1),var(--b2));border:none;padding:15px 16px;margin-bottom:14px;box-shadow:0 8px 20px rgba(0,0,0,.14)">'+
     '<div style="color:rgba(255,255,255,.92);font-weight:900;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:5px">⚔️ Ta quête du jour</div>'+
-    '<div style="color:#fff;font-weight:900;font-size:17px">Atteindre '+target+' g de protéines</div>'+
+    '<div style="color:#fff;font-weight:900;font-size:17px">'+(target>0?'Atteindre '+target+' g de protéines':'Ton objectif arrive bientôt')+'</div>'+
+    (protAuto?'<div style="color:rgba(255,255,255,.85);font-size:11px;font-weight:700;margin-top:3px">Calculé sur ton poids de départ · ton coach peut l\'ajuster</div>':'')+
     (atteint?'<div style="color:#fff;font-weight:900;font-size:13px;margin-top:6px">✅ QUÊTE ACCOMPLIE — '+tot+' g !</div>'
       :'<div style="color:rgba(255,255,255,.92);font-size:12.5px;font-weight:800;margin-top:6px">Encore '+reste+' g pour valider 💪</div>')+'</div>';
 
@@ -7033,7 +7093,7 @@ function viewNutrition(name,start){
     '<div style="display:flex;gap:8px;margin-bottom:8px">'+
     '<input id="nut-name" type="text" placeholder="ex : poulet, œufs, riz..." style="flex:1;padding:11px 12px;border-radius:9px;border:1.5px solid var(--line);font-size:15px;font-weight:600"/>'+
     '<input id="nut-qty" type="number" inputmode="numeric" placeholder="g" style="width:78px;padding:11px 10px;border-radius:9px;border:1.5px solid var(--line);font-size:15px;font-weight:700;text-align:center"/></div>'+
-    '<button id="nut-add" style="width:100%;padding:14px 0;border-radius:13px;background:linear-gradient(90deg,#12C98A,var(--brand));color:#fff;font-weight:900;font-size:14px;box-shadow:0 6px 16px rgba(18,201,138,.26)">➕ Ajouter</button>'+
+    '<button id="nut-add" style="width:100%;padding:14px 0;border-radius:13px;background:linear-gradient(90deg,var(--b1),var(--b2));color:#fff;font-weight:900;font-size:14px;box-shadow:0 6px 16px rgba(0,0,0,.16)">➕ Ajouter</button>'+
     '<div style="display:flex;gap:8px;margin-top:8px">'+
     '<button id="nut-scan" style="flex:1;padding:12px 0;border-radius:11px;background:var(--brand2);border:0;color:#fff;font-weight:800;font-size:13px">▮▯ Scanner</button>'+
     '<button id="nut-search" style="flex:1;padding:12px 0;border-radius:11px;background:#fff;border:1.5px solid var(--brand2);color:var(--brand2);font-weight:800;font-size:13px">🔍 Chercher</button></div>'+
@@ -7251,8 +7311,8 @@ function viewFinance(name,start){
   var T=cfg.lastCalc||null;
   
   var h='<div class="hdr"><div class="hdr-brand"><div class="bar bar-r"></div><div class="bar bar-b"></div>'+
-    '<span class="hdr-title">Discipline 90</span></div>'+
-    '<div class="hdr-sub">💰 Sérénité financière · '+esc(name)+'</div></div>'+
+    '<span class="hdr-title">Ma finance</span></div>'+
+    '<div class="hdr-sub">'+esc(name)+'</div></div>'+
     '<div style="padding:16px 14px 0">';
 
   // Si aucun statut choisi : afficher le choix
@@ -8063,7 +8123,7 @@ function viewCalendar(name,start){
   h+='<div class="card" style="padding:24px 18px 20px;margin-bottom:16px;text-align:center">'+
     '<div style="font-size:20px;font-weight:900;color:var(--ink);letter-spacing:-.3px;margin-bottom:4px">Ma semaine '+(phaseReeq?Math.floor((today90-14)/7)+1:SEM.semaine)+(phaseReeq?' · rééquilibrage':'')+'</div>'+
     '<div style="font-size:12px;font-weight:700;color:var(--mute);margin-bottom:14px">Journée validée = 🥗 nutrition · 🏋️ sport · 😴 sommeil · 🧠 les 3 questions</div>'+
-    '<div class="ring-wrap" style="margin:0 auto">'+svgRing(SEM.pctSemaine/100,semCol,196,16)+
+    '<div class="ring-wrap" style="margin:0 auto">'+svgRing(SEM.pctSemaine/100,semCol,196,16).replace('stroke="'+solid(semCol)+'"','class="ring-th" stroke="'+solid(semCol)+'"')+
     '<div class="ring-txt" style="flex-direction:column;gap:2px">'+
     '<span style="font-size:52px;font-weight:900;letter-spacing:-2px;line-height:1;color:var(--ink)">'+SEM.valides+
     '<span style="font-size:26px;letter-spacing:0;color:var(--mute)">/7</span></span>'+
@@ -8122,20 +8182,25 @@ function viewCalendar(name,start){
   // Les pastilles de fond de programme (série, jours remplis, jours restants)
   // ne restent pas collées à la jauge de la semaine : elles racontent les
   // 90 jours, elles passent donc SOUS la montagne de l'objectif.
-  var hPast='<div class="card" style="padding:14px 15px;margin-bottom:16px;text-align:center">'+
-    '<div style="display:flex;gap:7px;justify-content:center;flex-wrap:wrap">'+
-      '<span style="background:var(--soft2);border-radius:100px;padding:9px 15px;font-size:12.5px;font-weight:700;color:var(--ink2)">'+
-        (function(){
-          var rec=0; try{rec=bestStreak(allData,Math.min(89,today90));}catch(e){}
-          if(streak>=1) return '<span style="font-size:30px;line-height:1;vertical-align:-8px;filter:drop-shadow(0 2px 5px rgba(0,0,0,.18))">'+streakBadge(streak).e+'</span> <b style="font-size:16px;color:'+streakBadge(streak).c+'">'+streak+'</b> jour'+(streak>1?'s':'')+' de série';
-          if(rec>=2) return '<span style="font-size:26px;line-height:1;vertical-align:-6px">🏅</span> record <b style="font-size:16px;color:var(--gold-d)">'+rec+'</b> jours · on relance';
-          return '<span style="font-size:26px;line-height:1;vertical-align:-6px">🔥</span> série à lancer';
-        })()+'</span>'+
-      '<span style="background:var(--soft2);border-radius:100px;padding:9px 15px;font-size:12.5px;font-weight:700;color:var(--ink2)"><b>'+filled+'</b> remplis</span>'+
-      '<span style="background:var(--soft2);border-radius:100px;padding:9px 15px;font-size:12.5px;font-weight:700;color:var(--ink2)"><b>'+daysLeft+'</b> restants</span>'+
-    '</div>'+
-    '<div style="font-size:11.5px;color:var(--mute);font-weight:700;margin-top:11px">'+(phaseReeq?'Rééquilibrage · jour ':'Jour ')+jAff+' sur '+durAff+'</div>'+
-    '</div>';
+  // Rangée de 3 chiffres alignés (22/11) : plus de pastilles qui passent à la ligne.
+  var hPast=(function(){
+    var rec=0; try{rec=bestStreak(allData,Math.min(89,today90));}catch(e){}
+    var c1v,c1l,c1e;
+    if(streak>=1){c1v=streak;c1l="jour"+(streak>1?"s":"")+" de série";c1e=streakBadge(streak).e;}
+    else if(rec>=2){c1v=rec;c1l="record · on relance";c1e="🏅";}
+    else{c1v="0";c1l="série à lancer";c1e="🔥";}
+    function cel(e,v,l,col){return '<div style="flex:1;min-width:0;text-align:center;padding:4px 2px">'+
+      '<div style="font-size:20px;line-height:1;height:22px">'+e+'</div>'+
+      '<div style="font-weight:900;font-size:24px;letter-spacing:-.5px;line-height:1.1;color:'+col+';margin-top:4px">'+v+'</div>'+
+      '<div style="font-size:10.5px;font-weight:800;color:var(--mute);text-transform:uppercase;letter-spacing:.6px;margin-top:3px;line-height:1.25">'+l+'</div></div>';}
+    var sep='<div style="width:1px;background:var(--line);margin:6px 0"></div>';
+    return '<div class="card" style="padding:14px 10px 12px;margin-bottom:16px">'+
+      '<div style="display:flex;align-items:stretch">'+
+      cel(c1e,c1v,c1l,"var(--b1)")+sep+cel("📅",filled,"jours remplis","var(--ink)")+sep+cel("⏳",daysLeft,"jours restants","var(--ink)")+
+      '</div>'+
+      '<div style="font-size:11.5px;color:var(--mute);font-weight:700;margin-top:10px;text-align:center;border-top:1px solid var(--line);padding-top:9px">'+(phaseReeq?'Rééquilibrage · jour ':'Jour ')+jAff+' sur '+durAff+'</div>'+
+      '</div>';
+  })();
 
 
 
@@ -8225,6 +8290,13 @@ function viewCalendar(name,start){
         (function(){
           // L'ambiance de la carte suit ce que le coach a écrit comme récompense
           var TH=rewardTheme(goal.reward);
+          // Pas encore de récompense : une ligne discrète aux couleurs du client,
+          // pas un gros bloc bleu nuit « À définir » (22/11).
+          if(!goal.reward&&!reached)
+            return '<button id="goal-edit" style="width:100%;display:flex;align-items:center;gap:12px;text-align:left;background:var(--soft2);border:1.5px dashed var(--b1);border-radius:16px;padding:13px 14px;color:var(--ink);font-family:inherit;cursor:pointer">'+
+              '<span style="font-size:24px">🎁</span><span style="flex:1;min-width:0"><span style="display:block;font-weight:900;font-size:14.5px">Choisis ta récompense</span>'+
+              '<span style="display:block;font-size:11.5px;font-weight:700;opacity:.8;margin-top:2px">Elle t\'attend à '+goal.target+' kg</span></span>'+
+              '<span style="font-weight:900;font-size:18px;color:var(--b1)">›</span></button>';
           return '<div style="position:relative;overflow:hidden;border-radius:18px;padding:17px 16px 15px;background:'+TH.g+';border:1.5px solid '+TH.c+'55">'+
             // L'emoji de fond était masqué par le bouton : on le remonte et on le
             // décale à gauche du bouton, il reste entier.
@@ -8485,9 +8557,14 @@ function viewCalendar(name,start){
     var wPv=[];
     for(var wp=wStart;wp<=today90;wp++){if(allData[wp]&&allData[wp].poids)wPv.push(parseFloat(allData[wp].poids));}
     var wDp=wPv.length>=2?Math.round((wPv[wPv.length-1]-wPv[0])*10)/10:null;
-    h+='<div class="card" style="margin-bottom:18px;border:2px solid '+K+';padding:16px 18px">'+
-      '<div style="font-weight:900;font-size:14px;margin-bottom:12px;display:flex;align-items:center;gap:8px"><div class="bar bar-r"></div>⚔️ BILAN DE BATAILLE — Semaine '+Math.floor(today90/7+1)+'</div>'+
-      '<div style="display:flex;gap:8px;margin-bottom:12px;text-align:center">'+
+    // 22/11 : bandeau aux couleurs du client, 4 chiffres en tuiles, le texte
+    // (fiertés, gratitudes, boucles) replié dans un tiroir au lieu d'un pavé.
+    h+='<div class="card bb-carte" style="margin-bottom:18px;padding:0;overflow:hidden">'+
+      '<div style="background:linear-gradient(135deg,var(--b1),var(--b2));color:#fff;padding:13px 16px 12px">'+
+      '<div style="font-size:10.5px;font-weight:900;letter-spacing:1.5px;opacity:.85">⚔️ BILAN DE BATAILLE</div>'+
+      '<div style="font-weight:900;font-size:18px;margin-top:2px">Semaine '+Math.floor(today90/7+1)+' terminée</div></div>'+
+      '<div style="padding:14px 14px 14px">'+
+      '<div class="bb-kpis" style="display:flex;gap:6px;margin-bottom:12px;text-align:center">'+
       // Trois chiffres qu'une cliente comprend sans vocabulaire interne :
       // XP / zones sécurisées / contestées venaient de la mission One Thing.
       '<div style="flex:1"><div style="font-weight:900;font-size:20px;color:var(--brand)">'+wFilled+'<span style="font-size:12px;color:var(--mute)">/7</span></div><div style="font-size:11px;color:var(--mute);font-weight:700;text-transform:uppercase">Jours remplis</div></div>'+
@@ -8524,18 +8601,22 @@ function viewCalendar(name,start){
         if(dmw.mindset.negatif)wN.push(dmw.mindset.negatif);
       }
     }
+    var wLoops=loopsHTML(computeLoops(allData,7,wStart),true);
+    if(wF.length||wP.length||wN.length||wLoops)
+      h+='<details class="bb-tiroir" style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px">'+
+        '<summary style="list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;font-weight:900;font-size:13px;color:var(--ink)">🧠 Ta semaine dans ta tête'+
+        '<span style="margin-left:auto;font-size:11px;font-weight:800;color:var(--b1)">'+(wF.length+wP.length+wN.length)+' notes · voir ⌄</span></summary>';
     if(wF.length||wP.length||wN.length){
-      h+='<div style="margin-top:12px;padding-top:12px;border-top:1.5px solid #EEE">'+
-        '<div style="font-weight:900;font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">🧠 Ta semaine dans ta tête</div>';
+      h+='<div style="margin-top:10px">';
       if(wF.length)h+='<div style="font-size:12px;line-height:1.7;margin-bottom:6px"><strong style="color:#B45309">🥇 Tes fiertés :</strong> '+wF.map(esc).join(" · ")+'</div>';
       if(wP.length)h+='<div style="font-size:12px;line-height:1.7;margin-bottom:6px"><strong style="color:var(--ok-d)">🌟 Tes gratitudes :</strong> '+wP.map(esc).join(" · ")+'</div>';
       if(wN.length)h+='<div style="font-size:12px;line-height:1.7;margin-bottom:8px"><strong style="color:var(--brand)">🌧️ Ce qui a pesé :</strong> '+wN.map(esc).join(" · ")+'</div>';
       h+='<div style="background:#F4FAF2;border-radius:10px;padding:10px 12px;font-size:11px;color:#4A7A3A;line-height:1.7;font-weight:600">💡 Relis la ligne rouge : ce qui revient 2 fois ou plus est un pattern, pas un hasard. Choisis-en UN et fais-en ta mission One Thing de la semaine prochaine. On ne corrige pas tout — on corrige le levier.</div></div>';
     }
     // 🔁 Boucles de la semaine (vertueuse = socle · échec = ce qui revient)
-    var wLoops=loopsHTML(computeLoops(allData,7,wStart),true);
     if(wLoops)h+='<div style="margin-top:12px">'+wLoops+'</div>';
-    h+='</div>';
+    if(wF.length||wP.length||wN.length||wLoops)h+='</details>';
+    h+='</div></div>';
   }
 
   // ⚠️ Message du coach → déplacé dans la vue jour (épuration accueil)
@@ -8737,15 +8818,16 @@ function viewDay(name,start){
   for(var hb=0;hb<HABITS.length;hb++){
     var hab=HABITS[hb];
     var checked=!!habits[hab.id];
-    h+='<div class="habit'+(checked?" checked":"")+'" data-habit="'+hab.id+'" style="'+(checked?"background:"+hab.color+";border-color:"+hab.color+";box-shadow:0 3px 12px "+hab.color+"33":"")+'">'+
+    // 22/11 : une seule palette, celle du client (avant : 6 couleurs différentes).
+    h+='<div class="habit'+(checked?" checked hab-th":"")+'" data-habit="'+hab.id+'">'+
       '<div class="habit-left"><span class="habit-icon">'+hab.icon+'</span><span class="habit-name">'+hab.label+'</span></div>'+
       '<div class="habit-check">'+(checked?"✓":"")+'</div></div>';
   }
   // ⭐ Habitude perso (slot 506) — choisie par le client : lecture, méditation, étirements...
   var persoHab=allData[506];
   if(persoHab&&persoHab.name){
-    var pChecked=!!habits.perso,pColor="#F9A825";
-    h+='<div class="habit'+(pChecked?" checked":"")+'" data-habit="perso" style="'+(pChecked?"background:"+pColor+";border-color:"+pColor+";box-shadow:0 3px 12px "+pColor+"33":"")+'">'+
+    var pChecked=!!habits.perso;
+    h+='<div class="habit'+(pChecked?" checked hab-th":"")+'" data-habit="perso">'+
       '<div class="habit-left"><span class="habit-icon">⭐</span><span class="habit-name">'+esc(persoHab.name)+'</span></div>'+
       '<div style="display:flex;align-items:center;gap:10px"><span id="perso-edit" style="font-size:13px;opacity:.55;padding:4px">✏️</span><div class="habit-check">'+(pChecked?"✓":"")+'</div></div></div>';
   }else{
@@ -9640,12 +9722,12 @@ function viewStats(name){
                      if(statSemaine(vals(ressenti[i].k),lastIdx))okR=true;}
     if(!okM&&!okR)return;
     if(okM){
-      h+=titreSection("Ma semaine","var(--st-cy)")+
+      h+=titreSection("📅 Ma semaine","var(--st-cy)")+
         '<div class="st-note">Moyenne des 7 derniers jours remplis, comparée aux 7 précédents.</div>'+
         '<div class="st-grid2">'+carte(mesures[0])+carte(mesures[1])+'</div>';
     }
     if(okR){
-      h+=titreSection("Mon ressenti","var(--st-vi)")+
+      h+=titreSection("🧠 Mon ressenti","var(--st-vi)")+
         '<div class="st-grid2">'+carte(ressenti[0],"cy")+carte(ressenti[1],"vi")+'</div>';
     }
   })();
@@ -9682,7 +9764,7 @@ function viewStats(name){
       msgs.push({ico:"📉",txt:"Tu perds en moyenne <strong>"+(Math.round(-TP.pente*7*100)/100)+" kg par semaine</strong> depuis le début du suivi."});
     }
     if(!msgs.length)return;
-    h+=titreSection("Ce que disent tes données","var(--st-vi)");
+    h+=titreSection("💡 Ce que disent tes données","var(--st-vi)");
     for(var m2=0;m2<msgs.length&&m2<3;m2++){
       h+='<div class="st-ins"><span class="st-ins-i">'+msgs[m2].ico+'</span>'+
         '<div>'+msgs[m2].txt+'</div></div>';
@@ -9693,7 +9775,7 @@ function viewStats(name){
   (function(){
     var avgScore=avgOf(series,"score");
     var bs=bestStreak(allData,Math.min(DERN,lastIdx));
-    h+=titreSection("Ma régularité","var(--st-cy)")+
+    h+=titreSection("🔥 Ma régularité","var(--st-cy)")+
       '<div class="st-grid2">'+
       '<div class="st-kpi" style="display:flex;align-items:center;gap:10px;text-align:left;background:var(--soft)"><span style="flex:0 0 40px;height:40px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:20px">📅</span>'+
         '<div><div class="st-kpi-l" style="margin:0;font-weight:900;color:var(--ink)">Jours remplis</div><div class="st-kpi-n" style="color:var(--brand);font-size:24px">'+rempli+'<span style="font-size:14px;color:var(--mute)"> / '+DUR+'</span></div><div style="font-size:11px;color:var(--mute);font-weight:700">'+(rempli?'Continue sur ta lancée !':'Ta 1re journée t\'attend')+'</div></div></div>'+
@@ -10430,10 +10512,17 @@ function reset14JoursHTML(start){
     '30 secondes plus tard. Tu recommences pendant 5 à 10 minutes. Ensuite, ta marche.</div>';
   if(!week2)h+='<div class="r14-suite">📈 Semaine '+(six?4:2)+' : on passe à <b>10 rép</b> toutes les 30 s'+(six?', 10 minutes':'')+'.</div>';
 
+  // 22/11 : onglets L M M J V S D. Un seul jour visible à la fois (aujourd'hui
+  // par défaut) au lieu des 7 jours empilés sur un très long écran.
+  var r14Sel=(typeof state.r14Jour==="number")?state.r14Jour:wdToday;
+  h+='<div class="r14-tabs">';
+  for(var t7=0;t7<7;t7++)h+='<button class="r14-tab'+(t7===r14Sel?' on':'')+(t7===wdToday?' auj':'')+'" onclick="r14Tab('+t7+')" data-r14tab="'+t7+'">'+
+    '<b>'+dayNames[t7].slice(0,3)+'</b>'+(t7===wdToday?'<i></i>':'')+'</button>';
+  h+='</div>';
   // Les 7 jours
   for(var d7=0;d7<7;d7++){
     var e7=tr7[d7]||{}, isToday=(d7===wdToday);
-    h+='<div class="r14-j'+(isToday?' auj':'')+'">'+
+    h+='<div class="r14-j'+(isToday?' auj':'')+'" data-r14j="'+d7+'"'+(d7===r14Sel?'':' style="display:none"')+'>'+
       '<div class="r14-j-h"><b>'+dayNames[d7]+'</b>'+
       (isToday?'<span class="r14-j-a">AUJOURD\'HUI</span>':'')+'</div>'+
       '<div class="r14-j-l">💪 <b>'+reps+' rép toutes les 30 s</b> · 5 à 10 min</div>';
@@ -10481,6 +10570,12 @@ function reset14JoursHTML(start){
   return h+'</div>';
 }
 
+function r14Tab(i){
+  state.r14Jour=i;
+  var T=document.querySelectorAll("[data-r14tab]"),J=document.querySelectorAll("[data-r14j]");
+  for(var a=0;a<T.length;a++)T[a].classList.toggle("on",+T[a].getAttribute("data-r14tab")===i);
+  for(var b=0;b<J.length;b++)J[b].style.display=(+J[b].getAttribute("data-r14j")===i)?"":"none";
+}
 // ═══════════ ENTRAÎNEMENTS (mode 14 jours) ═══════════
 function training14HTML(name,start){
   var allData=getAllData();
@@ -17617,9 +17712,13 @@ function viewCoachDetail(){
 function coachAnalytics(){
   var tous=lsGet("amcoach_clients",[]);
   // Tests et clients non payants : exclus des KPI, mais leurs données restent
-  var cl=tous.filter(function(c){return !c.horsStats;});
+  // 22/11 : « hors stats » vaut pour la PERSONNE, tous ses blocs (slug, slug-b2…).
+  // Avant, exclure le bloc 42 j d'Akli laissait son ancien bloc 90 j dans les chiffres.
+  var __base=function(sl){return String(sl||"").replace(/-b\d+$/,"");}, __hors={};
+  tous.forEach(function(c){if(c.horsStats)__hors[__base(c.slug)]=1;});
+  var cl=tous.filter(function(c){return !__hors[__base(c.slug)];});
   var out={exclus:tous.length-cl.length,total:cl.length,objectifs:[],objAtteints:0,enAttente:0,clients:[],paliers:[],finis:0,actifs:0,abandons:0,
-           kgTotal:0,pertes:[],remplissage:[],series:[],jourAbandon:[]};
+           kgTotal:0,pertes:[],remplissage:[],series:[],jourAbandon:[],moisTous:[],moisH:[],moisF:[]};
   var auj=new Date();
   for(var i=0;i<cl.length;i++){
     var c=cl[i], d=lsGet("amcoach_"+c.slug,{});
@@ -17633,10 +17732,10 @@ function coachAnalytics(){
       if(d[k]&&Object.keys(d[k]).length>0){remplis++;if(k>last)last=k;}
     }
     // Poids : premier et dernier renseignés
-    var p1=null,p2=null;
-    for(var w=0;w<dur;w++){if(d[w]&&d[w].poids){var v=parseFloat(String(d[w].poids).replace(",","."));if(!isNaN(v)){if(p1===null)p1=v;p2=v;}}}
+    var p1=null,p2=null,w1=null,w2=null;
+    for(var w=0;w<dur;w++){if(d[w]&&d[w].poids){var v=parseFloat(String(d[w].poids).replace(",","."));if(!isNaN(v)){if(p1===null){p1=v;w1=w;}p2=v;w2=w;}}}
     // Même poids de départ que partout ailleurs : le bilan d'entrée s'il existe
-    try{var __pd=poidsDepart(d,c.start_date);if(__pd&&p2!=null)p1=__pd.v;}catch(e){}
+    try{var __pd=poidsDepart(d,c.start_date);if(__pd&&p2!=null){p1=__pd.v;w1=0;}}catch(e){}
     var perte=(p1!=null&&p2!=null)?Math.round((p1-p2)*10)/10:null;
     // 🎯 Résultat : évalué UNIQUEMENT au bilan final, jamais sur une pesée du jour.
     // Un client au jour 20 n'a pas « raté » son objectif — il n'est pas encore évalué.
@@ -17674,7 +17773,14 @@ function coachAnalytics(){
     else if(fini)out.finis++; else if(lache)out.abandons++; else out.actifs++;
     if(lache)out.jourAbandon.push(last+1);
     // ⚖️ Kilos perdus : départ (bilan d'entrée ou J1) → dernière pesée.
-    if(!avenir&&perte!=null&&perte>0){out.pertes.push(perte);out.kgTotal+=perte;}
+    if(!avenir&&perte!=null&&perte>0){out.pertes.push(perte);out.kgTotal+=perte;
+      // 📅 Rythme mensuel (Akli : moyenne PAR MOIS, séparée hommes / femmes).
+      // Écart compté au moins 14 jours : les premiers jours (eau) gonfleraient le chiffre.
+      var span=Math.max(14,(w2||0)-(w1||0)), parMois=perte/span*30;
+      // Sexe lu partout où il a pu être posé ; inconnu = hors moyenne H/F
+      // (avant, un client sans thème comptait comme un homme : Fayza était chez les hommes).
+      var sx=null;try{sx=blocSexe(d);}catch(e){}
+      out.moisTous.push(parMois);if(sx==="f")out.moisF.push(parMois);else if(sx==="h")out.moisH.push(parMois);}
     if(!avenir)out.remplissage.push(dur>0?Math.round(remplis/Math.min(t90+1,dur)*100):0);
     if(!avenir)out.series.push(bestStreak(d,Math.min(dur-1,Math.max(0,t90))));
     if(obj){out.objectifs.push(obj);if(obj.atteint)out.objAtteints++;}
@@ -17697,6 +17803,7 @@ function coachAnalytics(){
   }
   function moy(a){if(!a.length)return null;var t=0;for(var x=0;x<a.length;x++)t+=a[x];return Math.round(t/a.length*10)/10;}
   out.perteMoy=moy(out.pertes);
+  out.moisMoy=moy(out.moisTous); out.moisH=moy(out.moisH); out.moisF=moy(out.moisF);
   out.remplMoy=moy(out.remplissage);
   out.serieMoy=moy(out.series);
   out.serieMax=out.series.length?Math.max.apply(null,out.series):null;
@@ -17730,14 +17837,20 @@ function viewCoachStats(){
     return h+'<div class="card" style="padding:20px;text-align:center;color:var(--mute)">Aucun client pour l\'instant.</div></div>';
   }
 
-  // ── Vue d'ensemble
-  h+='<div class="kpi-row" style="margin-bottom:10px">'+
-    '<div class="kpi-card"><div class="kpi-val" style="color:var(--ok-d)">'+A.finis+'</div><div class="kpi-lbl">Programmes finis</div></div>'+
-    '<div class="kpi-card"><div class="kpi-val" style="color:var(--brand2)">'+A.actifs+'</div><div class="kpi-lbl">En cours</div></div></div>'+
-    '<div class="kpi-row" style="margin-bottom:16px">'+
-    '<div class="kpi-card"><div class="kpi-val" style="color:'+(A.abandons?"var(--warn-d)":"var(--mute)")+'">'+A.abandons+'</div><div class="kpi-lbl">Décrochés</div></div>'+
-    '<div class="kpi-card"><div class="kpi-val" style="color:'+(A.joues?gaugeCol(A.tauxFin):"var(--mute)")+'">'+(A.joues?A.tauxFin+'%':'—')+'</div><div class="kpi-lbl">Vont au bout'+(A.joues?' ('+A.finis+'/'+A.joues+')':'')+'</div></div></div>'+
-    (A.avenir?'<div style="font-size:11.5px;color:var(--mute);margin:-8px 0 14px;font-weight:700">⏳ '+A.avenir+' client'+(A.avenir>1?'s':'')+' à venir, pas encore compté'+(A.avenir>1?'s':'')+'.</div>':'');
+  // ── Vue d'ensemble · 22/11 : bloc bleu nuit au style de la carte « AM Coach ».
+  (function(){
+    function c(v,l,col,i){return '<div class="csh-c'+(i%2?' r':'')+(i>=2?' b':'')+'"><div class="csh-v">'+v+'</div>'+
+      '<div class="csh-l">'+l+'</div><i style="background:'+col+'"></i></div>';}
+    h+='<div class="csh">'+
+      '<div class="csh-t">AM COACH <span>GENÈVE</span></div>'+
+      '<div class="csh-g">'+
+      c(A.finis,"Programmes finis","#2F7BFF",0)+
+      c(A.actifs,"En cours","#E4252B",1)+
+      c(A.abandons,"Décrochés","#2F7BFF",2)+
+      c(A.joues?A.tauxFin+'%':'—',"Vont au bout"+(A.joues?' ('+A.finis+'/'+A.joues+')':''),"#E4252B",3)+
+      '</div></div>'+
+      (A.avenir?'<div style="font-size:11.5px;color:var(--mute);margin:-6px 0 14px;font-weight:700">⏳ '+A.avenir+' client'+(A.avenir>1?'s':'')+' à venir, pas encore compté'+(A.avenir>1?'s':'')+'.</div>':'');
+  })();
 
   // ── Où ils décrochent
   h+='<div class="card" style="padding:16px">'+
@@ -17765,7 +17878,8 @@ function viewCoachStats(){
     '<div class="card-label">🏆 Résultats clients</div>'+
     '<div class="kpi-row" style="margin-bottom:10px">'+
     '<div class="kpi-card" style="background:var(--soft2)"><div class="kpi-val" style="color:var(--ok-d)">'+(Math.round(A.kgTotal*10)/10)+'</div><div class="kpi-lbl">kg perdus au total</div></div>'+
-    '<div class="kpi-card" style="background:var(--soft2)"><div class="kpi-val" style="color:var(--ok-d)">'+(A.perteMoy!=null?A.perteMoy:"—")+'</div><div class="kpi-lbl">kg en moyenne</div></div></div>'+
+    '<div class="kpi-card" style="background:var(--soft2)"><div class="kpi-val" style="color:var(--ok-d)">'+(A.perteMoy!=null?A.perteMoy:"—")+'</div><div class="kpi-lbl">kg en moyenne</div>'+
+      ((A.moisF!=null||A.moisH!=null)?'<div style="font-size:10.5px;font-weight:800;color:var(--mute);margin-top:3px">'+(A.moisF!=null?'♀ '+A.moisF+' kg/mois':'')+(A.moisF!=null&&A.moisH!=null?' · ':'')+(A.moisH!=null?'♂ '+A.moisH+' kg/mois':'')+'</div>':'')+'</div></div>'+
     '<div class="kpi-row">'+
     '<div class="kpi-card" style="background:var(--soft2)"><div class="kpi-val">'+(A.meilleurePerte!=null?A.meilleurePerte:"—")+'</div><div class="kpi-lbl">meilleur résultat (kg)</div></div>'+
     '<div class="kpi-card" style="background:var(--soft2)"><div class="kpi-val">'+(A.remplMoy!=null?A.remplMoy:0)+'%</div><div class="kpi-lbl">assiduité moyenne</div></div></div>'+
@@ -19191,7 +19305,7 @@ function viewCoachDash(){
   try{coachSnapshotSiBesoin();}catch(e){} // 📚 une photo datée par jour
   var h='<div class="app" style="max-width:480px">'+
     '<div class="hdr"><div class="hdr-brand"><div class="bar bar-r"></div>'+
-    '<span class="hdr-title">Coach Dashboard</span><div class="bar bar-b"></div></div>'+
+    '<span class="hdr-title">Tableau de bord</span><div class="bar bar-b"></div></div>'+
     '<div class="hdr-sub" style="color:var(--mute);font-weight:400;font-size:12px">AM Coach Genève · TransfoPhysique</div></div>'+
     '<div style="padding:16px 14px 0">'+
     // 🧰 Les quatre actions du matin, à poids égal : plus un seul pavé qui
@@ -19389,6 +19503,10 @@ function viewCoachDash(){
   }else if(!shown.length){
     h+='<div style="text-align:center;color:var(--mute);padding:40px">Aucun r\u00e9sultat pour \u00ab '+esc(state.searchQ)+' \u00bb</div>';
   }else{
+    // 22/11 : les grandes fiches répétaient « Mes clients ». Elles passent dans un
+    // tiroir replié (ouvert d'office pendant une recherche) : liens tracker/menu intacts.
+    h+='<details class="fiches-tiroir"'+(q||state.fichesOuvertes?' open':'')+' ontoggle="state.fichesOuvertes=this.open">'+
+      '<summary>📇 Fiches détaillées · liens tracker et menu <span>'+shown.length+' ⌄</span></summary>';
     for(var i=0;i<shown.length;i++){
       var c=shown[i];
       var t90=getToday90(c.start_date);
@@ -19505,6 +19623,7 @@ function viewCoachDash(){
         '<button class="copy-menu big-btn" data-slug="'+esc(c.slug)+'" style="flex:1;padding:11px 0;font-size:12px;background:var(--ok-d);box-shadow:none;margin:0">🍽️ Lien menu</button></div>'+
         '<div style="text-align:center;font-size:10.5px;color:var(--mute);margin-top:8px">Appui long sur le nom pour mettre en pause</div></div>';
     }
+    h+='</details>';
   }
   // 📦 LES CLIENTS EN PAUSE, tout en bas, dans un tiroir replié.
   // Ils restent accessibles en un tap — c'est une pause, pas une suppression.
@@ -21279,29 +21398,77 @@ function bindCoach(){
     var A=coachAnalytics();
     var w=window.open("","_blank");
     if(!w){alert("Autorise les fenêtres pour générer la carte");return;}
-    function bloc(v,l){return '<div style="text-align:center"><div style="font-size:44px;font-weight:900;letter-spacing:-1.5px;line-height:1">'+v+'</div>'+
-      '<div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#8A96A3;margin-top:6px">'+l+'</div></div>';}
+    // 🎨 Style « affiche » (modèle d'Akli 22/11) : bleu nuit, traits lumineux bleu/rouge,
+    // montagnes, gros chiffres condensés, devise colorée sous chaque chiffre.
+    var DEV={"kg perdus au total":"RÉSULTATS. MESURÉS.","d'assiduité":"DISCIPLINE. CHAQUE JOUR.",
+      "vont au bout":"ENGAGEMENT. TOTAL.","kg / mois · femmes":"PAR MOIS. EN MOYENNE.",
+      "kg / mois · hommes":"PAR MOIS. EN MOYENNE.","kg perdus en moyenne":"PAR PERSONNE.",
+      "objectifs atteints":"CIBLE. ATTEINTE.","clients accompagnés":"CONFIANCE. RÉSULTATS."};
+    function bloc(v,l,i,n){
+      var col=i%2?"#EF3B3B":"#3B8BF6", seul=(i===n-1&&n%2===1);
+      return '<div class="st'+(i%2?' r':'')+(seul?' seul':'')+(i>=2?' bas':'')+'"><div class="v">'+v+'</div>'+
+        '<div class="l">'+l.replace(" · "," · ").toUpperCase()+'</div>'+
+        '<div class="dv" style="color:'+col+'"><i style="background:'+col+'"></i>'+(DEV[l]||"")+'<i style="background:'+col+'"></i></div></div>';
+    }
+    var A_SVG='<svg viewBox="0 0 64 56" width="58" height="50"><defs><linearGradient id="ga" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#9FB3C8"/></linearGradient></defs>'+
+      '<path d="M32 2 L62 54 L48 54 L32 25 Z" fill="url(#ga)"/><path d="M32 2 L2 54 L14 54 L32 22 Z" fill="#2F6FE0"/><path d="M22 54 L40 36 L46 46 L34 54 Z" fill="#E4252B"/></svg>';
     var html='<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8">'+
       '<meta name="viewport" content="width=device-width,initial-scale=1">'+
-      '<title>Mes résultats</title><style>'+themeCSS()+
-      'html,body{margin:0;background:#07090B;font-family:ui-rounded,-apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased}'+
+      '<title>Mes résultats</title>'+
+      '<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@500;700;800;900&display=swap" rel="stylesheet">'+
+      '<style>'+themeCSS()+
+      'html,body{margin:0;background:#05070C;font-family:Inter,-apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased;-webkit-print-color-adjust:exact;print-color-adjust:exact}'+
       '.bar{position:sticky;top:0;background:#111;padding:10px;display:flex;gap:8px;z-index:9}'+
       '.bar button{flex:1;border:0;border-radius:9px;padding:12px 0;font-weight:800;font-size:13px;font-family:inherit}'+
-      '.wrap{padding:18px}'+
-      '.card{max-width:400px;margin:0 auto;background:linear-gradient(165deg,#0F1620,#1B2836);border-radius:28px;padding:32px 26px;color:#fff;box-shadow:0 24px 60px rgba(0,0,0,.5)}'+
-      '.hd{display:flex;align-items:center;gap:8px;margin-bottom:26px}'+
-      '.hd i{width:4px;height:20px;border-radius:2px;display:block}'+
-      '.hd span{font-weight:900;font-size:13px;letter-spacing:3px}'+
-      '.grid{display:grid;grid-template-columns:1fr 1fr;gap:26px 12px;margin-bottom:26px}'+
-      '.ft{border-top:1px solid rgba(255,255,255,.1);padding-top:18px;text-align:center}'+
-      '.ft b{display:block;font-size:13px;font-weight:900;letter-spacing:1.5px}'+
-      '.ft s{display:block;text-decoration:none;font-size:10.5px;color:#7C8794;margin-top:5px;letter-spacing:1px}'+
+      '.wrap{padding:16px}'+
+      '.card{position:relative;overflow:hidden;max-width:420px;margin:0 auto;border-radius:22px;padding:34px 22px 26px;color:#fff;'+
+        'background:radial-gradient(120% 60% at 50% 0%,#14203A 0%,#0A1020 45%,#05080F 100%);border:1px solid rgba(255,255,255,.06);box-shadow:0 24px 60px rgba(0,0,0,.6)}'+
+      '.fx{position:absolute;height:2px;border-radius:2px;pointer-events:none;filter:blur(.3px)}'+
+      '.mt{position:absolute;left:0;right:0;bottom:170px;height:120px;pointer-events:none;opacity:.55}'+
+      '.z{position:relative;z-index:2}'+
+      '.logo{text-align:center;margin-bottom:28px}'+
+      '.logo b{display:block;font-family:Inter;font-weight:900;font-size:34px;letter-spacing:2px;line-height:1}'+
+      '.logo b em{font-style:normal;color:#fff;position:relative}'+
+      '.logo b em:after{content:"";position:absolute;left:46%;top:38%;width:3px;height:48%;background:#E4252B;transform:rotate(28deg)}'+
+      '.gv{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:10px;font-size:12px;font-weight:700;letter-spacing:6px;color:#D5DCE6}'+
+      '.gv:before,.gv:after{content:"";width:58px;height:1px;background:rgba(255,255,255,.35)}'+
+      '.ch{display:inline-block;width:12px;height:12px;background:#E4252B;position:relative;border-radius:1px;margin-left:-2px}'+
+      '.ch:before,.ch:after{content:"";position:absolute;background:#fff}'+
+      '.ch:before{left:5px;top:2px;width:2px;height:8px}.ch:after{left:2px;top:5px;width:8px;height:2px}'+
+      '.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);margin-bottom:24px}'+
+      '.st{text-align:center;padding:16px 4px 18px;min-width:0}'+
+      '.st.r{border-left:1px solid rgba(255,255,255,.09)}'+
+      '.st.bas{border-top:1px solid rgba(255,255,255,.09)}'+
+      '.st.seul{grid-column:1 / span 2;border-left:0}'+
+      '.v{font-family:Oswald,Impact,"Arial Narrow",sans-serif;font-weight:700;font-size:clamp(40px,13vw,60px);line-height:1;letter-spacing:-1px;text-shadow:0 0 18px rgba(255,255,255,.28)}'+
+      '.l{font-family:Oswald,"Arial Narrow",sans-serif;font-weight:600;font-size:12px;letter-spacing:1px;margin-top:10px;line-height:1.25}'+
+      '.dv{display:flex;align-items:center;justify-content:center;gap:6px;font-size:7px;font-weight:800;letter-spacing:.6px;margin-top:7px;text-align:center;line-height:1.3}'+
+      '.dv i{display:block;flex:0 0 10px;height:1px;opacity:.9}'+
+      '.ft{border-top:1px solid rgba(255,255,255,.1);padding-top:20px;text-align:center}'+
+      '.mth{display:flex;align-items:center;justify-content:center;gap:12px}'+
+      '.mth .tx{text-align:left}'+
+      '.mth .t1{font-family:Inter;font-weight:900;font-style:italic;font-size:27px;line-height:1;letter-spacing:.5px}'+
+      '.mth .t1 span{color:#E4252B}'+
+      '.mth .t2{font-family:Oswald,"Arial Narrow",sans-serif;font-weight:600;font-size:17px;letter-spacing:4px;margin-top:4px;color:#E8EDF3}'+
+      '.cmp{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:14px;font-size:9.5px;font-weight:800;letter-spacing:2px;color:#E8EDF3;white-space:nowrap}'+
+      '.cmp:before,.cmp:after{content:"";width:28px;height:1px;background:#E4252B}'+
+      '.ig{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:16px;font-size:11px;font-weight:800;letter-spacing:1.8px;white-space:nowrap}'+
+      '.ig .rd{width:24px;height:24px;border-radius:50%;background:#1D5FD6;display:flex;align-items:center;justify-content:center}'+
+      '.ig em{font-style:normal;color:#EF3B3B}'+
       '</style></head><body>'+
       '<div class="bar"><button onclick="window.print()" style="background:#C9A227;color:#111">🖨️ Enregistrer</button>'+
       '<button onclick="window.close()" style="background:#333;color:#fff">✕ Fermer</button></div>'+
       '<div class="wrap"><div class="card">'+
-      '<div class="hd"><i style="background:#E4032E"></i><i style="background:#2A6CB0"></i>'+
-      '<span>AM COACH GENÈVE</span></div>'+
+      // Traits lumineux (bleu à gauche, rouge à droite) et montagnes
+      '<i class="fx" style="width:190px;left:-30px;top:70px;transform:rotate(24deg);background:linear-gradient(90deg,transparent,#2F7BFF,transparent);box-shadow:0 0 14px #2F7BFF"></i>'+
+      '<i class="fx" style="width:190px;right:-30px;top:70px;transform:rotate(-24deg);background:linear-gradient(90deg,transparent,#FF2D2D,transparent);box-shadow:0 0 14px #FF2D2D"></i>'+
+      '<i class="fx" style="width:170px;left:-40px;bottom:190px;transform:rotate(-38deg);background:linear-gradient(90deg,transparent,#2F7BFF,transparent);box-shadow:0 0 12px #2F7BFF;opacity:.7"></i>'+
+      '<i class="fx" style="width:170px;right:-40px;bottom:190px;transform:rotate(38deg);background:linear-gradient(90deg,transparent,#FF2D2D,transparent);box-shadow:0 0 12px #FF2D2D;opacity:.7"></i>'+
+      '<i class="fx" style="width:150px;left:-20px;bottom:24px;transform:rotate(-30deg);background:linear-gradient(90deg,transparent,#2F7BFF,transparent);opacity:.6"></i>'+
+      '<i class="fx" style="width:150px;right:-20px;bottom:24px;transform:rotate(30deg);background:linear-gradient(90deg,transparent,#FF2D2D,transparent);opacity:.6"></i>'+
+      '<svg class="mt" viewBox="0 0 400 120" preserveAspectRatio="none"><path d="M0 120 L70 78 L110 92 L170 46 L200 62 L230 30 L270 70 L320 52 L400 90 L400 120 Z" fill="#1A2436"/>'+
+      '<path d="M0 120 L90 96 L150 104 L215 70 L260 98 L330 84 L400 110 L400 120 Z" fill="#0C1322"/></svg>'+
+      '<div class="z"><div class="logo"><b><em>A</em>M COACH</b><div class="gv">GENÈVE <span class="ch"></span></div></div>'+
       // On ne montre QUE ce qui est flatteur et honnête : un zéro ou un chiffre
       // qui trahit le faible volume dessert plus qu'il ne prouve.
       (function(){
@@ -21309,17 +21476,22 @@ function bindCoach(){
         // Akli : le poids perdu au total parle plus que les jours d'affilée.
         if(A.kgTotal>0)t.push([String(Math.round(A.kgTotal*10)/10).replace(".",","),"kg perdus au total"]);
         if(A.remplMoy!=null&&A.remplMoy>0)t.push([A.remplMoy+"%","d'assiduité"]);
+        // Akli : moyenne PAR MOIS, séparée femmes / hommes.
+        if(A.moisF!=null&&A.moisF>0)t.push([String(A.moisF).replace(".",","),"kg / mois · femmes"]);
+        if(A.moisH!=null&&A.moisH>0)t.push([String(A.moisH).replace(".",","),"kg / mois · hommes"]);
+        if(A.moisF==null&&A.moisH==null&&A.perteMoy!=null&&A.perteMoy>0)t.push([String(A.perteMoy).replace(".",","),"kg perdus en moyenne"]);
         if(A.joues&&A.tauxFin>0)t.push([A.tauxFin+"%","vont au bout"]);
-        if(A.perteMoy!=null&&A.perteMoy>0)t.push([String(A.perteMoy).replace(".",","),"kg perdus en moyenne"]);
         if(A.tauxObj!=null&&A.tauxObj>0)t.push([A.tauxObj+"%","objectifs atteints"]);
         if(A.total>=4)t.push([A.total,"clients accompagnés"]);
         if(!t.length)return '<div style="text-align:center;color:#8A96A3;font-size:13px;line-height:1.7;padding:20px 0">Pas encore assez de recul<br>pour publier des chiffres.</div>';
-        var g='<div class="grid">';
-        for(var i=0;i<t.length&&i<4;i++)g+=bloc(t[i][0],t[i][1]);
+        var n=Math.min(t.length,6),g='<div class="grid">';
+        for(var i=0;i<n;i++)g+=bloc(t[i][0],t[i][1],i,n);
         return g+'</div>';
       })()+
-      '<div class="ft"><b>MÉTHODE AM TRANSFO PHYSIQUE</b><s>@AMCOACHSPORTIF · 90 JOURS</s></div>'+
-      '</div><div style="text-align:center;color:#5C6773;font-size:11.5px;margin-top:16px">📸 Fais une capture de cette carte et poste-la</div></div>'+docRetourHTML(false)+'</body></html>';
+      '<div class="ft"><div class="mth">'+A_SVG+'<div class="tx"><div class="t1">MÉTHODE <span>AM</span></div><div class="t2">TRANSFO PHYSIQUE</div></div></div>'+
+      '<div class="cmp">CORPS. MENTAL. PERFORMANCE.</div>'+
+      '<div class="ig"><span class="rd"><svg viewBox="0 0 64 56" width="13" height="12"><path d="M32 2 L62 54 L46 54 L32 28 L18 54 L2 54 Z" fill="#fff"/></svg></span>@AMCOACHSPORTIF <em>• 90 JOURS</em></div></div>'+
+      '</div></div><div style="text-align:center;color:#5C6773;font-size:11.5px;margin-top:16px">📸 Fais une capture de cette carte et poste-la</div></div>'+docRetourHTML(false)+'</body></html>';
     w.document.write(html); w.document.close();
   });
   var ss=document.getElementById("stats-share");
@@ -21330,7 +21502,8 @@ function bindCoach(){
       "🎓 "+A.finis+" programme"+(A.finis>1?"s":"")+" mené"+(A.finis>1?"s":"")+" à terme"+(A.joues?" ("+A.tauxFin+" %)":"")+"\n"+
       (A.tauxObj!=null?"🎯 "+A.tauxObj+" % d'objectifs de poids atteints ("+A.objAtteints+"/"+A.objTotal+")\n":"")+
       (A.kgTotal>0?"⚖️ "+(Math.round(A.kgTotal*10)/10)+" kg perdus au total\n":"")+
-      (A.perteMoy!=null?"📉 "+A.perteMoy+" kg en moyenne par personne\n":"")+
+      (A.moisF!=null?"📉 Femmes : "+A.moisF+" kg perdus par mois en moyenne\n":"")+
+      (A.moisH!=null?"📉 Hommes : "+A.moisH+" kg perdus par mois en moyenne\n":"")+
       (A.meilleurePerte!=null?"🏆 Meilleur résultat : "+A.meilleurePerte+" kg\n":"")+
       (A.remplMoy!=null?"🔥 "+A.remplMoy+" % d'assiduité moyenne\n":"")+
       "\n— Méthode AM Transfo Physique · 90 jours";

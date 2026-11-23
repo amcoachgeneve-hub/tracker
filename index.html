@@ -395,6 +395,32 @@
 .cg-tab{border-radius:16px;border:1px solid #E6EBF2;background:#fff;box-shadow:0 4px 18px rgba(15,23,42,.04)}
 .cg-tab th button.carnet-open{border-radius:10px!important}
 .cg-lettre{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-size:12px;font-weight:900;margin-right:7px;vertical-align:middle}
+.ap-t{font-size:13.5px;font-weight:900;color:#0F172A;margin:14px 0 8px}
+.ap-l{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid #EEF2F7;font-size:13px}
+.ap-pc{flex:0 0 auto;font-size:12px;font-weight:900;border-radius:20px;padding:3px 8px;min-width:48px;text-align:center}
+.ap-v{display:grid;grid-template-columns:82px 1fr 62px 52px;align-items:center;gap:8px;font-size:12px;padding:4px 0}
+.ap-v span{font-weight:800;color:#334155;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ap-v i{height:8px;border-radius:8px;background:#EEF2F7;overflow:hidden}.ap-v em{display:block;height:100%;border-radius:8px}
+.ap-v b{font-weight:900;color:#0F172A;text-align:right}.ap-v small{font-size:10.5px;color:#64748B;text-align:right}
+.ap-f{background:#F8FAFC;border:1px solid #EEF2F7;border-radius:14px;padding:10px;text-align:center}
+.ap-f span{display:block;font-size:11px;font-weight:800;color:#475569}.ap-f b{display:block;font-size:24px;font-weight:900;margin:2px 0}.ap-f small{font-size:10.5px;color:#64748B}
+.ap-alerte{background:#FFF7ED;border:1px solid #FED7AA;border-radius:14px;padding:10px 12px;font-size:12.5px;line-height:1.45;color:#9A3412}
+.ap-ok{background:#F0FDF4;border:1px solid #BBF7D0;border-radius:14px;padding:9px 12px;font-size:12.5px;font-weight:700;color:#166534}
+.ra-t{font-size:13px;font-weight:900;margin:14px 0 8px;color:var(--ink)}
+.ra-t small{font-weight:700;color:var(--mute);font-size:11px;margin-left:4px}
+.ra-n{font-size:12px;color:var(--ink2);line-height:1.5;margin-top:7px}
+.ra-rec{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.ra-rec>div{background:var(--soft2);border-radius:13px;padding:9px 4px;text-align:center}
+.ra-rec span{display:block;font-size:11px;font-weight:900;color:var(--mute)}.ra-rec b{display:block;font-size:19px;font-weight:900;margin:2px 0}.ra-rec small{font-size:10px;color:var(--mute);font-weight:700}
+.ra-bars{display:flex;align-items:flex-end;gap:6px;height:118px}
+.ra-bars>div{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:3px}
+.ra-bars i{display:block;width:70%;border-radius:6px 6px 2px 2px}.ra-bars b{font-size:10.5px;font-weight:900}.ra-bars span{font-size:10px;font-weight:800;color:var(--mute)}.ra-bars small{font-size:9.5px;color:var(--mute);height:12px}
+.ra-al{background:#FFF7ED;border:1px solid #FED7AA;color:#9A3412;border-radius:12px;padding:9px 11px;font-size:12px;font-weight:700;line-height:1.45;margin-top:8px}
+.ra-ok{background:#F0FDF4;border:1px solid #BBF7D0;color:#166534;border-radius:12px;padding:9px 11px;font-size:12px;font-weight:700;margin-top:8px}
+.ra-z{display:flex;height:12px;border-radius:12px;overflow:hidden;background:var(--soft2)}.ra-z i{display:block;height:100%}
+.ra-kp>div{display:grid;grid-template-columns:1fr 1fr 1.6fr;font-size:12.5px;padding:6px 2px;border-top:1px solid var(--line)}
+.ra-kp .ra-kp-h{font-size:10.5px;font-weight:900;color:var(--mute);text-transform:uppercase;border-top:0}
+.ra-kp em{font-style:normal;font-weight:900;font-size:11.5px;margin-left:4px}
 .fiches-tiroir{margin-bottom:14px}
 .fiches-tiroir>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px 15px;font-weight:900;font-size:13.5px;color:var(--ink);margin-bottom:12px;box-shadow:0 3px 12px rgba(16,24,40,.05)}
 .fiches-tiroir>summary::-webkit-details-marker{display:none}
@@ -1328,7 +1354,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "23/11 - Séances coachées design";
+var APP_VERSION = "23/11 - Analyse prépa physique";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 // 22/11 · couleurs FIXES, jamais celles du thème : « KO » prenait la couleur
 // du client (vert pour un thème vert) au lieu du rouge.
@@ -6869,6 +6895,80 @@ function runCourbeHTML(P,coach){
   return '<div style="font-size:11px;font-weight:800;opacity:.7;margin-bottom:4px">Vitesse (km/h) de tes sorties endurance et tests : plus elle monte, plus ton temps au km baisse</div>'+
     svgLineChart(vals,"#1E9E5A",{txt:coach?"#8A8FA3":"#8A8FA3"});
 }
+// ═══════════ 📈 ANALYSE RUNNING (23/11) ═══════════
+// 1 Allure et records estimés (1, 5, 10 km)  2 Charge de la semaine (km × effort)
+// avec alerte au-delà de +10 %  3 Zones : viser ~80 % facile / 20 % intense
+// 4 Kilomètres de la semaine à côté du poids.
+var RUN_RS_DEF={end:4,tempo:7,frac:8,test:9};
+function runLundi(d){var x=new Date(String(d).slice(0,10)+"T12:00:00");x.setDate(x.getDate()-(x.getDay()+6)%7);return isoLocal(x);}
+function runAnalyseHTML(R,all,start){
+  var L=(R.sorties||[]).filter(function(S){return S&&S.d;}).slice().sort(function(a,b){return String(a.d).localeCompare(String(b.d));});
+  var h='<div class="card" style="padding:14px 15px"><div style="font-weight:900;font-size:14px;margin-bottom:4px">🧪 Mon analyse</div>';
+  if(!L.length)return h+'<div style="font-size:12px;color:var(--mute)">Note ta première sortie : allure, records, charge et zones apparaîtront ici.</div></div>';
+  // 1 · allure et records
+  var avecA=L.filter(function(S){return runAllure(S)&&parseFloat(S.km)>=1;});
+  if(avecA.length){
+    var best=avecA.reduce(function(a,b){return runAllure(b)<runAllure(a)?b:a;});
+    h+='<div class="ra-t">⚡ Allure et records</div><div class="ra-rec">';
+    [[1,"1 km"],[5,"5 km"],[10,"10 km"]].forEach(function(D){
+      var c=avecA.filter(function(S){return parseFloat(S.km)>=D[0];});
+      if(!c.length){h+='<div><span>'+D[1]+'</span><b style="color:#94A3B8">—</b><small>pas encore couru</small></div>';return;}
+      var b=c.reduce(function(a,x){return runAllure(x)<runAllure(a)?x:a;});
+      h+='<div><span>'+D[1]+'</span><b>'+runFmt(runAllure(b)*D[0])+'</b><small>'+runFmt(runAllure(b))+' /km · '+frDate(b.d)+'</small></div>';
+    });
+    h+='</div>';
+    var E=avecA.filter(function(S){return S.type==="end";});
+    if(E.length>=4){var n=Math.min(3,Math.floor(E.length/2));
+      function moy(T){return T.reduce(function(a,S){return a+runAllure(S);},0)/T.length;}
+      var a0=moy(E.slice(0,n)),a1=moy(E.slice(-n)),g=Math.round(a0-a1);
+      h+='<div class="ra-n">Endurance : '+runFmt(a0)+' → <b>'+runFmt(a1)+' /km</b> '+(g>0?'<b style="color:#16A34A">· '+g+' s gagnées par km</b>':g<0?'<b style="color:#EA580C">· '+(-g)+' s de plus par km</b>':'· stable')+' (moyenne des '+n+' premières et '+n+' dernières).</div>';}
+    h+='<div class="ra-n">Ta meilleure allure : <b>'+runFmt(runAllure(best))+' /km</b> sur '+String(best.km).replace(".",",")+' km le '+frDate(best.d)+'. Records estimés depuis tes sorties d\'au moins 1, 5 et 10 km.</div>';
+  }
+  // 2 · charge de la semaine
+  var W={},ordre=[];
+  L.forEach(function(S){var k=runLundi(S.d);if(!W[k]){W[k]={km:0,ch:0,f:0,i:0};ordre.push(k);}
+    var km=parseFloat(S.km)||0, rs=parseInt(S.rs,10)||RUN_RS_DEF[S.type]||5, sec=S.sec>0?S.sec:(km?km*360:0);
+    W[k].km+=km;W[k].ch+=Math.round((km||sec/360)*rs);
+    if(S.type==="end")W[k].f+=sec;else W[k].i+=sec;});
+  // semaines sans sortie entre la première et aujourd'hui
+  var s0=ordre[0],cur=runLundi(isoLocal()),SEM=[];
+  for(var d=new Date(s0+"T12:00:00");;d.setDate(d.getDate()+7)){var k2=runLundi(d.toISOString().slice(0,10));SEM.push(k2);if(k2>=cur||SEM.length>60)break;}
+  var der=SEM.slice(-6), mx=1; der.forEach(function(k){mx=Math.max(mx,(W[k]||{}).ch||0);});
+  h+='<div class="ra-t">📊 Charge de la semaine <small>km × effort ressenti</small></div><div class="ra-bars">';
+  der.forEach(function(k){var w=W[k]||{ch:0,km:0},enC=(k===cur);
+    h+='<div><b>'+(w.ch||"")+'</b><i style="height:'+Math.max(3,Math.round(w.ch/mx*70))+'px;background:var(--b1);opacity:'+(enC?1:.5)+'"></i><span>'+frDate(k).slice(0,5)+'</span><small>'+(w.km?String(Math.round(w.km*10)/10).replace(".",",")+' km':'')+'</small></div>';});
+  h+='</div>';
+  // Semaine en cours déjà au-dessus de +10 % : alerte tout de suite. Sinon on juge
+  // la dernière semaine COMPLÈTE contre celle d'avant (la semaine en cours démarre à 0).
+  function chg(k){return k?((W[k]||{}).ch||0):0;}
+  var kC=der[der.length-1],kP=der[der.length-2],kPP=der[der.length-3],cC=chg(kC),cP=chg(kP),cPP=chg(kPP);
+  if(cP>0&&cC>cP*1.1)h+='<div class="ra-al">⚠️ Cette semaine, ta charge dépasse déjà de '+Math.round((cC-cP)/cP*100)+' % celle de la semaine dernière. Au-delà de +10 %, le risque de blessure monte : garde tes prochaines sorties en endurance facile.</div>';
+  else if(cPP>0&&cP>cPP*1.1)h+='<div class="ra-al">⚠️ La semaine dernière, ta charge a monté de '+Math.round((cP-cPP)/cPP*100)+' %. Au-delà de +10 %, le risque de blessure monte : cette semaine, reste au même niveau ou en dessous.</div>';
+  else if(cPP>0)h+='<div class="ra-ok">✅ Hausse maîtrisée : '+(cP>=cPP?'+':'')+Math.round((cP-cPP)/cPP*100)+' % la semaine dernière (limite conseillée : +10 %).</div>';
+  // 3 · zones 80/20 sur 4 semaines
+  var f=0,i=0; SEM.slice(-4).forEach(function(k){var w=W[k];if(w){f+=w.f;i+=w.i;}});
+  if(f+i>0){var pf=Math.round(f/(f+i)*100);
+    h+='<div class="ra-t">❤️ Répartition de l\'effort <small>4 dernières semaines</small></div>'+
+      '<div class="ra-z"><i style="width:'+pf+'%;background:#16A34A"></i><i style="width:'+(100-pf)+'%;background:#EA580C"></i></div>'+
+      '<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:800;margin-top:5px"><span style="color:#15803D">🟢 Facile '+pf+' %</span><span style="color:#C2410C">Intense '+(100-pf)+' % 🔴</span></div>'+
+      '<div class="ra-n">'+(pf>=75?'✅ Bon équilibre. La règle des pros : environ 80 % de facile, 20 % d\'intense.':pf>=60?'👉 Un peu trop d\'intensité. Vise 80 % de sorties faciles, où tu peux parler en courant.':'⚠️ Beaucoup trop d\'intensité. Ralentis la plupart de tes sorties : c\'est la base qui fait baisser le temps au km.')+'</div>';}
+  // 4 · km et poids
+  if(start){
+    var Pw={};
+    for(var j=0;j<120;j++){var v=parseFloat(String(((all||{})[j]||{}).poids||"").replace(",","."));if(!(v>20&&v<400))continue;
+      var dt=new Date(String(start).slice(0,10)+"T12:00:00");dt.setDate(dt.getDate()+j);var k3=runLundi(dt.toISOString().slice(0,10));(Pw[k3]=Pw[k3]||[]).push(v);}
+    var rows=der.filter(function(k){return (W[k]&&W[k].km)||Pw[k];});
+    if(rows.length&&Object.keys(Pw).length){
+      h+='<div class="ra-t">⚖️ Kilomètres et poids</div><div class="ra-kp"><div class="ra-kp-h"><span>Semaine</span><span>Km</span><span>Poids moyen</span></div>';
+      var prev=null;
+      rows.forEach(function(k){var P=Pw[k],pm=P?Math.round(P.reduce(function(a,b){return a+b;},0)/P.length*10)/10:null,dl=(pm!=null&&prev!=null)?Math.round((pm-prev)*10)/10:null;
+        h+='<div><span>'+frDate(k).slice(0,5)+'</span><b>'+(W[k]&&W[k].km?String(Math.round(W[k].km*10)/10).replace(".",","):'0')+'</b><span>'+(pm!=null?String(pm).replace(".",",")+' kg'+(dl?' <em style="color:'+(dl<0?'#16A34A':'#DC2626')+'">'+(dl>0?'+':'')+String(dl).replace(".",",")+'</em>':''):'—')+'</span></div>';
+        if(pm!=null)prev=pm;});
+      h+='</div>';
+    }
+  }
+  return h+'</div>';
+}
 // ─── Côté client : l'onglet ───
 function viewRunning(name,start){
   var all=getAllData(), R=runGet(all), m=runFcMax(R.age), wNow=runSemaine(R);
@@ -6915,6 +7015,7 @@ function viewRunning(name,start){
   else if(P.tests.length===1)h+='<div style="font-size:12.5px;margin-bottom:8px">⏱️ Test de départ 3 km : <b>'+runFmt(runAllure(P.tests[0]))+' /km</b>. Ton chrono de référence : le test de la dernière semaine dira combien tu as gagné.</div>';
   if(R.cible)h+='<div style="font-size:12.5px;margin-bottom:8px">🎯 Objectif : <b>'+runFmt(R.cible)+' /km</b>'+(R.depart?' (départ '+runFmt(R.depart)+' /km)':'')+'</div>';
   h+=runCourbeHTML(P,false)+'</div>';
+  try{h+=runAnalyseHTML(R,all,start);}catch(e){}
   // Sortie libre
   h+='<div class="card" style="padding:14px 15px"><div style="font-weight:900;font-size:14px;margin-bottom:4px">➕ Sortie en plus</div>'+
     '<div style="font-size:11.5px;color:var(--mute)">Une sortie hors plan ? Note-la aussi, elle compte dans ta courbe.</div>'+
@@ -6988,6 +7089,7 @@ function runCoachHTML(slug,allData){
     });
     if(!n)h+='<div style="font-size:11.5px;color:var(--mute)">Aucune sortie notée pour l\'instant.</div>';
     if(n>=2)h+='<div style="margin-top:8px">'+runCourbeHTML(P,true)+'</div>';
+    if(n){try{var stK=lsGetStr("amcoach_start_"+slug)||((coachClient(slug)||{}).start_date)||"";h+='<div style="margin-top:10px">'+runAnalyseHTML(R,allData,stK)+'</div>';}catch(e){}}
     h+=(state.runCoachForm===slug?runFormHTML("runk-s",true):'<button id="runk-add" class="prg-mini" style="width:100%;margin-top:10px;padding:11px 0">🧑‍🏫 Noter une sortie faite avec moi</button>');
   }
   h+='<div style="display:flex;gap:8px;margin-top:10px">'+
@@ -14728,6 +14830,7 @@ function viewCarnetGrille(){
   });
   return h+'</table></div>'+
     '<button id="cg-ajout" class="prg-mini" style="width:100%;padding:12px 0;margin-top:10px;font-size:13px">＋ Ajouter un exercice à la séance du '+frDate(L.d)+'</button>'+
+    '<div style="margin-top:14px">'+(function(){try{return cgAnalyseHTML(G.slug,G.k);}catch(e){return "";}})()+'</div>'+
     '<div style="font-size:11.5px;color:var(--mute);line-height:1.5;margin:10px 2px 0">Petite case sous la charge : les répétitions (ou secondes) de cette série. « ✕ retirer » enlève l\'exercice de la dernière date seulement. Pour ajouter une série : touche la date en haut de la colonne.</div></div>';
 }
 function bindCarnetGrille(){
@@ -15128,6 +15231,113 @@ function carnetPoint(slug){
     }
   }catch(e){}
   return R;
+}
+// ═══════════ 📈 ANALYSE PRÉPA PHYSIQUE · séances coachées (23/11) ═══════════
+// 1 Force max estimée (1RM, formule d'Epley : charge × (1 + rép/30))
+// 2 Volume par muscle et par semaine (séries et tonnage)
+// 3 Forme du jour ↔ performance
+// 4 Alerte de stagnation (3 dates sans progrès)
+function apSerie(s){
+  if(!s)return null;
+  var lv=(s.u==="lvl"), ch=lv?parseFloat(s.c):parseFloat((s.kg!==""&&s.kg!=null)?s.kg:((s.u==="kg"||!s.u)?s.c:""));
+  var r=parseFloat(s.v), du=(s.t==="duree");
+  return {lv:lv,ch:ch>0?ch:null,r:r>0?r:null,du:du};
+}
+function ap1RM(S){return (S&&!S.lv&&!S.du&&S.ch&&S.r)?S.ch*(1+Math.min(S.r,15)/30):null;}
+// La meilleure valeur d'un exercice à une date : 1RM si charge, sinon niveau, sinon secondes / rép.
+function apMeilleur(X){
+  var b=null,mode=null;
+  ((X&&X.series)||[]).forEach(function(s){var S=apSerie(s);if(!S)return;
+    var v=ap1RM(S),m="rm"; if(v==null&&S.lv&&S.ch){v=S.ch*100+(S.r||0)/100;m="lvl";} if(v==null&&S.r){v=S.r;m=S.du?"sec":"rep";}
+    if(v!=null&&(b==null||v>b)){b=v;mode=m;}});
+  return b==null?null:{v:b,m:mode};
+}
+function apNb(v,d){return String(Math.round(v*(d||1))/(d||1)).replace(".",",");}
+function apSpark(vals,col){
+  if(vals.length<2)return "";
+  var W=90,H=26,mn=Math.min.apply(null,vals),mx=Math.max.apply(null,vals),dy=Math.max(mx-mn,0.001);
+  var pts=vals.map(function(v,i){return Math.round(i/(vals.length-1)*(W-6)+3)+","+Math.round(3+(mx-v)/dy*(H-6));});
+  return '<svg viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'" style="flex:0 0 auto"><polyline points="'+pts.join(" ")+'" fill="none" stroke="'+col+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+}
+function apLundi(d){var x=new Date(String(d).slice(0,10)+"T12:00:00");var j=(x.getDay()+6)%7;x.setDate(x.getDate()-j);return x.toISOString().slice(0,10);}
+function cgAnalyseHTML(slug,k){
+  var cols=cgColonnes(slug,k), L=cols[cols.length-1]||{}, h="";
+  // 1 · 1RM
+  var rm=[];
+  (L.exos||[]).forEach(function(X){
+    if(!X||!X.ref)return; var vals=[],dates=[];
+    cols.forEach(function(E){var Y=cgExo(E,X.ref);if(!Y)return;var b=0;(Y.series||[]).forEach(function(sr){var v=ap1RM(apSerie(sr));if(v&&v>b)b=v;});if(b>0){vals.push(b);dates.push(E.d);}});
+    if(vals.length)rm.push({n:X.n,v:vals,d:dates});
+  });
+  // 4 · stagnation
+  var stag=[];
+  (L.exos||[]).forEach(function(X){
+    if(!X||!X.ref)return; var V=[];
+    cols.forEach(function(E){var Y=cgExo(E,X.ref);if(Y){var b=apMeilleur(Y);if(b)V.push({b:b,d:E.d,X:Y});}});
+    if(V.length<3)return; var a=V[V.length-3],b2=V[V.length-2],c=V[V.length-1];
+    if(b2.b.v<=a.b.v&&c.b.v<=a.b.v){
+      var cs=apSerie((c.X.series||[])[0])||{}, ref=c.b.m==="lvl"?"niveau "+apNb(cs.ch||0):c.b.m==="rm"?(cs.ch?apNb(cs.ch,2)+" kg":""):"";
+      stag.push({n:X.n,depuis:a.d,ref:ref,m:c.b.m});
+    }
+  });
+  h+='<div class="cg-card"><div class="cg-lab"><span class="cg-ic" style="background:#FEF3C7">🧪</span>Analyse prépa physique</div>';
+  if(stag.length){
+    h+='<div class="ap-alerte"><b>⚠️ Stagnation</b>';
+    stag.forEach(function(S){h+='<div style="margin-top:6px">• <b>'+esc(S.n)+'</b> : pas de progrès sur 3 dates (depuis le '+frDate(S.depuis)+(S.ref?', '+S.ref:'')+'). '+
+      (S.m==="rm"?'Change de variante, ou baisse de 10 % et monte de 2 répétitions par série.':S.m==="lvl"?'Garde le niveau et vise 2 répétitions de plus par série, ou change de variante.':'Ajoute du temps ou change de variante.')+'</div>';});
+    h+='</div>';
+  }else if(cols.length>=3)h+='<div class="ap-ok">✅ Aucune stagnation : chaque exercice a progressé au moins une fois sur ses 3 dernières dates.</div>';
+  // 1RM
+  h+='<div class="ap-t">💪 Force max estimée (1RM)</div>';
+  if(!rm.length)h+='<div class="cg-mut">Apparaît dès qu\'un exercice est noté en kg avec ses répétitions.</div>';
+  rm.forEach(function(R){
+    var a=R.v[0],z=R.v[R.v.length-1],g=a?Math.round((z-a)/a*100):0,col=g>0?"#16A34A":g<0?"#DC2626":"#64748B";
+    h+='<div class="ap-l"><div style="flex:1;min-width:0"><b>'+esc(R.n)+'</b><span class="cg-mut" style="display:block">'+(R.v.length>1?apNb(a)+' → ':'')+'<b style="color:#0F172A">'+apNb(z)+' kg</b> · '+R.v.length+' date'+(R.v.length>1?'s':'')+'</span></div>'+
+      apSpark(R.v,col)+(R.v.length>1?'<span class="ap-pc" style="color:'+col+';background:'+col+'14">'+(g>0?'+':'')+g+' %</span>':'')+'</div>';
+  });
+  h+='<div class="cg-mut" style="font-size:11px;margin-top:6px">Calcul : charge × (1 + répétitions ÷ 30). Compare la force même quand les répétitions changent.</div>';
+  // 2 · volume par muscle (toutes les séances coachées du client, 4 dernières semaines)
+  var J=carnetJournal(slug).filter(function(E){return E&&E.coach;}), lim=new Date(); lim.setDate(lim.getDate()-27); var limS=lim.toISOString().slice(0,10);
+  var M={}, sem={}, tot=0;
+  J.forEach(function(E){
+    if(String(E.d)<limS)return; sem[apLundi(E.d)]=1;
+    (E.exos||[]).forEach(function(X){
+      var ms=progMusclesListe(X), n=(X.series||[]).length, ton=0;
+      (X.series||[]).forEach(function(sr){var S=apSerie(sr);if(S&&!S.lv&&!S.du&&S.ch&&S.r)ton+=S.ch*S.r;});
+      ms.forEach(function(m,ix){var P=progMuscle(m);if(!M[P[1]])M[P[1]]={s:0,t:0,c:P[2]};M[P[1]].s+=ix?n/2:n;M[P[1]].t+=ix?0:ton;});
+      tot+=n;
+    });
+  });
+  var nbS=Math.max(1,Object.keys(sem).length), LM=Object.keys(M).map(function(k2){return {n:k2,s:M[k2].s/nbS,t:M[k2].t/nbS,c:M[k2].c};}).sort(function(a,b){return b.s-a.s;});
+  h+='<div class="ap-t">🧱 Volume par muscle · moyenne par semaine</div>';
+  if(!LM.length)h+='<div class="cg-mut">Aucune séance coachée sur les 4 dernières semaines.</div>';
+  else{
+    var mxS=LM[0].s;
+    LM.forEach(function(x){h+='<div class="ap-v"><span>'+esc(x.n)+'</span><i><em style="width:'+Math.max(4,Math.round(x.s/mxS*100))+'%;background:'+x.c+'"></em></i><b>'+apNb(x.s,10)+' séries</b>'+(x.t?'<small>'+Math.round(x.t)+' kg</small>':'<small></small>')+'</div>';});
+    var faible=LM.filter(function(x){return x.s<mxS/3;}).map(function(x){return x.n;});
+    h+='<div class="cg-mut" style="font-size:11px;margin-top:6px">Sur '+nbS+' semaine'+(nbS>1?'s':'')+' avec séance coachée. Tonnage = charge × répétitions.'+(faible.length?' <b style="color:#C2410C">Peu travaillé : '+esc(faible.join(", "))+'.</b>':'')+'</div>';
+  }
+  // 3 · forme du jour ↔ performance
+  var G={haut:[0,0,0],bas:[0,0,0]};
+  cgSeances(slug).forEach(function(S){
+    var C=cgColonnes(slug,S.k);
+    for(var i=1;i<C.length;i++){
+      var f=parseInt(C[i].forme,10); if(!(f>0))continue;
+      var up=0,n=0;
+      (C[i].exos||[]).forEach(function(X){var Y=cgExo(C[i-1],X.ref);if(!Y)return;var a=apMeilleur(Y),b=apMeilleur(X);if(a&&b&&a.m===b.m){n++;if(b.v>a.v)up++;}});
+      if(!n)continue; var g=f>=7?G.haut:G.bas; g[0]+=up;g[1]+=n;g[2]++;
+    }
+  });
+  h+='<div class="ap-t">⚡ Forme du jour et performance</div>';
+  if(!G.haut[2]&&!G.bas[2])h+='<div class="cg-mut">Note la forme /10 en début de séance : l\'appli montrera si ce client progresse mieux quand il arrive en forme.</div>';
+  else{
+    function bloc(g,lib,col){if(!g[2])return '<div class="ap-f"><span>'+lib+'</span><b style="color:#94A3B8">—</b><small>pas encore de séance</small></div>';var pc=Math.round(g[0]/g[1]*100);
+      return '<div class="ap-f"><span>'+lib+'</span><b style="color:'+col+'">'+pc+' %</b><small>des exercices en hausse · '+g[2]+' séance'+(g[2]>1?'s':'')+'</small></div>';}
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+bloc(G.haut,"Forme 7 à 10","#16A34A")+bloc(G.bas,"Forme 1 à 6","#EA580C")+'</div>';
+    if(G.haut[2]&&G.bas[2]){var ph=Math.round(G.haut[0]/G.haut[1]*100),pb=Math.round(G.bas[0]/G.bas[1]*100);
+      h+='<div class="cg-mut" style="font-size:11.5px;margin-top:6px">'+(ph-pb>=15?'👉 Ce client progresse nettement mieux en forme : soigne son sommeil et son repas avant la séance.':pb-ph>=15?'👉 Il progresse même fatigué : la forme ne le freine pas.':'👉 Peu d\'écart : sa forme du jour pèse peu sur ses résultats.')+'</div>';}
+  }
+  return h+'</div>';
 }
 // 22/11 · refonte (maquette d'Akli) : carte « Résumé du poids » avec courbe,
 // carte « Habitudes » 4 colonnes, puis « À surveiller ». Mêmes données qu'avant.

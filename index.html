@@ -1354,7 +1354,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "23/11 - Analyse prépa physique";
+var APP_VERSION = "23/11 - Courbes tactiles";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 // 22/11 · couleurs FIXES, jamais celles du thème : « KO » prenait la couleur
 // du client (vert pour un thème vert) au lieu du rouge.
@@ -5448,9 +5448,43 @@ function svgLineChart(values,color,opts){
   for(var i3=n-1;i3>=0;i3--){if(values[i3]!=null){lastIdx=i3;break;}}
   var dot=lastIdx>=0?'<circle cx="'+px(lastIdx).toFixed(1)+'" cy="'+py(values[lastIdx]).toFixed(1)+'" r="4" fill="'+color+'" stroke="#fff" stroke-width="2"/>':"";
 
-  return '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;display:block">'+grid+xlabels+
-    '<path d="'+path+'" fill="none" stroke="'+color+'" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>'+dot+'</svg>';
+  // 👆 23/11 · courbe tactile : on glisse le doigt, la valeur du jour s'affiche.
+  var D={v:values,W:W,H:H,l:pad.l,r:pad.r,t:pad.t,b:pad.b,mn:min,mx:max,u:opts.unit||"",st:opts.start||"",c:color};
+  return '<svg class="lc" viewBox="0 0 '+W+' '+H+'" style="width:100%;display:block;touch-action:pan-y;-webkit-user-select:none;user-select:none;cursor:crosshair" data-lc="'+esc(JSON.stringify(D))+'">'+grid+xlabels+
+    '<path d="'+path+'" fill="none" stroke="'+color+'" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>'+dot+
+    '<g class="lc-cur" style="display:none;pointer-events:none"><line y1="'+pad.t+'" y2="'+(H-pad.b)+'" stroke="'+color+'" stroke-width="1.2" stroke-dasharray="3 3"/>'+
+    '<circle r="5.5" fill="'+color+'" stroke="#fff" stroke-width="2.5"/><rect rx="7" ry="7" height="'+(H<100?20:24)+'" fill="#0F172A" opacity=".92"/>'+
+    '<text font-size="'+(H<100?10:11.5)+'" font-weight="800" fill="#fff" text-anchor="middle"></text></g></svg>';
 }
+function lcMontrer(svg,clientX){
+  var D; try{D=JSON.parse(svg.getAttribute("data-lc"));}catch(e){return;}
+  var r=svg.getBoundingClientRect(); if(!r.width)return;
+  var x=(clientX-r.left)/r.width*D.W, n=D.v.length, iw=D.W-D.l-D.r, ih=D.H-D.t-D.b;
+  var i=Math.round((x-D.l)/iw*(n-1)); i=Math.max(0,Math.min(n-1,i));
+  // jour vide : on prend le jour rempli le plus proche
+  if(D.v[i]==null){var best=-1;for(var k=1;k<n;k++){if(i-k>=0&&D.v[i-k]!=null){best=i-k;break;}if(i+k<n&&D.v[i+k]!=null){best=i+k;break;}}if(best<0)return;i=best;}
+  var v=D.v[i], px=D.l+(n>1?i/(n-1):0)*iw, py=D.t+ih-((v-D.mn)/((D.mx-D.mn)||1))*ih;
+  var g=svg.querySelector(".lc-cur"); if(!g)return; g.style.display="";
+  var L=g.querySelector("line"),C=g.querySelector("circle"),R=g.querySelector("rect"),T=g.querySelector("text");
+  L.setAttribute("x1",px);L.setAttribute("x2",px);C.setAttribute("cx",px);C.setAttribute("cy",py);
+  var jour="J"+(i+1);
+  if(D.st){try{var dt=new Date(String(D.st).slice(0,10)+"T12:00:00");dt.setDate(dt.getDate()+i);jour+=" · "+("0"+dt.getDate()).slice(-2)+"/"+("0"+(dt.getMonth()+1)).slice(-2);}catch(e){}}
+  T.textContent=jour+" : "+String(Math.round(v*10)/10).replace(".",",")+(D.u?" "+D.u:"");
+  var rh=+R.getAttribute("height"), tw=T.textContent.length*(D.H<100?5.6:6.4)+16, tx=Math.max(tw/2+2,Math.min(D.W-tw/2-2,px));
+  var ty=py-rh-9; if(ty<1)ty=py+9;
+  R.setAttribute("x",tx-tw/2);R.setAttribute("y",ty);R.setAttribute("width",tw);
+  T.setAttribute("x",tx);T.setAttribute("y",ty+rh/2+4);
+}
+(function(){
+  if(window.__lcPret)return; window.__lcPret=true;
+  var act=null;
+  function cible(e){var t=e.target;return t&&t.closest?t.closest("svg.lc"):null;}
+  document.addEventListener("pointerdown",function(e){var s=cible(e);if(!s)return;act=s;lcMontrer(s,e.clientX);},true);
+  document.addEventListener("pointermove",function(e){var s=cible(e)||act;if(!s)return;if(e.pointerType==="mouse"||act)lcMontrer(s,e.clientX);},true);
+  document.addEventListener("touchmove",function(e){if(!act||!e.touches[0])return;lcMontrer(act,e.touches[0].clientX);},{passive:true,capture:true});
+  function fin(){act=null;}
+  document.addEventListener("pointerup",fin,true);document.addEventListener("pointercancel",fin,true);document.addEventListener("touchend",fin,true);
+})();
 
 // Un attribut SVG (stroke, fill) n'accepte PAS var(--x) : il faut la valeur littérale.
 // On la lit une fois sur la racine du document et on la met en cache.
@@ -17451,7 +17485,7 @@ function viewCoachDetail(){
   function chart(title,color,key,min,max){
     var vals=series.slice(0,Math.max(t90+1,7)).map(function(s){return s[key];});
     return '<div class="chart-card"><div class="chart-hdr"><div class="chart-dot" style="background:'+color+'"></div>'+
-      '<span class="chart-title">'+title+'</span></div>'+svgLineChart(vals,color,{min:min,max:max})+'</div>';
+      '<span class="chart-title">'+title+'</span></div>'+svgLineChart(vals,color,{min:min,max:max,unit:key==="poids"?"kg":"",start:c.start_date})+'</div>';
   }
   // ÉCRAN TROP LONG : les courbes ne se regardent pas à chaque ouverture de
   // fiche, elles se consultent. Elles passent en tiroir, replié par défaut.

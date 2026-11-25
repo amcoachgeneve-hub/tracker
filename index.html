@@ -1358,7 +1358,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "25/11 - Cycle en vue d'ensemble";
+var APP_VERSION = "25/11 - Rééquilibrage sur demande";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 // 22/11 · couleurs FIXES, jamais celles du thème : « KO » prenait la couleur
 // du client (vert pour un thème vert) au lieu du rouge.
@@ -2675,6 +2675,23 @@ function poidsSeuil(progDays){return (progDays&&progDays<=42)?3:4;}
 function poidsDernier(allData,avant){
   for(var i=Math.max(0,avant);i>=0;i--){var d=allData&&allData[i];if(d&&d.poids!=null&&d.poids!==""&&!isNaN(parseFloat(String(d.poids).replace(",","."))))return i;}
   return -1;
+}
+// ⚖️ Poids de référence : la pesée plausible la plus proche AVANT ce jour,
+// sinon la suivante, sinon le poids du bilan de départ.
+function poidsReference(all,idx,start){
+  function lire(i){var d=all&&all[i];if(!d||d.poids==null||d.poids==="")return null;var v=parseFloat(String(d.poids).replace(",","."));return (v>=30&&v<=300)?v:null;}
+  for(var i=idx-1;i>=0;i--){var v=lire(i);if(v!=null)return v;}
+  for(var j=idx+1;j<120;j++){var w=lire(j);if(w!=null)return w;}
+  try{var pd=poidsDepart(all,start);if(pd&&pd.v>=30)return pd.v;}catch(e){}
+  return null;
+}
+// Plausible : entre 30 et 300 kg, et à moins de 15 % de la référence
+// (93 kg → refusé sous 79 ou au-dessus de 107). « 8 » pour « 84 » est bloqué.
+function poidsVerifier(v,ref){
+  if(isNaN(v))return {ok:false,msg:"Ce n'est pas un poids valable."};
+  if(v<30||v>300)return {ok:false,msg:String(v).replace(".",",")+" kg ? Tu as dû te tromper"+(ref?" : ta dernière pesée est de "+String(ref).replace(".",",")+" kg.":".")};
+  if(ref&&Math.abs(v-ref)/ref>0.15)return {ok:false,msg:String(v).replace(".",",")+" kg ? C'est "+Math.abs(Math.round((v-ref)*10)/10).toString().replace(".",",")+" kg d'écart avec ta dernière pesée ("+String(ref).replace(".",",")+" kg). Vérifie ta saisie."};
+  return {ok:true};
 }
 function poidsQuandHTML(allData,t90,seuil){
   seuil=seuil||4;
@@ -8108,14 +8125,35 @@ function reeqWaMsg(allData,start,B){
     (B.objOk?", objectif atteint 🎯":"")+" ("+B.rem+"/14 journées remplies). "+
     "Je veux continuer : je suis partant(e) pour le challenge 90 jours 💪 On en parle ?";
 }
+// 25/11 · Akli : le rééquilibrage ne s'ouvre plus tout seul. La cliente envoie
+// une demande sur WhatsApp, Akli l'appelle, fait le point et valide depuis sa
+// fiche (« Offrir le rééquilibrage »). Il sait à qui il l'offre, et il a l'appel.
+function reeqDemandeMsg(allData,start,B){
+  var nm=lsGetStr("amcoach_name_"+CLIENT)||"";
+  return "Salut Akli ! C'est "+nm+". Je termine mon Reset 14 jours"+
+    (B.perte!=null&&B.perte>0?" : -"+String(B.perte).replace(".",",")+" kg":"")+
+    (B.objOk?", objectif atteint 🎯":"")+" ("+B.rem+"/14 journées remplies). "+
+    "Je voudrais débloquer mon rééquilibrage alimentaire de 4 semaines offert 🎁 Quand est-ce qu'on peut s'appeler ?";
+}
 function reeqCarteHTML(allData,start,today90){
-  if(today90<13)return "";
-  var B=reeqBilan(allData,start), on=progReeq(allData);
-  // Mérité : le cadeau s'ouvre tout seul, sans rien demander.
-  if(!on&&B.ok&&!IS_COACH&&!((allData[504]||{}).reeqNon)){
-    try{saveDay(504,reeqDonnees(allData[504],start,"auto"));on=true;}catch(e){}
-  }
+  if(today90<11)return "";
+  var B=reeqBilan(allData,start), on=progReeq(allData), a5=allData[504]||{};
   var h='';
+  if(!on&&!IS_COACH&&!a5.reeqNon){
+    var reste=Math.max(0,13-today90), dem=a5.reeqDem||"";
+    h+='<div class="card" style="margin-bottom:14px;padding:18px 17px;border:none;color:#fff;background:linear-gradient(140deg,#1E8A4C,#2FB86A)">'+
+      '<div style="font-size:30px;line-height:1">🎁</div>'+
+      '<div style="font-weight:900;font-size:17px;margin-top:8px">4 semaines de rééquilibrage offertes</div>'+
+      '<div style="font-size:13px;line-height:1.55;margin-top:6px;color:rgba(255,255,255,.93)">'+
+        (B.perte!=null&&B.perte>0?'Bravo : −'+String(B.perte).replace(".",",")+' kg sur ton Reset. ':'')+
+        (dem?'⏳ Demande envoyée le '+isoVersFr(dem)+'. Ton coach t\'appelle pour faire le point et valider ton rééquilibrage.'
+            :'Ton Reset se termine '+(reste?'dans '+reste+' jour'+(reste>1?'s':''):'aujourd\'hui')+'. Pour débloquer ton bonus, envoie un message à ton coach : il t\'appelle pour faire le point et le valider avec toi.')+'</div>'+
+      '<a id="reeq-demande" href="https://wa.me/'+WA_COACH+'?text='+encodeURIComponent(reeqDemandeMsg(allData,start,B))+'" target="_blank" rel="noopener" '+
+        'style="display:block;text-align:center;text-decoration:none;margin-top:13px;padding:13px 0;border-radius:100px;background:#fff;color:#1E8A4C;font-weight:900;font-size:13.5px">'+
+        (dem?'📲 Renvoyer le message':'📲 Débloquer avec mon coach')+'</a>'+
+    '</div>';
+    return h;
+  }
   if(on){
     var jR=Math.max(0,Math.min(27,today90-14));
     h+='<div class="card" style="margin-bottom:14px;padding:18px 17px;border:none;color:#fff;background:linear-gradient(140deg,#1E8A4C,#2FB86A)">'+
@@ -8127,7 +8165,7 @@ function reeqCarteHTML(allData,start,today90){
       '<button id="reeq-menus" style="margin-top:13px;width:100%;padding:13px 0;border-radius:100px;border:0;background:#fff;color:#1E8A4C;font-weight:900;font-size:13.5px">🍽️ Voir mon menu bonus</button>'+
     '</div>';
   }
-  if(B.ok&&!IS_COACH){
+  if(on&&B.ok&&!IS_COACH){
     h+='<a href="https://wa.me/'+WA_COACH+'?text='+encodeURIComponent(reeqWaMsg(allData,start,B))+'" target="_blank" rel="noopener" class="card" '+
       'style="display:block;text-decoration:none;margin-bottom:14px;padding:16px 17px;border:2px solid #25D366;background:var(--card)">'+
       '<div style="font-weight:900;font-size:15px;color:var(--ink)">🏆 Prêt(e) pour le challenge 90 jours ?</div>'+
@@ -8539,6 +8577,9 @@ function viewCalendar(name,start){
       '<button id="goal-save" style="width:100%;padding:14px 0;border-radius:12px;background:'+R+';color:#fff;font-weight:900;font-size:14px">Enregistrer mon engagement ✓</button></div>';
   }
 
+  // 🎁 Demande de rééquilibrage dès le jour 12 (avant le diplôme) : Akli a le
+  // temps d'appeler avant la fin du Reset.
+  if(progB<=14&&today90>=11&&today90<progB-1)h+=reeqCarteHTML(allData,start,today90);
   // DIPLÔME (fin de programme) — au jour 14 pour un Reset, au jour 90 sinon.
   if(today90>=progB-1&&!IS_COACH){
     // 🎓 L'animation finale : vue une fois, automatiquement (après la fête de
@@ -8971,7 +9012,8 @@ function viewDay(name,start){
   // ligne. La lecture du sommeil (cycles, semaine) passe juste dessous.
   h+='<div class="ndj-row2">'+
     '<div class="card ndj-mini"><div class="ndj-mini-t"><span class="ndj-ico" style="background:#DCEBFF">⚖️</span>Poids <small>kg</small></div>'+
-    '<input id="in-poids" class="num-input" type="number" step="0.1" placeholder="ex: 78.5" value="'+esc(d.poids||"")+'"/>'+
+    '<input id="in-poids" class="num-input" type="number" inputmode="decimal" step="0.1" placeholder="ex: 78.5" value="'+esc(d.poids||"")+'"/>'+
+    '<div id="poids-erreur" style="display:none"></div>'+
     // ⏰ Rappel discret : la dernière pesée date de trop longtemps.
     (function(){
       if(d.poids)return "";
@@ -9467,7 +9509,38 @@ function bindDay(name,start){
 
   document.getElementById("day-back").addEventListener("click",function(){state.selDay=null;state.showBilan=false;render();});
 
-  document.getElementById("in-poids").addEventListener("input",function(){persist({poids:this.value});});
+  // ⚖️ 25/11 · Akli : un client a enregistré « 8 kg ». Un poids impossible n'est
+  // plus enregistré : message sous la case, rien n'est gardé tant que le chiffre
+  // n'est pas bon. Un vrai grand écart se confirme d'un bouton.
+  (function(){
+    var inp=document.getElementById("in-poids"), box=document.getElementById("poids-erreur");
+    var ref=poidsReference(getAllData(),state.selDay,start);
+    function montrer(v,msg){
+      if(box.style.display==="block"&&box.getAttribute("data-v")===String(v))return; // déjà affiché : ne pas avaler le clic du bouton
+      box.setAttribute("data-v",String(v));
+      inp.style.borderColor="#DC2626";inp.style.background="#FEF2F2";
+      box.style.cssText="display:block;font-size:11.5px;font-weight:800;color:#B91C1C;line-height:1.4;margin-top:6px";
+      box.innerHTML='⚠️ '+msg+'<br><span style="font-weight:700;color:#7F1D1D">Rien n\'est enregistré tant que le chiffre n\'est pas bon.</span>'+
+        (v>=30&&v<=300?'<button id="poids-forcer" style="display:block;margin-top:6px;border:1.5px solid #DC2626;background:#fff;color:#B91C1C;border-radius:9px;padding:6px 9px;font-size:11.5px;font-weight:900;font-family:inherit">Oui, c\'est bien mon poids</button>':'');
+      var f=document.getElementById("poids-forcer");
+      if(f)f.addEventListener("click",function(){persist({poids:inp.value});cacher();feedback("⚖️ Poids enregistré");});
+    }
+    function cacher(){box.removeAttribute("data-v");inp.style.borderColor="";inp.style.background="";box.style.display="none";box.innerHTML="";}
+    // Pendant la frappe (« 8 » avant « 84 ») : on n'enregistre pas, sans alarmer.
+    // Le message tombe quand le client quitte la case (OK / Terminé).
+    function lire(){var t=String(inp.value||"").replace(",",".").trim();return t===""?null:parseFloat(t);}
+    inp.addEventListener("input",function(){
+      var v=lire(); if(v==null){cacher();persist({poids:""});return;}
+      if(poidsVerifier(v,ref).ok){cacher();persist({poids:this.value});}
+      else if(box.style.display==="block")cacher();
+    });
+    inp.addEventListener("change",function(){
+      var v=lire(); if(v==null)return; var r=poidsVerifier(v,ref);
+      if(!r.ok)montrer(v,r.msg);
+    });
+    // Valeur impossible déjà enregistrée (avant ce contrôle) : on la signale.
+    (function(){var v=lire();if(v!=null){var r=poidsVerifier(v,ref);if(!r.ok)montrer(v,r.msg);}})();
+  })();
   var inNb=document.getElementById("in-nombril");
   if(inNb)inNb.addEventListener("input",function(){persist({nombril:this.value});});
   document.getElementById("in-sommeil").addEventListener("input",function(){
@@ -17777,9 +17850,10 @@ function viewCoachDetail(){
         ' · menu bonus tous les jours ON · fin le '+(a5.end?isoVersFr(a5.end):'—')+'</div>'+
         '<button id="reeq-retirer" style="width:100%;padding:11px 0;border-radius:11px;border:1.5px solid var(--line);background:var(--card);color:var(--mute);font-weight:800;font-size:12px">Retirer le rééquilibrage</button>';
     }else{
-      h+='<div style="font-size:12px;color:var(--mute);line-height:1.55;margin-bottom:10px">Débloqué tout seul si : −3 kg, objectif atteint, ou 14 jours remplis avec un score moyen ≥ 70 %.<br>'+
-        'Ici : '+(B.perte!=null?(B.perte>0?'−':'+')+String(Math.abs(B.perte)).replace(".",",")+' kg':'poids ?')+' · '+B.rem+'/14 jours · score '+B.moy+' %'+(B.objOk?' · objectif ✓':'')+
-        (B.ok?' → <b style="color:#1E8A4C">conditions remplies</b>':'')+'</div>'+
+      if(a5.reeqDem)h+='<div style="background:#ECFDF3;border:1.5px solid #1E8A4C;border-radius:11px;padding:9px 11px;font-size:12.5px;font-weight:900;color:#14532D;margin-bottom:9px">📲 Demande reçue le '+isoVersFr(a5.reeqDem)+' · appelle-la, fais le point, puis valide ci-dessous.</div>';
+      h+='<div style="font-size:12px;color:var(--mute);line-height:1.55;margin-bottom:10px">Ne s\'ouvre plus tout seul : la cliente te le demande sur WhatsApp à partir du jour 12, tu valides après l\'appel.<br>'+
+        'Pour ton appel : '+(B.perte!=null?(B.perte>0?'−':'+')+String(Math.abs(B.perte)).replace(".",",")+' kg':'poids ?')+' · '+B.rem+'/14 jours · score '+B.moy+' %'+(B.objOk?' · objectif ✓':'')+
+        (B.ok?' → <b style="color:#1E8A4C">Reset réussi</b>':'')+'</div>'+
         '<button id="reeq-offrir" style="width:100%;padding:12px 0;border-radius:12px;border:0;background:#1E8A4C;color:#fff;font-weight:900;font-size:13px">🎁 Offrir le rééquilibrage 4 semaines</button>';
     }
     h+='</div>';
@@ -19903,6 +19977,22 @@ function viewCoachDash(){
     }
   })();
 
+    // 🎁 25/11 · demandes de rééquilibrage reçues, pas encore validées
+    (function(){
+      var L=[];
+      (lsGet("amcoach_clients",[])||[]).forEach(function(c){var a5=(lsGet("amcoach_"+c.slug,{})||{})[504]||{};
+        if(a5.reeqDem&&!a5.reeq&&!a5.reeqNon)L.push({c:c,d:a5.reeqDem});});
+      if(!L.length)return;
+      h+='<div class="card" style="padding:14px 16px;margin-bottom:14px;border-left:4px solid #1E8A4C">'+
+        '<div style="font-weight:900;font-size:15px">🎁 Rééquilibrage à valider</div>'+
+        '<div style="font-size:11px;color:var(--mute);margin:2px 0 6px">Appelle, fais le point, puis valide dans sa fiche.</div>';
+      L.forEach(function(x){
+        h+='<div class="cd-open" data-detail="'+esc(x.c.slug)+'" style="display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line);cursor:pointer">'+
+          '<span style="font-size:18px">📲</span><div style="flex:1;min-width:0"><div style="font-weight:800;font-size:13.5px">'+esc(x.c.name||x.c.slug)+'</div>'+
+          '<div style="font-size:11px;color:#1E8A4C;font-weight:800">Demande du '+isoVersFr(x.d)+'</div></div><span style="color:var(--mute);font-size:18px">›</span></div>';
+      });
+      h+='</div>';
+    })();
     h+='<div class="card" style="padding:16px 17px;margin-bottom:16px">'+
       '<div style="display:flex;align-items:baseline;gap:10px;margin-bottom:6px">'+
       '<span style="font-weight:900;font-size:16px;flex:1">🚦 Mes clients</span>'+
@@ -24591,6 +24681,10 @@ function bindMain(name,start){
     });
   }
   try{bindApkBandeau();}catch(e){}
+  var rqd=document.getElementById("reeq-demande");
+  if(rqd)rqd.addEventListener("click",function(){
+    try{var a=JSON.parse(JSON.stringify(getAllData()[504]||{}));if(!a.reeqDem){a.reeqDem=isoLocal();saveDay(504,a);setTimeout(render,800);}}catch(e){}
+  });
   var rqm=document.getElementById("reeq-menus");
   if(rqm)rqm.addEventListener("click",function(){state.view="menus";render();});
   var frv=document.getElementById("finale-revoir");

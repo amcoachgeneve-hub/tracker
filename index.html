@@ -421,6 +421,10 @@
 .ra-kp>div{display:grid;grid-template-columns:1fr 1fr 1.6fr;font-size:12.5px;padding:6px 2px;border-top:1px solid var(--line)}
 .ra-kp .ra-kp-h{font-size:10.5px;font-weight:900;color:var(--mute);text-transform:uppercase;border-top:0}
 .ra-kp em{font-style:normal;font-weight:900;font-size:11.5px;margin-left:4px}
+.cyc-ap{padding:13px 15px;margin-bottom:12px}
+.cyc-ap-ic{flex:0 0 auto;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px}
+.cyc-ap-seg{display:flex;gap:4px;flex:1}.cyc-ap-seg i{flex:1;height:8px;border-radius:4px}
+.cyc-ap-frise{height:5px;border-radius:5px;background:#F1F2F6;margin-top:10px;overflow:hidden}.cyc-ap-frise span{display:block;height:100%;border-radius:5px;opacity:.75}
 .fiches-tiroir{margin-bottom:14px}
 .fiches-tiroir>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px 15px;font-weight:900;font-size:13.5px;color:var(--ink);margin-bottom:12px;box-shadow:0 3px 12px rgba(16,24,40,.05)}
 .fiches-tiroir>summary::-webkit-details-marker{display:none}
@@ -1354,7 +1358,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "23/11 - Courbes tactiles";
+var APP_VERSION = "25/11 - Cycle en vue d'ensemble";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 // 22/11 · couleurs FIXES, jamais celles du thème : « KO » prenait la couleur
 // du client (vert pour un thème vert) au lieu du rouge.
@@ -13684,6 +13688,41 @@ function cycEtat(c, aujourdhui) {
   };
 }
 
+// 🌙 25/11 · Akli : « pour les femmes, en vue d'ensemble, où elles en sont dans
+// leur cycle : important pour savoir l'énergie du moment ». Carte visible tout
+// en haut de la fiche (avant : repliée dans l'onglet Analyse) + puce dans la liste.
+function coachCycleApercuHTML(c,all){
+  var sx=null; try{sx=prog3Sexe(all);}catch(e){}
+  if(sx!=="f")return "";
+  var cy=cycGet(all), base=progBase(c.start_date,all)||90;
+  if(!cy.on){
+    if(base<=14)return "";   // pas de suivi du cycle sur le Reset 14 jours
+    return '<div class="card" style="padding:12px 14px;border-left:4px solid #B4436C;margin-bottom:12px">'+
+      '<div style="font-weight:900;font-size:13.5px">🌙 Cycle non renseigné</div>'+
+      '<div style="font-size:12px;color:var(--mute);line-height:1.5;margin-top:3px">Demande-lui de noter le 1er jour de ses règles dans l\'appli (accueil, ligne « Mon cycle ») : tu verras ici sa phase et son énergie du jour.</div></div>';
+  }
+  var E=cycEtat(cy); if(!E)return "";
+  var D=E.def, seg='';
+  for(var k=1;k<=5;k++)seg+='<i style="background:'+(k<=D.ebar?D.coul:'#E5E7EB')+'"></i>';
+  var pos=Math.min(100,Math.round(E.jour/E.duree*100));
+  return '<div class="card cyc-ap" style="border-left:4px solid '+D.coul+'">'+
+    '<div style="display:flex;align-items:center;gap:11px">'+
+    '<span class="cyc-ap-ic" style="background:'+D.coul+'22">'+D.icone+'</span>'+
+    '<div style="flex:1;min-width:0"><div style="font-size:10.5px;font-weight:900;color:var(--mute);letter-spacing:.8px;text-transform:uppercase">🌙 Son cycle · jour '+E.jour+' sur '+E.duree+'</div>'+
+    '<div style="font-weight:900;font-size:16px;margin-top:1px">'+esc(D.nom)+' <span style="font-weight:700;color:var(--mute);font-size:13px">· '+esc(D.sous)+'</span></div></div></div>'+
+    '<div style="display:flex;align-items:center;gap:9px;margin-top:10px"><span style="font-size:12px;font-weight:800;min-width:118px">⚡ Énergie '+esc(D.energie.toLowerCase())+'</span><span class="cyc-ap-seg">'+seg+'</span></div>'+
+    '<div class="cyc-ap-frise"><span style="width:'+pos+'%;background:'+D.coul+'"></span></div>'+
+    '<div style="font-size:12.5px;line-height:1.5;margin-top:9px"><b>🏋️ Séance conseillée :</b> '+esc(D.sport)+'</div>'+
+    '<div style="font-size:11.5px;color:var(--mute);font-weight:700;margin-top:7px">'+
+      (E.reglesEnCours?'🩸 Règles en cours · ':'')+
+      (E.retard?'<span style="color:var(--warn-d)">⏳ Retard de '+(E.jour-E.duree)+' j</span>':'Prochaines règles vers le '+cycDateFR(E.prochaines)+(E.reste>=0?' (dans '+E.reste+' j)':''))+
+    '</div></div>';
+}
+// Puce courte pour la liste « Mes clients » : 🌕 pic, 🌘 baisse…
+function coachCyclePuce(all){
+  try{var sx=prog3Sexe(all);if(sx!=="f")return "";var cy=cycGet(all);if(!cy.on)return "";var E=cycEtat(cy);if(!E)return "";
+    return '<span style="font-size:10.5px;font-weight:800;color:'+E.def.coul+'">'+E.def.icone+' énergie '+esc(E.def.energie.toLowerCase())+'</span>';}catch(e){return "";}
+}
 // ─── La carte affichée dans l'onglet Sport ───
 // 🌙 LE CYCLE SUR L'ACCUEIL — une seule ligne, qui s'ouvre.
 // Akli : « mets-le dans l'accueil sous Remplir ma journée, juste une ligne,
@@ -17451,6 +17490,7 @@ function viewCoachDetail(){
     '<div style="padding:16px 14px 0">';
 
   h+=GMK("apercu");
+  try{h+=coachCycleApercuHTML(c,allData);}catch(e){}
   try{h+=coachMontagneHTML(c,allData);}catch(e){}
   try{h+=coachMenuJourHTML(c,allData);}catch(e){}
   h+=blocDemandesHTML(c.slug);
@@ -19756,7 +19796,7 @@ function viewCoachDash(){
         '<span class="cli-mid">'+
         '<span class="cli-nom">'+esc(o.nom)+progChipHTML(o.slug)+
         (o.horsStats?' <span style="font-size:9.5px;color:var(--mute);font-weight:700">· hors stats</span>':'')+'</span>'+
-        '<span class="cli-sous"><span style="color:'+C.c+'">'+C.p+' '+esc(o.motif)+'</span>'+chip+'</span></span>'+
+        '<span class="cli-sous"><span style="color:'+C.c+'">'+C.p+' '+esc(o.motif)+'</span>'+chip+coachCyclePuce(d)+'</span></span>'+
         (o.avant>0
           ? '<span class="cli-droite"><span class="cli-haut"><span class="cli-pct" style="color:#3B6FD8">⏳</span>'+
             '<span class="cli-jour">dans '+o.avant+' j</span></span></span>'

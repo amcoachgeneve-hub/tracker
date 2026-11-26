@@ -1276,7 +1276,8 @@ function viewDayMeals(){
       h+='<div class="meal-body">'+
         (meal.id==="pdej"
           ? '<div class="meal-txt">Une protéine au réveil. Choisis dans l\'onglet Méthode nutrition.'+(MENU==="cyclage"?'<br>🍓 + fruits rouges (framboises, myrtilles…), même les jours SG.':'')+'</div>'
-          : assietteHTML(MENU==="cyclage"?(dayTag==="SG"?"sg":"soir"):(meal.id==="dej"?"midi":(MENU==="equilibre"?"soir":"sg"))))+
+          : (function(){var k=assietteDuRepas(rule),q=(meal.id==="dej"?"le midi":"le soir");
+              return assietteHTML(k,k==="sg"?"Assiette sans glucides — "+q:k==="soir"?"Assiette glucides bas — "+q:"Assiette avec glucides — "+q);})())+
         (cfgMenu.frigo?'<button class="meal-frigo" data-tab="frigo">🧊 Composer avec mon frigo</button>':'')+
         '</div>';
     }
@@ -1479,6 +1480,16 @@ function protocoleHTML(){
 // la même chose partout. En phase 2, l'assiette sans glucides est celle du
 // SOIR uniquement — sa légende d'origine, « midi et soir », venait de la
 // phase 3 et n'avait aucun sens ici. La légende se donne donc au cas par cas.
+// 26/11 · Akli : jour OFF, le midi montrait l'assiette à 3 parts (avec glucides)
+// alors que la règle dit P + F. L'image suit maintenant la règle du repas,
+// celle de la pastille : P + F → sans glucides · GB → glucides bas · G → 1/3 glucides.
+function assietteDuRepas(rule){
+  var t=String((rule&&rule.txt)||"").toUpperCase().replace(/\s/g,"");
+  var parts=t.split("+");
+  if(parts.indexOf("GB")>=0)return "soir";
+  if(parts.indexOf("G")>=0)return "midi";
+  return "sg";
+}
 function assietteHTML(k,titre,desc){
   var A=ASSIETTES[k]; if(!A)return "";
   var t=titre||A.t, d=desc||A.d;
@@ -1798,7 +1809,7 @@ function bindMain(){
 // en arrière-plan. Sans ce contrôle, la cliente voyait l'ancien menu jusqu'à
 // la réouverture suivante. On relit la page quelques secondes après
 // l'ouverture : si la version a changé, on recharge une seule fois.
-var MENU_VERSION="19/11 - Reset fermé";
+var MENU_VERSION="26/11 - Assiette OFF corrigée";
 (function(){
   function verifier(){
     try{

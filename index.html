@@ -1358,7 +1358,7 @@ var DAY_SHORT=["L","M","M","J","V","S","D"];
 // 🏷️ Version affichée en bas de l'accueil. Sert à trancher en une seconde
 // la question « est-ce que j'ai bien la dernière version ? » — sans ça,
 // impossible de distinguer un bug d'un fichier pas rechargé.
-var APP_VERSION = "25/11 - Rééquilibrage sur demande";
+var APP_VERSION = "26/11 - Valider ma journée";
 try{console.log("DISCIPLINE 90 — version "+APP_VERSION);}catch(e){}
 // 22/11 · couleurs FIXES, jamais celles du thème : « KO » prenait la couleur
 // du client (vert pour un thème vert) au lieu du rouge.
@@ -9208,6 +9208,17 @@ function viewDay(name,start){
         '<button id="bilan-save" class="big-btn">'+(state.blEdit!=null?'Mettre à jour ✓':'Enregistrer ✓')+'</button>';
     }
   }
+  // ✅ 26/11 · une cliente ne savait pas si sa journée « comptait » : bouton
+  // final. Tout est déjà enregistré pendant la saisie ; le bouton (ou la flèche
+  // retour) le confirme et marque la journée validée.
+  if(!IS_COACH){
+    var __v=(allData[idx]||{}).valide;
+    h+='<div style="padding:6px 2px 30px">'+
+      (__v?'<div style="text-align:center;font-size:12px;font-weight:800;color:#16A34A;margin-bottom:8px">✅ Journée validée le '+isoVersFr(String(__v).slice(0,10))+' à '+String(__v).slice(11,16)+' · tu peux encore la modifier</div>':'')+
+      '<button id="day-valider" style="width:100%;padding:17px 0;border:0;border-radius:16px;background:linear-gradient(135deg,#16A34A,#22C55E);color:#fff;font-weight:900;font-size:16px;font-family:inherit;box-shadow:0 8px 20px rgba(22,163,74,.28);cursor:pointer">'+
+      (__v?'✅ Revalider ma journée':'✅ Valider ma journée')+'</button>'+
+      '<div style="text-align:center;font-size:11.5px;color:var(--mute);margin-top:8px;font-weight:600">Tout est enregistré au fur et à mesure, même si tu quittes la page.</div></div>';
+  }
   return h+'</div></div>';
 }
 
@@ -9507,7 +9518,28 @@ function bindDay(name,start){
     if(badge){badge.style.display="inline";setTimeout(function(){if(badge)badge.style.display="none";},1500);}
   }
 
-  document.getElementById("day-back").addEventListener("click",function(){state.selDay=null;state.showBilan=false;render();});
+  // ✅ Valider ma journée : bouton ou flèche retour, les deux enregistrent et valident.
+  function journeeRemplie(){var d=cur(),h=d.habits||{};for(var k in h)if(h[k])return true;
+    var m=d.mindset||{};return !!(d.poids||d.sommeil||d.mental!=null||d.energie!=null||m.fier||m.positif||m.negatif);}
+  function validerJournee(){
+    try{if(typeof saveMindset==="function")saveMindset();}catch(e){}
+    try{var a=document.activeElement;if(a&&a.blur)a.blur();}catch(e){}
+    if(!journeeRemplie())return false;
+    var t=new Date();persist({valide:isoLocal(t)+"T"+("0"+t.getHours()).slice(-2)+":"+("0"+t.getMinutes()).slice(-2)});
+    return true;
+  }
+  document.getElementById("day-back").addEventListener("click",function(){
+    var ok=validerJournee();
+    state.selDay=null;state.showBilan=false;render();
+    if(ok)feedback("✅ Journée enregistrée","ok");
+  });
+  var dv=document.getElementById("day-valider");
+  if(dv)dv.addEventListener("click",function(){
+    if(!validerJournee()){feedback("Coche au moins une habitude avant de valider 🙂","undo");return;}
+    state.selDay=null;state.showBilan=false;render();
+    feedback("✅ Journée validée et enregistrée","win");
+    try{window.scrollTo(0,0);}catch(e){}
+  });
 
   // ⚖️ 25/11 · Akli : un client a enregistré « 8 kg ». Un poids impossible n'est
   // plus enregistré : message sous la case, rien n'est gardé tant que le chiffre
